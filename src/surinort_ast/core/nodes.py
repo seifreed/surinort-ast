@@ -504,6 +504,82 @@ class FilestoreOption(Option):
     scope: str | None = None
 
 
+class DepthOption(Option):
+    """
+    depth:N; - Limits pattern match to N bytes from start of buffer.
+
+    Attributes:
+        value: Number of bytes to search
+    """
+
+    value: int = Field(ge=0)
+
+
+class OffsetOption(Option):
+    """
+    offset:N; - Skip N bytes before starting pattern match.
+
+    Attributes:
+        value: Number of bytes to skip
+    """
+
+    value: int = Field(ge=0)
+
+
+class DistanceOption(Option):
+    """
+    distance:N; - Match must occur N bytes after previous match.
+
+    Attributes:
+        value: Distance in bytes (can be negative)
+    """
+
+    value: int
+
+
+class WithinOption(Option):
+    """
+    within:N; - Match must occur within N bytes of previous match.
+
+    Attributes:
+        value: Maximum distance in bytes
+    """
+
+    value: int = Field(ge=0)
+
+
+class NocaseOption(Option):
+    """
+    nocase; - Case-insensitive pattern matching.
+    """
+
+    pass
+
+
+class RawbytesOption(Option):
+    """
+    rawbytes; - Match on raw packet data (Snort 2.x).
+    """
+
+    pass
+
+
+class StartswithOption(Option):
+    """
+    startswith; - Pattern must match at start of buffer (Suricata).
+    """
+
+    pass
+
+
+class EndswithOption(Option):
+    """
+    endswith; - Pattern must match at end of buffer (Suricata).
+    """
+
+    pass
+
+
 class GenericOption(Option):
     """
     Fallback for unknown/custom options.
@@ -583,5 +659,13 @@ RuleOption = Union[
     FastPatternOption,
     TagOption,
     FilestoreOption,
+    DepthOption,
+    OffsetOption,
+    DistanceOption,
+    WithinOption,
+    NocaseOption,
+    RawbytesOption,
+    StartswithOption,
+    EndswithOption,
     GenericOption,
 ]

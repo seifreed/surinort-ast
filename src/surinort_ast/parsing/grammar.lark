@@ -16,7 +16,7 @@ rule: action header "(" options ")" ";"?
 
 action: "alert" -> alert
       | "log" -> log
-      | "pass" -> pass
+      | "pass" -> pass_
       | "drop" -> drop
       | "reject" -> reject
       | "sdrop" -> sdrop
@@ -145,11 +145,11 @@ gid_option: "gid" ":" INT
 classtype_option: "classtype" ":" WORD
 priority_option: "priority" ":" INT
 reference_option: "reference" ":" WORD "," reference_id
-reference_id: WORD | INT | /[a-zA-Z0-9_.-]+/
+reference_id: WORD | INT | /[a-zA-Z0-9_.\/:-]+/
 
 // Metadata
 metadata_option: "metadata" ":" metadata_entry ("," metadata_entry)*
-metadata_entry: WORD WORD
+metadata_entry: WORD (METADATA_VALUE | WORD | INT)
 
 // Content matching
 content_option: "content" ":" content_value
@@ -189,7 +189,7 @@ startswith_option: "startswith"
 endswith_option: "endswith"
 
 // Byte operations
-isdataat_option: "isdataat" ":" INT ("," WORD)?
+isdataat_option: "isdataat" ":" "!"? INT ("," WORD)?
 
 byte_test_option: "byte_test" ":" byte_test_params
 byte_test_params: INT "," WORD "," INT "," INT ("," WORD)*
@@ -251,6 +251,9 @@ HEX_STRING: /\|(?:[0-9a-fA-F]{2}\s*)+\|/
 PCRE_PATTERN: /\/(?:[^\/\\]|\\.)*\/[a-zA-Z]*/
 
 // Numbers and words
+// METADATA_VALUE accepts alphanumeric strings starting with digits (e.g., 2025_01_15)
+// Must come before INT to match correctly
+METADATA_VALUE: /\d[a-zA-Z0-9_.-]+/
 INT: /\d+/
 // WORD must come after IP addresses to avoid conflicts
 WORD: /[a-zA-Z_][a-zA-Z0-9_.-]*/

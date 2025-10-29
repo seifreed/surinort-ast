@@ -40,6 +40,9 @@ from ..core.nodes import (
     ClasstypeOption,
     ContentModifier,
     ContentOption,
+    DepthOption,
+    DistanceOption,
+    EndswithOption,
     FastPatternOption,
     FilestoreOption,
     FlowbitsOption,
@@ -52,6 +55,8 @@ from ..core.nodes import (
     IPRange,
     MetadataOption,
     MsgOption,
+    NocaseOption,
+    OffsetOption,
     PcreOption,
     Port,
     PortList,
@@ -59,10 +64,13 @@ from ..core.nodes import (
     PortRange,
     PortVariable,
     PriorityOption,
+    RawbytesOption,
     ReferenceOption,
     RevOption,
     Rule,
     SidOption,
+    StartswithOption,
+    WithinOption,
 )
 
 logger = logging.getLogger(__name__)
@@ -694,9 +702,11 @@ class RuleTransformer(Transformer[Token, Any]):
         return MetadataOption(entries=entries)
 
     def metadata_entry(self, items: Sequence[Token]) -> tuple[str, str]:
-        """Transform metadata entry: key value"""
+        """Transform metadata entry: key value (value can be METADATA_VALUE, WORD, or INT)"""
         if len(items) >= 2:
-            return (str(items[0].value), str(items[1].value))
+            key = str(items[0].value)
+            value = str(items[1].value)
+            return (key, value)
         return ("", "")
 
     @v_args(inline=True)
@@ -857,41 +867,41 @@ class RuleTransformer(Transformer[Token, Any]):
 
         return FastPatternOption(offset=offset, length=length)
 
-    def nocase_option(self, _: Any) -> ContentModifier:
+    def nocase_option(self, _: Any) -> NocaseOption:
         """Transform nocase modifier"""
-        return ContentModifier(name=ContentModifierType.NOCASE)
+        return NocaseOption()
 
-    def rawbytes_option(self, _: Any) -> ContentModifier:
+    def rawbytes_option(self, _: Any) -> RawbytesOption:
         """Transform rawbytes modifier"""
-        return ContentModifier(name=ContentModifierType.RAWBYTES)
+        return RawbytesOption()
 
     @v_args(inline=True)
-    def depth_option(self, depth_token: Token) -> ContentModifier:
+    def depth_option(self, depth_token: Token) -> DepthOption:
         """Transform depth:N modifier"""
-        return ContentModifier(name=ContentModifierType.DEPTH, value=int(depth_token.value))
+        return DepthOption(value=int(depth_token.value))
 
     @v_args(inline=True)
-    def offset_option(self, offset_token: Token) -> ContentModifier:
+    def offset_option(self, offset_token: Token) -> OffsetOption:
         """Transform offset:N modifier"""
-        return ContentModifier(name=ContentModifierType.OFFSET, value=int(offset_token.value))
+        return OffsetOption(value=int(offset_token.value))
 
     @v_args(inline=True)
-    def distance_option(self, distance_token: Token) -> ContentModifier:
+    def distance_option(self, distance_token: Token) -> DistanceOption:
         """Transform distance:N modifier"""
-        return ContentModifier(name=ContentModifierType.DISTANCE, value=int(distance_token.value))
+        return DistanceOption(value=int(distance_token.value))
 
     @v_args(inline=True)
-    def within_option(self, within_token: Token) -> ContentModifier:
+    def within_option(self, within_token: Token) -> WithinOption:
         """Transform within:N modifier"""
-        return ContentModifier(name=ContentModifierType.WITHIN, value=int(within_token.value))
+        return WithinOption(value=int(within_token.value))
 
-    def startswith_option(self, _: Any) -> ContentModifier:
+    def startswith_option(self, _: Any) -> StartswithOption:
         """Transform startswith modifier"""
-        return ContentModifier(name=ContentModifierType.STARTSWITH)
+        return StartswithOption()
 
-    def endswith_option(self, _: Any) -> ContentModifier:
+    def endswith_option(self, _: Any) -> EndswithOption:
         """Transform endswith modifier"""
-        return ContentModifier(name=ContentModifierType.ENDSWITH)
+        return EndswithOption()
 
     # Byte operations
 
