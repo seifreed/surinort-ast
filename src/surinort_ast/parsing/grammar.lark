@@ -1,0 +1,266 @@
+// Suricata/Snort IDS rule grammar
+// Licensed under GNU General Public License v3.0
+// Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
+
+// Start rule: file with multiple rules
+?start: rule_file
+
+rule_file: (rule | comment | NEWLINE)*
+
+// Rule structure: action protocol addr port direction addr port ( options )
+rule: action header "(" options ")" ";"?
+
+// ============================================================================
+// Header
+// ============================================================================
+
+action: "alert" -> alert
+      | "log" -> log
+      | "pass" -> pass
+      | "drop" -> drop
+      | "reject" -> reject
+      | "sdrop" -> sdrop
+
+header: protocol address port direction address port
+
+protocol: "tcp" -> tcp
+        | "udp" -> udp
+        | "icmp" -> icmp
+        | "ip" -> ip
+        | "http" -> http
+        | "http2" -> http2
+        | "dns" -> dns
+        | "tls" -> tls
+        | "ssh" -> ssh
+        | "ftp" -> ftp
+        | "ftp-data" -> ftp_data
+        | "smb" -> smb
+        | "smtp" -> smtp
+        | "imap" -> imap
+        | "dcerpc" -> dcerpc
+        | "dhcp" -> dhcp
+        | "nfs" -> nfs
+        | "sip" -> sip
+        | "rdp" -> rdp
+        | "mqtt" -> mqtt
+        | "modbus" -> modbus
+        | "dnp3" -> dnp3
+        | "enip" -> enip
+        | "ike" -> ike
+        | "krb5" -> krb5
+        | "ntp" -> ntp
+        | "snmp" -> snmp
+        | "tftp" -> tftp
+
+direction: "->" -> to
+         | "<-" -> from_dir
+         | "<>" -> bidirectional
+
+// ============================================================================
+// Address Expressions
+// ============================================================================
+
+?address: address_any
+        | address_var
+        | address_negation
+        | address_list
+        | address_cidr
+        | address_range
+        | address_ip
+
+address_any: "any"
+address_var: VARIABLE
+address_negation: "!" address
+address_list: "[" address ("," address)* "]"
+address_cidr: IPV4 "/" INT  -> ipv4_cidr
+            | IPV6 "/" INT  -> ipv6_cidr
+address_range: "[" address_ip "-" address_ip "]"
+address_ip: IPV4 | IPV6
+
+// ============================================================================
+// Port Expressions
+// ============================================================================
+
+?port: port_any
+     | port_var
+     | port_negation
+     | port_list
+     | port_range
+     | port_single
+
+port_any: "any"
+port_var: VARIABLE
+port_negation: "!" port
+port_list: "[" port_elem ("," port_elem)* "]"
+port_elem: port_range | port_single
+port_range: INT ":" INT
+port_single: INT
+
+// ============================================================================
+// Options
+// ============================================================================
+
+options: option (";" option)* ";"?
+
+?option: msg_option
+       | sid_option
+       | rev_option
+       | gid_option
+       | classtype_option
+       | priority_option
+       | reference_option
+       | metadata_option
+       | content_option
+       | uricontent_option
+       | pcre_option
+       | flow_option
+       | flowbits_option
+       | flowint_option
+       | threshold_option
+       | detection_filter_option
+       | fast_pattern_option
+       | nocase_option
+       | rawbytes_option
+       | depth_option
+       | offset_option
+       | distance_option
+       | within_option
+       | startswith_option
+       | endswith_option
+       | isdataat_option
+       | byte_test_option
+       | byte_jump_option
+       | byte_extract_option
+       | byte_math_option
+       | buffer_select_option
+       | tag_option
+       | filestore_option
+       | generic_option
+
+// Basic options
+msg_option: "msg" ":" QUOTED_STRING
+sid_option: "sid" ":" INT
+rev_option: "rev" ":" INT
+gid_option: "gid" ":" INT
+classtype_option: "classtype" ":" WORD
+priority_option: "priority" ":" INT
+reference_option: "reference" ":" WORD "," reference_id
+reference_id: WORD | INT | /[a-zA-Z0-9_.-]+/
+
+// Metadata
+metadata_option: "metadata" ":" metadata_entry ("," metadata_entry)*
+metadata_entry: WORD WORD
+
+// Content matching
+content_option: "content" ":" content_value
+uricontent_option: "uricontent" ":" content_value
+content_value: QUOTED_STRING | HEX_STRING
+
+// PCRE
+pcre_option: "pcre" ":" (PCRE_PATTERN | QUOTED_STRING)
+
+// Flow
+flow_option: "flow" ":" flow_value ("," flow_value)*
+flow_value: WORD
+
+flowbits_option: "flowbits" ":" flowbits_action
+flowbits_action: WORD ("," WORD)?
+
+flowint_option: "flowint" ":" WORD "," WORD ("," INT)?
+
+// Threshold and detection filter
+threshold_option: "threshold" ":" threshold_params
+threshold_params: threshold_param ("," threshold_param)*
+threshold_param: WORD (WORD | INT)
+
+detection_filter_option: "detection_filter" ":" detection_params
+detection_params: detection_param ("," detection_param)*
+detection_param: WORD INT
+
+// Content modifiers
+fast_pattern_option: "fast_pattern" (":" INT "," INT)?
+nocase_option: "nocase"
+rawbytes_option: "rawbytes"
+depth_option: "depth" ":" INT
+offset_option: "offset" ":" INT
+distance_option: "distance" ":" INT
+within_option: "within" ":" INT
+startswith_option: "startswith"
+endswith_option: "endswith"
+
+// Byte operations
+isdataat_option: "isdataat" ":" INT ("," WORD)?
+
+byte_test_option: "byte_test" ":" byte_test_params
+byte_test_params: INT "," WORD "," INT "," INT ("," WORD)*
+
+byte_jump_option: "byte_jump" ":" byte_jump_params
+byte_jump_params: INT "," INT ("," WORD)*
+
+byte_extract_option: "byte_extract" ":" byte_extract_params
+byte_extract_params: INT "," INT "," WORD ("," WORD)*
+
+byte_math_option: "byte_math" ":" byte_math_params
+byte_math_params: WORD WORD ("," WORD)*
+
+// Sticky buffers
+buffer_select_option: buffer_name
+buffer_name: "http_uri"
+           | "http_header"
+           | "http_header_names"
+           | "http_method"
+           | "http_cookie"
+           | "http_user_agent"
+           | "http_host"
+           | "http_raw_uri"
+           | "http_stat_msg"
+           | "http_stat_code"
+           | "file_data"
+           | "pkt_data"
+           | "dns_query"
+           | "tls_sni"
+           | "tls_cert_subject"
+           | "tls_cert_issuer"
+           | "ssh_proto"
+           | "ssh_software"
+
+// Tag and filestore
+tag_option: "tag" ":" tag_params
+tag_params: WORD ("," INT)* ("," WORD)?
+
+filestore_option: "filestore" (":" filestore_params)?
+filestore_params: WORD ("," WORD)?
+
+// Generic fallback for unknown options
+generic_option: WORD (":" option_value)?
+option_value: QUOTED_STRING | HEX_STRING | INT | WORD | PCRE_PATTERN
+
+// ============================================================================
+// Terminals
+// ============================================================================
+
+// Comments
+comment: /#[^\n]*/
+
+// Variables
+VARIABLE: "$" /[A-Z_][A-Z0-9_]*/
+
+// IP Addresses (must come before WORD to avoid conflicts)
+IPV4: /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
+// IPv6: require at least one colon to distinguish from simple words
+IPV6: /[0-9a-fA-F]*:[0-9a-fA-F:]+/
+
+// Strings
+QUOTED_STRING: /"(?:[^"\\]|\\.)*"/
+HEX_STRING: /\|(?:[0-9a-fA-F]{2}\s*)+\|/
+PCRE_PATTERN: /\/(?:[^\/\\]|\\.)*\/[a-zA-Z]*/
+
+// Numbers and words
+INT: /\d+/
+// WORD must come after IP addresses to avoid conflicts
+WORD: /[a-zA-Z_][a-zA-Z0-9_.-]*/
+
+// Whitespace and newlines
+%import common.WS
+%import common.NEWLINE
+%ignore WS

@@ -1,0 +1,587 @@
+"""
+AST Node Definitions for Surinort-AST v1.0
+
+This module defines the complete Abstract Syntax Tree for Suricata and Snort IDS rules.
+All nodes are immutable Pydantic v2 models with full type safety.
+
+Licensed under GNU General Public License v3.0
+Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Literal, Union
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from .diagnostics import Diagnostic
+from .enums import (
+    Action,
+    ContentModifierType,
+    Dialect,
+    Direction,
+    FlowDirection,
+    FlowState,
+    Protocol,
+)
+from .location import Location
+
+# ============================================================================
+# Base Node
+# ============================================================================
+
+
+class ASTNode(BaseModel):
+    """
+    Base class for all AST nodes.
+
+    All nodes are immutable, validated Pydantic models with:
+    - Structural typing with full type hints
+    - Automatic validation
+    - JSON serialization support
+    - Optional location tracking
+    """
+
+    model_config = ConfigDict(
+        frozen=True,  # Immutable
+        extra="forbid",  # Strict schema
+        use_enum_values=False,
+        validate_assignment=True,
+    )
+
+    location: Location | None = None
+    comments: Sequence[str] = Field(default_factory=list)
+
+    @property
+    def node_type(self) -> str:
+        """Get the node type name."""
+        return self.__class__.__name__
+
+
+# ============================================================================
+# Rule Structure
+# ============================================================================
+
+
+class SourceOrigin(BaseModel):
+    """
+    Metadata about rule origin.
+
+    Attributes:
+        file_path: Source file path
+        line_number: Line number in file
+        rule_id: SID if available
+    """
+
+    file_path: str | None = None
+    line_number: int | None = Field(None, ge=1)
+    rule_id: str | None = None
+
+
+class Header(ASTNode):
+    """
+    Rule header: protocol src_addr src_port direction dst_addr dst_port
+
+    Example:
+        tcp any any -> any 80
+    """
+
+    protocol: Protocol
+    src_addr: AddressExpr
+    src_port: PortExpr
+    direction: Direction
+    dst_addr: AddressExpr
+    dst_port: PortExpr
+
+
+class Rule(ASTNode):
+    """
+    Top-level rule node.
+
+    Example:
+        alert tcp any any -> any 80 (msg:"HTTP Traffic"; sid:1000001; rev:1;)
+    """
+
+    action: Action
+    header: Header
+    options: Sequence[Option]
+    dialect: Dialect = Dialect.SURICATA
+
+    # Metadata
+    origin: SourceOrigin | None = None
+    diagnostics: Sequence[Diagnostic] = Field(default_factory=list)
+    raw_text: str | None = None  # Original rule text
+
+
+# ============================================================================
+# Address Expressions
+# ============================================================================
+
+
+class AddressExpr(ASTNode):
+    """Base for address expressions."""
+
+    pass
+
+
+class IPAddress(AddressExpr):
+    """Single IP: 192.168.1.1 or 2001:db8::1"""
+
+    value: str
+    version: Literal[4, 6]
+
+
+class IPCIDRRange(AddressExpr):
+    """CIDR range: 10.0.0.0/8"""
+
+    network: str
+    prefix_len: int = Field(ge=0, le=128)
+
+
+class IPRange(AddressExpr):
+    """Explicit range: [10.0.0.1-10.0.0.255]"""
+
+    start: str
+    end: str
+
+
+class AddressVariable(AddressExpr):
+    """Variable reference: $HOME_NET"""
+
+    name: str
+
+
+class AddressNegation(AddressExpr):
+    """Negation: !192.168.1.1"""
+
+    expr: AddressExpr
+
+
+class AddressList(AddressExpr):
+    """List: [192.168.1.0/24,10.0.0.0/8]"""
+
+    elements: Sequence[AddressExpr]
+
+
+class AnyAddress(AddressExpr):
+    """Wildcard: any"""
+
+    pass
+
+
+# ============================================================================
+# Port Expressions
+# ============================================================================
+
+
+class PortExpr(ASTNode):
+    """Base for port expressions."""
+
+    pass
+
+
+class Port(PortExpr):
+    """Single port: 80"""
+
+    value: int = Field(ge=0, le=65535)
+
+
+class PortRange(PortExpr):
+    """Port range: 1024:65535"""
+
+    start: int = Field(ge=0, le=65535)
+    end: int = Field(ge=0, le=65535)
+
+    @field_validator("end")
+    @classmethod
+    def validate_range(cls, v: int, info) -> int:
+        """Ensure end >= start."""
+        if "start" in info.data and v < info.data["start"]:
+            raise ValueError(f"Port range end ({v}) must be >= start ({info.data['start']})")
+        return v
+
+
+class PortVariable(PortExpr):
+    """Variable: $HTTP_PORTS"""
+
+    name: str
+
+
+class PortNegation(PortExpr):
+    """Negation: !80"""
+
+    expr: PortExpr
+
+
+class PortList(PortExpr):
+    """List: [80,443,8080:8090]"""
+
+    elements: Sequence[PortExpr]
+
+
+class AnyPort(PortExpr):
+    """Wildcard: any"""
+
+    pass
+
+
+# ============================================================================
+# Content Modifiers
+# ============================================================================
+
+
+class ContentModifier(BaseModel):
+    """
+    Modifier for content matching.
+
+    Examples:
+        - nocase (no value)
+        - offset:10 (int value)
+        - fast_pattern:10,20 (string value)
+    """
+
+    name: ContentModifierType
+    value: int | str | None = None
+
+
+# ============================================================================
+# Options (Rule Options)
+# ============================================================================
+
+
+class Option(ASTNode):
+    """Base class for rule options."""
+
+    pass
+
+
+class MsgOption(Option):
+    """msg:"alert text";"""
+
+    text: str
+
+
+class SidOption(Option):
+    """sid:1000001;"""
+
+    value: int = Field(ge=1)
+
+
+class RevOption(Option):
+    """rev:1;"""
+
+    value: int = Field(ge=1)
+
+
+class GidOption(Option):
+    """gid:1;"""
+
+    value: int = Field(ge=1)
+
+
+class ClasstypeOption(Option):
+    """classtype:trojan-activity;"""
+
+    value: str
+
+
+class PriorityOption(Option):
+    """priority:1;"""
+
+    value: int = Field(ge=1, le=4)
+
+
+class ReferenceOption(Option):
+    """
+    reference:cve,2021-12345;
+
+    Attributes:
+        ref_type: Reference system (cve, bugtraq, url, etc.)
+        ref_id: Reference identifier
+    """
+
+    ref_type: str
+    ref_id: str
+
+
+class MetadataOption(Option):
+    """
+    metadata:key1 value1, key2 value2;
+
+    Attributes:
+        entries: List of (key, value) tuples
+    """
+
+    entries: Sequence[tuple[str, str]]
+
+
+class ContentOption(Option):
+    """
+    content:"GET"; nocase; offset:0; depth:10;
+
+    Attributes:
+        pattern: Raw bytes pattern
+        modifiers: List of content modifiers
+    """
+
+    pattern: bytes
+    modifiers: Sequence[ContentModifier] = Field(default_factory=list)
+
+
+class PcreOption(Option):
+    """
+    pcre:"/pattern/flags";
+
+    Attributes:
+        pattern: Regular expression pattern
+        flags: PCRE flags (i, s, m, x, etc.)
+    """
+
+    pattern: str
+    flags: str = ""
+
+
+class FlowOption(Option):
+    """
+    flow:established,to_server;
+
+    Attributes:
+        directions: Flow directions (to_client, to_server, etc.)
+        states: Flow states (established, stateless, etc.)
+    """
+
+    directions: Sequence[FlowDirection] = Field(default_factory=list)
+    states: Sequence[FlowState] = Field(default_factory=list)
+
+
+class FlowbitsOption(Option):
+    """
+    flowbits:set,name; flowbits:isset,name;
+
+    Attributes:
+        action: set, isset, toggle, unset, isnotset, noalert
+        name: Flowbit name
+    """
+
+    action: str
+    name: str
+
+
+class ThresholdOption(Option):
+    """
+    threshold:type limit,track by_src,count 10,seconds 60;
+
+    Attributes:
+        threshold_type: limit, threshold, both
+        track: by_src, by_dst
+        count: Event count
+        seconds: Time window
+    """
+
+    threshold_type: str
+    track: str
+    count: int = Field(ge=1)
+    seconds: int = Field(ge=1)
+
+
+class DetectionFilterOption(Option):
+    """
+    detection_filter:track by_src,count 10,seconds 60;
+
+    Similar to threshold but applies before rule action.
+    """
+
+    track: str
+    count: int = Field(ge=1)
+    seconds: int = Field(ge=1)
+
+
+class BufferSelectOption(Option):
+    """
+    Sticky buffer selection options.
+
+    Examples:
+        - http_uri
+        - http_header
+        - file_data
+        - dns_query
+        - tls.sni
+    """
+
+    buffer_name: str
+
+
+class ByteTestOption(Option):
+    """
+    byte_test:4,>,1000,0;
+
+    Attributes:
+        bytes_to_extract: Number of bytes
+        operator: Comparison operator (>, <, =, etc.)
+        value: Value to compare against
+        offset: Offset from cursor
+        flags: Additional flags
+    """
+
+    bytes_to_extract: int = Field(ge=1, le=10)
+    operator: str
+    value: int
+    offset: int
+    flags: Sequence[str] = Field(default_factory=list)
+
+
+class ByteJumpOption(Option):
+    """
+    byte_jump:4,0,relative;
+
+    Attributes:
+        bytes_to_extract: Number of bytes
+        offset: Offset adjustment
+        flags: Additional flags
+    """
+
+    bytes_to_extract: int = Field(ge=1, le=10)
+    offset: int
+    flags: Sequence[str] = Field(default_factory=list)
+
+
+class ByteExtractOption(Option):
+    """
+    byte_extract:4,0,var_name;
+
+    Attributes:
+        bytes_to_extract: Number of bytes
+        offset: Offset from cursor
+        var_name: Variable name
+        flags: Additional flags
+    """
+
+    bytes_to_extract: int = Field(ge=1, le=10)
+    offset: int
+    var_name: str
+    flags: Sequence[str] = Field(default_factory=list)
+
+
+class FastPatternOption(Option):
+    """
+    fast_pattern; fast_pattern:10,20;
+
+    Attributes:
+        offset: Optional offset
+        length: Optional length
+    """
+
+    offset: int | None = None
+    length: int | None = None
+
+
+class TagOption(Option):
+    """
+    tag:session,10,packets;
+
+    Attributes:
+        tag_type: session, host
+        count: Count value
+        metric: packets, seconds, bytes
+    """
+
+    tag_type: str
+    count: int
+    metric: str
+
+
+class FilestoreOption(Option):
+    """
+    filestore;
+
+    Attributes:
+        direction: Optional direction (request, response, both)
+        scope: Optional scope (file, stream)
+    """
+
+    direction: str | None = None
+    scope: str | None = None
+
+
+class GenericOption(Option):
+    """
+    Fallback for unknown/custom options.
+
+    Preserves original text for options not explicitly supported.
+    """
+
+    keyword: str
+    value: str | None = None
+    raw: str  # Original text
+
+
+# ============================================================================
+# Error Nodes (for error recovery)
+# ============================================================================
+
+
+class ErrorNode(ASTNode):
+    """
+    Represents a parse error within the AST.
+
+    Used for error recovery to maintain partial AST structure.
+    """
+
+    error_type: str
+    message: str
+    recovered_text: str | None = None
+    expected: Sequence[str] | None = None
+    actual: str | None = None
+
+
+# ============================================================================
+# Type Aliases
+# ============================================================================
+
+# All possible address expression types
+AddressExpression = Union[
+    IPAddress,
+    IPCIDRRange,
+    IPRange,
+    AddressVariable,
+    AddressNegation,
+    AddressList,
+    AnyAddress,
+]
+
+# All possible port expression types
+PortExpression = Union[
+    Port,
+    PortRange,
+    PortVariable,
+    PortNegation,
+    PortList,
+    AnyPort,
+]
+
+# All possible option types
+RuleOption = Union[
+    MsgOption,
+    SidOption,
+    RevOption,
+    GidOption,
+    ClasstypeOption,
+    PriorityOption,
+    ReferenceOption,
+    MetadataOption,
+    ContentOption,
+    PcreOption,
+    FlowOption,
+    FlowbitsOption,
+    ThresholdOption,
+    DetectionFilterOption,
+    BufferSelectOption,
+    ByteTestOption,
+    ByteJumpOption,
+    ByteExtractOption,
+    FastPatternOption,
+    TagOption,
+    FilestoreOption,
+    GenericOption,
+]

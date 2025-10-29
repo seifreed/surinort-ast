@@ -1,0 +1,208 @@
+# MkDocs Configuration for surisnort-ast
+
+site_name: surisnort-ast Documentation
+site_description: A formal parser and AST for Suricata/Snort IDS/IPS rules
+site_author: Marc Rivero López
+site_url: https://surisnort-ast.readthedocs.io/
+
+# Repository
+repo_name: mrivero/surisnort-ast
+repo_url: https://github.com/mrivero/surisnort-ast
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2025 Marc Rivero López. Licensed under GPLv3.
+
+# Theme
+theme:
+  name: material
+  language: en
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+    admonition:
+      note: octicons/tag-16
+      abstract: octicons/checklist-16
+      info: octicons/info-16
+      tip: octicons/squirrel-16
+      success: octicons/check-16
+      question: octicons/question-16
+      warning: octicons/alert-16
+      failure: octicons/x-circle-16
+      danger: octicons/zap-16
+      bug: octicons/bug-16
+      example: octicons/beaker-16
+      quote: octicons/quote-16
+
+# Extensions
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - tables
+
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Plugins
+plugins:
+  - search:
+      lang: en
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+  - minify:
+      minify_html: true
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_object_full_path: false
+            show_category_heading: true
+            show_if_no_docstring: false
+            show_signature_annotations: true
+            separate_signature: true
+            line_length: 100
+
+# Navigation
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quickstart: user-guide/quickstart.md
+    - Examples: getting-started/examples.md
+
+  - User Guide:
+    - Quickstart: user-guide/quickstart.md
+    - CLI Usage: user-guide/cli-usage.md
+    - Library Usage: user-guide/library-usage.md
+    - Pattern Cookbook: user-guide/cookbook.md
+    - Suricata/Snort Equivalences: user-guide/dialect-equivalences.md
+
+  - Technical Documentation:
+    - Architecture Overview: ARCHITECTURE.md
+    - Grammar Specification: GRAMMAR.md
+    - AST Specification: AST_SPEC.md
+    - Parser Implementation: technical/parser-implementation.md
+    - AST Node Reference: technical/ast-nodes.md
+    - Extending the AST: technical/extending-ast.md
+    - Testing Strategy: technical/testing-strategy.md
+
+  - API Reference:
+    - Overview: API_REFERENCE.md
+    - Core Functions: api/core.md
+    - AST Nodes: api/nodes.md
+    - Parser API: api/parser.md
+    - Serializer API: api/serializer.md
+    - Validator API: api/validator.md
+    - Utilities: api/utils.md
+
+  - Contributing:
+    - Contributing Guide: CONTRIBUTING.md
+    - Code of Conduct: contributing/code-of-conduct.md
+    - Development Setup: contributing/development.md
+    - Release Process: contributing/releases.md
+
+  - Project:
+    - Changelog: CHANGELOG.md
+    - License: license.md
+    - Roadmap: project/roadmap.md
+    - FAQ: project/faq.md
+
+# Extra
+extra:
+  version:
+    provider: mike
+    default: stable
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mrivero/surisnort-ast
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/surisnort-ast/
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX  # Replace with actual GA tracking ID
+  generator: false
+
+# Extra CSS
+extra_css:
+  - stylesheets/extra.css
+
+# Extra JavaScript
+extra_javascript:
+  - javascripts/extra.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# Watch additional files
+watch:
+  - surisnort_ast/

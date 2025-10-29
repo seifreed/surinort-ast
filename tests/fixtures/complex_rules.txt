@@ -1,0 +1,48 @@
+# Copyright (c) 2025 Marc Rivero López
+# Licensed under GPLv3.
+# Complex IDS rules for testing advanced parser functionality
+
+# Rule with content matching and modifiers
+alert tcp any any -> any 80 (msg:"HTTP GET Request"; content:"GET"; http.method; content:"/admin"; http.uri; nocase; depth:10; offset:0; sid:2000001; rev:1;)
+
+# Rule with PCRE
+alert tcp any any -> any 80 (msg:"SQL Injection Pattern"; content:"SELECT"; nocase; pcre:"/SELECT.*(FROM|UNION)/i"; sid:2000002; rev:1;)
+
+# Rule with flow and flowbits
+alert tcp any any -> any 80 (msg:"HTTP Session Start"; flow:established,to_server; flowbits:set,http.session; content:"POST"; http.method; sid:2000003; rev:1;)
+
+# Rule with multiple content matches
+alert tcp any any -> any 443 (msg:"TLS Malware C2"; flow:established,to_server; content:"|16 03|"; depth:2; content:"|01|"; distance:3; within:1; content:"malicious.com"; nocase; sid:2000004; rev:1;)
+
+# Rule with byte operations
+alert tcp any any -> any 80 (msg:"HTTP Length Check"; content:"|0d 0a 0d 0a|"; byte_test:4,>,1000,0; byte_jump:4,0,relative; sid:2000005; rev:1;)
+
+# Rule with sticky buffers
+alert http any any -> any any (msg:"Malicious User-Agent"; flow:established,to_server; http.user_agent; content:"Malware"; nocase; http.uri; content:"/download"; startswith; sid:2000006; rev:1;)
+
+# Rule with DNS query buffer
+alert dns any any -> any any (msg:"Suspicious DNS Query"; dns.query; content:"malicious.com"; nocase; endswith; sid:2000007; rev:1;)
+
+# Rule with TLS SNI
+alert tls any any -> any any (msg:"TLS SNI Malware Domain"; tls.sni; content:"evil.com"; nocase; sid:2000008; rev:1;)
+
+# Rule with metadata
+alert tcp any any -> any 80 (msg:"Malware Download"; content:"/malware.exe"; http.uri; classtype:trojan-activity; metadata:created_at 2025_01_15, updated_at 2025_01_20, severity high; sid:2000009; rev:2;)
+
+# Rule with threshold
+alert tcp any any -> any 22 (msg:"SSH Brute Force"; flow:established,to_server; threshold:type limit,track by_src,count 10,seconds 60; classtype:attempted-admin; sid:2000010; rev:1;)
+
+# Rule with fast_pattern
+alert tcp any any -> any 80 (msg:"Optimized Content Match"; content:"MALWARE"; fast_pattern:0,7; content:"signature"; distance:0; sid:2000011; rev:1;)
+
+# Rule with file_data buffer
+alert http any any -> any any (msg:"Malicious PDF"; flow:established,from_server; file_data; content:"%PDF-"; depth:5; content:"/JavaScript"; distance:0; sid:2000012; rev:1;)
+
+# Complex rule with multiple buffers and modifiers
+alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"CobaltStrike Malleable C2"; flow:established,to_server; http.method; content:"POST"; http.uri; pcre:"/^\/[a-z]{8,12}$/"; http.header; content:"Accept: */*"; content:"User-Agent: Mozilla/5.0"; classtype:trojan-activity; metadata:malware cobaltstrike, attack_target Client_Endpoint; reference:url,www.cobaltstrike.com; sid:2000013; rev:3;)
+
+# Rule with IP ranges and ports
+alert tcp [192.168.1.0/24,10.0.0.0/8] [80,443,8080:8090] -> $HOME_NET any (msg:"Suspicious Internal Traffic"; sid:2000014; rev:1;)
+
+# Rule with negation
+alert tcp !$HOME_NET any -> $HOME_NET any (msg:"External to Internal"; sid:2000015; rev:1;)

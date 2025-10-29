@@ -1,0 +1,166 @@
+# Copyright (c) Marc Rivero López
+# Licensed under GNU General Public License v3.0
+# See LICENSE file for full terms
+#
+# Documentation Build and Deployment Pipeline
+# Deploys MkDocs Material documentation to GitHub Pages
+
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '**.md'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '**.md'
+  workflow_dispatch:
+
+# Security: Restrict default permissions to read-only
+permissions:
+  contents: read
+
+# Cancel in-progress documentation builds
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Build documentation
+  build:
+    name: Build Documentation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871  # v4.2.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0  # Full history for git-revision-date-localized plugin
+
+      - name: Set up Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          pip install mkdocs-material==9.6.22
+
+      - name: Build documentation
+        run: |
+          mkdocs build --strict --verbose
+
+      - name: Verify documentation build
+        run: |
+          ls -lh site/
+          du -sh site/
+
+      - name: Upload documentation artifacts
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        with:
+          name: documentation
+          path: site/
+          retention-days: 7
+
+  # Deploy to GitHub Pages
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write  # Required to push to gh-pages branch
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871  # v4.2.1
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          pip install mkdocs-material==9.6.22
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        run: |
+          mkdocs gh-deploy --force --message "Deploy documentation from {sha}"
+
+  # Documentation link checker
+  link-check:
+    name: Check Documentation Links
+    needs: [build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871  # v4.2.1
+        with:
+          persist-credentials: false
+
+      - name: Download documentation artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16  # v4.1.8
+        with:
+          name: documentation
+          path: site/
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@7da8ec1fc4e01b5a12062ac6c589c10a4ce70d67  # v2.2.0
+        with:
+          args: '--verbose --no-progress --exclude-mail ./site'
+          fail: false  # Don't fail on broken links, just report
+
+  # Documentation success summary
+  docs-success:
+    name: Documentation Pipeline Success
+    needs: [build, deploy, link-check]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "Documentation build failed"
+            exit 1
+          fi
+          if [[ "${{ needs.deploy.result }}" != "success" ]]; then
+            echo "Documentation deployment failed"
+            exit 1
+          fi
+          echo "Documentation deployed successfully!"
+          echo "Visit: https://seifreed.github.io/surinort-ast/"

@@ -1,0 +1,5 @@
+alert tcp any any -> any any (option; option; option;)
+alert tcp any any -> any any (option; option; option;)
+alert tcp any any -> any any (option; option; option;)
+drop tcp any any -> any any (option; option; option;)
+alert udp any any -> any any (option; option; option;)

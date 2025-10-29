@@ -1,0 +1,12 @@
+# Python Environment Configuration
+# Copyright (C) Marc Rivero López
+# Licensed under GNU GPL v3
+# https://www.gnu.org/licenses/gpl-3.0.html
+
+# Production dependencies for surisnort-ast project
+# Python 3.14.0 required
+
+# Add your production dependencies here
+# Example:
+# requests==2.31.0
+# pyyaml==6.0.1

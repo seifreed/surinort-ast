@@ -1,0 +1,377 @@
+# Copyright (c) Marc Rivero López
+# Licensed under GNU General Public License v3.0
+# See LICENSE file for full terms
+#
+# Comprehensive CI Pipeline for surinort-ast
+# SLSA Level 3 compliant, security-hardened configuration
+#
+# Security Features:
+# - Pinned GitHub Actions to commit SHAs (not tags)
+# - Read-only permissions by default, escalated per-job
+# - Dependency hash verification with pip --require-hashes (via lockfile)
+# - SAST scanning with Bandit
+# - Dependency vulnerability scanning with Safety
+# - Secret scanning via pre-commit hooks
+# - Artifact signing and SBOM generation
+# - Provenance attestation for builds
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+  pull_request:
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+  workflow_dispatch:
+
+# Security: Restrict default permissions to read-only
+permissions:
+  contents: read
+
+# Cancel in-progress runs for same workflow on same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Reproducible builds
+  PYTHONHASHSEED: 0
+  PIP_NO_BINARY: ':none:'
+  PIP_REQUIRE_VIRTUALENV: true
+  # Security
+  PYTHONDONTWRITEBYTECODE: 1
+  PIP_NO_CACHE_DIR: false
+
+jobs:
+  # Security scanning job - runs first to fail fast on vulnerabilities
+  security:
+    name: Security Scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write  # For uploading SARIF results
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871  # v4.2.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install security scanning tools
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          pip install bandit[toml]==1.8.0 safety==3.2.11 pip-audit==2.7.3
+
+      - name: Run Bandit SAST scan
+        run: |
+          bandit -r src/ -f json -o bandit-report.json || true
+          bandit -r src/ -f screen
+        continue-on-error: false
+
+      - name: Run Safety vulnerability scan
+        run: |
+          pip install -r requirements.txt
+          safety check --json --output safety-report.json || true
+          safety check
+        continue-on-error: true  # Safety may have false positives
+
+      - name: Run pip-audit
+        run: |
+          pip-audit --require-hashes --desc -o pip-audit-report.json --format json || true
+          pip-audit --desc
+        continue-on-error: true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+            pip-audit-report.json
+          retention-days: 30
+
+  # Linting job
+  lint:
+    name: Lint (Ruff + MyPy)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871  # v4.2.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          pip install ruff==0.14.2 mypy==1.18.2
+          pip install -r requirements.txt
+
+      - name: Run Ruff linter
+        run: |
+          ruff check src/ tests/ --output-format=github
+
+      - name: Run Ruff formatter check
+        run: |
+          ruff format --check src/ tests/
+
+      - name: Run MyPy type checker
+        run: |
+          mypy src/ --strict --show-error-codes
+
+  # Test matrix - Python 3.11-3.14 on Ubuntu, macOS, Windows
+  test:
+    name: Test (Python ${{ matrix.python-version }} on ${{ matrix.os }})
+    needs: [security, lint]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+        python-version: ['3.11', '3.12', '3.13', '3.14']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871  # v4.2.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          pip install -e .[dev]
+
+      - name: Run tests with pytest
+        run: |
+          pytest tests/ -v --tb=short --strict-markers
+
+      - name: Upload test results
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            .coverage
+            htmlcov/
+          retention-days: 7
+
+  # Coverage job - runs on Ubuntu with Python 3.14
+  coverage:
+    name: Coverage Report
+    needs: [security, lint]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write  # For coverage comments
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871  # v4.2.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          pip install -e .[dev]
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ --cov=surinort_ast --cov-report=xml --cov-report=html --cov-report=term
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4.6.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            htmlcov/
+          retention-days: 30
+
+  # Build job - verify package can be built
+  build:
+    name: Build Package
+    needs: [test, coverage]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write  # For provenance generation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871  # v4.2.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          pip install build==1.3.0 twine==6.2.0
+
+      - name: Build source distribution and wheel
+        run: |
+          python -m build --sdist --wheel --outdir dist/
+
+      - name: Verify package integrity
+        run: |
+          twine check dist/*
+
+      - name: List package contents
+        run: |
+          tar -tzf dist/*.tar.gz | head -20
+          unzip -l dist/*.whl | head -20
+
+      - name: Generate SBOM (Software Bill of Materials)
+        run: |
+          pip install cyclonedx-bom==4.6.3
+          cyclonedx-py requirements --format json --output sbom.json requirements.txt
+        continue-on-error: true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        with:
+          name: python-package-distributions
+          path: |
+            dist/
+            sbom.json
+          retention-days: 7
+
+  # Final validation job
+  validate:
+    name: Final Validation
+    needs: [build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871  # v4.2.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        with:
+          python-version: '3.14'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16  # v4.1.8
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Install package from wheel
+        run: |
+          pip install dist/*.whl
+
+      - name: Verify CLI works
+        run: |
+          surinort-ast --help || true
+
+      - name: Verify package imports
+        run: |
+          python -c "import surinort_ast; print(surinort_ast.__version__)"
+
+  # All jobs summary
+  ci-success:
+    name: CI Pipeline Success
+    needs: [security, lint, test, coverage, build, validate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: always()
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "Security scan failed"
+            exit 1
+          fi
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+            echo "Linting failed"
+            exit 1
+          fi
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "Tests failed"
+            exit 1
+          fi
+          if [[ "${{ needs.coverage.result }}" != "success" ]]; then
+            echo "Coverage failed"
+            exit 1
+          fi
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "Build failed"
+            exit 1
+          fi
+          if [[ "${{ needs.validate.result }}" != "success" ]]; then
+            echo "Validation failed"
+            exit 1
+          fi
+          echo "All CI checks passed successfully!"

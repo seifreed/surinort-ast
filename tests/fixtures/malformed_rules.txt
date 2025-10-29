@@ -1,0 +1,43 @@
+# Copyright (c) 2025 Marc Rivero López
+# Licensed under GPLv3.
+# Malformed IDS rules for testing error recovery and diagnostics
+
+# Missing semicolon in options
+alert tcp any any -> any 80 (msg:"Missing semicolon" sid:9000001)
+
+# Invalid port number
+alert tcp any any -> any 99999 (msg:"Invalid port"; sid:9000002; rev:1;)
+
+# Invalid IP address
+alert tcp 999.999.999.999 any -> any 80 (msg:"Invalid IP"; sid:9000003; rev:1;)
+
+# Invalid CIDR prefix
+alert tcp 192.168.1.0/99 any -> any 80 (msg:"Invalid CIDR"; sid:9000004; rev:1;)
+
+# Unclosed parenthesis
+alert tcp any any -> any 80 (msg:"Unclosed options"; sid:9000005; rev:1
+
+# Missing direction
+alert tcp any any any 80 (msg:"Missing direction"; sid:9000006; rev:1;)
+
+# Invalid protocol
+alert xyz any any -> any 80 (msg:"Invalid protocol"; sid:9000007; rev:1;)
+
+# Invalid action
+alert tcp any any -> any 80 (msg:"Valid rule"; sid:9000008; rev:1;)
+invalid_action tcp any any -> any 80 (msg:"Invalid action"; sid:9000009; rev:1;)
+
+# Negative sid (should warn)
+alert tcp any any -> any 80 (msg:"Negative SID"; sid:-1; rev:1;)
+
+# Invalid priority value
+alert tcp any any -> any 80 (msg:"Invalid priority"; priority:10; sid:9000010; rev:1;)
+
+# Malformed content hex
+alert tcp any any -> any 80 (msg:"Bad hex"; content:|ZZ ZZ|; sid:9000011; rev:1;)
+
+# Malformed PCRE
+alert tcp any any -> any 80 (msg:"Bad PCRE"; pcre:"/unclosed pattern; sid:9000012; rev:1;)
+
+# Port range with start > end
+alert tcp any any -> any 8080:80 (msg:"Invalid port range"; sid:9000013; rev:1;)

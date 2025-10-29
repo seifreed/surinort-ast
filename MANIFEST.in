@@ -1,0 +1,62 @@
+# Copyright (c) Marc Rivero López
+# Licensed under GNU General Public License v3.0
+# See LICENSE file for full terms
+#
+# MANIFEST.in - Package distribution manifest
+# Specifies additional files to include in source distributions
+
+# Include essential documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+include INSTALL.md
+
+# Include grammar files (critical for parser functionality)
+recursive-include src/surinort_ast/parsing *.lark
+
+# Include type stubs for static type checking
+recursive-include src *.pyi
+recursive-include src py.typed
+
+# Include configuration files
+include pyproject.toml
+include requirements.txt
+include requirements-dev.txt
+
+# Include test data and fixtures
+recursive-include tests *.py
+recursive-include tests/fixtures *.txt
+recursive-include tests/fixtures *.rules
+recursive-include tests/data *.json
+
+# Exclude compiled Python files
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *$py.class
+global-exclude *.so
+
+# Exclude development and build artifacts
+prune .git
+prune .github
+prune .vscode
+prune .idea
+prune dist
+prune build
+prune *.egg-info
+prune .pytest_cache
+prune .mypy_cache
+prune .ruff_cache
+prune htmlcov
+prune .coverage*
+prune venv
+prune env
+prune .venv
+
+# Exclude macOS metadata
+global-exclude .DS_Store
+
+# Exclude editor backup files
+global-exclude *~
+global-exclude *.swp
+global-exclude *.swo
