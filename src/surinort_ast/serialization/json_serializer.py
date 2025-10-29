@@ -209,9 +209,7 @@ class JSONSerializer:
 
         version = data["ast_version"]
         if not self._is_compatible_version(version):
-            raise ValueError(
-                f"Incompatible AST version: {version} (current: {__ast_version__})"
-            )
+            raise ValueError(f"Incompatible AST version: {version} (current: {__ast_version__})")
 
     def _is_compatible_version(self, version: str) -> bool:
         """

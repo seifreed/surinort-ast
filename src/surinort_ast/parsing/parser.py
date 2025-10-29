@@ -316,7 +316,9 @@ class RuleParser:
             current_rule_lines.append((line_num, line))
 
             # Check if rule is complete (ends with semicolon or closing paren)
-            if line.endswith(";") or (line.endswith(")") and "(" in "".join(l for _, l in current_rule_lines)):
+            if line.endswith(";") or (
+                line.endswith(")") and "(" in "".join(l for _, l in current_rule_lines)
+            ):
                 # Parse complete rule
                 rule = self._parse_multiline_rule(current_rule_lines, str(file_path), skip_errors)
                 if rule:

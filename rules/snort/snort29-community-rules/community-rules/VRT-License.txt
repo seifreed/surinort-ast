@@ -170,8 +170,8 @@ this Agreement; and (c) the following notices:
     The contents of this file are  subject to the Snort Subscriber Rules License
     Agreement  (the  “Agreement”). You  may  not  use  this file  except  in
     compliance with  the Agreement. You  may obtain a  copy of the  Agreement at
-    www.snort.org. The developer  of the Rules is Cisco Systems,  Inc. 
-    
+    www.snort.org. The developer  of the Rules is Cisco Systems,  Inc.
+
     The  Rules are  distributed under  the Agreement  on an  “AS IS”  basis,
     WITHOUT WARRANTY OF  ANY KIND, either express or implied.  See the Agreement
     for  the  specific  language  governing rights  and  limitations  under  the

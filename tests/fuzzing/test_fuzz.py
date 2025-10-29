@@ -10,36 +10,36 @@ NO MOCKS - uses real parser and generates real AST structures.
 """
 
 import pytest
-from hypothesis import given, strategies as st, settings, assume
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from lark import Lark
 from lark.exceptions import LarkError
 
-from surinort_ast.core.nodes import Rule, Port, IPCIDRRange
+from surinort_ast.core.nodes import IPCIDRRange, Port, Rule
 from surinort_ast.parsing.transformer import RuleTransformer
 from surinort_ast.printer.text_printer import TextPrinter
-
 
 # ============================================================================
 # Hypothesis Strategies for Generating Valid Rules
 # ============================================================================
 
 # Actions
-actions = st.sampled_from(['alert', 'log', 'pass', 'drop', 'reject', 'sdrop'])
+actions = st.sampled_from(["alert", "log", "pass", "drop", "reject", "sdrop"])
 
 # Protocols
-protocols = st.sampled_from(['tcp', 'udp', 'icmp', 'ip', 'http', 'dns', 'tls'])
+protocols = st.sampled_from(["tcp", "udp", "icmp", "ip", "http", "dns", "tls"])
 
 # Directions
-directions = st.sampled_from(['->', '<-', '<>'])
+directions = st.sampled_from(["->", "<-", "<>"])
 
 # Simple addresses
-simple_addresses = st.sampled_from(['any', '$HOME_NET', '$EXTERNAL_NET'])
+simple_addresses = st.sampled_from(["any", "$HOME_NET", "$EXTERNAL_NET"])
 
 # Simple ports
 simple_ports = st.one_of(
-    st.just('any'),
+    st.just("any"),
     st.integers(min_value=1, max_value=65535).map(str),
-    st.just('$HTTP_PORTS'),
+    st.just("$HTTP_PORTS"),
 )
 
 # SIDs
@@ -49,7 +49,7 @@ sids = st.integers(min_value=1, max_value=9999999)
 messages = st.text(
     alphabet=st.characters(min_codepoint=32, max_codepoint=126, blacklist_characters='"\\'),
     min_size=1,
-    max_size=100
+    max_size=100,
 )
 
 
@@ -131,6 +131,7 @@ class TestPropertyBasedParsing:
 
         # Find SID option
         from surinort_ast.core.nodes import SidOption
+
         sid_opt = next((o for o in rule.options if isinstance(o, SidOption)), None)
 
         assert sid_opt is not None
@@ -150,11 +151,12 @@ class TestNodeInvariants:
 
     @given(
         start=st.integers(min_value=0, max_value=65535),
-        end=st.integers(min_value=0, max_value=65535)
+        end=st.integers(min_value=0, max_value=65535),
     )
     def test_port_range_ordering(self, start: int, end: int):
         """Port range start must be <= end."""
         from pydantic import ValidationError
+
         from surinort_ast.core.nodes import PortRange
 
         if start <= end:
@@ -197,11 +199,13 @@ class TestContentPatterns:
         # Verify pattern is preserved
         assert content.pattern == content_bytes
 
-    @given(ascii_content=st.text(
-        alphabet=st.characters(min_codepoint=32, max_codepoint=126, blacklist_characters='"\\'),
-        min_size=1,
-        max_size=50
-    ))
+    @given(
+        ascii_content=st.text(
+            alphabet=st.characters(min_codepoint=32, max_codepoint=126, blacklist_characters='"\\'),
+            min_size=1,
+            max_size=50,
+        )
+    )
     @settings(max_examples=50, deadline=None)
     def test_content_with_ascii(self, lark_parser: Lark, ascii_content: str):
         """Content with ASCII text should parse."""
@@ -215,13 +219,14 @@ class TestContentPatterns:
 
             # Find content option
             from surinort_ast.core.nodes import ContentOption
+
             content_opt = next((o for o in rule.options if isinstance(o, ContentOption)), None)
 
             assert content_opt is not None
             # Content should match (encoded as UTF-8)
-            assert content_opt.pattern == ascii_content.encode('utf-8')
+            assert content_opt.pattern == ascii_content.encode("utf-8")
 
-        except Exception as e:
+        except Exception:
             # Some characters might cause issues, which is fine for fuzzing
             pass
 
@@ -233,7 +238,7 @@ class TestParserRobustness:
     @given(whitespace_count=st.integers(min_value=1, max_value=10))
     def test_parser_handles_extra_whitespace(self, lark_parser: Lark, whitespace_count: int):
         """Parser should handle extra whitespace."""
-        spaces = ' ' * whitespace_count
+        spaces = " " * whitespace_count
         rule_text = f'alert{spaces}tcp{spaces}any{spaces}any{spaces}->{spaces}any{spaces}80{spaces}(msg:"Test"; sid:1;)'
 
         transformer = RuleTransformer()
@@ -250,7 +255,7 @@ class TestParserRobustness:
     @given(msg_length=st.integers(min_value=1, max_value=500))
     def test_parser_handles_long_messages(self, lark_parser: Lark, msg_length: int):
         """Parser should handle long messages."""
-        long_msg = 'A' * msg_length
+        long_msg = "A" * msg_length
         rule_text = f'alert tcp any any -> any 80 (msg:"{long_msg}"; sid:1;)'
 
         transformer = RuleTransformer()
@@ -262,6 +267,7 @@ class TestParserRobustness:
 
             # Verify message length
             from surinort_ast.core.nodes import MsgOption
+
             msg_opt = next((o for o in result[0].options if isinstance(o, MsgOption)), None)
             assert msg_opt is not None
             assert len(msg_opt.text) == msg_length

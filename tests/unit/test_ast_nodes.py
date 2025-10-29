@@ -9,36 +9,37 @@ Tests node creation, validation, immutability, and serialization.
 NO MOCKS - tests use real Pydantic validation and model behavior.
 """
 
-import pytest
 import json
+
+import pytest
 from pydantic import ValidationError
 
+from surinort_ast.core.enums import ContentModifierType
+from surinort_ast.core.location import Location, Position, Span
 from surinort_ast.core.nodes import (
-    Rule,
-    Header,
     Action,
-    Protocol,
-    Direction,
-    Dialect,
+    AddressList,
+    AddressVariable,
     AnyAddress,
     AnyPort,
-    Port,
-    PortRange,
+    ContentModifier,
+    ContentOption,
+    Dialect,
+    Direction,
+    FlowDirection,
+    FlowOption,
+    FlowState,
+    Header,
     IPAddress,
     IPCIDRRange,
-    AddressVariable,
-    AddressList,
     MsgOption,
-    SidOption,
+    Port,
+    PortRange,
+    Protocol,
     RevOption,
-    ContentOption,
-    ContentModifier,
-    FlowOption,
-    FlowDirection,
-    FlowState,
+    Rule,
+    SidOption,
 )
-from surinort_ast.core.enums import ContentModifierType
-from surinort_ast.core.location import Location, Span, Position
 
 
 class TestNodeCreation:
@@ -166,30 +167,30 @@ class TestNodeSerialization:
         )
 
         # Serialize to dict
-        rule_dict = rule.model_dump(mode='json')
+        rule_dict = rule.model_dump(mode="json")
 
-        assert rule_dict['action'] == 'alert'
-        assert rule_dict['header']['protocol'] == 'tcp'
-        assert rule_dict['header']['dst_port']['value'] == 80
-        assert len(rule_dict['options']) == 2
+        assert rule_dict["action"] == "alert"
+        assert rule_dict["header"]["protocol"] == "tcp"
+        assert rule_dict["header"]["dst_port"]["value"] == 80
+        assert len(rule_dict["options"]) == 2
 
     def test_deserialize_simple_rule(self):
         """Deserialize rule from dict."""
         rule_dict = {
-            'action': 'alert',
-            'header': {
-                'protocol': 'tcp',
-                'src_addr': {'node_type': 'AnyAddress'},
-                'src_port': {'node_type': 'AnyPort'},
-                'direction': '->',
-                'dst_addr': {'node_type': 'AnyAddress'},
-                'dst_port': {'value': 80, 'node_type': 'Port'},
+            "action": "alert",
+            "header": {
+                "protocol": "tcp",
+                "src_addr": {"node_type": "AnyAddress"},
+                "src_port": {"node_type": "AnyPort"},
+                "direction": "->",
+                "dst_addr": {"node_type": "AnyAddress"},
+                "dst_port": {"value": 80, "node_type": "Port"},
             },
-            'options': [
-                {'text': 'Test', 'node_type': 'MsgOption'},
-                {'value': 1, 'node_type': 'SidOption'},
+            "options": [
+                {"text": "Test", "node_type": "MsgOption"},
+                {"value": 1, "node_type": "SidOption"},
             ],
-            'dialect': 'suricata',
+            "dialect": "suricata",
         }
 
         # Pydantic can reconstruct from dict
@@ -260,7 +261,7 @@ class TestContentOption:
                 ContentModifier(name=ContentModifierType.NOCASE),
                 ContentModifier(name=ContentModifierType.DEPTH, value=10),
                 ContentModifier(name=ContentModifierType.OFFSET, value=0),
-            ]
+            ],
         )
 
         assert len(content.modifiers) == 3
@@ -272,10 +273,10 @@ class TestContentOption:
         content = ContentOption(pattern=b"\x00\x01\x02\xff")
 
         # Serialize to dict
-        content_dict = content.model_dump(mode='json')
+        content_dict = content.model_dump(mode="json")
 
         # Bytes should be base64 encoded in JSON mode
-        assert 'pattern' in content_dict
+        assert "pattern" in content_dict
 
 
 class TestFlowOption:
@@ -386,7 +387,7 @@ class TestNodeProperties:
             direction=Direction.TO,
             dst_addr=AnyAddress(),
             dst_port=Port(value=80),
-            comments=["This is a comment", "Another comment"]
+            comments=["This is a comment", "Another comment"],
         )
 
         assert len(header.comments) == 2
@@ -399,7 +400,7 @@ class TestModelCopy:
     def test_modify_port_value(self):
         """Create new node with modified value."""
         original = Port(value=80)
-        modified = original.model_copy(update={'value': 443})
+        modified = original.model_copy(update={"value": 443})
 
         # Original unchanged
         assert original.value == 80
@@ -424,7 +425,7 @@ class TestModelCopy:
             options=[],
         )
 
-        modified = original.model_copy(update={'action': Action.DROP})
+        modified = original.model_copy(update={"action": Action.DROP})
 
         assert original.action == Action.ALERT
         assert modified.action == Action.DROP

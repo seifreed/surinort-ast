@@ -1149,7 +1149,7 @@
 1722 || SERVER-WEBAPP MachineInfo access || cve,1999-1067
 1723 || SERVER-WEBAPP emumail.cgi NULL attempt || bugtraq,5824 || cve,2002-1526
 1724 || SERVER-WEBAPP emumail.cgi access || bugtraq,5824 || cve,2002-1526
-1725 || SERVER-IIS +.htr code fragment attempt || bugtraq,1488 || cve,2000-0630 || cve,2001-0004 || nessus,10680 || url,technet.microsoft.com/en-us/security/bulletin/MS00-044 || url,technet.microsoft.com/en-us/security/bulletin/ms01-004 
+1725 || SERVER-IIS +.htr code fragment attempt || bugtraq,1488 || cve,2000-0630 || cve,2001-0004 || nessus,10680 || url,technet.microsoft.com/en-us/security/bulletin/MS00-044 || url,technet.microsoft.com/en-us/security/bulletin/ms01-004
 1726 || SERVER-IIS doctodep.btr access
 1727 || SERVER-WEBAPP SGI InfoSearch fname access || bugtraq,1031 || cve,2000-0207
 1729 || POLICY-SOCIAL IRC channel join

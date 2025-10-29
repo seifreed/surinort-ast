@@ -182,7 +182,9 @@ def parse_hex_string(s: str) -> bytes:
         Raw bytes
     """
     # Remove pipes and whitespace
-    hex_content = s.strip("|").replace(" ", "").replace("\n", "").replace("\r", "").replace("\t", "")
+    hex_content = (
+        s.strip("|").replace(" ", "").replace("\n", "").replace("\r", "").replace("\t", "")
+    )
 
     try:
         return bytes.fromhex(hex_content)

@@ -10,7 +10,6 @@ NO MOCKS - all tests use real parser, printer, and serializer.
 """
 
 import pytest
-from pathlib import Path
 
 # Note: These imports may need adjustment based on actual API structure
 # from surinort_ast import parse_rule, print_rule, to_json, from_json
@@ -29,16 +28,17 @@ class TestPublicAPI:
         rule = transformer.transform(parse_tree)[0]
 
         # Verify parsing
-        from surinort_ast.core.nodes import Rule, Action, Protocol
+        from surinort_ast.core.nodes import Action, Protocol, Rule
+
         assert isinstance(rule, Rule)
         assert rule.action == Action.ALERT
         assert rule.header.protocol == Protocol.TCP
 
         # Step 2: Print
         printed = text_printer.print_rule(rule)
-        assert 'alert' in printed
-        assert 'tcp' in printed
-        assert 'msg:' in printed
+        assert "alert" in printed
+        assert "tcp" in printed
+        assert "msg:" in printed
 
         # Step 3: Serialize to JSON
         json_str = json_serializer.to_json(rule)
@@ -99,10 +99,10 @@ class TestPublicAPI:
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
         rules = []
-        with open(simple_rules_file, 'r', encoding='utf-8') as f:
+        with open(simple_rules_file, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 parse_tree = lark_parser.parse(line)
@@ -115,10 +115,12 @@ class TestPublicAPI:
 
         # All should be Rule instances
         from surinort_ast.core.nodes import Rule
+
         assert all(isinstance(r, Rule) for r in rules)
 
         # All should have SID
         from surinort_ast.core.nodes import SidOption
+
         for rule in rules:
             sid_opt = next((o for o in rule.options if isinstance(o, SidOption)), None)
             assert sid_opt is not None
@@ -185,7 +187,7 @@ class TestRealWorldScenarios:
                 self.increment = increment
 
             def visit_SidOption(self, node: SidOption) -> SidOption:  # noqa: N802 - Visitor pattern method name
-                return node.model_copy(update={'value': node.value + self.increment})
+                return node.model_copy(update={"value": node.value + self.increment})
 
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1; rev:1;)'
 
@@ -198,7 +200,9 @@ class TestRealWorldScenarios:
         new_rule = incrementer.visit(original_rule)
 
         # Verify transformation
-        original_sid = next((o.value for o in original_rule.options if isinstance(o, SidOption)), None)
+        original_sid = next(
+            (o.value for o in original_rule.options if isinstance(o, SidOption)), None
+        )
         new_sid = next((o.value for o in new_rule.options if isinstance(o, SidOption)), None)
 
         assert original_sid == 1
@@ -206,34 +210,34 @@ class TestRealWorldScenarios:
 
     def test_extract_statistics(self, lark_parser, transformer, fixtures_dir):
         """Extract statistics from rules."""
-        from surinort_ast.core.nodes import SidOption, MsgOption, ClasstypeOption
+        from surinort_ast.core.nodes import ClasstypeOption
         from surinort_ast.core.visitor import ASTVisitor
 
         class RuleStats(ASTVisitor[dict]):
             def __init__(self):
                 super().__init__()
                 self.stats = {
-                    'total': 0,
-                    'with_classtype': 0,
-                    'protocols': {},
-                    'actions': {},
+                    "total": 0,
+                    "with_classtype": 0,
+                    "protocols": {},
+                    "actions": {},
                 }
 
             def visit_Rule(self, node):  # noqa: N802 - Visitor pattern method name
-                self.stats['total'] += 1
+                self.stats["total"] += 1
 
                 # Count protocol
                 protocol = node.header.protocol.value
-                self.stats['protocols'][protocol] = self.stats['protocols'].get(protocol, 0) + 1
+                self.stats["protocols"][protocol] = self.stats["protocols"].get(protocol, 0) + 1
 
                 # Count action
                 action = node.action.value
-                self.stats['actions'][action] = self.stats['actions'].get(action, 0) + 1
+                self.stats["actions"][action] = self.stats["actions"].get(action, 0) + 1
 
                 # Check for classtype
                 has_classtype = any(isinstance(o, ClasstypeOption) for o in node.options)
                 if has_classtype:
-                    self.stats['with_classtype'] += 1
+                    self.stats["with_classtype"] += 1
 
                 return super().visit_Rule(node)
 
@@ -244,10 +248,10 @@ class TestRealWorldScenarios:
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
         stats_collector = RuleStats()
-        with open(simple_rules_file, 'r', encoding='utf-8') as f:
+        with open(simple_rules_file, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 try:
@@ -260,11 +264,11 @@ class TestRealWorldScenarios:
         stats = stats_collector.stats
 
         # Should have collected stats
-        assert stats['total'] > 0
-        assert len(stats['protocols']) > 0
-        assert len(stats['actions']) > 0
+        assert stats["total"] > 0
+        assert len(stats["protocols"]) > 0
+        assert len(stats["actions"]) > 0
 
-        print(f"\nRule Statistics:")
+        print("\nRule Statistics:")
         print(f"  Total rules: {stats['total']}")
         print(f"  With classtype: {stats['with_classtype']}")
         print(f"  Protocols: {stats['protocols']}")

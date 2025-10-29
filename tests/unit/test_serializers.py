@@ -9,18 +9,18 @@ Tests JSON serialization/deserialization with real data.
 NO MOCKS - all tests use actual JSON encoding/decoding.
 """
 
-import pytest
 import json
+
 from lark import Lark
 
 from surinort_ast.core.nodes import Rule
 from surinort_ast.parsing.transformer import RuleTransformer
 from surinort_ast.serialization.json_serializer import (
     JSONSerializer,
-    to_json,
+    from_dict,
     from_json,
     to_dict,
-    from_dict,
+    to_json,
 )
 
 
@@ -41,12 +41,12 @@ class TestJSONSerialization:
         data = json.loads(json_str)
 
         # Should have metadata envelope
-        assert 'ast_version' in data
-        assert 'data' in data
+        assert "ast_version" in data
+        assert "data" in data
 
         # Data should contain rule fields
-        rule_data = data['data']
-        assert rule_data['action'] == 'alert'
+        rule_data = data["data"]
+        assert rule_data["action"] == "alert"
 
     def test_serialize_without_metadata(self, lark_parser: Lark, transformer: RuleTransformer):
         """Serialize without metadata envelope."""
@@ -61,8 +61,8 @@ class TestJSONSerialization:
         data = json.loads(json_str)
 
         # Should not have metadata envelope
-        assert 'ast_version' not in data
-        assert 'action' in data  # Direct rule fields
+        assert "ast_version" not in data
+        assert "action" in data  # Direct rule fields
 
     def test_serialize_with_custom_indent(self, lark_parser: Lark, transformer: RuleTransformer):
         """Serialize with custom indentation."""
@@ -186,8 +186,8 @@ class TestJSONRoundtrip:
         rule2 = serializer.from_json(json_str)
 
         # Content should be preserved
-        content_opts1 = [o for o in rule1.options if hasattr(o, 'pattern')]
-        content_opts2 = [o for o in rule2.options if hasattr(o, 'pattern')]
+        content_opts1 = [o for o in rule1.options if hasattr(o, "pattern")]
+        content_opts2 = [o for o in rule2.options if hasattr(o, "pattern")]
 
         assert len(content_opts1) == len(content_opts2)
 
@@ -215,13 +215,13 @@ class TestMultipleRulesJSON:
         data = json.loads(json_str)
 
         # Should have metadata
-        assert 'count' in data
-        assert data['count'] == 2
+        assert "count" in data
+        assert data["count"] == 2
 
         # Should have rules array
-        assert 'data' in data
-        assert 'rules' in data['data']
-        assert len(data['data']['rules']) == 2
+        assert "data" in data
+        assert "rules" in data["data"]
+        assert len(data["data"]["rules"]) == 2
 
     def test_deserialize_multiple_rules(self, lark_parser: Lark, transformer: RuleTransformer):
         """Deserialize multiple rules from JSON."""
@@ -244,7 +244,7 @@ class TestMultipleRulesJSON:
         restored_rules = serializer.from_json(json_str)
 
         # Should be a sequence
-        assert hasattr(restored_rules, '__iter__')
+        assert hasattr(restored_rules, "__iter__")
         restored_list = list(restored_rules)
         assert len(restored_list) == 2
 
@@ -269,7 +269,7 @@ class TestConvenienceFunctions:
 
         # Should be valid JSON
         data = json.loads(json_str)
-        assert 'data' in data or 'action' in data
+        assert "data" in data or "action" in data
 
     def test_from_json_function(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test from_json convenience function."""

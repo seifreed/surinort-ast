@@ -403,9 +403,14 @@ class TextPrinter:
             if 32 <= byte <= 126 and byte not in (ord("|"), ord("\\")):
                 # Accumulate printable characters
                 start = i
-                while i < len(pattern) and 32 <= pattern[i] <= 126 and pattern[i] not in (
-                    ord("|"),
-                    ord("\\"),
+                while (
+                    i < len(pattern)
+                    and 32 <= pattern[i] <= 126
+                    and pattern[i]
+                    not in (
+                        ord("|"),
+                        ord("\\"),
+                    )
                 ):
                     i += 1
                 parts.append(pattern[start:i].decode("ascii"))

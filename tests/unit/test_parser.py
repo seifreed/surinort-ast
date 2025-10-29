@@ -13,31 +13,31 @@ import pytest
 from lark import Lark
 from lark.exceptions import LarkError
 
+from surinort_ast.core.enums import FlowDirection, FlowState
 from surinort_ast.core.nodes import (
-    Rule,
     Action,
-    Protocol,
-    Direction,
+    AddressList,
+    AddressVariable,
     AnyAddress,
     AnyPort,
-    Port,
-    IPAddress,
-    IPCIDRRange,
-    AddressVariable,
-    PortVariable,
-    AddressList,
-    PortRange,
-    MsgOption,
-    SidOption,
-    RevOption,
+    BufferSelectOption,
     ClasstypeOption,
     ContentOption,
-    PcreOption,
+    Direction,
     FlowOption,
+    IPAddress,
+    IPCIDRRange,
     MetadataOption,
-    BufferSelectOption,
+    MsgOption,
+    PcreOption,
+    Port,
+    PortRange,
+    PortVariable,
+    Protocol,
+    RevOption,
+    Rule,
+    SidOption,
 )
-from surinort_ast.core.enums import FlowDirection, FlowState
 from surinort_ast.parsing.transformer import RuleTransformer
 
 
@@ -68,12 +68,12 @@ class TestBasicParsing:
     def test_parse_all_actions(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse rules with different actions."""
         actions_to_test = [
-            ('alert', Action.ALERT),
-            ('log', Action.LOG),
-            ('pass', Action.PASS),
-            ('drop', Action.DROP),
-            ('reject', Action.REJECT),
-            ('sdrop', Action.SDROP),
+            ("alert", Action.ALERT),
+            ("log", Action.LOG),
+            ("pass", Action.PASS),
+            ("drop", Action.DROP),
+            ("reject", Action.REJECT),
+            ("sdrop", Action.SDROP),
         ]
 
         for action_text, expected_action in actions_to_test:
@@ -87,13 +87,13 @@ class TestBasicParsing:
     def test_parse_all_protocols(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse rules with different protocols."""
         protocols_to_test = [
-            ('tcp', Protocol.TCP),
-            ('udp', Protocol.UDP),
-            ('icmp', Protocol.ICMP),
-            ('ip', Protocol.IP),
-            ('http', Protocol.HTTP),
-            ('dns', Protocol.DNS),
-            ('tls', Protocol.TLS),
+            ("tcp", Protocol.TCP),
+            ("udp", Protocol.UDP),
+            ("icmp", Protocol.ICMP),
+            ("ip", Protocol.IP),
+            ("http", Protocol.HTTP),
+            ("dns", Protocol.DNS),
+            ("tls", Protocol.TLS),
         ]
 
         for proto_text, expected_proto in protocols_to_test:
@@ -107,9 +107,9 @@ class TestBasicParsing:
     def test_parse_directions(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse rules with different traffic directions."""
         directions_to_test = [
-            ('->', Direction.TO),
-            ('<-', Direction.FROM),
-            ('<>', Direction.BIDIRECTIONAL),
+            ("->", Direction.TO),
+            ("<-", Direction.FROM),
+            ("<>", Direction.BIDIRECTIONAL),
         ]
 
         for dir_text, expected_dir in directions_to_test:
@@ -328,14 +328,16 @@ class TestOptionParsing:
 class TestRealRuleParsing:
     """Test parsing real rules from fixtures and rule files."""
 
-    def test_parse_simple_fixture_rules(self, lark_parser: Lark, transformer: RuleTransformer, fixtures_dir):
+    def test_parse_simple_fixture_rules(
+        self, lark_parser: Lark, transformer: RuleTransformer, fixtures_dir
+    ):
         """Parse all simple rules from fixtures."""
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
-        with open(simple_rules_file, 'r', encoding='utf-8') as f:
+        with open(simple_rules_file, encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 try:
@@ -345,16 +347,20 @@ class TestRealRuleParsing:
                     assert len(result) >= 1
                     assert isinstance(result[0], Rule)
                 except Exception as e:
-                    pytest.fail(f"Failed to parse simple rule at line {line_num}: {line}\nError: {e}")
+                    pytest.fail(
+                        f"Failed to parse simple rule at line {line_num}: {line}\nError: {e}"
+                    )
 
-    def test_parse_complex_fixture_rules(self, lark_parser: Lark, transformer: RuleTransformer, fixtures_dir):
+    def test_parse_complex_fixture_rules(
+        self, lark_parser: Lark, transformer: RuleTransformer, fixtures_dir
+    ):
         """Parse all complex rules from fixtures."""
         complex_rules_file = fixtures_dir / "complex_rules.txt"
 
-        with open(complex_rules_file, 'r', encoding='utf-8') as f:
+        with open(complex_rules_file, encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 try:
@@ -364,11 +370,14 @@ class TestRealRuleParsing:
                     assert len(result) >= 1
                     assert isinstance(result[0], Rule)
                 except Exception as e:
-                    pytest.fail(f"Failed to parse complex rule at line {line_num}: {line}\nError: {e}")
+                    pytest.fail(
+                        f"Failed to parse complex rule at line {line_num}: {line}\nError: {e}"
+                    )
 
     @pytest.mark.parametrize("rule_index", range(10))
-    def test_parse_suricata_samples(self, lark_parser: Lark, transformer: RuleTransformer,
-                                   suricata_sample_rules, rule_index):
+    def test_parse_suricata_samples(
+        self, lark_parser: Lark, transformer: RuleTransformer, suricata_sample_rules, rule_index
+    ):
         """Parse first 10 Suricata rules individually."""
         if rule_index >= len(suricata_sample_rules):
             pytest.skip("Not enough sample rules")
@@ -382,7 +391,9 @@ class TestRealRuleParsing:
             assert len(result) >= 1
             assert isinstance(result[0], Rule)
         except Exception as e:
-            pytest.fail(f"Failed to parse Suricata rule {rule_index}: {rule_text[:100]}...\nError: {e}")
+            pytest.fail(
+                f"Failed to parse Suricata rule {rule_index}: {rule_text[:100]}...\nError: {e}"
+            )
 
 
 class TestErrorRecovery:

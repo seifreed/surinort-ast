@@ -1,5 +1,5 @@
 # Copyright 2001-2025 Sourcefire, Inc. All Rights Reserved.
-#	
+#
 # This file contains rules that were created by Sourcefire, Inc. and other third parties
 # (the "GPL Rules") that are distributed under the GNU General Public License (GPL),
 # v2. The GPL Rules created by Sourcefire are owned by Sourcefire, Inc., and the GPL
@@ -4028,4 +4028,3 @@ alert tcp any any -> any any (msg:"SERVER-OTHER OpenSSL x509 crafted email addre
 # alert tcp $HOME_NET any -> $EXTERNAL_NET $HTTP_PORTS (msg:"MALWARE-CNC Win.Dropper.Gamaredon command and control beacon attempt"; flow:to_server,established; urilen:8; content:"/log.php"; http_uri; content:"Expect: 100-continue"; http_header; content:"i"; depth:1; http_client_body; pcre:"/^i[\w-]{2,20}=[\w-]{2,50}_\d{2,20}$/P"; metadata:impact_flag red, policy max-detect-ips drop, policy security-ips drop, ruleset community, service http; reference:url,www.virustotal.com/gui/file/726e91a882b9c70893cbc4ac2cdfb0ffb80a8b6f58d4cc5bfdd59d60486673fe; classtype:trojan-activity; sid:62362; rev:1;)
 alert tcp any any -> any $HTTP_PORTS (msg:"SERVER-WEBAPP Atlassian Confluence remote code execution attempt"; flow:to_server,established; content:"bootstrapStatusProvider"; fast_pattern; nocase; http_client_body; content:"applicationConfig"; within:22; nocase; http_client_body; content:"setupComplete"; within:18; nocase; http_client_body; content:"false"; distance:0; nocase; http_client_body; metadata:policy balanced-ips drop, policy connectivity-ips drop, policy max-detect-ips drop, policy security-ips drop, ruleset community, service http; reference:cve,2023-22515; reference:url,confluence.atlassian.com/kb/faq-for-cve-2023-22515-1295682188.html; classtype:attempted-user; sid:62506; rev:1;)
 alert tcp any any -> any $HTTP_PORTS (msg:"SERVER-WEBAPP Atlassian Confluence remote code execution attempt"; flow:to_server,established; content:"bootstrapStatusProvider.applicationConfig.setupComplete="; fast_pattern; nocase; http_uri; content:"false"; distance:0; nocase; http_uri; metadata:policy balanced-ips drop, policy connectivity-ips drop, policy max-detect-ips drop, policy security-ips drop, ruleset community, service http; reference:cve,2023-22515; reference:url,confluence.atlassian.com/kb/faq-for-cve-2023-22515-1295682188.html; classtype:attempted-user; sid:62507; rev:1;)
-

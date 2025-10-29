@@ -5,16 +5,17 @@ Test script for surinort-ast API.
 This script demonstrates the usage of the public API.
 """
 
+from pathlib import Path
+
 from surinort_ast import (
-    parse_rule,
+    Dialect,
+    from_json,
     parse_file,
+    parse_rule,
     print_rule,
     to_json,
-    from_json,
     validate_rule,
-    Dialect,
 )
-from pathlib import Path
 
 
 def test_parse_rule():
@@ -76,7 +77,9 @@ def test_json_serialization():
     print("=" * 60)
 
     # Parse a rule
-    rule_text = 'alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (msg:"SSH Traffic"; sid:3000001; rev:1;)'
+    rule_text = (
+        'alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (msg:"SSH Traffic"; sid:3000001; rev:1;)'
+    )
     rule = parse_rule(rule_text)
 
     # Serialize to JSON

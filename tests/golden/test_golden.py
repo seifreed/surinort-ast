@@ -13,8 +13,9 @@ These tests parse ALL real rules from the rules/ directory:
 NO MOCKS - all tests use real parser execution with actual rule files.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 from lark import Lark
 from lark.exceptions import LarkError
 
@@ -39,12 +40,12 @@ class TestSuricataGolden:
         parsed_successfully = 0
         parse_errors = []
 
-        with open(suricata_rules_file, 'r', encoding='utf-8', errors='replace') as f:
+        with open(suricata_rules_file, encoding="utf-8", errors="replace") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
 
                 # Skip comments and empty lines
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 total_rules += 1
@@ -74,14 +75,14 @@ class TestSuricataGolden:
         success_rate = (parsed_successfully / total_rules * 100) if total_rules > 0 else 0
 
         # Print summary
-        print(f"\n{'='*80}")
-        print(f"Suricata Rules Parsing Summary")
-        print(f"{'='*80}")
+        print(f"\n{'=' * 80}")
+        print("Suricata Rules Parsing Summary")
+        print(f"{'=' * 80}")
         print(f"Total rules:        {total_rules}")
         print(f"Parsed successfully: {parsed_successfully}")
         print(f"Parse errors:       {len(parse_errors)}")
         print(f"Success rate:       {success_rate:.2f}%")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         # Print first 10 errors
         if parse_errors:
@@ -93,7 +94,9 @@ class TestSuricataGolden:
         # Assert 95% success rate
         assert success_rate >= 95.0, f"Success rate {success_rate:.2f}% below 95% threshold"
 
-    def test_suricata_rules_roundtrip(self, lark_parser: Lark, suricata_rules_file: Path, text_printer):
+    def test_suricata_rules_roundtrip(
+        self, lark_parser: Lark, suricata_rules_file: Path, text_printer
+    ):
         """
         Test roundtrip for first 1000 Suricata rules: parse -> print -> parse.
 
@@ -105,13 +108,13 @@ class TestSuricataGolden:
         roundtrip_ok = 0
         roundtrip_errors = []
 
-        with open(suricata_rules_file, 'r', encoding='utf-8', errors='replace') as f:
+        with open(suricata_rules_file, encoding="utf-8", errors="replace") as f:
             for line_num, line in enumerate(f, 1):
                 if tested >= 1000:
                     break
 
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 try:
@@ -127,7 +130,10 @@ class TestSuricataGolden:
                     rule2 = transformer.transform(parse_tree2)[0]
 
                     # Verify basic equality
-                    if rule1.action == rule2.action and rule1.header.protocol == rule2.header.protocol:
+                    if (
+                        rule1.action == rule2.action
+                        and rule1.header.protocol == rule2.header.protocol
+                    ):
                         roundtrip_ok += 1
                     else:
                         roundtrip_errors.append((line_num, "Fields mismatch"))
@@ -140,7 +146,7 @@ class TestSuricataGolden:
 
         success_rate = (roundtrip_ok / tested * 100) if tested > 0 else 0
 
-        print(f"\nSuricata Roundtrip Test (first 1000 rules):")
+        print("\nSuricata Roundtrip Test (first 1000 rules):")
         print(f"  Tested: {tested}")
         print(f"  Roundtrip OK: {roundtrip_ok}")
         print(f"  Success rate: {success_rate:.2f}%")
@@ -165,12 +171,12 @@ class TestSnortGolden:
         parsed_successfully = 0
         parse_errors = []
 
-        with open(snort29_rules_file, 'r', encoding='utf-8', errors='replace') as f:
+        with open(snort29_rules_file, encoding="utf-8", errors="replace") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
 
                 # Skip comments and empty lines
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 total_rules += 1
@@ -194,14 +200,14 @@ class TestSnortGolden:
 
         success_rate = (parsed_successfully / total_rules * 100) if total_rules > 0 else 0
 
-        print(f"\n{'='*80}")
-        print(f"Snort 2.9 Rules Parsing Summary")
-        print(f"{'='*80}")
+        print(f"\n{'=' * 80}")
+        print("Snort 2.9 Rules Parsing Summary")
+        print(f"{'=' * 80}")
         print(f"Total rules:        {total_rules}")
         print(f"Parsed successfully: {parsed_successfully}")
         print(f"Parse errors:       {len(parse_errors)}")
         print(f"Success rate:       {success_rate:.2f}%")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         if parse_errors:
             print("\nFirst 10 parse errors:")
@@ -223,11 +229,11 @@ class TestSnortGolden:
         parsed_successfully = 0
         parse_errors = []
 
-        with open(snort3_rules_file, 'r', encoding='utf-8', errors='replace') as f:
+        with open(snort3_rules_file, encoding="utf-8", errors="replace") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
 
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 total_rules += 1
@@ -251,14 +257,14 @@ class TestSnortGolden:
 
         success_rate = (parsed_successfully / total_rules * 100) if total_rules > 0 else 0
 
-        print(f"\n{'='*80}")
-        print(f"Snort 3 Rules Parsing Summary")
-        print(f"{'='*80}")
+        print(f"\n{'=' * 80}")
+        print("Snort 3 Rules Parsing Summary")
+        print(f"{'=' * 80}")
         print(f"Total rules:        {total_rules}")
         print(f"Parsed successfully: {parsed_successfully}")
         print(f"Parse errors:       {len(parse_errors)}")
         print(f"Success rate:       {success_rate:.2f}%")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         if parse_errors:
             print("\nFirst 10 parse errors:")
@@ -274,8 +280,13 @@ class TestSnortGolden:
 class TestAllRulesGolden:
     """Test parsing all 38,636 rules combined."""
 
-    def test_parse_all_38k_rules(self, lark_parser: Lark, suricata_rules_file: Path,
-                                 snort29_rules_file: Path, snort3_rules_file: Path):
+    def test_parse_all_38k_rules(
+        self,
+        lark_parser: Lark,
+        suricata_rules_file: Path,
+        snort29_rules_file: Path,
+        snort3_rules_file: Path,
+    ):
         """
         Parse all 38,636 rules from all rule files.
 
@@ -298,11 +309,11 @@ class TestAllRulesGolden:
             parsed_successfully = 0
             errors = []
 
-            with open(rule_file, 'r', encoding='utf-8', errors='replace') as f:
+            with open(rule_file, encoding="utf-8", errors="replace") as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
 
-                    if not line or line.startswith('#'):
+                    if not line or line.startswith("#"):
                         continue
 
                     total_rules += 1
@@ -323,18 +334,20 @@ class TestAllRulesGolden:
             grand_success += parsed_successfully
             all_errors.extend(errors)
 
-            print(f"\n{source_name}: {parsed_successfully}/{total_rules} ({parsed_successfully/total_rules*100:.2f}%)")
+            print(
+                f"\n{source_name}: {parsed_successfully}/{total_rules} ({parsed_successfully / total_rules * 100:.2f}%)"
+            )
 
         overall_success_rate = (grand_success / grand_total * 100) if grand_total > 0 else 0
 
-        print(f"\n{'='*80}")
-        print(f"OVERALL PARSING RESULTS - ALL 38,636 RULES")
-        print(f"{'='*80}")
+        print(f"\n{'=' * 80}")
+        print("OVERALL PARSING RESULTS - ALL 38,636 RULES")
+        print(f"{'=' * 80}")
         print(f"Total rules:        {grand_total}")
         print(f"Parsed successfully: {grand_success}")
         print(f"Parse errors:       {len(all_errors)}")
         print(f"Success rate:       {overall_success_rate:.2f}%")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         # Print error distribution
         if all_errors:
@@ -343,10 +356,10 @@ class TestAllRulesGolden:
                 print(f"  {source} line {line_num}: {error}")
 
         # Assert 95% overall success
-        assert overall_success_rate >= 95.0, \
+        assert overall_success_rate >= 95.0, (
             f"Overall success rate {overall_success_rate:.2f}% below 95% threshold"
-        assert grand_total >= 38000, \
-            f"Expected at least 38,000 rules, found {grand_total}"
+        )
+        assert grand_total >= 38000, f"Expected at least 38,000 rules, found {grand_total}"
 
 
 @pytest.mark.golden
@@ -354,21 +367,23 @@ class TestGoldenSubsets:
     """Test specific subsets of rules for detailed analysis."""
 
     @pytest.mark.parametrize("rule_count", [100, 500, 1000])
-    def test_parse_first_n_rules(self, lark_parser: Lark, suricata_rules_file: Path, rule_count: int):
+    def test_parse_first_n_rules(
+        self, lark_parser: Lark, suricata_rules_file: Path, rule_count: int
+    ):
         """Test parsing first N rules from Suricata."""
         transformer = RuleTransformer()
 
         parsed = 0
         errors = 0
 
-        with open(suricata_rules_file, 'r', encoding='utf-8', errors='replace') as f:
+        with open(suricata_rules_file, encoding="utf-8", errors="replace") as f:
             tested = 0
             for line in f:
                 if tested >= rule_count:
                     break
 
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 try:
@@ -382,7 +397,9 @@ class TestGoldenSubsets:
                 tested += 1
 
         success_rate = (parsed / (parsed + errors) * 100) if (parsed + errors) > 0 else 0
-        print(f"\nFirst {rule_count} rules: {parsed} parsed, {errors} errors ({success_rate:.2f}% success)")
+        print(
+            f"\nFirst {rule_count} rules: {parsed} parsed, {errors} errors ({success_rate:.2f}% success)"
+        )
 
         assert success_rate >= 95.0
 
@@ -397,10 +414,10 @@ class TestPerformance:
 
         # Load first 100 rules
         rules_text = []
-        with open(suricata_rules_file, 'r', encoding='utf-8') as f:
+        with open(suricata_rules_file, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith('#'):
+                if line and not line.startswith("#"):
                     rules_text.append(line)
                     if len(rules_text) >= 100:
                         break

@@ -9,9 +9,9 @@ This module provides reusable fixtures for testing the IDS rule parser
 using real rule data from the rules/ directory.
 """
 
-import pytest
 from pathlib import Path
-from typing import Sequence
+
+import pytest
 from lark import Lark
 
 # Import core modules
@@ -20,10 +20,10 @@ from surinort_ast.parsing.transformer import RuleTransformer
 from surinort_ast.printer.text_printer import TextPrinter
 from surinort_ast.serialization.json_serializer import JSONSerializer
 
-
 # ============================================================================
 # Path Fixtures
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def project_root() -> Path:
@@ -52,7 +52,13 @@ def snort29_rules_file(rules_dir: Path) -> Path:
 @pytest.fixture(scope="session")
 def snort3_rules_file(rules_dir: Path) -> Path:
     """Return path to Snort 3 community rules (4,017 rules)."""
-    return rules_dir / "snort" / "snort3-community-rules" / "snort3-community-rules" / "snort3-community.rules"
+    return (
+        rules_dir
+        / "snort"
+        / "snort3-community-rules"
+        / "snort3-community-rules"
+        / "snort3-community.rules"
+    )
 
 
 @pytest.fixture(scope="session")
@@ -64,6 +70,7 @@ def fixtures_dir(project_root: Path) -> Path:
 # ============================================================================
 # Parser Fixtures
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def grammar_file(project_root: Path) -> Path:
@@ -78,13 +85,13 @@ def lark_parser(grammar_file: Path) -> Lark:
 
     This fixture uses real Lark parser with actual grammar file.
     """
-    with open(grammar_file, 'r', encoding='utf-8') as f:
+    with open(grammar_file, encoding="utf-8") as f:
         grammar_content = f.read()
 
     # Use Earley parser for maximum compatibility with complex grammar
     return Lark(
         grammar_content,
-        parser='earley',
+        parser="earley",
         propagate_positions=True,
         maybe_placeholders=False,
     )
@@ -112,6 +119,7 @@ def json_serializer() -> JSONSerializer:
 # Sample Rule Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def simple_rule_text() -> str:
     """Simple HTTP detection rule."""
@@ -122,12 +130,12 @@ def simple_rule_text() -> str:
 def complex_rule_text() -> str:
     """Complex rule with multiple content matches and modifiers."""
     return (
-        'alert http $EXTERNAL_NET any -> $HOME_NET any '
+        "alert http $EXTERNAL_NET any -> $HOME_NET any "
         '(msg:"ET MALWARE Possible CobaltStrike Malleable C2 Profile"; '
         'flow:established,to_server; http.method; content:"POST"; '
         'http.uri; content:"/api/v1/"; depth:8; pcre:"/\\/api\\/v1\\/[a-z]{8,12}$/"; '
         'http.header; content:"Accept|3a| */*"; content:"User-Agent|3a| Mozilla/5.0"; '
-        'classtype:trojan-activity; sid:2027452; rev:2; metadata:created_at 2019_06_10;)'
+        "classtype:trojan-activity; sid:2027452; rev:2; metadata:created_at 2019_06_10;)"
     )
 
 
@@ -140,7 +148,7 @@ def malformed_rule_text() -> str:
 @pytest.fixture
 def multiline_rule_text() -> str:
     """Multi-line rule (realistic format)."""
-    return '''alert tcp any any -> any 443 (
+    return """alert tcp any any -> any 443 (
     msg:"TLS Suspicious Certificate";
     flow:established,to_server;
     tls.sni; content:"malicious.com"; nocase;
@@ -148,12 +156,13 @@ def multiline_rule_text() -> str:
     classtype:bad-unknown;
     sid:3000001;
     rev:1;
-)'''
+)"""
 
 
 # ============================================================================
 # Real Rule Sample Fixtures
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def suricata_sample_rules(suricata_rules_file: Path) -> list[str]:
@@ -163,10 +172,10 @@ def suricata_sample_rules(suricata_rules_file: Path) -> list[str]:
     Returns real rules for testing, skipping comments and empty lines.
     """
     rules = []
-    with open(suricata_rules_file, 'r', encoding='utf-8') as f:
+    with open(suricata_rules_file, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if line and not line.startswith('#'):
+            if line and not line.startswith("#"):
                 rules.append(line)
                 if len(rules) >= 100:
                     break
@@ -181,10 +190,10 @@ def snort_sample_rules(snort29_rules_file: Path) -> list[str]:
     Returns real rules for testing, skipping comments and empty lines.
     """
     rules = []
-    with open(snort29_rules_file, 'r', encoding='utf-8') as f:
+    with open(snort29_rules_file, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if line and not line.startswith('#'):
+            if line and not line.startswith("#"):
                 rules.append(line)
                 if len(rules) >= 50:
                     break
@@ -194,6 +203,7 @@ def snort_sample_rules(snort29_rules_file: Path) -> list[str]:
 # ============================================================================
 # Utility Functions
 # ============================================================================
+
 
 def parse_rule(rule_text: str, lark_parser: Lark, transformer: RuleTransformer) -> Rule:
     """
@@ -229,10 +239,10 @@ def count_rules_in_file(file_path: Path) -> int:
         Number of actual rules (excluding comments/empty lines)
     """
     count = 0
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if line and not line.startswith('#'):
+            if line and not line.startswith("#"):
                 count += 1
     return count
 
@@ -241,17 +251,12 @@ def count_rules_in_file(file_path: Path) -> int:
 # Pytest Configuration
 # ============================================================================
 
+
 def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line(
         "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
     )
-    config.addinivalue_line(
-        "markers", "integration: marks tests as integration tests"
-    )
-    config.addinivalue_line(
-        "markers", "golden: marks golden tests with real rule files"
-    )
-    config.addinivalue_line(
-        "markers", "fuzzing: marks property-based fuzzing tests"
-    )
+    config.addinivalue_line("markers", "integration: marks tests as integration tests")
+    config.addinivalue_line("markers", "golden: marks golden tests with real rule files")
+    config.addinivalue_line("markers", "fuzzing: marks property-based fuzzing tests")

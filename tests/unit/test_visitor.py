@@ -9,11 +9,10 @@ Tests visitor pattern implementation with real AST traversal.
 NO MOCKS - all tests use actual visitor execution on real AST nodes.
 """
 
-import pytest
 from lark import Lark
 
-from surinort_ast.core.nodes import Rule, SidOption, MsgOption, ContentOption, IPAddress
-from surinort_ast.core.visitor import ASTVisitor, ASTTransformer, ASTWalker
+from surinort_ast.core.nodes import ContentOption, IPAddress, MsgOption, SidOption
+from surinort_ast.core.visitor import ASTTransformer, ASTVisitor, ASTWalker
 from surinort_ast.parsing.transformer import RuleTransformer
 
 
@@ -114,7 +113,7 @@ class SIDIncrementer(ASTTransformer):
 
     def visit_SidOption(self, node: SidOption) -> SidOption:  # noqa: N802 - Visitor pattern method name
         """Increment SID value."""
-        return node.model_copy(update={'value': node.value + self.increment})
+        return node.model_copy(update={"value": node.value + self.increment})
 
 
 class IPReplacer(ASTTransformer):
@@ -128,7 +127,7 @@ class IPReplacer(ASTTransformer):
     def visit_IPAddress(self, node: IPAddress) -> IPAddress:  # noqa: N802 - Visitor pattern method name
         """Replace IP address."""
         if node.value == self.old_ip:
-            return node.model_copy(update={'value': self.new_ip})
+            return node.model_copy(update={"value": self.new_ip})
         return node
 
 
@@ -143,7 +142,9 @@ class TestTransformerPattern:
         original_rule = transformer.transform(parse_tree)[0]
 
         # Find original SID
-        original_sid = next((o.value for o in original_rule.options if isinstance(o, SidOption)), None)
+        original_sid = next(
+            (o.value for o in original_rule.options if isinstance(o, SidOption)), None
+        )
         assert original_sid == 1
 
         # Transform
@@ -155,7 +156,9 @@ class TestTransformerPattern:
         assert new_sid == 1000001
 
         # Original unchanged
-        original_sid_after = next((o.value for o in original_rule.options if isinstance(o, SidOption)), None)
+        original_sid_after = next(
+            (o.value for o in original_rule.options if isinstance(o, SidOption)), None
+        )
         assert original_sid_after == 1
 
     def test_replace_ip_address(self, lark_parser: Lark, transformer: RuleTransformer):
@@ -192,7 +195,9 @@ class TestTransformerPattern:
         new_rule = incrementer.visit(original_rule)
 
         # Check transformation
-        original_sid = next((o.value for o in original_rule.options if isinstance(o, SidOption)), None)
+        original_sid = next(
+            (o.value for o in original_rule.options if isinstance(o, SidOption)), None
+        )
         new_sid = next((o.value for o in new_rule.options if isinstance(o, SidOption)), None)
 
         assert original_sid == 1
@@ -247,15 +252,17 @@ class TestWalkerPattern:
 class TestVisitorIntegration:
     """Test visitor integration with real rules."""
 
-    def test_collect_all_sids_from_fixtures(self, lark_parser: Lark, transformer: RuleTransformer, fixtures_dir):
+    def test_collect_all_sids_from_fixtures(
+        self, lark_parser: Lark, transformer: RuleTransformer, fixtures_dir
+    ):
         """Collect all SIDs from fixture rules."""
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
         rules = []
-        with open(simple_rules_file, 'r', encoding='utf-8') as f:
+        with open(simple_rules_file, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 parse_tree = lark_parser.parse(line)
@@ -272,15 +279,17 @@ class TestVisitorIntegration:
         # All SIDs should be unique (in fixture)
         assert len(set(collector.sids)) == len(collector.sids)
 
-    def test_transform_fixture_rules(self, lark_parser: Lark, transformer: RuleTransformer, fixtures_dir):
+    def test_transform_fixture_rules(
+        self, lark_parser: Lark, transformer: RuleTransformer, fixtures_dir
+    ):
         """Transform all fixture rules."""
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
         rules = []
-        with open(simple_rules_file, 'r', encoding='utf-8') as f:
+        with open(simple_rules_file, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 parse_tree = lark_parser.parse(line)
@@ -293,8 +302,12 @@ class TestVisitorIntegration:
 
         # All SIDs should be incremented
         for original, transformed in zip(rules, transformed_rules):
-            original_sid = next((o.value for o in original.options if isinstance(o, SidOption)), None)
-            transformed_sid = next((o.value for o in transformed.options if isinstance(o, SidOption)), None)
+            original_sid = next(
+                (o.value for o in original.options if isinstance(o, SidOption)), None
+            )
+            transformed_sid = next(
+                (o.value for o in transformed.options if isinstance(o, SidOption)), None
+            )
 
             if original_sid is not None:
                 assert transformed_sid == original_sid + 9000000
@@ -321,7 +334,9 @@ class TestCustomVisitors:
 
     def test_collect_content_patterns(self, lark_parser: Lark, transformer: RuleTransformer):
         """Collect content patterns from rule."""
-        rule_text = 'alert tcp any any -> any 80 (msg:"Test"; content:"GET"; content:"POST"; sid:1;)'
+        rule_text = (
+            'alert tcp any any -> any 80 (msg:"Test"; content:"GET"; content:"POST"; sid:1;)'
+        )
 
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]

@@ -160,7 +160,9 @@ def parse(
                             rules.append(parse_rule(line, dialect=dialect))
                         except ParseError:
                             if verbose:
-                                err_console.print(f"[yellow]Warning:[/yellow] Failed to parse: {line[:50]}...")
+                                err_console.print(
+                                    f"[yellow]Warning:[/yellow] Failed to parse: {line[:50]}..."
+                                )
 
         if not rules:
             err_console.print("Error: No valid rules found")
@@ -569,13 +571,15 @@ def stats(
         direction_counts = Counter(rule.header.direction for rule in rules)
 
         # Display statistics
-        console.print(Panel.fit(
-            f"[bold cyan]Rule Statistics[/bold cyan]\n\n"
-            f"File: {file}\n"
-            f"Dialect: {dialect.value}\n"
-            f"Total Rules: {len(rules)}",
-            border_style="cyan"
-        ))
+        console.print(
+            Panel.fit(
+                f"[bold cyan]Rule Statistics[/bold cyan]\n\n"
+                f"File: {file}\n"
+                f"Dialect: {dialect.value}\n"
+                f"Total Rules: {len(rules)}",
+                border_style="cyan",
+            )
+        )
 
         # Actions table
         actions_table = Table(title="Actions", show_header=True)
@@ -585,11 +589,7 @@ def stats(
 
         for action, count in action_counts.most_common():
             percentage = (count / len(rules)) * 100
-            actions_table.add_row(
-                action.value,
-                str(count),
-                f"{percentage:.1f}%"
-            )
+            actions_table.add_row(action.value, str(count), f"{percentage:.1f}%")
 
         console.print()
         console.print(actions_table)
@@ -602,11 +602,7 @@ def stats(
 
         for protocol, count in protocol_counts.most_common():
             percentage = (count / len(rules)) * 100
-            protocols_table.add_row(
-                protocol.value,
-                str(count),
-                f"{percentage:.1f}%"
-            )
+            protocols_table.add_row(protocol.value, str(count), f"{percentage:.1f}%")
 
         console.print()
         console.print(protocols_table)
@@ -619,11 +615,7 @@ def stats(
 
         for direction, count in direction_counts.most_common():
             percentage = (count / len(rules)) * 100
-            directions_table.add_row(
-                direction.value,
-                str(count),
-                f"{percentage:.1f}%"
-            )
+            directions_table.add_row(direction.value, str(count), f"{percentage:.1f}%")
 
         console.print()
         console.print(directions_table)

@@ -12,16 +12,17 @@ NO MOCKS - all tests use real parser and printer execution.
 import pytest
 from lark import Lark
 
-from surinort_ast.core.nodes import Rule
 from surinort_ast.parsing.transformer import RuleTransformer
-from surinort_ast.printer.text_printer import TextPrinter, print_rule
 from surinort_ast.printer.formatter import FormatterOptions
+from surinort_ast.printer.text_printer import TextPrinter, print_rule
 
 
 class TestBasicPrinting:
     """Test basic rule printing."""
 
-    def test_print_minimal_rule(self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter):
+    def test_print_minimal_rule(
+        self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter
+    ):
         """Print minimal rule."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
@@ -34,15 +35,17 @@ class TestBasicPrinting:
         printed = text_printer.print_rule(rule)
 
         # Should contain all essential parts
-        assert 'alert' in printed
-        assert 'tcp' in printed
-        assert 'any' in printed
-        assert '->' in printed
-        assert '80' in printed
-        assert 'msg:' in printed
-        assert 'sid:1' in printed
+        assert "alert" in printed
+        assert "tcp" in printed
+        assert "any" in printed
+        assert "->" in printed
+        assert "80" in printed
+        assert "msg:" in printed
+        assert "sid:1" in printed
 
-    def test_print_with_variables(self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter):
+    def test_print_with_variables(
+        self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter
+    ):
         """Print rule with address/port variables."""
         rule_text = 'alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"Test"; sid:1;)'
 
@@ -55,15 +58,17 @@ class TestBasicPrinting:
         printed = text_printer.print_rule(rule)
 
         # Variables should be preserved
-        assert '$EXTERNAL_NET' in printed
-        assert '$HOME_NET' in printed
-        assert '$HTTP_PORTS' in printed
+        assert "$EXTERNAL_NET" in printed
+        assert "$HOME_NET" in printed
+        assert "$HTTP_PORTS" in printed
 
 
 class TestRoundtripParsing:
     """Test roundtrip: parse -> print -> parse."""
 
-    def test_roundtrip_simple_rule(self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter):
+    def test_roundtrip_simple_rule(
+        self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter
+    ):
         """Roundtrip simple rule."""
         original_text = 'alert tcp any any -> any 80 (msg:"Test Rule"; sid:1000001; rev:1;)'
 
@@ -87,7 +92,9 @@ class TestRoundtripParsing:
         # Options should match
         assert len(rule1.options) == len(rule2.options)
 
-    def test_roundtrip_complex_rule(self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter):
+    def test_roundtrip_complex_rule(
+        self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter
+    ):
         """Roundtrip complex rule with content and flow."""
         original_text = 'alert http any any -> any any (msg:"HTTP POST"; flow:established,to_server; http.method; content:"POST"; sid:2000001; rev:1;)'
 
@@ -107,15 +114,23 @@ class TestRoundtripParsing:
         assert rule1.header.protocol == rule2.header.protocol
         assert len(rule1.options) == len(rule2.options)
 
-    @pytest.mark.parametrize("rule_text", [
-        'alert tcp any any -> any 80 (msg:"Test"; sid:1;)',
-        'alert tcp 192.168.1.0/24 any -> any 80 (msg:"CIDR"; sid:2;)',
-        'alert tcp any 1024:65535 -> any 80 (msg:"Port Range"; sid:3;)',
-        'alert tcp any any <> any 80 (msg:"Bidirectional"; sid:4;)',
-        'drop tcp any any -> any 22 (msg:"Drop SSH"; sid:5;)',
-    ])
-    def test_roundtrip_various_rules(self, lark_parser: Lark, transformer: RuleTransformer,
-                                    text_printer: TextPrinter, rule_text: str):
+    @pytest.mark.parametrize(
+        "rule_text",
+        [
+            'alert tcp any any -> any 80 (msg:"Test"; sid:1;)',
+            'alert tcp 192.168.1.0/24 any -> any 80 (msg:"CIDR"; sid:2;)',
+            'alert tcp any 1024:65535 -> any 80 (msg:"Port Range"; sid:3;)',
+            'alert tcp any any <> any 80 (msg:"Bidirectional"; sid:4;)',
+            'drop tcp any any -> any 22 (msg:"Drop SSH"; sid:5;)',
+        ],
+    )
+    def test_roundtrip_various_rules(
+        self,
+        lark_parser: Lark,
+        transformer: RuleTransformer,
+        text_printer: TextPrinter,
+        rule_text: str,
+    ):
         """Roundtrip various rule patterns."""
         # Parse original
         parse_tree1 = lark_parser.parse(rule_text)
@@ -133,15 +148,20 @@ class TestRoundtripParsing:
         assert rule1.header.protocol == rule2.header.protocol
         assert rule1.header.direction == rule2.header.direction
 
-    def test_roundtrip_fixture_rules(self, lark_parser: Lark, transformer: RuleTransformer,
-                                    text_printer: TextPrinter, fixtures_dir):
+    def test_roundtrip_fixture_rules(
+        self,
+        lark_parser: Lark,
+        transformer: RuleTransformer,
+        text_printer: TextPrinter,
+        fixtures_dir,
+    ):
         """Roundtrip all simple fixture rules."""
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
-        with open(simple_rules_file, 'r', encoding='utf-8') as f:
+        with open(simple_rules_file, encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 # Parse original
@@ -158,15 +178,21 @@ class TestRoundtripParsing:
 
                     # Verify key fields match
                     assert rule1.action == rule2.action, f"Action mismatch at line {line_num}"
-                    assert rule1.header.protocol == rule2.header.protocol, f"Protocol mismatch at line {line_num}"
+                    assert rule1.header.protocol == rule2.header.protocol, (
+                        f"Protocol mismatch at line {line_num}"
+                    )
                 except Exception as e:
-                    pytest.fail(f"Roundtrip failed at line {line_num}\nOriginal: {line}\nPrinted: {printed_text}\nError: {e}")
+                    pytest.fail(
+                        f"Roundtrip failed at line {line_num}\nOriginal: {line}\nPrinted: {printed_text}\nError: {e}"
+                    )
 
 
 class TestDeterministicOutput:
     """Test that printer produces deterministic output."""
 
-    def test_print_twice_same_output(self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter):
+    def test_print_twice_same_output(
+        self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter
+    ):
         """Printing same rule twice produces identical output."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1; rev:1; classtype:misc-attack;)'
 
@@ -181,9 +207,13 @@ class TestDeterministicOutput:
         # Should be identical
         assert output1 == output2
 
-    def test_print_with_metadata_stable(self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter):
+    def test_print_with_metadata_stable(
+        self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter
+    ):
         """Printing rule with metadata is stable."""
-        rule_text = 'alert tcp any any -> any 80 (msg:"Test"; metadata:key1 value1, key2 value2; sid:1;)'
+        rule_text = (
+            'alert tcp any any -> any 80 (msg:"Test"; metadata:key1 value1, key2 value2; sid:1;)'
+        )
 
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
@@ -207,15 +237,15 @@ class TestFormattingOptions:
 
         # Compact format
         options = FormatterOptions(
-            option_separator=' ',
+            option_separator=" ",
             indent_size=0,
         )
         printer = TextPrinter(options=options)
         printed = printer.print_rule(rule)
 
         # Should be relatively compact
-        assert 'alert' in printed
-        assert 'tcp' in printed
+        assert "alert" in printed
+        assert "tcp" in printed
 
     def test_standard_formatting(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test standard formatting."""
@@ -229,15 +259,17 @@ class TestFormattingOptions:
         printer = TextPrinter(options=options)
         printed = printer.print_rule(rule)
 
-        assert 'alert tcp' in printed
-        assert 'msg:' in printed
-        assert 'sid:1' in printed
+        assert "alert tcp" in printed
+        assert "msg:" in printed
+        assert "sid:1" in printed
 
 
 class TestContentPrinting:
     """Test printing content options."""
 
-    def test_print_ascii_content(self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter):
+    def test_print_ascii_content(
+        self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter
+    ):
         """Print content with ASCII pattern."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; content:"GET"; sid:1;)'
 
@@ -246,10 +278,12 @@ class TestContentPrinting:
 
         printed = text_printer.print_rule(rule)
 
-        assert 'content:' in printed
-        assert 'GET' in printed
+        assert "content:" in printed
+        assert "GET" in printed
 
-    def test_print_hex_content(self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter):
+    def test_print_hex_content(
+        self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter
+    ):
         """Print content with hex pattern."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; content:|48 65 6c 6c 6f|; sid:1;)'
 
@@ -259,13 +293,15 @@ class TestContentPrinting:
         printed = text_printer.print_rule(rule)
 
         # Printed output should contain content (as hex or text)
-        assert 'content:' in printed
+        assert "content:" in printed
 
 
 class TestMultipleRules:
     """Test printing multiple rules."""
 
-    def test_print_multiple_rules(self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter):
+    def test_print_multiple_rules(
+        self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter
+    ):
         """Print multiple rules."""
         rules_text = [
             'alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)',
@@ -283,12 +319,12 @@ class TestMultipleRules:
         printed = text_printer.print_rules(rules)
 
         # Should contain all rules
-        assert 'Rule 1' in printed
-        assert 'Rule 2' in printed
-        assert 'Rule 3' in printed
-        assert 'sid:1' in printed
-        assert 'sid:2' in printed
-        assert 'sid:3' in printed
+        assert "Rule 1" in printed
+        assert "Rule 2" in printed
+        assert "Rule 3" in printed
+        assert "sid:1" in printed
+        assert "sid:2" in printed
+        assert "sid:3" in printed
 
 
 class TestConvenienceFunctions:
@@ -304,6 +340,6 @@ class TestConvenienceFunctions:
         # Use convenience function
         printed = print_rule(rule)
 
-        assert 'alert' in printed
-        assert 'tcp' in printed
-        assert 'msg:' in printed
+        assert "alert" in printed
+        assert "tcp" in printed
+        assert "msg:" in printed
