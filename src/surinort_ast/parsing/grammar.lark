@@ -203,26 +203,21 @@ byte_extract_params: INT "," INT "," WORD ("," WORD)*
 byte_math_option: "byte_math" ":" byte_math_params
 byte_math_params: WORD WORD ("," WORD)*
 
-// Sticky buffers
-buffer_select_option: buffer_name
-buffer_name: "http_uri"
-           | "http_header"
-           | "http_header_names"
-           | "http_method"
-           | "http_cookie"
-           | "http_user_agent"
-           | "http_host"
-           | "http_raw_uri"
-           | "http_stat_msg"
-           | "http_stat_code"
-           | "file_data"
-           | "pkt_data"
-           | "dns_query"
-           | "tls_sni"
-           | "tls_cert_subject"
-           | "tls_cert_issuer"
-           | "ssh_proto"
-           | "ssh_software"
+// Sticky buffers (Suricata uses dots, Snort uses underscores)
+buffer_select_option: BUFFER_NAME
+
+BUFFER_NAME.2: "http." ("uri" | "header" | "header_names" | "method" | "cookie" | "user_agent" | "host" | "raw_uri" | "stat_msg" | "stat_code")
+             | "http_" ("uri" | "header" | "header_names" | "method" | "cookie" | "user_agent" | "host" | "raw_uri" | "stat_msg" | "stat_code")
+             | "file." ("data")
+             | "file_" ("data")
+             | "pkt." ("data")
+             | "pkt_" ("data")
+             | "dns." ("query")
+             | "dns_" ("query")
+             | "tls." ("sni" | "cert_subject" | "cert_issuer")
+             | "tls_" ("sni" | "cert_subject" | "cert_issuer")
+             | "ssh." ("proto" | "software")
+             | "ssh_" ("proto" | "software")
 
 // Tag and filestore
 tag_option: "tag" ":" tag_params

@@ -729,6 +729,8 @@ class RuleTransformer(Transformer[Token, Any]):
     def pcre_option(self, pattern_token: Token) -> PcreOption:
         """Transform pcre:"/pattern/flags" option"""
         pattern_str = str(pattern_token.value)
+        # Remove quotes if present (QUOTED_STRING token includes quotes)
+        pattern_str = parse_quoted_string(pattern_str)
         pattern, flags = parse_pcre_pattern(pattern_str)
 
         return PcreOption(
@@ -943,16 +945,10 @@ class RuleTransformer(Transformer[Token, Any]):
     # Sticky buffers
 
     @v_args(inline=True)
-    def buffer_select_option(self, buffer_name: str) -> BufferSelectOption:
-        """Transform sticky buffer selection (http_uri, dns_query, etc.)"""
-        return BufferSelectOption(buffer_name=buffer_name)
-
-    def buffer_name(self, items: Sequence[Any]) -> str:
-        """Extract buffer name from tree"""
-        # The buffer name comes from the terminal token
-        if items and isinstance(items[0], Token):
-            return str(items[0].value)
-        return ""
+    def buffer_select_option(self, buffer_token: Token) -> BufferSelectOption:
+        """Transform sticky buffer selection (http.uri, dns_query, etc.)"""
+        # BUFFER_NAME is now a terminal, so we get the token directly
+        return BufferSelectOption(buffer_name=str(buffer_token.value))
 
     # Tag and filestore
 
