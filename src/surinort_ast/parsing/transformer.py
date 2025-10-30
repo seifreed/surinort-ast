@@ -560,11 +560,19 @@ class RuleTransformer(Transformer[Token, Any]):
         """Transform [port1,port2,...]"""
         return PortList(elements=list(items))
 
-    @v_args(inline=True)
-    def port_range(self, start_token: Token, end_token: Token) -> PortRange:
-        """Transform port range: 1024:65535"""
+    def port_range(self, args: list) -> PortRange:
+        """Transform port range: 1024:65535 or open-ended 1024:"""
+        start_token = args[0]
         start = int(start_token.value)
-        end = int(end_token.value)
+
+        # Check if end port is provided (may be open-ended like "1024:")
+        if len(args) > 1 and args[1] is not None:
+            end_token = args[1]
+            end = int(end_token.value)
+        else:
+            # Open-ended range, default to max port
+            end = 65535
+            end_token = None
 
         if start < 0 or start > 65535:
             self.add_diagnostic(
@@ -574,11 +582,12 @@ class RuleTransformer(Transformer[Token, Any]):
             )
 
         if end < 0 or end > 65535:
-            self.add_diagnostic(
-                DiagnosticLevel.ERROR,
-                f"Port range end {end} out of range (0-65535)",
-                token_to_location(end_token, self.file_path),
-            )
+            if end_token:
+                self.add_diagnostic(
+                    DiagnosticLevel.ERROR,
+                    f"Port range end {end} out of range (0-65535)",
+                    token_to_location(end_token, self.file_path),
+                )
 
         if start > end:
             self.add_diagnostic(
@@ -701,27 +710,46 @@ class RuleTransformer(Transformer[Token, Any]):
 
         return MetadataOption(entries=entries)
 
-    def metadata_entry(self, items: Sequence[Token]) -> tuple[str, str]:
-        """Transform metadata entry: key value (value can be METADATA_VALUE, WORD, or INT)"""
-        if len(items) >= 2:
-            key = str(items[0].value)
-            value = str(items[1].value)
-            return (key, value)
-        return ("", "")
+    def metadata_entry(self, items: Sequence[Any]) -> tuple[str, str]:
+        """Transform metadata entry: key value1 value2... (multiple values possible)"""
+        if not items:
+            return ("", "")
+
+        # Extract values from tokens or trees
+        values = []
+        for item in items:
+            if isinstance(item, Token):
+                values.append(str(item.value))
+            elif isinstance(item, Tree):
+                # Tree from metadata_word - extract first child token
+                if item.children:
+                    child = item.children[0]
+                    if isinstance(child, Token):
+                        values.append(str(child.value))
+            elif isinstance(item, str):
+                values.append(item)
+
+        if not values:
+            return ("", "")
+
+        # First value is the key, rest are concatenated as the value
+        key = values[0]
+        value = " ".join(values[1:]) if len(values) > 1 else ""
+        return (key, value)
 
     @v_args(inline=True)
-    def content_option(self, content_value: bytes) -> ContentOption:
-        """Transform content:"text" or content:|hex| option"""
-        return ContentOption(pattern=content_value)
+    def content_option(self, content_value: bytes, *modifiers: ContentModifier) -> ContentOption:
+        """Transform content:"text" or content:|hex| option with optional Snort3 modifiers"""
+        return ContentOption(pattern=content_value, modifiers=list(modifiers) if modifiers else [])
 
     @v_args(inline=True)
-    def uricontent_option(self, content_value: bytes) -> ContentOption:
+    def uricontent_option(self, content_value: bytes, *modifiers: ContentModifier) -> ContentOption:
         """Transform uricontent (legacy Snort2) - treat as content"""
         self.add_diagnostic(
             DiagnosticLevel.WARNING,
             "uricontent is deprecated, use content with http_uri buffer",
         )
-        return ContentOption(pattern=content_value)
+        return ContentOption(pattern=content_value, modifiers=list(modifiers) if modifiers else [])
 
     @v_args(inline=True)
     def content_value(self, value_token: Token) -> bytes:
@@ -734,6 +762,56 @@ class RuleTransformer(Transformer[Token, Any]):
         # Quoted string - parse and encode
         text = parse_quoted_string(value_str)
         return text.encode("utf-8", errors="replace")
+
+    # Content modifier transformers for Snort3 inline syntax
+    def cm_depth(self, args: list) -> ContentModifier:
+        # args = [DEPTH_KW, INT]
+        value = int(args[1].value) if isinstance(args[1], Token) else int(args[1])
+        return ContentModifier(name=ContentModifierType.DEPTH, value=value)
+
+    def cm_offset(self, args: list) -> ContentModifier:
+        value = int(args[1].value) if isinstance(args[1], Token) else int(args[1])
+        return ContentModifier(name=ContentModifierType.OFFSET, value=value)
+
+    def cm_distance(self, args: list) -> ContentModifier:
+        # May have negative sign: [DISTANCE_KW, INT] or [DISTANCE_KW, "-", INT]
+        if len(args) == 2:
+            value = int(args[1].value) if isinstance(args[1], Token) else int(args[1])
+        else:
+            value = -int(args[2].value) if isinstance(args[2], Token) else -int(args[2])
+        return ContentModifier(name=ContentModifierType.DISTANCE, value=value)
+
+    def cm_within(self, args: list) -> ContentModifier:
+        value = int(args[1].value) if isinstance(args[1], Token) else int(args[1])
+        return ContentModifier(name=ContentModifierType.WITHIN, value=value)
+
+    def cm_nocase(self, args: list) -> ContentModifier:
+        return ContentModifier(name=ContentModifierType.NOCASE, value=None)
+
+    def cm_rawbytes(self, args: list) -> ContentModifier:
+        return ContentModifier(name=ContentModifierType.RAWBYTES, value=None)
+
+    def cm_startswith(self, args: list) -> ContentModifier:
+        return ContentModifier(name=ContentModifierType.STARTSWITH, value=None)
+
+    def cm_endswith(self, args: list) -> ContentModifier:
+        return ContentModifier(name=ContentModifierType.ENDSWITH, value=None)
+
+    def cm_fast_pattern(self, args: list) -> ContentModifier:
+        return ContentModifier(name=ContentModifierType.FAST_PATTERN, value=None)
+
+    def cm_generic(self, args: list) -> ContentModifier:
+        """Handle generic/unknown content modifiers"""
+        if len(args) == 1:
+            # Modifier name only
+            name = str(args[0].value) if isinstance(args[0], Token) else str(args[0])
+            return ContentModifier(name=ContentModifierType.NOCASE, value=None)  # Default
+        elif len(args) == 2:
+            # Modifier name and value
+            name = str(args[0].value) if isinstance(args[0], Token) else str(args[0])
+            value = int(args[1].value) if isinstance(args[1], Token) else int(args[1])
+            return ContentModifier(name=ContentModifierType.NOCASE, value=value)
+        return ContentModifier(name=ContentModifierType.NOCASE, value=None)
 
     @v_args(inline=True)
     def pcre_option(self, pattern_token: Token) -> PcreOption:

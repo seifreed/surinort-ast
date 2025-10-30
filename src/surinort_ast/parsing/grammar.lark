@@ -14,12 +14,12 @@ rule: action header "(" options ")" ";"?
 // Header
 // ============================================================================
 
-action: "alert" -> alert
-      | "log" -> log
-      | "pass" -> pass_
-      | "drop" -> drop
-      | "reject" -> reject
-      | "sdrop" -> sdrop
+action: ALERT -> alert
+      | LOG -> log
+      | PASS -> pass_
+      | DROP -> drop
+      | REJECT -> reject
+      | SDROP -> sdrop
 
 header: protocol address port direction address port
 
@@ -93,14 +93,16 @@ port_var: VARIABLE
 port_negation: "!" port
 port_list: "[" port_elem ("," port_elem)* "]"
 port_elem: port_range | port_single
-port_range: INT ":" INT
+// Support open-ended ranges: "1024:" (from 1024 to 65535)
+port_range: INT ":" INT?
 port_single: INT
 
 // ============================================================================
 // Options
 // ============================================================================
 
-options: option (";" option)* ";"?
+// Support both semicolon (Suricata/Snort2) and comma (Snort3) as separators
+options: option ((";" | ",") option)* (";" | ",")?
 
 ?option: msg_option
        | sid_option
@@ -128,6 +130,7 @@ options: option (";" option)* ";"?
        | startswith_option
        | endswith_option
        | isdataat_option
+       | urilen_option
        | byte_test_option
        | byte_jump_option
        | byte_extract_option
@@ -145,16 +148,44 @@ gid_option: "gid" ":" INT
 classtype_option: "classtype" ":" WORD
 priority_option: "priority" ":" INT
 reference_option: "reference" ":" WORD "," reference_id
-reference_id: WORD | INT | /[a-zA-Z0-9_.\/:-]+/
+reference_id: REFERENCE_ID | WORD | INT
 
-// Metadata
+// Reference IDs can contain slashes, dots, query params, etc (like URLs)
+// Higher priority than PCRE_PATTERN to match URLs correctly
+// Exclude semicolon and comma which are option delimiters
+REFERENCE_ID.1: /[a-zA-Z0-9][a-zA-Z0-9_.\/:\-?&=%#~@!+*]+/
+
+// Metadata - allow action keywords as regular words and multiple values
 metadata_option: "metadata" ":" metadata_entry ("," metadata_entry)*
-metadata_entry: WORD (METADATA_VALUE | WORD | INT)
+metadata_entry: (WORD | ALERT | LOG | PASS | DROP | REJECT | SDROP | INT | METADATA_VALUE)+
 
 // Content matching
-content_option: "content" ":" content_value
-uricontent_option: "uricontent" ":" content_value
+// Support Snort3 inline modifiers: content:"test",depth 16,nocase
+content_option: "content" ":" "!"? content_value ("," content_modifier)*
+uricontent_option: "uricontent" ":" "!"? content_value ("," content_modifier)*
 content_value: QUOTED_STRING | HEX_STRING
+// Snort3 content modifiers - keywords first, then catch-all
+content_modifier: DEPTH_KW INT                   -> cm_depth
+                | OFFSET_KW INT                  -> cm_offset
+                | DISTANCE_KW "-"? INT           -> cm_distance
+                | WITHIN_KW INT                  -> cm_within
+                | NOCASE_KW                      -> cm_nocase
+                | RAWBYTES_KW                    -> cm_rawbytes
+                | STARTSWITH_KW                  -> cm_startswith
+                | ENDSWITH_KW                    -> cm_endswith
+                | FAST_PATTERN_KW                -> cm_fast_pattern
+                | WORD INT?                      -> cm_generic
+
+// Content modifier keywords (must come before WORD)
+DEPTH_KW.3: "depth"
+OFFSET_KW.3: "offset"
+DISTANCE_KW.3: "distance"
+WITHIN_KW.3: "within"
+NOCASE_KW.3: "nocase"
+RAWBYTES_KW.3: "rawbytes"
+STARTSWITH_KW.3: "startswith"
+ENDSWITH_KW.3: "endswith"
+FAST_PATTERN_KW.3: "fast_pattern"
 
 // PCRE
 pcre_option: "pcre" ":" (PCRE_PATTERN | QUOTED_STRING)
@@ -175,15 +206,17 @@ threshold_param: WORD (WORD | INT)
 
 detection_filter_option: "detection_filter" ":" detection_params
 detection_params: detection_param ("," detection_param)*
-detection_param: WORD INT
+detection_param: WORD (WORD | INT)
 
 // Content modifiers
-fast_pattern_option: "fast_pattern" (":" INT "," INT)?
+fast_pattern_option: "fast_pattern" (":" fast_pattern_value)?
+fast_pattern_value: INT "," INT  -> fast_pattern_offset
+                  | "only"       -> fast_pattern_only
 nocase_option: "nocase"
 rawbytes_option: "rawbytes"
 depth_option: "depth" ":" INT
 offset_option: "offset" ":" INT
-distance_option: "distance" ":" INT
+distance_option: "distance" ":" "-"? INT
 within_option: "within" ":" INT
 startswith_option: "startswith"
 endswith_option: "endswith"
@@ -191,11 +224,17 @@ endswith_option: "endswith"
 // Byte operations
 isdataat_option: "isdataat" ":" "!"? INT ("," WORD)?
 
+// URI length check with comparison operators
+urilen_option: "urilen" ":" urilen_value
+urilen_value: ("<" | ">" | "<=" | ">=" | "=" | "!")? INT
+
 byte_test_option: "byte_test" ":" byte_test_params
-byte_test_params: INT "," WORD "," INT "," INT ("," WORD)*
+byte_test_params: INT "," byte_test_operator "," INT "," INT ("," WORD)*
+byte_test_operator: "!" ("&" | "=") | "&" | "<" | ">" | "=" | "<=" | ">=" | WORD
 
 byte_jump_option: "byte_jump" ":" byte_jump_params
-byte_jump_params: INT "," INT ("," WORD)*
+byte_jump_params: INT "," "-"? INT ("," byte_jump_flag)*
+byte_jump_flag: WORD (INT)?  // Support "post_offset 10" style flags
 
 byte_extract_option: "byte_extract" ":" byte_extract_params
 byte_extract_params: INT "," INT "," WORD ("," WORD)*
@@ -227,8 +266,11 @@ filestore_option: "filestore" (":" filestore_params)?
 filestore_params: WORD ("," WORD)?
 
 // Generic fallback for unknown options
+// Support flexible values like "A+", ">0", "M+", etc.
 generic_option: WORD (":" option_value)?
-option_value: QUOTED_STRING | HEX_STRING | INT | WORD | PCRE_PATTERN
+option_value: QUOTED_STRING | HEX_STRING | PCRE_PATTERN | GENERIC_VALUE | INT | WORD
+// Generic value can include special chars like +, >, <, !, etc.
+GENERIC_VALUE: /[a-zA-Z0-9_+\-!><*&|~.]+/
 
 // ============================================================================
 // Terminals
@@ -257,6 +299,15 @@ METADATA_VALUE: /\d[a-zA-Z0-9_.-]+/
 INT: /\d+/
 // WORD must come after IP addresses to avoid conflicts
 WORD: /[a-zA-Z_][a-zA-Z0-9_.-]*/
+
+// Action keywords as high-priority terminals (match exactly in action context)
+// But can also be used as words in metadata context
+ALERT: "alert"
+LOG: "log"
+PASS: "pass"
+DROP: "drop"
+REJECT: "reject"
+SDROP: "sdrop"
 
 // Whitespace and newlines
 %import common.WS
