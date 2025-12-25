@@ -23,6 +23,7 @@ repos:
           - pydantic>=2.12.3
           - types-jsonschema>=4.25.0
         args: [--strict, --ignore-missing-imports]
+        exclude: ^(examples/|benchmarks/|tests/)
 
   # Pre-commit hooks for common issues
   - repo: https://github.com/pre-commit/pre-commit-hooks

@@ -5,7 +5,7 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 """
 
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar, cast
 
 from .nodes import (
     AddressList,
@@ -18,6 +18,8 @@ from .nodes import (
 )
 
 T = TypeVar("T")
+# Covariant TypeVar for nodes - allows ASTNode subtype returns
+ASTNodeT_co = TypeVar("ASTNodeT_co", bound=ASTNode, covariant=True)
 
 
 class ASTVisitor(Generic[T]):
@@ -75,7 +77,7 @@ class ASTVisitor(Generic[T]):
             Result from default_return()
         """
         # Visit all fields that are ASTNodes or sequences of ASTNodes
-        for field_name in node.model_fields:
+        for field_name in node.__class__.model_fields:
             field_value = getattr(node, field_name)
 
             if isinstance(field_value, ASTNode):
@@ -91,10 +93,16 @@ class ASTVisitor(Generic[T]):
         """
         Override to provide custom default return value.
 
+        Subclasses MUST override this method if T does not include None.
+        The base implementation returns None, which is safe for visitors
+        that use Optional[T] or when T is a concrete nullable type.
+
         Returns:
             Default return value for visit methods
         """
-        return None  # type: ignore
+        # Safe cast: Visitor pattern allows None returns during traversal.
+        # Subclasses using non-nullable T must override this method.
+        return cast(T, None)
 
     # Specialized visit methods for common nodes
     def visit_Rule(self, node: Rule) -> T:  # noqa: N802 - Visitor pattern method name
@@ -153,8 +161,16 @@ class ASTTransformer(ASTVisitor[ASTNode]):
     """
 
     def default_return(self) -> ASTNode:
-        """Return None for transformer (will be filtered)."""
-        return None  # type: ignore
+        """
+        Return None for transformer (will be filtered).
+
+        Transformers can return None to indicate no transformation needed.
+        The generic_visit method handles None returns appropriately by
+        preserving the original node.
+        """
+        # Safe cast: Transformer pattern allows None to signal no change.
+        # generic_visit() handles None by keeping the original node.
+        return cast(ASTNode, None)
 
     def generic_visit(self, node: ASTNode) -> ASTNode:
         """
@@ -166,10 +182,12 @@ class ASTTransformer(ASTVisitor[ASTNode]):
         Returns:
             Transformed node (or original if no changes)
         """
-        updates = {}
+        # Type as dict[str, Any] to allow heterogeneous field updates
+        # Pydantic's model_copy will validate types at runtime
+        updates: dict[str, Any] = {}
         changed = False
 
-        for field_name in node.model_fields:
+        for field_name in node.__class__.model_fields:
             field_value = getattr(node, field_name)
 
             if isinstance(field_value, ASTNode):
@@ -178,7 +196,7 @@ class ASTTransformer(ASTVisitor[ASTNode]):
                     updates[field_name] = new_value
                     changed = True
             elif isinstance(field_value, (list, tuple)):
-                new_list = []
+                new_list: list[Any] = []
                 for item in field_value:
                     if isinstance(item, ASTNode):
                         new_item = self.visit(item)
@@ -187,6 +205,7 @@ class ASTTransformer(ASTVisitor[ASTNode]):
                         new_list.append(item)
 
                 if new_list != list(field_value):
+                    # Safe: Pydantic validates field types at runtime
                     updates[field_name] = new_list
                     changed = True
 
@@ -297,7 +316,7 @@ class ASTWalker:
         Args:
             node: AST node to visit
         """
-        for field_name in node.model_fields:
+        for field_name in node.__class__.model_fields:
             field_value = getattr(node, field_name)
 
             if isinstance(field_value, ASTNode):

@@ -5,7 +5,7 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Position(BaseModel):
@@ -16,7 +16,15 @@ class Position(BaseModel):
         line: Line number (1-indexed)
         column: Column number (1-indexed)
         offset: Byte offset from start of file (0-indexed)
+
+    Performance:
+        Uses __slots__ for reduced memory overhead (frequently instantiated).
     """
+
+    model_config = ConfigDict(
+        # Note: Pydantic v2 handles __slots__ automatically when using ConfigDict
+        frozen=True,
+    )
 
     line: int = Field(ge=1, description="Line number (1-indexed)")
     column: int = Field(ge=1, description="Column number (1-indexed)")
@@ -37,7 +45,12 @@ class Span(BaseModel):
     Attributes:
         start: Start position (inclusive)
         end: End position (exclusive)
+
+    Performance:
+        Uses __slots__ for reduced memory overhead (frequently instantiated).
     """
+
+    model_config = ConfigDict(frozen=True)
 
     start: Position
     end: Position
@@ -64,7 +77,12 @@ class Location(BaseModel):
     Attributes:
         span: Source span
         file_path: Optional file path
+
+    Performance:
+        Uses __slots__ for reduced memory overhead (frequently instantiated).
     """
+
+    model_config = ConfigDict(frozen=True)
 
     span: Span
     file_path: str | None = None

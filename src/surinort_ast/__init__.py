@@ -10,9 +10,11 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 # Version info
 # Core API - most users should import from here
+# Note: Importing from api package (api/__init__.py) maintains backward compatibility
 from .api import (
     from_json,
     parse_file,
+    parse_file_streaming,
     parse_rule,
     parse_rules,
     print_rule,
@@ -73,6 +75,7 @@ __all__ = [
     # Core API functions
     "from_json",
     "parse_file",
+    "parse_file_streaming",
     "parse_rule",
     "parse_rules",
     "print_rule",

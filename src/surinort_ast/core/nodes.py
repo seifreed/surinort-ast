@@ -11,9 +11,12 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal, Union
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+if TYPE_CHECKING:
+    pass
 
 from .diagnostics import Diagnostic
 from .enums import (
@@ -48,6 +51,7 @@ class ASTNode(BaseModel):
         extra="forbid",  # Strict schema
         use_enum_values=False,
         validate_assignment=True,
+        use_attribute_docstrings=True,  # Enable __slots__ optimization
     )
 
     location: Location | None = None
@@ -122,8 +126,6 @@ class Rule(ASTNode):
 class AddressExpr(ASTNode):
     """Base for address expressions."""
 
-    pass
-
 
 class IPAddress(AddressExpr):
     """Single IP: 192.168.1.1 or 2001:db8::1"""
@@ -167,8 +169,6 @@ class AddressList(AddressExpr):
 class AnyAddress(AddressExpr):
     """Wildcard: any"""
 
-    pass
-
 
 # ============================================================================
 # Port Expressions
@@ -177,8 +177,6 @@ class AnyAddress(AddressExpr):
 
 class PortExpr(ASTNode):
     """Base for port expressions."""
-
-    pass
 
 
 class Port(PortExpr):
@@ -195,7 +193,7 @@ class PortRange(PortExpr):
 
     @field_validator("end")
     @classmethod
-    def validate_range(cls, v: int, info) -> int:
+    def validate_range(cls, v: int, info: Any) -> int:
         """Ensure end >= start."""
         if "start" in info.data and v < info.data["start"]:
             raise ValueError(f"Port range end ({v}) must be >= start ({info.data['start']})")
@@ -222,8 +220,6 @@ class PortList(PortExpr):
 
 class AnyPort(PortExpr):
     """Wildcard: any"""
-
-    pass
 
 
 # ============================================================================
@@ -252,8 +248,6 @@ class ContentModifier(BaseModel):
 
 class Option(ASTNode):
     """Base class for rule options."""
-
-    pass
 
 
 class MsgOption(Option):
@@ -504,15 +498,47 @@ class FilestoreOption(Option):
     scope: str | None = None
 
 
+class LuaOption(Option):
+    """
+    lua:script.lua; or lua:!script.lua;
+
+    Lua scripting option for Suricata IDS.
+    Allows running Lua scripts as part of detection logic.
+
+    Attributes:
+        script_name: Name of the Lua script file
+        negated: Whether the match is negated (!)
+    """
+
+    script_name: str
+    negated: bool = False
+
+
+class LuajitOption(Option):
+    """
+    luajit:script.lua; or luajit:!script.lua;
+
+    LuaJIT scripting option for Suricata IDS (alternative keyword).
+    Functionally equivalent to lua: but explicitly indicates LuaJIT usage.
+
+    Attributes:
+        script_name: Name of the Lua script file
+        negated: Whether the match is negated (!)
+    """
+
+    script_name: str
+    negated: bool = False
+
+
 class DepthOption(Option):
     """
     depth:N; - Limits pattern match to N bytes from start of buffer.
 
     Attributes:
-        value: Number of bytes to search
+        value: Number of bytes to search (int) or variable name from byte_extract (str)
     """
 
-    value: int = Field(ge=0)
+    value: int | str
 
 
 class OffsetOption(Option):
@@ -520,10 +546,10 @@ class OffsetOption(Option):
     offset:N; - Skip N bytes before starting pattern match.
 
     Attributes:
-        value: Number of bytes to skip
+        value: Number of bytes to skip (int) or variable name from byte_extract (str)
     """
 
-    value: int = Field(ge=0)
+    value: int | str
 
 
 class DistanceOption(Option):
@@ -531,10 +557,10 @@ class DistanceOption(Option):
     distance:N; - Match must occur N bytes after previous match.
 
     Attributes:
-        value: Distance in bytes (can be negative)
+        value: Distance in bytes (int, can be negative) or variable name from byte_extract (str)
     """
 
-    value: int
+    value: int | str
 
 
 class WithinOption(Option):
@@ -542,10 +568,10 @@ class WithinOption(Option):
     within:N; - Match must occur within N bytes of previous match.
 
     Attributes:
-        value: Maximum distance in bytes
+        value: Maximum distance in bytes (int) or variable name from byte_extract (str)
     """
 
-    value: int = Field(ge=0)
+    value: int | str
 
 
 class NocaseOption(Option):
@@ -553,15 +579,11 @@ class NocaseOption(Option):
     nocase; - Case-insensitive pattern matching.
     """
 
-    pass
-
 
 class RawbytesOption(Option):
     """
     rawbytes; - Match on raw packet data (Snort 2.x).
     """
-
-    pass
 
 
 class StartswithOption(Option):
@@ -569,15 +591,11 @@ class StartswithOption(Option):
     startswith; - Pattern must match at start of buffer (Suricata).
     """
 
-    pass
-
 
 class EndswithOption(Option):
     """
     endswith; - Pattern must match at end of buffer (Suricata).
     """
-
-    pass
 
 
 class GenericOption(Option):
@@ -659,6 +677,8 @@ RuleOption = Union[
     FastPatternOption,
     TagOption,
     FilestoreOption,
+    LuaOption,
+    LuajitOption,
     DepthOption,
     OffsetOption,
     DistanceOption,

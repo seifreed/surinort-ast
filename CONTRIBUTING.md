@@ -1,6 +1,6 @@
-# Contributing to surisnort-ast
+# Contributing to surinort-ast
 
-Thank you for your interest in contributing to `surisnort-ast`. This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to `surinort-ast`. This document provides guidelines and instructions for contributing to the project.
 
 ---
 
@@ -58,7 +58,7 @@ Project maintainers have the right to remove, edit, or reject comments, commits,
 ### First Contribution
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/surisnort-ast.git`
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/surinort-ast.git`
 3. Create a branch: `git checkout -b feature/your-feature-name`
 4. Make your changes
 5. Push to your fork: `git push origin feature/your-feature-name`
@@ -71,8 +71,8 @@ Project maintainers have the right to remove, edit, or reject comments, commits,
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/mrivero/surisnort-ast.git
-cd surisnort-ast
+git clone https://github.com/seifreed/surinort-ast.git
+cd surinort-ast
 ```
 
 ### 2. Create Virtual Environment
@@ -113,7 +113,7 @@ black --check .
 ruff check .
 
 # Type checking
-mypy surisnort_ast/
+mypy surinort_ast/
 ```
 
 ---
@@ -149,13 +149,13 @@ mypy surisnort_ast/
 4. **Run quality checks**:
    ```bash
    # Format code
-   black surisnort_ast/ tests/
+   black surinort_ast/ tests/
 
    # Lint
-   ruff check surisnort_ast/ tests/
+   ruff check surinort_ast/ tests/
 
    # Type check
-   mypy surisnort_ast/
+   mypy surinort_ast/
 
    # Run tests
    pytest
@@ -215,10 +215,10 @@ ruff check --fix .
 
 ```bash
 # Type check
-mypy surisnort_ast/
+mypy surinort_ast/
 
 # Strict mode
-mypy --strict surisnort_ast/
+mypy --strict surinort_ast/
 ```
 
 ### Code Structure
@@ -319,7 +319,7 @@ tests/
 
 ```python
 import pytest
-from surisnort_ast import parse_rule, ParseError
+from surinort_ast import parse_rule, ParseError
 
 def test_parse_simple_rule():
     """Test parsing simple rule."""
@@ -354,7 +354,7 @@ pytest
 pytest tests/unit/test_parser.py
 
 # Run with coverage
-pytest --cov=surisnort_ast --cov-report=html
+pytest --cov=surinort_ast --cov-report=html
 
 # Run specific test
 pytest tests/unit/test_parser.py::test_parse_simple_rule
@@ -445,7 +445,7 @@ mkdocs gh-deploy
    ```bash
    black --check .
    ruff check .
-   mypy surisnort_ast/
+   mypy surinort_ast/
    ```
 
 3. **Update documentation**:
@@ -560,11 +560,11 @@ What actually happened.
 **Environment**
 - OS: [e.g., Ubuntu 22.04]
 - Python: [e.g., 3.11.0]
-- surisnort-ast: [e.g., 1.0.0]
+- surinort-ast: [e.g., 1.0.0]
 
 **Minimal Example**
 ```python
-from surisnort_ast import parse_rule
+from surinort_ast import parse_rule
 rule = parse_rule('...')  # Bug occurs here
 ```
 
@@ -644,16 +644,16 @@ We use [Semantic Versioning](https://semver.org/):
 
 ## Getting Help
 
-- **Documentation**: https://surisnort-ast.readthedocs.io/
-- **Issues**: https://github.com/mrivero/surisnort-ast/issues
-- **Discussions**: https://github.com/mrivero/surisnort-ast/discussions
-- **Email**: marc.rivero@example.com
+- **Documentation**: https://seifreed.github.io/surinort-ast
+- **Issues**: https://github.com/seifreed/surinort-ast/issues
+- **Discussions**: https://github.com/seifreed/surinort-ast/discussions
+- **Email**: mriverolopez@gmail.com
 
 ---
 
 ## License
 
-By contributing to `surisnort-ast`, you agree that your contributions will be licensed under the GNU General Public License v3.0.
+By contributing to `surinort-ast`, you agree that your contributions will be licensed under the GNU General Public License v3.0.
 
 All contributions must include the following header:
 
@@ -667,7 +667,7 @@ All contributions must include the following header:
 
 ## Acknowledgments
 
-Thank you for contributing to `surisnort-ast`. Your efforts help make this project better for the entire security community.
+Thank you for contributing to `surinort-ast`. Your efforts help make this project better for the entire security community.
 
 ---
 

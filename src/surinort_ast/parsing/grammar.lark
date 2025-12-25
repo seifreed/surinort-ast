@@ -8,7 +8,9 @@
 rule_file: (rule | comment | NEWLINE)*
 
 // Rule structure: action protocol addr port direction addr port ( options )
+// Full and short rule forms (Snort3 allows protocol-only headers)
 rule: action header "(" options ")" ";"?
+    | action protocol "(" options ")" ";"?
 
 // ============================================================================
 // Header
@@ -27,6 +29,7 @@ protocol: "tcp" -> tcp
         | "udp" -> udp
         | "icmp" -> icmp
         | "ip" -> ip
+        | "ssl" -> ssl
         | "http" -> http
         | "http2" -> http2
         | "dns" -> dns
@@ -34,6 +37,7 @@ protocol: "tcp" -> tcp
         | "ssh" -> ssh
         | "ftp" -> ftp
         | "ftp-data" -> ftp_data
+        | "ftp_data" -> ftp_data
         | "smb" -> smb
         | "smtp" -> smtp
         | "imap" -> imap
@@ -92,7 +96,7 @@ port_any: "any"
 port_var: VARIABLE
 port_negation: "!" port
 port_list: "[" port_elem ("," port_elem)* "]"
-port_elem: port_range | port_single
+port_elem: VARIABLE | port_range | port_single
 // Support open-ended ranges: "1024:" (from 1024 to 65535)
 port_range: INT ":" INT?
 port_single: INT
@@ -138,6 +142,9 @@ options: option ((";" | ",") option)* (";" | ",")?
        | buffer_select_option
        | tag_option
        | filestore_option
+       | flags_option
+       | lua_option
+       | luajit_option
        | generic_option
 
 // Basic options
@@ -148,12 +155,18 @@ gid_option: "gid" ":" INT
 classtype_option: "classtype" ":" WORD
 priority_option: "priority" ":" INT
 reference_option: "reference" ":" WORD "," reference_id
-reference_id: REFERENCE_ID | WORD | INT
+reference_id: REFERENCE_ID | WORD | INT | REFERENCE_TAIL
+// ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 500 chars)
+REFERENCE_TAIL.0: /[^;\)]{1,500}/
 
 // Reference IDs can contain slashes, dots, query params, etc (like URLs)
 // Higher priority than PCRE_PATTERN to match URLs correctly
 // Exclude semicolon and comma which are option delimiters
-REFERENCE_ID.1: /[a-zA-Z0-9][a-zA-Z0-9_.\/:\-?&=%#~@!+*]+/
+// Must include at least one non-alphanumeric separator to avoid matching plain WORDs
+// ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 500 chars)
+// Simplified without negative lookahead to avoid exponential complexity
+// Pattern allows URLs with or without trailing alphanumerics but requires at least one separator
+REFERENCE_ID.1: /[A-Za-z0-9]+[_.\/:\-?&=%#~@!+*()][A-Za-z0-9_.\/:\-?&=%#~@!+*()]{0,498}/
 
 // Metadata - allow action keywords as regular words and multiple values
 metadata_option: "metadata" ":" metadata_entry ("," metadata_entry)*
@@ -188,14 +201,15 @@ ENDSWITH_KW.3: "endswith"
 FAST_PATTERN_KW.3: "fast_pattern"
 
 // PCRE
-pcre_option: "pcre" ":" (PCRE_PATTERN | QUOTED_STRING)
+pcre_option: "pcre" ":" "!"? (PCRE_PATTERN | QUOTED_STRING)
 
 // Flow
 flow_option: "flow" ":" flow_value ("," flow_value)*
 flow_value: WORD
 
 flowbits_option: "flowbits" ":" flowbits_action
-flowbits_action: WORD ("," WORD)?
+flowbits_action: WORD ("," flowbits_name)?
+flowbits_name: WORD (("&" | "|") WORD)*
 
 flowint_option: "flowint" ":" WORD "," WORD ("," INT)?
 
@@ -214,14 +228,21 @@ fast_pattern_value: INT "," INT  -> fast_pattern_offset
                   | "only"       -> fast_pattern_only
 nocase_option: "nocase"
 rawbytes_option: "rawbytes"
-depth_option: "depth" ":" INT
-offset_option: "offset" ":" INT
-distance_option: "distance" ":" "-"? INT
-within_option: "within" ":" INT
+depth_option: "depth" ":" (INT | WORD | REFERENCE_ID)
+            | "depth" (INT | WORD | REFERENCE_ID)         // Snort3 inline style
+offset_option: "offset" ":" (INT | WORD | REFERENCE_ID)
+             | "offset" (INT | WORD | REFERENCE_ID)
+distance_option: "distance" ":" "-"? (INT | WORD | REFERENCE_ID)
+               | "distance" "-"? (INT | WORD | REFERENCE_ID)
+within_option: "within" ":" (INT | WORD | REFERENCE_ID)
+             | "within" (INT | WORD | REFERENCE_ID)
 startswith_option: "startswith"
 endswith_option: "endswith"
 
 // Byte operations
+// Support both decimal and hexadecimal numbers in byte operations
+?number: HEX_INT | INT
+
 isdataat_option: "isdataat" ":" "!"? INT ("," WORD)?
 
 // URI length check with comparison operators
@@ -229,15 +250,22 @@ urilen_option: "urilen" ":" urilen_value
 urilen_value: ("<" | ">" | "<=" | ">=" | "=" | "!")? INT
 
 byte_test_option: "byte_test" ":" byte_test_params
-byte_test_params: INT "," byte_test_operator "," INT "," INT ("," WORD)*
-byte_test_operator: "!" ("&" | "=") | "&" | "<" | ">" | "=" | "<=" | ">=" | WORD
+byte_test_params: number "," byte_test_operator "," byte_test_value "," byte_test_offset ("," byte_test_flag)*
+byte_test_value: number | WORD | REFERENCE_ID  // Support variables from byte_extract
+byte_test_offset: "-"? number  // Support negative offsets
+byte_test_flag: "bitmask" (number | WORD)  // bitmask 0x8000 (space-separated)
+              | WORD  // Regular flags like "relative", "little", etc.
+byte_test_operator: BYTE_TEST_OP | WORD
+
+// Byte test operators - must come before other terminals to match correctly
+BYTE_TEST_OP.2: "!&" | "!=" | "&" | "<=" | ">=" | "<" | ">" | "="
 
 byte_jump_option: "byte_jump" ":" byte_jump_params
 byte_jump_params: INT "," "-"? INT ("," byte_jump_flag)*
 byte_jump_flag: WORD (INT)?  // Support "post_offset 10" style flags
 
 byte_extract_option: "byte_extract" ":" byte_extract_params
-byte_extract_params: INT "," INT "," WORD ("," WORD)*
+byte_extract_params: INT "," INT "," (WORD | REFERENCE_ID) ("," (WORD | REFERENCE_ID))*
 
 byte_math_option: "byte_math" ":" byte_math_params
 byte_math_params: WORD WORD ("," WORD)*
@@ -259,18 +287,35 @@ BUFFER_NAME.2: "http." ("uri" | "header" | "header_names" | "method" | "cookie" 
              | "ssh_" ("proto" | "software")
 
 // Tag and filestore
-tag_option: "tag" ":" tag_params
-tag_params: WORD ("," INT)* ("," WORD)?
+// Tag can include commas and spaces before numeric args (e.g., "tag:session,packets 5")
+tag_option: "tag" ":" tag_atom (("," )? tag_atom)*
+tag_atom: WORD | INT
 
 filestore_option: "filestore" (":" filestore_params)?
 filestore_params: WORD ("," WORD)?
 
+// Snort flags option (e.g., flags:AS,12)
+flags_option: "flags" ":" flags_atom ("," flags_atom)*
+flags_atom: WORD | INT | GENERIC_VALUE
+
+// Lua scripting (Suricata/Snort)
+// lua:filename.lua; or lua:!filename.lua; (negation)
+lua_option: "lua" ":" "!"? lua_script_name
+luajit_option: "luajit" ":" "!"? lua_script_name
+lua_script_name: WORD "." WORD  // filename.lua
+               | REFERENCE_ID    // Complex filenames with paths
+
 // Generic fallback for unknown options
 // Support flexible values like "A+", ">0", "M+", etc.
-generic_option: WORD (":" option_value)?
+// Generic catch‑all: capture everything up to next option delimiter (;, , or )) as a single token
+// ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 1000 chars)
+generic_option: WORD (":" GENERIC_TAIL)?
+GENERIC_TAIL.0: /[^;,\)]{1,1000}/
+
+// Retain specific atom definitions for other rules
 option_value: QUOTED_STRING | HEX_STRING | PCRE_PATTERN | GENERIC_VALUE | INT | WORD
-// Generic value can include special chars like +, >, <, !, etc.
-GENERIC_VALUE: /[a-zA-Z0-9_+\-!><*&|~.]+/
+// ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 200 chars)
+GENERIC_VALUE.0: /[a-zA-Z0-9_+\-!><*&|~.]{1,200}/
 
 // ============================================================================
 // Terminals
@@ -288,11 +333,16 @@ IPV4: /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
 IPV6: /[0-9a-fA-F]*:[0-9a-fA-F:]+/
 
 // Strings
-QUOTED_STRING: /"(?:[^"\\]|\\.)*"/
-HEX_STRING: /\|(?:[0-9a-fA-F]{2}\s*)+\|/
-PCRE_PATTERN: /\/(?:[^\/\\]|\\.)*\/[a-zA-Z]*/
+// ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 10000 chars)
+QUOTED_STRING: /"(?:[^"\\]|\\.){0,10000}"/
+HEX_STRING: /\|(?:[0-9a-fA-F]{2}\s*){1,5000}\|/
+// ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 5000 chars)
+// Simplified to avoid nested quantifier alternation
+PCRE_PATTERN: /\/(?:[^\/\\]|\\[^\n]){0,5000}\/[a-zA-Z]{0,20}/
 
 // Numbers and words
+// HEX_INT must come before METADATA_VALUE and INT to match hex numbers correctly
+HEX_INT: /0x[0-9a-fA-F]+/
 // METADATA_VALUE accepts alphanumeric strings starting with digits (e.g., 2025_01_15)
 // Must come before INT to match correctly
 METADATA_VALUE: /\d[a-zA-Z0-9_.-]+/

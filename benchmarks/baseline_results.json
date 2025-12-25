@@ -1,0 +1,252 @@
+{
+  "timestamp": "2025-12-25T10:13:19.372746",
+  "benchmarks": {
+    "parse_simple_rule": {
+      "name": "parse_simple_rule",
+      "iterations": 10000,
+      "mean_time": 0.00010365876965224743,
+      "median_time": 0.00010127050336450338,
+      "stdev_time": 3.0062078908446957e-05,
+      "min_time": 8.658296428620815e-05,
+      "max_time": 0.002979957964271307,
+      "throughput": 9640.053651183314,
+      "memory_mb": null
+    },
+    "parse_medium_rule": {
+      "name": "parse_medium_rule",
+      "iterations": 5000,
+      "mean_time": 0.000242463230737485,
+      "median_time": 0.00023733300622552633,
+      "stdev_time": 2.1009925800386008e-05,
+      "min_time": 0.00020433298777788877,
+      "max_time": 0.0009092920226976275,
+      "throughput": 4122.298141267453,
+      "memory_mb": null
+    },
+    "parse_complex_rule": {
+      "name": "parse_complex_rule",
+      "iterations": 1000,
+      "mean_time": 0.0005888865056913346,
+      "median_time": 0.000572771008592099,
+      "stdev_time": 5.662603057403723e-05,
+      "min_time": 0.0005073330830782652,
+      "max_time": 0.0013416670262813568,
+      "throughput": 1697.675173424808,
+      "memory_mb": null
+    },
+    "parse_no_location": {
+      "name": "parse_no_location_tracking",
+      "iterations": 10000,
+      "mean_time": 7.996385957812891e-05,
+      "median_time": 7.791700772941113e-05,
+      "stdev_time": 1.3238379292189261e-05,
+      "min_time": 6.779097020626068e-05,
+      "max_time": 0.0009111670078709722,
+      "throughput": 12496.24722145773,
+      "memory_mb": null
+    },
+    "parse_no_raw": {
+      "name": "parse_no_raw_text",
+      "iterations": 10000,
+      "mean_time": 0.00010257550281239674,
+      "median_time": 0.00010033394210040569,
+      "stdev_time": 1.9268931781851762e-05,
+      "min_time": 8.49580392241478e-05,
+      "max_time": 0.0017649169312790036,
+      "throughput": 9741.802847276884,
+      "memory_mb": null
+    },
+    "parse_batch_seq": {
+      "name": "parse_batch_sequential",
+      "iterations": 10,
+      "mean_time": 0.3309384500258602,
+      "median_time": 0.3312133125727996,
+      "stdev_time": 0.002347435923725574,
+      "min_time": 0.32764579204376787,
+      "max_time": 0.3344848749693483,
+      "throughput": 3021.7032700771388,
+      "memory_mb": null
+    },
+    "parse_file_seq": {
+      "name": "parse_file_sequential",
+      "iterations": 5,
+      "mean_time": 0.3753905914258212,
+      "median_time": 0.37590491701848805,
+      "stdev_time": 0.00202776136045414,
+      "min_time": 0.37280116602778435,
+      "max_time": 0.37806808296591043,
+      "throughput": 2663.8872263247777,
+      "memory_mb": null
+    },
+    "parallel_2w": {
+      "name": "parse_file_parallel_2w",
+      "iterations": 5,
+      "mean_time": 0.39750721680466083,
+      "median_time": 0.3980002920143306,
+      "stdev_time": 0.0016315550061181733,
+      "min_time": 0.3956911249551922,
+      "max_time": 0.39913204207550734,
+      "throughput": 2515.666576545354,
+      "memory_mb": null
+    },
+    "parallel_4w": {
+      "name": "parse_file_parallel_4w",
+      "iterations": 5,
+      "mean_time": 0.31418189958203585,
+      "median_time": 0.3141194579657167,
+      "stdev_time": 0.0033613105110451803,
+      "min_time": 0.3092552910093218,
+      "max_time": 0.3182997079566121,
+      "throughput": 3182.852234415928,
+      "memory_mb": null
+    },
+    "parallel_8w": {
+      "name": "parse_file_parallel_8w",
+      "iterations": 5,
+      "mean_time": 0.28608115820679814,
+      "median_time": 0.2861544999759644,
+      "stdev_time": 0.0025264061107723762,
+      "min_time": 0.28361891699023545,
+      "max_time": 0.2894558330299333,
+      "throughput": 3495.483064627365,
+      "memory_mb": null
+    },
+    "json_serialize": {
+      "name": "json_serialize",
+      "iterations": 1000,
+      "mean_time": 3.4551243297755716e-05,
+      "median_time": 3.400002606213093e-05,
+      "stdev_time": 2.0435984380064415e-06,
+      "min_time": 3.316695801913738e-05,
+      "max_time": 6.437499541789293e-05,
+      "throughput": 28894.670830177125,
+      "memory_mb": null
+    },
+    "json_deserialize": {
+      "name": "json_deserialize",
+      "iterations": 1000,
+      "mean_time": 4.881517100147903e-05,
+      "median_time": 4.75000124424696e-05,
+      "stdev_time": 4.656936737922209e-06,
+      "min_time": 4.2625004425644875e-05,
+      "max_time": 0.0001337089342996478,
+      "throughput": 20457.166550212743,
+      "memory_mb": null
+    },
+    "json_roundtrip": {
+      "name": "json_roundtrip",
+      "iterations": 500,
+      "mean_time": 8.418207266367972e-05,
+      "median_time": 8.327048271894455e-05,
+      "stdev_time": 2.8716555286842823e-06,
+      "min_time": 8.13750084489584e-05,
+      "max_time": 0.00012570794206112623,
+      "throughput": 11857.449828801415,
+      "memory_mb": null
+    },
+    "json_batch": {
+      "name": "json_batch_serialize",
+      "iterations": 10,
+      "mean_time": 0.003920387721154839,
+      "median_time": 0.0039045625599101186,
+      "stdev_time": 0.00012133168510482802,
+      "min_time": 0.003756334073841572,
+      "max_time": 0.004104875028133392,
+      "throughput": 25505.676806675638,
+      "memory_mb": null
+    },
+    "print_simple": {
+      "name": "text_print_simple",
+      "iterations": 10000,
+      "mean_time": 3.1302749062888325e-06,
+      "median_time": 3.0830269679427147e-06,
+      "stdev_time": 2.8217289277376317e-07,
+      "min_time": 2.91608739644289e-06,
+      "max_time": 1.2125005014240742e-05,
+      "throughput": 314627.83797981695,
+      "memory_mb": null
+    },
+    "print_complex": {
+      "name": "text_print_complex",
+      "iterations": 1000,
+      "mean_time": 1.731341378763318e-05,
+      "median_time": 1.6583013348281384e-05,
+      "stdev_time": 2.6878112504422726e-06,
+      "min_time": 1.6040983609855175e-05,
+      "max_time": 5.51670091226697e-05,
+      "throughput": 57561.13588324942,
+      "memory_mb": null
+    },
+    "print_batch": {
+      "name": "text_print_batch",
+      "iterations": 10,
+      "mean_time": 0.0010312415077351033,
+      "median_time": 0.001008291495963931,
+      "stdev_time": 5.068348105741454e-05,
+      "min_time": 0.00099762505851686,
+      "max_time": 0.0011384169338271022,
+      "throughput": 96956.7690065384,
+      "memory_mb": null
+    },
+    "roundtrip": {
+      "name": "roundtrip_parse_print_parse",
+      "iterations": 100,
+      "mean_time": 0.0005012537864968181,
+      "median_time": 0.00048808351857587695,
+      "stdev_time": 3.0466744231380464e-05,
+      "min_time": 0.0004740410950034857,
+      "max_time": 0.0006182909710332751,
+      "throughput": 1994.3576411277938,
+      "memory_mb": null
+    },
+    "query_simple": {
+      "name": "query_simple",
+      "iterations": 1000,
+      "mean_time": 0.011136970206047408,
+      "median_time": 0.010892521007917821,
+      "stdev_time": 0.0011393331501245248,
+      "min_time": 0.009953791974112391,
+      "max_time": 0.01690258306916803,
+      "throughput": 89.78864661382201,
+      "memory_mb": null
+    },
+    "query_complex": {
+      "name": "query_complex",
+      "iterations": 500,
+      "mean_time": 0.011280458125285804,
+      "median_time": 0.011066249920986593,
+      "stdev_time": 0.0011749476824039103,
+      "min_time": 0.01006674999371171,
+      "max_time": 0.01768004207406193,
+      "throughput": 88.64639961865248,
+      "memory_mb": null
+    },
+    "api_parse": {
+      "name": "api_parse_rule",
+      "iterations": 1000,
+      "mean_time": 0.00024365254293661563,
+      "median_time": 0.00023791647981852293,
+      "stdev_time": 1.940866630400816e-05,
+      "min_time": 0.00021758396178483963,
+      "max_time": 0.00045187503565102816,
+      "throughput": 4102.065543069281,
+      "memory_mb": null
+    },
+    "api_workflow": {
+      "name": "api_full_workflow",
+      "iterations": 100,
+      "mean_time": 0.0007321520510595292,
+      "median_time": 0.0007118544890545309,
+      "stdev_time": 5.128666104148005e-05,
+      "min_time": 0.0006817500106990337,
+      "max_time": 0.0009260419756174088,
+      "throughput": 1365.5535685054288,
+      "memory_mb": null
+    },
+    "memory": {
+      "parse_1000_rules_mb": 0.077056884765625,
+      "parse_1000_rules_no_raw_mb": 0.077056884765625,
+      "memory_reduction_percent": 0.0
+    }
+  }
+}

@@ -14,12 +14,8 @@ from lark import Lark
 from surinort_ast.core.nodes import (
     AddressList,
     AddressNegation,
-    AnyAddress,
-    AnyPort,
     ContentOption,
     IPAddress,
-    MsgOption,
-    Port,
     PortList,
     PortNegation,
     SidOption,
@@ -46,9 +42,7 @@ class TestVisitorNoneHandling:
 class TestVisitorGenericVisit:
     """Test generic_visit for nodes with child sequences (lines 82, 85-86)."""
 
-    def test_generic_visit_with_child_nodes(
-        self, lark_parser: Lark, transformer: RuleTransformer
-    ):
+    def test_generic_visit_with_child_nodes(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test generic_visit traverses child ASTNode fields."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
@@ -258,9 +252,7 @@ class TestTransformerGenericVisit:
         self, lark_parser: Lark, transformer: RuleTransformer
     ):
         """Test generic_visit with list field changes (lines 183-191)."""
-        rule_text = (
-            'alert tcp any any -> any 80 (msg:"Test"; content:"foo"; content:"bar"; sid:1;)'
-        )
+        rule_text = 'alert tcp any any -> any 80 (msg:"Test"; content:"foo"; content:"bar"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
 
@@ -321,9 +313,7 @@ class TestTransformerRuleVisit:
 class TestTransformerAddressList:
     """Test transformer visit_AddressList (lines 236-239)."""
 
-    def test_visit_address_list_with_changes(
-        self, lark_parser: Lark, transformer: RuleTransformer
-    ):
+    def test_visit_address_list_with_changes(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test visit_AddressList creates new list when elements change."""
         rule_text = 'alert tcp [192.168.1.1,10.0.0.1] any -> any 80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
@@ -366,9 +356,7 @@ class TestTransformerAddressNegation:
 class TestTransformerPortList:
     """Test transformer visit_PortList (lines 250-253)."""
 
-    def test_visit_port_list_with_changes(
-        self, lark_parser: Lark, transformer: RuleTransformer
-    ):
+    def test_visit_port_list_with_changes(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test visit_PortList creates new list when elements change."""
         rule_text = 'alert tcp any any -> any [80,443] (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
@@ -388,9 +376,7 @@ class TestTransformerPortList:
 class TestTransformerPortNegation:
     """Test transformer visit_PortNegation (lines 257-260)."""
 
-    def test_visit_port_negation_with_change(
-        self, lark_parser: Lark, transformer: RuleTransformer
-    ):
+    def test_visit_port_negation_with_change(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test visit_PortNegation creates new node when expr changes."""
         rule_text = 'alert tcp any any -> any !80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
@@ -470,9 +456,7 @@ class TestBaseVisitorDefaultReturn:
 class TestVisitorGenericVisitDirectCall:
     """Test calling generic_visit directly to hit lines 82, 85-86."""
 
-    def test_generic_visit_on_option_node(
-        self, lark_parser: Lark, transformer: RuleTransformer
-    ):
+    def test_generic_visit_on_option_node(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test generic_visit on a node without specialized visit method."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1; rev:1;)'
         parse_tree = lark_parser.parse(rule_text)
@@ -492,7 +476,7 @@ class TestVisitorGenericVisitDirectCall:
         visitor = BaseVisitor()
         # This will trigger generic_visit for SidOption
         # which has no child ASTNodes (lines 82, 85-86 won't execute for this node)
-        result = visitor.visit(rule)
+        visitor.visit(rule)
 
 
 class TestTransformerNoChangesPaths:
@@ -514,9 +498,7 @@ class TestTransformerNoChangesPaths:
         # AddressList should be same object (no changes)
         assert new_rule.header.src_addr is rule.header.src_addr
 
-    def test_address_negation_no_changes(
-        self, lark_parser: Lark, transformer: RuleTransformer
-    ):
+    def test_address_negation_no_changes(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test visit_AddressNegation returns original when no changes (line 246)."""
         rule_text = 'alert tcp !192.168.1.1 any -> any 80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
@@ -562,9 +544,7 @@ class TestTransformerNoChangesPaths:
 class TestTransformerGenericVisitDetailedPaths:
     """Test transformer generic_visit detailed execution paths (lines 176-194)."""
 
-    def test_generic_visit_with_none_return(
-        self, lark_parser: Lark, transformer: RuleTransformer
-    ):
+    def test_generic_visit_with_none_return(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test generic_visit when visit returns None (line 177)."""
         rule_text = 'alert tcp 192.168.1.1 any -> any 80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
@@ -582,7 +562,9 @@ class TestTransformerGenericVisitDetailedPaths:
         assert new_rule.header is not rule.header
         assert new_rule.header.src_addr is None
 
-    def test_generic_visit_list_with_non_astnode_items(self, lark_parser: Lark, transformer: RuleTransformer):
+    def test_generic_visit_list_with_non_astnode_items(
+        self, lark_parser: Lark, transformer: RuleTransformer
+    ):
         """Test generic_visit with lists containing non-ASTNode items (line 187)."""
         # Use a rule with multiple options (a list containing ASTNodes)
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1; rev:1; priority:1;)'
@@ -591,6 +573,7 @@ class TestTransformerGenericVisitDetailedPaths:
 
         class OptionTransformer(ASTTransformer):
             """Transform that doesn't change anything."""
+
             pass
 
         option_transformer = OptionTransformer()
@@ -635,7 +618,9 @@ class TestTransformerGenericVisitDetailedPaths:
 class TestWalkerGenericVisitDirectCall:
     """Test walker generic_visit line 304."""
 
-    def test_walker_generic_visit_with_non_astnode_list(self, lark_parser: Lark, transformer: RuleTransformer):
+    def test_walker_generic_visit_with_non_astnode_list(
+        self, lark_parser: Lark, transformer: RuleTransformer
+    ):
         """Test walker with nodes containing non-ASTNode list items (line 307)."""
         # Use a rule with multiple options to test walking through sequences
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1; rev:1;)'

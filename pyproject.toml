@@ -4,12 +4,12 @@
 # Date: 2025-10-29
 
 [build-system]
-requires = ["hatchling>=1.25.0"]
+requires = ["hatchling>=1.27.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "surisnort-ast"
-version = "0.1.0"
+name = "surinort-ast"
+version = "1.0.0"
 description = "Production-grade Abstract Syntax Tree parser for IDS rules (Suricata/Snort) with comprehensive validation and serialization support"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -39,7 +39,7 @@ keywords = [
     "malware-analysis"
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
     "Intended Audience :: System Administrators",
@@ -79,15 +79,37 @@ serialization = [
     "protobuf>=6.33.0",      # Protocol Buffers support
 ]
 
+# Enhanced CLI output with rich formatting
+cli-enhanced = [
+    "rich>=13.9.4",          # Rich terminal output, colors, tables
+]
+
+# Security analysis tools
+security = [
+    "bandit>=1.8.0",         # Security vulnerability scanner
+    "safety>=3.3.1",         # Dependency security checker
+]
+
+# Advanced analysis features
+analysis = [
+    "networkx>=3.4.2",       # Graph analysis for rule relationships
+]
+
+# Additional format support
+formats = [
+    "pyyaml>=6.0.2",         # YAML serialization support
+    "python-magic>=0.4.27",  # File type detection
+]
+
 # Development dependencies
 dev = [
     # Testing
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
-    "hypothesis>=6.142.4",   # Property-based testing
+    "hypothesis>=6.144.0",   # Property-based testing
 
     # Linting and formatting (ruff replaces: flake8, black, isort, pyupgrade)
-    "ruff>=0.14.2",
+    "ruff>=0.14.3",
 
     # Type checking
     "mypy>=1.18.2",
@@ -100,12 +122,12 @@ dev = [
     "pre-commit>=4.3.0",
 
     # Documentation
-    "mkdocs-material>=9.6.22",
+    "mkdocs-material>=9.6.23",
 ]
 
 # All optional dependencies combined
 all = [
-    "surisnort-ast[serialization,dev]",
+    "surinort-ast[serialization,cli-enhanced,security,analysis,formats,dev]",
 ]
 
 [project.urls]
@@ -122,11 +144,20 @@ Discussions = "https://github.com/seifreed/surinort-ast/discussions"
 [project.scripts]
 surinort = "surinort_ast.cli:app"
 
+# Plugin entry points for extensibility
+# Third-party plugins can register themselves here
+[project.entry-points."surinort_ast.plugins"]
+# Example entry points (commented out - enable when plugins are ready):
+# yaml_serializer = "surinort_yaml:YAMLSerializerPlugin"
+# toml_serializer = "surinort_toml:TOMLSerializerPlugin"
+# security_auditor = "surinort_security:SecurityAuditorPlugin"
+
 # Ruff configuration (replaces flake8, black, isort)
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 src = ["src", "tests"]
+exclude = ["benchmarks", "examples", "check_circular_deps.py"]
 
 [tool.ruff.lint]
 # Enable common linting rules
@@ -153,7 +184,12 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG", "PLR2004"]  # Allow unused args and magic values in tests
+"tests/*" = ["ARG", "PLR2004", "N802", "PLC0415", "PTH123", "PLW2901"]  # Allow test-specific patterns
+"src/surinort_ast/analysis/conflicts_outline.py" = ["N802"]  # Visitor methods match AST node names
+"src/surinort_ast/analysis/*.py" = ["PLC0415"]  # Lazy imports to avoid circular dependencies
+"src/surinort_ast/query/*.py" = ["PLC0415"]  # Lazy imports for optional dependencies
+"src/surinort_ast/core/nodes.py" = ["UP007"]  # Runtime type aliases need Union syntax for Pydantic
+"src/surinort_ast/cli/main.py" = ["PLR0912", "PLR0915", "PLC0415", "ARG001"]  # CLI complexity acceptable
 
 [tool.ruff.format]
 quote-style = "double"
@@ -266,8 +302,6 @@ exclude = [
 # Bandit security configuration
 [tool.bandit]
 targets = ["src"]
-exclude_dirs = ["tests", "venv", ".venv", "env"]
-skips = []
+exclude_dirs = ["tests", "venv", ".venv", "env", "benchmarks", "examples"]
 # B101: assert_used - Allow asserts in non-production code paths
-# B601: paramiko_calls - Not applicable
-tests = ["B201", "B301", "B302", "B303", "B304", "B305", "B306", "B307", "B308", "B309", "B310", "B311", "B312", "B313", "B314", "B315", "B316", "B317", "B318", "B319", "B320", "B321", "B322", "B323", "B324", "B325", "B401", "B402", "B403", "B404", "B405", "B406", "B407", "B408", "B409", "B410", "B411", "B412", "B413", "B501", "B502", "B503", "B504", "B505", "B506", "B507", "B508", "B509"]
+skips = ["B101"]

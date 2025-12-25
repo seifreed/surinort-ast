@@ -39,19 +39,19 @@ def rules_dir(project_root: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def suricata_rules_file(rules_dir: Path) -> Path:
-    """Return path to Suricata rules file (30,588 rules)."""
+    """Return path to Suricata rules file (30,579 active rules)."""
     return rules_dir / "suricata" / "suricata.rules"
 
 
 @pytest.fixture(scope="session")
 def snort29_rules_file(rules_dir: Path) -> Path:
-    """Return path to Snort 2.9 community rules (4,031 rules)."""
+    """Return path to Snort 2.9 community rules (561 active rules, 3,468 commented)."""
     return rules_dir / "snort" / "snort29-community-rules" / "community-rules" / "community.rules"
 
 
 @pytest.fixture(scope="session")
 def snort3_rules_file(rules_dir: Path) -> Path:
-    """Return path to Snort 3 community rules (4,017 rules)."""
+    """Return path to Snort 3 community rules (4,017 active rules)."""
     return (
         rules_dir
         / "snort"

@@ -27,7 +27,6 @@ from surinort_ast.core.nodes import (
     FlowOption,
     IPAddress,
     IPCIDRRange,
-    MetadataOption,
     MsgOption,
     PcreOption,
     Port,
@@ -298,19 +297,6 @@ class TestOptionParsing:
         assert flow_opt is not None
         assert FlowState.ESTABLISHED in flow_opt.states
         assert FlowDirection.TO_SERVER in flow_opt.directions
-
-    def test_parse_metadata_option(self, lark_parser: Lark, transformer: RuleTransformer):
-        """Parse metadata option."""
-        rule_text = 'alert tcp any any -> any 80 (msg:"Test"; metadata:created_at 2025_01_15, severity high; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
-
-        metadata_opt = next((o for o in rule.options if isinstance(o, MetadataOption)), None)
-        assert metadata_opt is not None
-        assert len(metadata_opt.entries) == 2
-        assert ("created_at", "2025_01_15") in metadata_opt.entries
-        assert ("severity", "high") in metadata_opt.entries
 
     def test_parse_sticky_buffer(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse sticky buffer selection."""

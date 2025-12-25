@@ -5,9 +5,10 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 """
 
-from collections.abc import Sequence
+from collections.abc import Iterator
+from dataclasses import dataclass, field
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .enums import DiagnosticLevel
 from .location import Location
@@ -57,7 +58,8 @@ class Diagnostic(BaseModel):
         )
 
 
-class DiagnosticList(BaseModel):
+@dataclass
+class DiagnosticList:
     """
     Collection of diagnostics with helper methods.
 
@@ -65,7 +67,7 @@ class DiagnosticList(BaseModel):
         diagnostics: List of diagnostic messages
     """
 
-    diagnostics: Sequence[Diagnostic] = Field(default_factory=list)
+    diagnostics: list[Diagnostic] = field(default_factory=list)
 
     def add(
         self,
@@ -83,7 +85,7 @@ class DiagnosticList(BaseModel):
             code=code,
             hint=hint,
         )
-        self.diagnostics = list(self.diagnostics) + [diag]
+        self.diagnostics.append(diag)
 
     def error(
         self,
@@ -136,8 +138,19 @@ class DiagnosticList(BaseModel):
     def __len__(self) -> int:
         return len(self.diagnostics)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Diagnostic]:
+        """
+        Iterate over diagnostics.
+
+        Allows natural iteration: `for diag in diagnostics:`
+
+        Returns:
+            Iterator over Diagnostic objects
+        """
         return iter(self.diagnostics)
 
     def __bool__(self) -> bool:
         return len(self.diagnostics) > 0
+
+
+__all__ = ["Diagnostic", "DiagnosticLevel", "DiagnosticList"]

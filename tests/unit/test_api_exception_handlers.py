@@ -68,11 +68,11 @@ class TestApiParsingExceptionHandlers:
         3. FileNotFoundError is NOT a LarkError
         4. Lines 97-98 catch and wrap it in ParseError
         """
-        from surinort_ast.api import _PARSERS
+        from surinort_ast.api import _internal
         from surinort_ast.core.enums import Dialect
 
         # Clear the parser cache first
-        _PARSERS.clear()
+        _internal._PARSERS.clear()
 
         # Temporarily move the grammar file to make it inaccessible
         grammar_path = (
@@ -92,8 +92,9 @@ class TestApiParsingExceptionHandlers:
             grammar_path.rename(temp_grammar_path)
 
             try:
-                # Clear parser cache to force reload
-                _PARSERS.clear()
+                # Clear parser cache AND grammar cache to force reload
+                _internal._PARSERS.clear()
+                _internal._GRAMMAR_CACHE = None
 
                 # This will attempt to read the grammar file from its original location
                 # Since we moved it, it will raise FileNotFoundError
@@ -111,8 +112,9 @@ class TestApiParsingExceptionHandlers:
                 )
 
             finally:
-                # Restore the grammar file
-                _PARSERS.clear()
+                # Restore the grammar file and clear caches
+                _internal._PARSERS.clear()
+                _internal._GRAMMAR_CACHE = None
                 temp_grammar_path.rename(grammar_path)
 
     def test_parse_file_with_empty_file(self) -> None:
@@ -161,7 +163,9 @@ alert tcp any any -> any 22 (msg:"Rule 3"; sid:3;)
             rules = parse_file(temp_path)
             assert len(rules) == 3
             assert all(hasattr(r, "origin") for r in rules)
-            assert all(r.origin.file_path == temp_path for r in rules)
+            # Path is now resolved to absolute, so compare resolved versions
+            expected_path = str(Path(temp_path).resolve())
+            assert all(r.origin.file_path == expected_path for r in rules)
             # Verify line numbers are tracked
             assert rules[0].origin.line_number == 1
             assert rules[1].origin.line_number == 2
@@ -531,8 +535,8 @@ invalid syntax here
             Header,
             MsgOption,
             Protocol,
+            Rule,
         )
-        from surinort_ast.core.nodes import Rule as R
 
         parser = RuleParser()
 
@@ -547,7 +551,7 @@ invalid syntax here
         )
 
         # Create rule with only msg option, no SID
-        rule = R(
+        rule = Rule(
             action=Action.ALERT,
             header=header,
             options=[MsgOption(text="test")],

@@ -1,0 +1,92 @@
+// Query Grammar for surinort-ast - Phase 2/3 Complete
+// Licensed under GNU General Public License v3.0
+
+// Top-level: union of selector chains (comma-separated for OR logic)
+selector_chain: WS* union_selector WS*
+
+// Union selector: multiple chains separated by commas
+union_selector: combinator_chain (WS* "," WS* combinator_chain)*
+
+// Combinator chain: selectors connected by combinators
+combinator_chain: compound_selector (combinator compound_selector)*
+
+// Compound selector: one or more simple selectors on same node (no WS between them)
+compound_selector: simple_selector+
+
+// Simple selectors
+simple_selector: type_selector
+              | universal_selector
+              | attribute_selector
+              | pseudo_selector
+
+// Type selector: node type name
+type_selector: IDENTIFIER
+
+// Universal selector: match any node
+universal_selector: "*"
+
+// Attribute selector: [attribute=value]
+attribute_selector: "[" WS* attribute_filter WS* "]"
+
+// Attribute filter
+attribute_filter: attribute_name (WS* operator WS* attribute_value)?
+
+// Attribute name: identifier or dotted path
+attribute_name: IDENTIFIER ("." IDENTIFIER)*
+
+// Operators
+operator: OP_EQ
+        | OP_NEQ
+        | OP_GT
+        | OP_LT
+        | OP_GTE
+        | OP_LTE
+        | OP_CONTAINS
+        | OP_STARTS
+        | OP_ENDS
+
+OP_EQ: "="
+OP_NEQ: "!="
+OP_GT: ">"
+OP_LT: "<"
+OP_GTE: ">="
+OP_LTE: "<="
+OP_CONTAINS: "*="
+OP_STARTS: "^="
+OP_ENDS: "$="
+
+// Attribute value
+attribute_value: STRING | NUMBER | IDENTIFIER
+
+// Pseudo-selectors (Phase 3)
+pseudo_selector: ":" PSEUDO_CLASS
+               | ":" PSEUDO_FUNCTION "(" selector_chain ")"
+
+PSEUDO_CLASS: "first-child" | "last-child" | "first" | "last" | "empty" | "not-empty" | "even" | "odd"
+
+PSEUDO_FUNCTION: "has" | "not" | "within" | "nth"
+
+// Combinators (Phase 2)
+combinator: descendant_combinator
+          | child_combinator
+          | adjacent_combinator
+          | general_combinator
+
+descendant_combinator: WS+
+
+child_combinator: WS* ">" WS*
+
+adjacent_combinator: WS* "+" WS*
+
+general_combinator: WS* "~" WS*
+
+// Terminals
+IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
+
+STRING: /"[^"]*"/ | /'[^']*'/
+
+NUMBER: /\d+(\.\d+)?/
+
+%import common.WS
+// Note: We don't use %ignore WS because we need to detect it for descendant combinator
+// Instead, we explicitly match WS where needed in the grammar

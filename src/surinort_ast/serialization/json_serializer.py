@@ -101,10 +101,7 @@ class JSONSerializer:
             >>> rule = serializer.from_json(json_str)
         """
         # Parse JSON if string
-        if isinstance(data, str):
-            parsed = json.loads(data)
-        else:
-            parsed = data
+        parsed = json.loads(data) if isinstance(data, str) else data
 
         # Check if it's a metadata envelope
         if self.include_metadata and "data" in parsed:
@@ -115,11 +112,11 @@ class JSONSerializer:
         if "rules" in parsed:
             # Multiple rules
             rules_data = parsed["rules"]
-            adapter = TypeAdapter(Sequence[Rule])
+            adapter: TypeAdapter[Sequence[Rule]] = TypeAdapter(Sequence[Rule])
             return adapter.validate_python(rules_data)
         # Single rule
-        adapter = TypeAdapter(Rule)
-        return adapter.validate_python(parsed)
+        adapter_single: TypeAdapter[Rule] = TypeAdapter(Rule)
+        return adapter_single.validate_python(parsed)
 
     def to_dict(self, rule: Rule | Sequence[Rule]) -> dict[str, Any]:
         """

@@ -3,11 +3,11 @@
 # This test suite validates real code behavior without mocks or stubs.
 
 """
-Golden tests using 38,636 real IDS rules.
+Golden tests using 35,157 active IDS rules.
 
-These tests parse ALL real rules from the rules/ directory:
-- 30,588 Suricata rules
-- 4,031 Snort 2.9 rules
+These tests parse ALL active rules from the rules/ directory:
+- 30,579 Suricata rules
+- 561 Snort 2.9 rules (3,468 commented/disabled)
 - 4,017 Snort 3 rules
 
 NO MOCKS - all tests use real parser execution with actual rule files.
@@ -278,7 +278,7 @@ class TestSnortGolden:
 @pytest.mark.golden
 @pytest.mark.slow
 class TestAllRulesGolden:
-    """Test parsing all 38,636 rules combined."""
+    """Test parsing all 35,157 active rules combined (38,636 total lines, 3,479 commented)."""
 
     def test_parse_all_38k_rules(
         self,
@@ -288,7 +288,10 @@ class TestAllRulesGolden:
         snort3_rules_file: Path,
     ):
         """
-        Parse all 38,636 rules from all rule files.
+        Parse all 35,157 active rules from all rule files.
+
+        Rule files contain 38,636 total lines, but 3,479 are commented/disabled.
+        This test validates parsing of all ACTIVE rules (non-commented, non-empty).
 
         This is the comprehensive test of the entire parser.
         """
@@ -359,7 +362,7 @@ class TestAllRulesGolden:
         assert overall_success_rate >= 95.0, (
             f"Overall success rate {overall_success_rate:.2f}% below 95% threshold"
         )
-        assert grand_total >= 38000, f"Expected at least 38,000 rules, found {grand_total}"
+        assert grand_total >= 35000, f"Expected at least 35,000 rules, found {grand_total}"
 
 
 @pytest.mark.golden

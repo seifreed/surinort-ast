@@ -11,8 +11,6 @@ from .core.location import Location
 class SurinortASTError(Exception):
     """Base exception for surinort-ast."""
 
-    pass
-
 
 class ParseError(SurinortASTError):
     """
@@ -48,8 +46,6 @@ class ValidationError(SurinortASTError):
     Raised when AST node validation fails.
     """
 
-    pass
-
 
 class SerializationError(SurinortASTError):
     """
@@ -58,8 +54,6 @@ class SerializationError(SurinortASTError):
     Raised when serialization/deserialization fails.
     """
 
-    pass
-
 
 class UnsupportedDialectError(SurinortASTError):
     """
@@ -67,5 +61,3 @@ class UnsupportedDialectError(SurinortASTError):
 
     Raised when encountering dialect-specific features that aren't supported.
     """
-
-    pass

@@ -286,7 +286,7 @@ class TestCLISchemaCommand:
             try:
                 data = json.loads(result.stdout)
                 assert data is not None
-            except:
+            except Exception:
                 # May have additional output around JSON
                 pass
 

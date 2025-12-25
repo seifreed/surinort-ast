@@ -9,7 +9,6 @@ Target: 100% coverage for specified modules
 
 from __future__ import annotations
 
-import json
 import tempfile
 from pathlib import Path
 
@@ -19,7 +18,6 @@ from typer.testing import CliRunner
 
 from surinort_ast.api import parse_file, parse_rule
 from surinort_ast.cli.main import app
-from surinort_ast.core.enums import Dialect
 from surinort_ast.core.location import Location, Position, Span
 from surinort_ast.core.nodes import ContentOption, IPCIDRRange
 from surinort_ast.core.visitor import ASTWalker

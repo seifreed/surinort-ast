@@ -166,9 +166,8 @@ class FormatterOptions(BaseModel):
             return cls.standard()
         if style == FormatStyle.VERBOSE:
             return cls.verbose()
-        if style == FormatStyle.STABLE:
-            return cls.stable()
-        return cls.standard()
+        # style == FormatStyle.STABLE
+        return cls.stable()
 
     def get_quote_char(self) -> str:
         """

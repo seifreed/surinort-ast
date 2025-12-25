@@ -186,7 +186,7 @@ class TestRealWorldScenarios:
                 super().__init__()
                 self.increment = increment
 
-            def visit_SidOption(self, node: SidOption) -> SidOption:  # noqa: N802 - Visitor pattern method name
+            def visit_SidOption(self, node: SidOption) -> SidOption:
                 return node.model_copy(update={"value": node.value + self.increment})
 
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1; rev:1;)'
@@ -223,7 +223,7 @@ class TestRealWorldScenarios:
                     "actions": {},
                 }
 
-            def visit_Rule(self, node):  # noqa: N802 - Visitor pattern method name
+            def visit_Rule(self, node):
                 self.stats["total"] += 1
 
                 # Count protocol

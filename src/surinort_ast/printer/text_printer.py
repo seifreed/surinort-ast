@@ -11,6 +11,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from collections.abc import Sequence
+from functools import singledispatch
 
 from surinort_ast.core.nodes import (
     AddressExpr,
@@ -26,7 +27,10 @@ from surinort_ast.core.nodes import (
     ClasstypeOption,
     ContentModifier,
     ContentOption,
+    DepthOption,
     DetectionFilterOption,
+    DistanceOption,
+    EndswithOption,
     FastPatternOption,
     FilestoreOption,
     FlowbitsOption,
@@ -37,8 +41,12 @@ from surinort_ast.core.nodes import (
     IPAddress,
     IPCIDRRange,
     IPRange,
+    LuajitOption,
+    LuaOption,
     MetadataOption,
     MsgOption,
+    NocaseOption,
+    OffsetOption,
     Option,
     PcreOption,
     Port,
@@ -48,15 +56,253 @@ from surinort_ast.core.nodes import (
     PortRange,
     PortVariable,
     PriorityOption,
+    RawbytesOption,
     ReferenceOption,
     RevOption,
     Rule,
     SidOption,
+    StartswithOption,
     TagOption,
     ThresholdOption,
+    WithinOption,
 )
 
 from .formatter import FormatterOptions
+
+# ============================================================================
+# Option Printing Dispatch (Singledispatch for O(1) type-based dispatch)
+# ============================================================================
+
+
+@singledispatch
+def _print_option_dispatch(option: Option, fmt_opts: FormatterOptions, printer: TextPrinter) -> str:
+    """
+    Print option using singledispatch pattern.
+
+    This function uses functools.singledispatch to provide O(1) type-based
+    dispatch instead of O(n) isinstance chains, reducing cyclomatic complexity.
+
+    Args:
+        option: The option to print
+        fmt_opts: Formatting options
+        printer: The TextPrinter instance (for accessing helper methods)
+
+    Returns:
+        Formatted option text
+    """
+    # Fallback for unknown option types
+    return f"{option.node_type.lower()};"
+
+
+@_print_option_dispatch.register
+def _(option: MsgOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    quote = fmt_opts.get_quote_char()
+    return f"msg:{quote}{option.text}{quote};"
+
+
+@_print_option_dispatch.register
+def _(option: SidOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"sid:{option.value};"
+
+
+@_print_option_dispatch.register
+def _(option: RevOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"rev:{option.value};"
+
+
+@_print_option_dispatch.register
+def _(option: GidOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"gid:{option.value};"
+
+
+@_print_option_dispatch.register
+def _(option: ClasstypeOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"classtype:{option.value};"
+
+
+@_print_option_dispatch.register
+def _(option: PriorityOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"priority:{option.value};"
+
+
+@_print_option_dispatch.register
+def _(option: ReferenceOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"reference:{option.ref_type},{option.ref_id};"
+
+
+@_print_option_dispatch.register
+def _(option: MetadataOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    sep = fmt_opts.format_list_separator()
+    entries = sep.join(f"{k} {v}" for k, v in option.entries)
+    return f"metadata:{entries};"
+
+
+@_print_option_dispatch.register
+def _(option: ContentOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return printer._print_content(option)
+
+
+@_print_option_dispatch.register
+def _(option: PcreOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    quote = fmt_opts.get_quote_char()
+    flags = option.flags if option.flags else ""
+    return f"pcre:{quote}/{option.pattern}/{flags}{quote};"
+
+
+@_print_option_dispatch.register
+def _(option: FlowOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    sep = fmt_opts.format_list_separator()
+    parts: list[str] = []
+    parts.extend(d.value for d in option.directions)
+    parts.extend(s.value for s in option.states)
+    flow_str = sep.join(parts)
+    return f"flow:{flow_str};"
+
+
+@_print_option_dispatch.register
+def _(option: FlowbitsOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"flowbits:{option.action},{option.name};"
+
+
+@_print_option_dispatch.register
+def _(option: ThresholdOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    sep = fmt_opts.format_list_separator()
+    parts = [
+        f"type {option.threshold_type}",
+        f"track {option.track}",
+        f"count {option.count}",
+        f"seconds {option.seconds}",
+    ]
+    return f"threshold:{sep.join(parts)};"
+
+
+@_print_option_dispatch.register
+def _(option: DetectionFilterOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    sep = fmt_opts.format_list_separator()
+    parts = [
+        f"track {option.track}",
+        f"count {option.count}",
+        f"seconds {option.seconds}",
+    ]
+    return f"detection_filter:{sep.join(parts)};"
+
+
+@_print_option_dispatch.register
+def _(option: BufferSelectOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"{option.buffer_name};"
+
+
+@_print_option_dispatch.register
+def _(option: ByteTestOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    sep = fmt_opts.format_list_separator()
+    parts = [
+        str(option.bytes_to_extract),
+        option.operator,
+        str(option.value),
+        str(option.offset),
+    ]
+    if option.flags:
+        parts.extend(option.flags)
+    return f"byte_test:{sep.join(parts)};"
+
+
+@_print_option_dispatch.register
+def _(option: ByteJumpOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    sep = fmt_opts.format_list_separator()
+    parts = [str(option.bytes_to_extract), str(option.offset)]
+    if option.flags:
+        parts.extend(option.flags)
+    return f"byte_jump:{sep.join(parts)};"
+
+
+@_print_option_dispatch.register
+def _(option: ByteExtractOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    sep = fmt_opts.format_list_separator()
+    parts = [
+        str(option.bytes_to_extract),
+        str(option.offset),
+        option.var_name,
+    ]
+    if option.flags:
+        parts.extend(option.flags)
+    return f"byte_extract:{sep.join(parts)};"
+
+
+@_print_option_dispatch.register
+def _(option: FastPatternOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    if option.offset is not None and option.length is not None:
+        return f"fast_pattern:{option.offset},{option.length};"
+    return "fast_pattern;"
+
+
+@_print_option_dispatch.register
+def _(option: TagOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"tag:{option.tag_type},{option.count},{option.metric};"
+
+
+@_print_option_dispatch.register
+def _(option: FilestoreOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    if option.direction and option.scope:
+        return f"filestore:{option.direction},{option.scope};"
+    if option.direction:
+        return f"filestore:{option.direction};"
+    return "filestore;"
+
+
+@_print_option_dispatch.register
+def _(option: LuaOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"lua:{option.script_name};"
+
+
+@_print_option_dispatch.register
+def _(option: LuajitOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"luajit:{option.script_name};"
+
+
+@_print_option_dispatch.register
+def _(option: NocaseOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return "nocase;"
+
+
+@_print_option_dispatch.register
+def _(option: RawbytesOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return "rawbytes;"
+
+
+@_print_option_dispatch.register
+def _(option: DepthOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"depth:{option.value};"
+
+
+@_print_option_dispatch.register
+def _(option: OffsetOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"offset:{option.value};"
+
+
+@_print_option_dispatch.register
+def _(option: DistanceOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"distance:{option.value};"
+
+
+@_print_option_dispatch.register
+def _(option: WithinOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return f"within:{option.value};"
+
+
+@_print_option_dispatch.register
+def _(option: StartswithOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return "startswith;"
+
+
+@_print_option_dispatch.register
+def _(option: EndswithOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    return "endswith;"
+
+
+@_print_option_dispatch.register
+def _(option: GenericOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+    # Use raw representation (returned as-is to preserve original formatting)
+    return option.raw
 
 
 class TextPrinter:
@@ -227,7 +473,7 @@ class TextPrinter:
 
     def _print_option(self, option: Option) -> str:
         """
-        Print a single option.
+        Print a single option using singledispatch.
 
         Args:
             option: The option to print
@@ -235,125 +481,7 @@ class TextPrinter:
         Returns:
             Formatted option text
         """
-        if isinstance(option, MsgOption):
-            quote = self.options.get_quote_char()
-            return f"msg:{quote}{option.text}{quote};"
-
-        if isinstance(option, SidOption):
-            return f"sid:{option.value};"
-
-        if isinstance(option, RevOption):
-            return f"rev:{option.value};"
-
-        if isinstance(option, GidOption):
-            return f"gid:{option.value};"
-
-        if isinstance(option, ClasstypeOption):
-            return f"classtype:{option.value};"
-
-        if isinstance(option, PriorityOption):
-            return f"priority:{option.value};"
-
-        if isinstance(option, ReferenceOption):
-            return f"reference:{option.ref_type},{option.ref_id};"
-
-        if isinstance(option, MetadataOption):
-            sep = self.options.format_list_separator()
-            entries = sep.join(f"{k} {v}" for k, v in option.entries)
-            return f"metadata:{entries};"
-
-        if isinstance(option, ContentOption):
-            return self._print_content(option)
-
-        if isinstance(option, PcreOption):
-            quote = self.options.get_quote_char()
-            flags = option.flags if option.flags else ""
-            return f"pcre:{quote}/{option.pattern}/{flags}{quote};"
-
-        if isinstance(option, FlowOption):
-            sep = self.options.format_list_separator()
-            parts = []
-            parts.extend(d.value for d in option.directions)
-            parts.extend(s.value for s in option.states)
-            flow_str = sep.join(parts)
-            return f"flow:{flow_str};"
-
-        if isinstance(option, FlowbitsOption):
-            return f"flowbits:{option.action},{option.name};"
-
-        if isinstance(option, ThresholdOption):
-            sep = self.options.format_list_separator()
-            parts = [
-                f"type {option.threshold_type}",
-                f"track {option.track}",
-                f"count {option.count}",
-                f"seconds {option.seconds}",
-            ]
-            return f"threshold:{sep.join(parts)};"
-
-        if isinstance(option, DetectionFilterOption):
-            sep = self.options.format_list_separator()
-            parts = [
-                f"track {option.track}",
-                f"count {option.count}",
-                f"seconds {option.seconds}",
-            ]
-            return f"detection_filter:{sep.join(parts)};"
-
-        if isinstance(option, BufferSelectOption):
-            return f"{option.buffer_name};"
-
-        if isinstance(option, ByteTestOption):
-            sep = self.options.format_list_separator()
-            parts = [
-                str(option.bytes_to_extract),
-                option.operator,
-                str(option.value),
-                str(option.offset),
-            ]
-            if option.flags:
-                parts.extend(option.flags)
-            return f"byte_test:{sep.join(parts)};"
-
-        if isinstance(option, ByteJumpOption):
-            sep = self.options.format_list_separator()
-            parts = [str(option.bytes_to_extract), str(option.offset)]
-            if option.flags:
-                parts.extend(option.flags)
-            return f"byte_jump:{sep.join(parts)};"
-
-        if isinstance(option, ByteExtractOption):
-            sep = self.options.format_list_separator()
-            parts = [
-                str(option.bytes_to_extract),
-                str(option.offset),
-                option.var_name,
-            ]
-            if option.flags:
-                parts.extend(option.flags)
-            return f"byte_extract:{sep.join(parts)};"
-
-        if isinstance(option, FastPatternOption):
-            if option.offset is not None and option.length is not None:
-                return f"fast_pattern:{option.offset},{option.length};"
-            return "fast_pattern;"
-
-        if isinstance(option, TagOption):
-            return f"tag:{option.tag_type},{option.count},{option.metric};"
-
-        if isinstance(option, FilestoreOption):
-            if option.direction and option.scope:
-                return f"filestore:{option.direction},{option.scope};"
-            if option.direction:
-                return f"filestore:{option.direction};"
-            return "filestore;"
-
-        if isinstance(option, GenericOption):
-            # Use raw representation if available
-            return option.raw
-
-        # Fallback for unknown options
-        return f"{option.node_type.lower()};"
+        return _print_option_dispatch(option, self.options, self)
 
     def _print_content(self, content: ContentOption) -> str:
         """

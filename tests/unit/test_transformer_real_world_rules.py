@@ -23,16 +23,23 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         # Check that flowint option was created
-        flowint_opts = [opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "flowint"]
+        flowint_opts = [
+            opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "flowint"
+        ]
         assert len(flowint_opts) > 0
 
     def test_tag_option_real(self):
         """Test tag option through real parsing"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp any any -> any any (tag:session,10,seconds; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp any any -> any any (tag:session,10,seconds; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
-        tag_opt = next((opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "tag"), None)
+        tag_opt = next(
+            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "tag"),
+            None,
+        )
         assert tag_opt is not None
 
     def test_detection_filter_real(self):
@@ -42,7 +49,12 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         det_filter = next(
-            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "detection_filter"), None
+            (
+                opt
+                for opt in result.options
+                if hasattr(opt, "keyword") and opt.keyword == "detection_filter"
+            ),
+            None,
         )
         assert det_filter is not None
         assert "by_src" in det_filter.value
@@ -54,7 +66,12 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         byte_jump_opt = next(
-            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "byte_jump"), None
+            (
+                opt
+                for opt in result.options
+                if hasattr(opt, "keyword") and opt.keyword == "byte_jump"
+            ),
+            None,
         )
         assert byte_jump_opt is not None
         assert "little" in byte_jump_opt.value
@@ -68,7 +85,12 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         byte_test_opt = next(
-            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "byte_test"), None
+            (
+                opt
+                for opt in result.options
+                if hasattr(opt, "keyword") and opt.keyword == "byte_test"
+            ),
+            None,
         )
         assert byte_test_opt is not None
         # The parser captures bitmask value but not keyword
@@ -80,9 +102,7 @@ class TestRealisticTransformerCoverage:
         rule_text = 'alert tcp any any -> any any (msg:"test"; metadata:key value1 value2 value3; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
-        metadata_opt = next(
-            (opt for opt in result.options if hasattr(opt, "entries")), None
-        )
+        metadata_opt = next((opt for opt in result.options if hasattr(opt, "entries")), None)
         assert metadata_opt is not None
         # Metadata should parse the key and concatenate values
         assert len(metadata_opt.entries) > 0
@@ -90,12 +110,12 @@ class TestRealisticTransformerCoverage:
     def test_filestore_with_params_real(self):
         """Test filestore with direction and scope"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert http any any -> any any (filestore:request,file; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert http any any -> any any (filestore:request,file; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
-        filestore_opt = next(
-            (opt for opt in result.options if hasattr(opt, "direction")), None
-        )
+        filestore_opt = next((opt for opt in result.options if hasattr(opt, "direction")), None)
         assert filestore_opt is not None
 
     def test_open_ended_port_range_real(self):
@@ -114,7 +134,8 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         fast_pattern_opt = next(
-            (opt for opt in result.options if hasattr(opt, "offset") and hasattr(opt, "length")), None
+            (opt for opt in result.options if hasattr(opt, "offset") and hasattr(opt, "length")),
+            None,
         )
         assert fast_pattern_opt is not None
 
@@ -125,7 +146,8 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         urilen_opt = next(
-            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "urilen"), None
+            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "urilen"),
+            None,
         )
         assert urilen_opt is not None
 
@@ -136,7 +158,12 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         isdataat_opt = next(
-            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "isdataat"), None
+            (
+                opt
+                for opt in result.options
+                if hasattr(opt, "keyword") and opt.keyword == "isdataat"
+            ),
+            None,
         )
         assert isdataat_opt is not None
 
@@ -147,7 +174,12 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         byte_extract_opt = next(
-            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "byte_extract"), None
+            (
+                opt
+                for opt in result.options
+                if hasattr(opt, "keyword") and opt.keyword == "byte_extract"
+            ),
+            None,
         )
         assert byte_extract_opt is not None
 
@@ -158,19 +190,24 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         threshold_opt = next(
-            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "threshold"), None
+            (
+                opt
+                for opt in result.options
+                if hasattr(opt, "keyword") and opt.keyword == "threshold"
+            ),
+            None,
         )
         assert threshold_opt is not None
 
     def test_flowbits_real(self):
         """Test flowbits option"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp any any -> any any (flowbits:set,suspicious; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp any any -> any any (flowbits:set,suspicious; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
-        flowbits_opt = next(
-            (opt for opt in result.options if hasattr(opt, "action")), None
-        )
+        flowbits_opt = next((opt for opt in result.options if hasattr(opt, "action")), None)
         assert flowbits_opt is not None
         assert flowbits_opt.action == "set"
         assert flowbits_opt.name == "suspicious"
@@ -178,34 +215,37 @@ class TestRealisticTransformerCoverage:
     def test_flowbits_isset_real(self):
         """Test flowbits isset"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp any any -> any any (flowbits:isset,suspicious; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp any any -> any any (flowbits:isset,suspicious; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
-        flowbits_opt = next(
-            (opt for opt in result.options if hasattr(opt, "action")), None
-        )
+        flowbits_opt = next((opt for opt in result.options if hasattr(opt, "action")), None)
         assert flowbits_opt is not None
         assert flowbits_opt.action == "isset"
 
     def test_flow_option_real(self):
         """Test flow option with multiple values"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp any any -> any any (flow:established,to_server; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp any any -> any any (flow:established,to_server; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
-        flow_opt = next(
-            (opt for opt in result.options if hasattr(opt, "states")), None
-        )
+        flow_opt = next((opt for opt in result.options if hasattr(opt, "states")), None)
         assert flow_opt is not None
 
     def test_pcre_option_real(self):
         """Test pcre option"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp any any -> any any (pcre:"/pattern/imsxRU"; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp any any -> any any (pcre:"/pattern/imsxRU"; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
         pcre_opt = next(
-            (opt for opt in result.options if hasattr(opt, "pattern") and hasattr(opt, "flags")), None
+            (opt for opt in result.options if hasattr(opt, "pattern") and hasattr(opt, "flags")),
+            None,
         )
         assert pcre_opt is not None
         assert pcre_opt.pattern == "pattern"
@@ -218,32 +258,30 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         # Check that content option exists
-        content_opt = next(
-            (opt for opt in result.options if hasattr(opt, "pattern")), None
-        )
+        content_opt = next((opt for opt in result.options if hasattr(opt, "pattern")), None)
         assert content_opt is not None
 
     def test_buffer_selection_real(self):
         """Test sticky buffer selection"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert http any any -> any any (http.uri; content:"/admin"; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert http any any -> any any (http.uri; content:"/admin"; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
-        buffer_opt = next(
-            (opt for opt in result.options if hasattr(opt, "buffer_name")), None
-        )
+        buffer_opt = next((opt for opt in result.options if hasattr(opt, "buffer_name")), None)
         assert buffer_opt is not None
         assert buffer_opt.buffer_name == "http.uri"
 
     def test_reference_option_real(self):
         """Test reference option"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp any any -> any any (reference:cve,2021-12345; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp any any -> any any (reference:cve,2021-12345; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
-        ref_opt = next(
-            (opt for opt in result.options if hasattr(opt, "ref_type")), None
-        )
+        ref_opt = next((opt for opt in result.options if hasattr(opt, "ref_type")), None)
         assert ref_opt is not None
         assert ref_opt.ref_type == "cve"
         assert ref_opt.ref_id == "2021-12345"
@@ -251,11 +289,18 @@ class TestRealisticTransformerCoverage:
     def test_classtype_option_real(self):
         """Test classtype option"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp any any -> any any (classtype:trojan-activity; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp any any -> any any (classtype:trojan-activity; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
         classtype_opt = next(
-            (opt for opt in result.options if hasattr(opt, "value") and not hasattr(opt, "keyword")), None
+            (
+                opt
+                for opt in result.options
+                if hasattr(opt, "value") and not hasattr(opt, "keyword")
+            ),
+            None,
         )
         assert classtype_opt is not None
 
@@ -266,7 +311,12 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         gid_opt = next(
-            (opt for opt in result.options if hasattr(opt, "value") and type(opt).__name__ == "GidOption"), None
+            (
+                opt
+                for opt in result.options
+                if hasattr(opt, "value") and type(opt).__name__ == "GidOption"
+            ),
+            None,
         )
         assert gid_opt is not None
 
@@ -285,7 +335,9 @@ class TestRealisticTransformerCoverage:
     def test_startswith_option_real(self):
         """Test startswith content modifier"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp any any -> any any (content:"GET"; startswith; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp any any -> any any (content:"GET"; startswith; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
         startswith_opt = next(
@@ -307,7 +359,9 @@ class TestRealisticTransformerCoverage:
     def test_rawbytes_option_real(self):
         """Test rawbytes content modifier"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp any any -> any any (content:"test"; rawbytes; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp any any -> any any (content:"test"; rawbytes; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
         rawbytes_opt = next(
@@ -318,11 +372,14 @@ class TestRealisticTransformerCoverage:
     def test_hex_content_real(self):
         """Test content with hex pattern"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp any any -> any any (content:"|48 65 6c 6c 6f|"; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp any any -> any any (content:"|48 65 6c 6c 6f|"; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
         content_opt = next(
-            (opt for opt in result.options if hasattr(opt, "pattern") and len(opt.pattern) > 0), None
+            (opt for opt in result.options if hasattr(opt, "pattern") and len(opt.pattern) > 0),
+            None,
         )
         assert content_opt is not None
         # Hex content is currently parsed as-is (not decoded)
@@ -331,7 +388,9 @@ class TestRealisticTransformerCoverage:
     def test_ip_range_real(self):
         """Test IP range in address"""
         parser = RuleParser(dialect=Dialect.SURICATA)
-        rule_text = 'alert tcp [192.168.1.1-192.168.1.254] any -> any any (msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            'alert tcp [192.168.1.1-192.168.1.254] any -> any any (msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
         # Check that IP range was parsed
@@ -389,6 +448,7 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         from surinort_ast.core.enums import Protocol
+
         assert result.header.protocol == Protocol.HTTP
 
     def test_dns_protocol_real(self):
@@ -398,6 +458,7 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         from surinort_ast.core.enums import Protocol
+
         assert result.header.protocol == Protocol.DNS
 
     def test_tls_protocol_real(self):
@@ -407,6 +468,7 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         from surinort_ast.core.enums import Protocol
+
         assert result.header.protocol == Protocol.TLS
 
     def test_drop_action_real(self):
@@ -416,6 +478,7 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         from surinort_ast.core.enums import Action
+
         assert result.action == Action.DROP
 
     def test_reject_action_real(self):
@@ -425,6 +488,7 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         from surinort_ast.core.enums import Action
+
         assert result.action == Action.REJECT
 
     def test_pass_action_real(self):
@@ -434,6 +498,7 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         from surinort_ast.core.enums import Action
+
         assert result.action == Action.PASS
 
     def test_bidirectional_real(self):
@@ -443,6 +508,7 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         from surinort_ast.core.enums import Direction
+
         assert result.header.direction == Direction.BIDIRECTIONAL
 
     def test_from_direction_real(self):
@@ -452,6 +518,7 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         from surinort_ast.core.enums import Direction
+
         assert result.header.direction == Direction.FROM
 
     def test_byte_math_real(self):
@@ -461,8 +528,13 @@ class TestRealisticTransformerCoverage:
         rule_text = 'alert tcp any any -> any any (byte_math:bytes 2,offset 0,oper +,rvalue 10,result var; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
-        byte_math_opt = next(
-            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "byte_math"), None
+        next(
+            (
+                opt
+                for opt in result.options
+                if hasattr(opt, "keyword") and opt.keyword == "byte_math"
+            ),
+            None,
         )
         # byte_math may not be fully supported, check it doesn't crash
         assert result is not None

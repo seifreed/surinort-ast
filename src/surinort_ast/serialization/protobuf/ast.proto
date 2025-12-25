@@ -1,0 +1,503 @@
+// Protocol Buffer Definitions for Surinort-AST
+// Version: 1.0
+// Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
+// License: GNU General Public License v3.0
+
+syntax = "proto3";
+
+package surinort_ast;
+
+// ============================================================================
+// Enumerations
+// ============================================================================
+
+enum Action {
+  ACTION_UNSPECIFIED = 0;
+  ALERT = 1;
+  LOG = 2;
+  PASS = 3;
+  DROP = 4;
+  REJECT = 5;
+  SDROP = 6;
+}
+
+enum Protocol {
+  PROTOCOL_UNSPECIFIED = 0;
+  TCP = 1;
+  UDP = 2;
+  ICMP = 3;
+  IP = 4;
+  HTTP = 5;
+  HTTP2 = 6;
+  DNS = 7;
+  TLS = 8;
+  SSH = 9;
+  FTP = 10;
+  FTP_DATA = 11;
+  SMB = 12;
+  SMTP = 13;
+  IMAP = 14;
+  DCERPC = 15;
+  DHCP = 16;
+  NFS = 17;
+  SIP = 18;
+  RDP = 19;
+  MQTT = 20;
+  MODBUS = 21;
+  DNP3 = 22;
+  ENIP = 23;
+  IKE = 24;
+  KRB5 = 25;
+  NTP = 26;
+  SNMP = 27;
+  TFTP = 28;
+}
+
+enum Direction {
+  DIRECTION_UNSPECIFIED = 0;
+  TO = 1;          // ->
+  FROM = 2;        // <-
+  BIDIRECTIONAL = 3;  // <>
+}
+
+enum Dialect {
+  DIALECT_UNSPECIFIED = 0;
+  SURICATA = 1;
+  SNORT2 = 2;
+  SNORT3 = 3;
+}
+
+enum DiagnosticLevel {
+  DIAGNOSTIC_LEVEL_UNSPECIFIED = 0;
+  ERROR = 1;
+  WARNING = 2;
+  INFO = 3;
+}
+
+enum ContentModifierType {
+  CONTENT_MODIFIER_UNSPECIFIED = 0;
+  NOCASE = 1;
+  OFFSET = 2;
+  DEPTH = 3;
+  DISTANCE = 4;
+  WITHIN = 5;
+  RAWBYTES = 6;
+  FAST_PATTERN = 7;
+  STARTSWITH = 8;
+  ENDSWITH = 9;
+  BSIZE = 10;
+}
+
+enum FlowDirection {
+  FLOW_DIRECTION_UNSPECIFIED = 0;
+  TO_CLIENT = 1;
+  TO_SERVER = 2;
+  FROM_CLIENT = 3;
+  FROM_SERVER = 4;
+}
+
+enum FlowState {
+  FLOW_STATE_UNSPECIFIED = 0;
+  ESTABLISHED = 1;
+  NOT_ESTABLISHED = 2;
+  STATELESS = 3;
+  ONLY_STREAM = 4;
+  NO_STREAM = 5;
+}
+
+// ============================================================================
+// Location Tracking
+// ============================================================================
+
+message Position {
+  int32 line = 1;
+  int32 column = 2;
+  int32 offset = 3;
+}
+
+message Span {
+  Position start = 1;
+  Position end = 2;
+}
+
+message Location {
+  Span span = 1;
+  optional string file_path = 2;
+}
+
+// ============================================================================
+// Diagnostics
+// ============================================================================
+
+message Diagnostic {
+  DiagnosticLevel level = 1;
+  string message = 2;
+  string code = 3;
+  optional Location location = 4;
+}
+
+// ============================================================================
+// Source Origin
+// ============================================================================
+
+message SourceOrigin {
+  optional string file_path = 1;
+  optional int32 line_number = 2;
+  optional string rule_id = 3;
+}
+
+// ============================================================================
+// Address Expressions
+// ============================================================================
+
+message AddressExpr {
+  oneof address_type {
+    IPAddress ip_address = 1;
+    IPCIDRRange ip_cidr_range = 2;
+    IPRange ip_range = 3;
+    AddressVariable address_variable = 4;
+    AddressNegation address_negation = 5;
+    AddressList address_list = 6;
+    AnyAddress any_address = 7;
+  }
+  optional Location location = 10;
+  repeated string comments = 11;
+}
+
+message IPAddress {
+  string value = 1;
+  int32 version = 2;  // 4 or 6
+}
+
+message IPCIDRRange {
+  string network = 1;
+  int32 prefix_len = 2;
+}
+
+message IPRange {
+  string start = 1;
+  string end = 2;
+}
+
+message AddressVariable {
+  string name = 1;
+}
+
+message AddressNegation {
+  AddressExpr expr = 1;
+}
+
+message AddressList {
+  repeated AddressExpr elements = 1;
+}
+
+message AnyAddress {
+  // Empty marker type
+}
+
+// ============================================================================
+// Port Expressions
+// ============================================================================
+
+message PortExpr {
+  oneof port_type {
+    Port port = 1;
+    PortRange port_range = 2;
+    PortVariable port_variable = 3;
+    PortNegation port_negation = 4;
+    PortList port_list = 5;
+    AnyPort any_port = 6;
+  }
+  optional Location location = 10;
+  repeated string comments = 11;
+}
+
+message Port {
+  int32 value = 1;
+}
+
+message PortRange {
+  int32 start = 1;
+  int32 end = 2;
+}
+
+message PortVariable {
+  string name = 1;
+}
+
+message PortNegation {
+  PortExpr expr = 1;
+}
+
+message PortList {
+  repeated PortExpr elements = 1;
+}
+
+message AnyPort {
+  // Empty marker type
+}
+
+// ============================================================================
+// Content Modifiers
+// ============================================================================
+
+message ContentModifier {
+  ContentModifierType name = 1;
+  oneof value_type {
+    int32 int_value = 2;
+    string string_value = 3;
+  }
+}
+
+// ============================================================================
+// Rule Options
+// ============================================================================
+
+message Option {
+  oneof option_type {
+    MsgOption msg = 1;
+    SidOption sid = 2;
+    RevOption rev = 3;
+    GidOption gid = 4;
+    ClasstypeOption classtype = 5;
+    PriorityOption priority = 6;
+    ReferenceOption reference = 7;
+    MetadataOption metadata = 8;
+    ContentOption content = 9;
+    PcreOption pcre = 10;
+    FlowOption flow = 11;
+    FlowbitsOption flowbits = 12;
+    ThresholdOption threshold = 13;
+    DetectionFilterOption detection_filter = 14;
+    BufferSelectOption buffer_select = 15;
+    ByteTestOption byte_test = 16;
+    ByteJumpOption byte_jump = 17;
+    ByteExtractOption byte_extract = 18;
+    FastPatternOption fast_pattern = 19;
+    TagOption tag = 20;
+    FilestoreOption filestore = 21;
+    LuaOption lua = 22;
+    LuajitOption luajit = 23;
+    DepthOption depth = 24;
+    OffsetOption offset = 25;
+    DistanceOption distance = 26;
+    WithinOption within = 27;
+    NocaseOption nocase = 28;
+    RawbytesOption rawbytes = 29;
+    StartswithOption startswith = 30;
+    EndswithOption endswith = 31;
+    GenericOption generic = 32;
+  }
+  optional Location location = 50;
+  repeated string comments = 51;
+}
+
+message MsgOption {
+  string text = 1;
+}
+
+message SidOption {
+  int32 value = 1;
+}
+
+message RevOption {
+  int32 value = 1;
+}
+
+message GidOption {
+  int32 value = 1;
+}
+
+message ClasstypeOption {
+  string value = 1;
+}
+
+message PriorityOption {
+  int32 value = 1;
+}
+
+message ReferenceOption {
+  string ref_type = 1;
+  string ref_id = 2;
+}
+
+message MetadataEntry {
+  string key = 1;
+  string value = 2;
+}
+
+message MetadataOption {
+  repeated MetadataEntry entries = 1;
+}
+
+message ContentOption {
+  bytes pattern = 1;
+  repeated ContentModifier modifiers = 2;
+}
+
+message PcreOption {
+  string pattern = 1;
+  string flags = 2;
+}
+
+message FlowOption {
+  repeated FlowDirection directions = 1;
+  repeated FlowState states = 2;
+}
+
+message FlowbitsOption {
+  string action = 1;
+  string name = 2;
+}
+
+message ThresholdOption {
+  string threshold_type = 1;
+  string track = 2;
+  int32 count = 3;
+  int32 seconds = 4;
+}
+
+message DetectionFilterOption {
+  string track = 1;
+  int32 count = 2;
+  int32 seconds = 3;
+}
+
+message BufferSelectOption {
+  string buffer_name = 1;
+}
+
+message ByteTestOption {
+  int32 bytes_to_extract = 1;
+  string operator = 2;
+  int32 value = 3;
+  int32 offset = 4;
+  repeated string flags = 5;
+}
+
+message ByteJumpOption {
+  int32 bytes_to_extract = 1;
+  int32 offset = 2;
+  repeated string flags = 3;
+}
+
+message ByteExtractOption {
+  int32 bytes_to_extract = 1;
+  int32 offset = 2;
+  string var_name = 3;
+  repeated string flags = 4;
+}
+
+message FastPatternOption {
+  optional int32 offset = 1;
+  optional int32 length = 2;
+}
+
+message TagOption {
+  string tag_type = 1;
+  int32 count = 2;
+  string metric = 3;
+}
+
+message FilestoreOption {
+  optional string direction = 1;
+  optional string scope = 2;
+}
+
+message LuaOption {
+  string script_name = 1;
+  bool negated = 2;
+}
+
+message LuajitOption {
+  string script_name = 1;
+  bool negated = 2;
+}
+
+message DepthOption {
+  oneof value_type {
+    int32 int_value = 1;
+    string string_value = 2;
+  }
+}
+
+message OffsetOption {
+  oneof value_type {
+    int32 int_value = 1;
+    string string_value = 2;
+  }
+}
+
+message DistanceOption {
+  oneof value_type {
+    int32 int_value = 1;
+    string string_value = 2;
+  }
+}
+
+message WithinOption {
+  oneof value_type {
+    int32 int_value = 1;
+    string string_value = 2;
+  }
+}
+
+message NocaseOption {
+  // Empty marker type
+}
+
+message RawbytesOption {
+  // Empty marker type
+}
+
+message StartswithOption {
+  // Empty marker type
+}
+
+message EndswithOption {
+  // Empty marker type
+}
+
+message GenericOption {
+  string keyword = 1;
+  optional string value = 2;
+  string raw = 3;
+}
+
+// ============================================================================
+// Header and Rule
+// ============================================================================
+
+message Header {
+  Protocol protocol = 1;
+  AddressExpr src_addr = 2;
+  PortExpr src_port = 3;
+  Direction direction = 4;
+  AddressExpr dst_addr = 5;
+  PortExpr dst_port = 6;
+  optional Location location = 10;
+  repeated string comments = 11;
+}
+
+message Rule {
+  Action action = 1;
+  Header header = 2;
+  repeated Option options = 3;
+  Dialect dialect = 4;
+  optional SourceOrigin origin = 5;
+  repeated Diagnostic diagnostics = 6;
+  optional string raw_text = 7;
+  optional Location location = 10;
+  repeated string comments = 11;
+}
+
+// ============================================================================
+// Batch/Multiple Rules
+// ============================================================================
+
+message RuleBatch {
+  repeated Rule rules = 1;
+  string ast_version = 2;
+  string timestamp = 3;
+  int32 count = 4;
+}

@@ -174,9 +174,9 @@ class TestNodeInvariants:
         cidr = IPCIDRRange(network="192.168.1.0", prefix_len=prefix_len)
         assert 0 <= cidr.prefix_len <= 32
 
-    @given(prefix_len=st.integers(min_value=33, max_value=200))
+    @given(prefix_len=st.integers(min_value=129, max_value=200))
     def test_ipv4_cidr_prefix_invalid(self, prefix_len: int):
-        """IPv4 CIDR prefix > 32 should fail."""
+        """CIDR prefix > 128 should fail (IPCIDRRange is generic for IPv4/IPv6)."""
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError):

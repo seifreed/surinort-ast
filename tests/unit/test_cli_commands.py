@@ -18,13 +18,14 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
+from surinort_ast import parse_rule
+from surinort_ast import to_json as api_to_json
 from surinort_ast.cli.main import (
     app,
     read_input,
     version_callback,
     write_output,
 )
-from surinort_ast import parse_rule, to_json as api_to_json
 
 
 def create_valid_rule_json():
@@ -52,7 +53,7 @@ class TestHelperFunctions:
     def test_read_input_from_file(self, tmp_path):
         """read_input should read from file when file_path is provided"""
         test_file = tmp_path / "test.rules"
-        content = "alert tcp any any -> any 80 (msg:\"Test\"; sid:1;)"
+        content = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
         test_file.write_text(content, encoding="utf-8")
 
         result = read_input(test_file)
@@ -68,12 +69,14 @@ class TestHelperFunctions:
 
     def test_read_input_from_stdin(self):
         """read_input should read from stdin when file_path is None"""
-        test_content = "alert tcp any any -> any 443 (msg:\"HTTPS\"; sid:2;)"
+        test_content = 'alert tcp any any -> any 443 (msg:"HTTPS"; sid:2;)'
 
-        with patch("sys.stdin", StringIO(test_content)):
-            with patch("sys.stdin.isatty", return_value=False):
-                result = read_input(None)
-                assert result == test_content
+        with (
+            patch("sys.stdin", StringIO(test_content)),
+            patch("sys.stdin.isatty", return_value=False),
+        ):
+            result = read_input(None)
+            assert result == test_content
 
     def test_read_input_stdin_is_tty_error(self):
         """read_input should exit with error if stdin is a TTY and no file"""
@@ -113,8 +116,8 @@ class TestParseCommand:
         """Parse command should parse rules from a file"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1; rev:1;)\n"
-            "alert tcp any any -> any 443 (msg:\"HTTPS\"; sid:2; rev:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1; rev:1;)\n'
+            'alert tcp any any -> any 443 (msg:"HTTPS"; sid:2; rev:1;)\n',
             encoding="utf-8",
         )
 
@@ -127,7 +130,7 @@ class TestParseCommand:
         """Parse command should output JSON when --json flag is used"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
             encoding="utf-8",
         )
 
@@ -142,7 +145,7 @@ class TestParseCommand:
         rules_file = tmp_path / "rules.txt"
         output_file = tmp_path / "output.json"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
             encoding="utf-8",
         )
 
@@ -159,7 +162,7 @@ class TestParseCommand:
         """Parse command with --verbose should show detailed output"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
             encoding="utf-8",
         )
 
@@ -170,7 +173,7 @@ class TestParseCommand:
 
     def test_parse_stdin_mode(self):
         """Parse command should accept stdin with - argument"""
-        rule_text = "alert tcp any any -> any 80 (msg:\"Test\"; sid:1;)"
+        rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
         result = self.runner.invoke(app, ["parse", "-"], input=rule_text)
 
@@ -191,8 +194,7 @@ class TestParseCommand:
         """Parse command should warn about invalid rules in verbose mode"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "invalid rule syntax here\n"
-            "alert tcp any any -> any 80 (msg:\"Valid\"; sid:1;)\n",
+            'invalid rule syntax here\nalert tcp any any -> any 80 (msg:"Valid"; sid:1;)\n',
             encoding="utf-8",
         )
 
@@ -205,13 +207,11 @@ class TestParseCommand:
         """Parse command should accept different dialects"""
         rules_file = tmp_path / "snort3.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"Test\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n',
             encoding="utf-8",
         )
 
-        result = self.runner.invoke(
-            app, ["parse", str(rules_file), "--dialect", "snort3"]
-        )
+        result = self.runner.invoke(app, ["parse", str(rules_file), "--dialect", "snort3"])
 
         assert result.exit_code == 0
 
@@ -229,7 +229,7 @@ class TestParseCommand:
         # This is harder to trigger, but we can test the code path exists
         # by creating a scenario where something unexpected happens
         rules_file = tmp_path / "rules.txt"
-        rules_file.write_text("alert tcp any any -> any 80 (msg:\"Test\"; sid:1;)\n")
+        rules_file.write_text('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
 
         # Normal case should work
         result = self.runner.invoke(app, ["parse", str(rules_file), "--verbose"])
@@ -246,7 +246,7 @@ class TestFmtCommand:
         """Fmt command should format rules"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
             encoding="utf-8",
         )
 
@@ -259,7 +259,7 @@ class TestFmtCommand:
         """Fmt command should use stable formatting with --stable"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
             encoding="utf-8",
         )
 
@@ -287,7 +287,7 @@ class TestFmtCommand:
         rules_file = tmp_path / "rules.txt"
         # Write with extra spaces or different formatting
         rules_file.write_text(
-            "alert  tcp  any  any  ->  any  80  (msg:\"HTTP\";  sid:1;)\n",
+            'alert  tcp  any  any  ->  any  80  (msg:"HTTP";  sid:1;)\n',
             encoding="utf-8",
         )
 
@@ -299,7 +299,7 @@ class TestFmtCommand:
     def test_fmt_in_place(self, tmp_path):
         """Fmt should format file in-place with --in-place"""
         rules_file = tmp_path / "rules.txt"
-        original = "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n"
+        original = 'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n'
         rules_file.write_text(original, encoding="utf-8")
 
         result = self.runner.invoke(app, ["fmt", str(rules_file), "--in-place"])
@@ -312,7 +312,7 @@ class TestFmtCommand:
         result = self.runner.invoke(
             app,
             ["fmt", "-", "--in-place"],
-            input="alert tcp any any -> any 80 (msg:\"Test\"; sid:1;)",
+            input='alert tcp any any -> any 80 (msg:"Test"; sid:1;)',
         )
 
         assert result.exit_code == 1
@@ -320,7 +320,7 @@ class TestFmtCommand:
 
     def test_fmt_stdin(self):
         """Fmt command should accept stdin input"""
-        rule_text = "alert tcp any any -> any 80 (msg:\"Test\"; sid:1;)"
+        rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
         result = self.runner.invoke(app, ["fmt", "-"], input=rule_text)
 
@@ -351,13 +351,11 @@ class TestFmtCommand:
         rules_file = tmp_path / "rules.txt"
         output_file = tmp_path / "formatted.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
             encoding="utf-8",
         )
 
-        result = self.runner.invoke(
-            app, ["fmt", str(rules_file), "-o", str(output_file)]
-        )
+        result = self.runner.invoke(app, ["fmt", str(rules_file), "-o", str(output_file)])
 
         assert result.exit_code == 0
         assert output_file.exists()
@@ -373,7 +371,7 @@ class TestValidateCommand:
         """Validate command should validate rules"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1; rev:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1; rev:1;)\n',
             encoding="utf-8",
         )
 
@@ -428,7 +426,7 @@ class TestToJsonCommand:
         """to-json command should convert rules to JSON"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
             encoding="utf-8",
         )
 
@@ -442,7 +440,7 @@ class TestToJsonCommand:
         """to-json with --compact should produce compact JSON"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
             encoding="utf-8",
         )
 
@@ -457,13 +455,11 @@ class TestToJsonCommand:
         rules_file = tmp_path / "rules.txt"
         output_file = tmp_path / "output.json"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
             encoding="utf-8",
         )
 
-        result = self.runner.invoke(
-            app, ["to-json", str(rules_file), "-o", str(output_file)]
-        )
+        result = self.runner.invoke(app, ["to-json", str(rules_file), "-o", str(output_file)])
 
         assert result.exit_code == 0
         assert output_file.exists()
@@ -472,7 +468,7 @@ class TestToJsonCommand:
 
     def test_to_json_stdin(self):
         """to-json should accept stdin input"""
-        rule_text = "alert tcp any any -> any 80 (msg:\"Test\"; sid:1;)"
+        rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
         result = self.runner.invoke(app, ["to-json", "-"], input=rule_text)
 
@@ -524,9 +520,7 @@ class TestFromJsonCommand:
         json_data = {"rules": [create_valid_rule_json()]}
         json_file.write_text(json.dumps(json_data), encoding="utf-8")
 
-        result = self.runner.invoke(
-            app, ["from-json", str(json_file), "-o", str(output_file)]
-        )
+        result = self.runner.invoke(app, ["from-json", str(json_file), "-o", str(output_file)])
 
         assert result.exit_code == 0
         assert output_file.exists()
@@ -601,8 +595,8 @@ class TestStatsCommand:
         """Stats command should show rule statistics"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n"
-            "drop tcp any any -> any 443 (msg:\"HTTPS\"; sid:2;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n'
+            'drop tcp any any -> any 443 (msg:"HTTPS"; sid:2;)\n',
             encoding="utf-8",
         )
 
@@ -617,13 +611,11 @@ class TestStatsCommand:
         """Stats command should accept dialect option"""
         rules_file = tmp_path / "rules.txt"
         rules_file.write_text(
-            "alert tcp any any -> any 80 (msg:\"HTTP\"; sid:1;)\n",
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
             encoding="utf-8",
         )
 
-        result = self.runner.invoke(
-            app, ["stats", str(rules_file), "--dialect", "snort3"]
-        )
+        result = self.runner.invoke(app, ["stats", str(rules_file), "--dialect", "snort3"])
 
         assert result.exit_code == 0
 
