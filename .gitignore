@@ -133,6 +133,9 @@ cython_debug/
 # Claude Code
 .claude/
 
+# Qlty (code quality tool)
+.qlty/
+
 # Project specific
 *.log
 *.pid
