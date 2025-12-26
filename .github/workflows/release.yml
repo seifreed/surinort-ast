@@ -235,7 +235,7 @@ jobs:
           path: dist/
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@f7600683efdcb7656dec5b29656edb7bc586e597  # v1.12.2
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.12.2
         with:
           verbose: true
           print-hash: true
@@ -268,7 +268,7 @@ jobs:
           path: .
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191  # v2.0.8
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b  # v2.5.0
         with:
           tag_name: ${{ needs.validate.outputs.version }}
           name: Release ${{ needs.validate.outputs.version }}
