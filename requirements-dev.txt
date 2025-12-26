@@ -130,7 +130,8 @@ mkdocs==1.6.1 \
 bandit==1.8.6 \
     --hash=sha256:3348e934d736fcdb68b6aa4030487097e23a501adf3e7827b63658df464dddd0 \
     --hash=sha256:dbfe9c25fc6961c2078593de55fd19f2559f9e45b99f1272341f5b95dea4e56b
-stevedore==5.4.0 \
-    --hash=sha256:b0be3c4748b3ea7b854b265dcb4caa891015e442416422be16f8b31756107857
+stevedore==5.6.0 \
+    --hash=sha256:4a36dccefd7aeea0c70135526cecb7766c4c84c473b1af68db23d541b6dc1820 \
+    --hash=sha256:f22d15c6ead40c5bbfa9ca54aa7e7b4a07d59b36ae03ed12ced1a54cf0b51945
 pbr==6.1.0 \
     --hash=sha256:a776ae228892d8013649c0aeccbb3d5f99ee15e005a4cbb7e61d55a067b28a2a
