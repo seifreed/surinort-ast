@@ -21,6 +21,25 @@ from ...exceptions import ParseError
 from ..shared import console, err_console, parse_rules_from_content, read_input, write_output
 
 
+def _handle_check_mode(content: str, result: str) -> None:
+    """Handle --check mode validation."""
+    if content.strip() == result.strip():
+        console.print("[green]File is already formatted[/green]")
+        raise typer.Exit(0)
+    err_console.print("File would be reformatted")
+    raise typer.Exit(1) from None
+
+
+def _handle_in_place_mode(file: Path | None, in_place: bool) -> Path | None:
+    """Handle --in-place mode validation and return output path."""
+    if in_place:
+        if not file:
+            err_console.print("Error: Cannot use --in-place with stdin")
+            raise typer.Exit(1) from None
+        return file
+    return None
+
+
 def fmt_command(
     file: Annotated[
         Path | None,
@@ -93,18 +112,11 @@ def fmt_command(
 
         # Check mode
         if check:
-            if content.strip() == result.strip():
-                console.print("[green]File is already formatted[/green]")
-                raise typer.Exit(0)
-            err_console.print("File would be reformatted")
-            raise typer.Exit(1) from None
+            _handle_check_mode(content, result)
 
         # In-place mode
         if in_place:
-            if not file:
-                err_console.print("Error: Cannot use --in-place with stdin")
-                raise typer.Exit(1) from None
-            output = file
+            output = _handle_in_place_mode(file, in_place)
 
         write_output(result, output)
 

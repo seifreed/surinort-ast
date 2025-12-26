@@ -27,6 +27,8 @@ Quick Start:
 
 from __future__ import annotations
 
+import contextlib
+
 # ============================================================================
 # Core Plugin Interfaces
 # ============================================================================
@@ -69,28 +71,28 @@ from .registry import (
 # ============================================================================
 
 __all__ = [
-    # Core Interfaces
-    "SurinortPlugin",
-    "ParserPlugin",
-    "SerializerPlugin",
     "AnalysisPlugin",
-    "QueryPlugin",
-    "PluginMetadata",
-    # Registry
-    "PluginRegistry",
-    "get_registry",
-    "reset_registry",
-    "PluginRegistryError",
+    "ParserPlugin",
     "PluginAlreadyRegisteredError",
-    "PluginNotFoundError",
-    "PluginVersionError",
-    # Loader
-    "PluginLoader",
-    "load_plugins",
-    "PluginLoadError",
     "PluginDiscoveryError",
     "PluginImportError",
+    "PluginLoadError",
+    # Loader
+    "PluginLoader",
+    "PluginMetadata",
+    "PluginNotFoundError",
+    # Registry
+    "PluginRegistry",
+    "PluginRegistryError",
     "PluginValidationError",
+    "PluginVersionError",
+    "QueryPlugin",
+    "SerializerPlugin",
+    # Core Interfaces
+    "SurinortPlugin",
+    "get_registry",
+    "load_plugins",
+    "reset_registry",
 ]
 
 # ============================================================================
@@ -98,11 +100,9 @@ __all__ = [
 # ============================================================================
 
 # Automatically discover and load entry point plugins on import
-try:
+# Silently fail if auto-load fails (plugins are optional)
+with contextlib.suppress(Exception):
     _loader = PluginLoader(auto_load=True)
-except Exception:
-    # Silently fail if auto-load fails (plugins are optional)
-    pass
 
 # ============================================================================
 # License Information

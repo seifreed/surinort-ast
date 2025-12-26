@@ -10,7 +10,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -20,6 +20,108 @@ from ...api import parse_file, validate_rule
 from ...core.enums import DiagnosticLevel, Dialect
 from ...exceptions import ParseError
 from ..shared import console, err_console, validate_file_path
+
+
+def _check_lua_scripts(rules: list[Any], lua_dir: Path | None) -> list[tuple[int, str]]:
+    """Check Lua script paths exist if lua_dir is provided."""
+    lua_warnings: list[tuple[int, str]] = []
+
+    if not lua_dir:
+        return lua_warnings
+
+    try:
+        from surinort_ast.core.nodes import LuajitOption, LuaOption
+
+        for idx, rule in enumerate(rules, 1):
+            for opt in rule.options:
+                if isinstance(opt, (LuaOption, LuajitOption)):
+                    # Securely validate Lua script path to prevent path traversal
+                    try:
+                        script_path = validate_file_path(
+                            lua_dir / opt.script_name,
+                            must_exist=False,
+                            allowed_base=lua_dir,
+                            allow_symlinks=True,  # Allow symlinks for Lua scripts
+                        )
+                        if not script_path.exists():
+                            lua_warnings.append(
+                                (
+                                    idx,
+                                    f"Lua script not found: {opt.script_name} (looked in {lua_dir})",
+                                )
+                            )
+                    except ValueError as e:
+                        # Path traversal attempt detected
+                        lua_warnings.append(
+                            (
+                                idx,
+                                f"Invalid Lua script path: {opt.script_name} - {e}",
+                            )
+                        )
+    except Exception:
+        # Do not fail validation on optional check
+        pass
+
+    return lua_warnings
+
+
+def _collect_diagnostics(rules: list[Any]) -> tuple[list[tuple[int, Any]], int, int]:
+    """Collect validation diagnostics from all rules."""
+    all_diagnostics = []
+    error_count = 0
+    warning_count = 0
+
+    for idx, rule in enumerate(rules, 1):
+        diagnostics = validate_rule(rule)
+        for diag in diagnostics:
+            all_diagnostics.append((idx, diag))
+            if diag.level == DiagnosticLevel.ERROR:
+                error_count += 1
+            elif diag.level == DiagnosticLevel.WARNING:
+                warning_count += 1
+
+    return all_diagnostics, error_count, warning_count
+
+
+def _display_diagnostics(all_diagnostics: list[tuple[int, Any]]) -> None:
+    """Display validation diagnostics in a table."""
+    if not all_diagnostics:
+        return
+
+    table = Table(title="Validation Diagnostics")
+    table.add_column("Rule", style="cyan")
+    table.add_column("Level", style="magenta")
+    table.add_column("Code", style="yellow")
+    table.add_column("Message")
+
+    for rule_idx, diag in all_diagnostics:
+        level_color = {
+            DiagnosticLevel.ERROR: "red",
+            DiagnosticLevel.WARNING: "yellow",
+            DiagnosticLevel.INFO: "blue",
+        }.get(diag.level, "white")
+
+        table.add_row(
+            str(rule_idx),
+            f"[{level_color}]{diag.level.value.upper()}[/{level_color}]",
+            diag.code or "-",
+            diag.message,
+        )
+
+    console.print(table)
+
+
+def _display_lua_warnings(lua_warnings: list[tuple[int, str]]) -> None:
+    """Display Lua script warnings in a table."""
+    if not lua_warnings:
+        return
+
+    table = Table(title="Lua Script Checks")
+    table.add_column("Rule", style="cyan")
+    table.add_column("Message")
+    for r_idx, msg in lua_warnings:
+        table.add_row(str(r_idx), msg)
+    console.print(table)
 
 
 def validate_command(
@@ -60,88 +162,14 @@ def validate_command(
             rules = parse_file(file, dialect=dialect)
 
         # Validate all rules
-        all_diagnostics = []
-        error_count = 0
-        warning_count = 0
+        all_diagnostics, error_count, warning_count = _collect_diagnostics(rules)
 
         # Optional Lua script existence checks
-        lua_warnings: list[tuple[int, str]] = []
-
-        for idx, rule in enumerate(rules, 1):
-            diagnostics = validate_rule(rule)
-            for diag in diagnostics:
-                all_diagnostics.append((idx, diag))
-                if diag.level == DiagnosticLevel.ERROR:
-                    error_count += 1
-                elif diag.level == DiagnosticLevel.WARNING:
-                    warning_count += 1
-
-            # If requested, check lua/luajit script paths exist
-            if lua_dir:
-                try:
-                    from surinort_ast.core.nodes import LuajitOption, LuaOption
-
-                    for opt in rule.options:
-                        if isinstance(opt, (LuaOption, LuajitOption)):
-                            # Securely validate Lua script path to prevent path traversal
-                            try:
-                                script_path = validate_file_path(
-                                    lua_dir / opt.script_name,
-                                    must_exist=False,
-                                    allowed_base=lua_dir,
-                                    allow_symlinks=True,  # Allow symlinks for Lua scripts
-                                )
-                                if not script_path.exists():
-                                    lua_warnings.append(
-                                        (
-                                            idx,
-                                            f"Lua script not found: {opt.script_name} (looked in {lua_dir})",
-                                        )
-                                    )
-                            except ValueError as e:
-                                # Path traversal attempt detected
-                                lua_warnings.append(
-                                    (
-                                        idx,
-                                        f"Invalid Lua script path: {opt.script_name} - {e}",
-                                    )
-                                )
-                except Exception:
-                    # Do not fail validation on optional check
-                    pass
+        lua_warnings = _check_lua_scripts(rules, lua_dir)
 
         # Display results
-        if all_diagnostics:
-            table = Table(title="Validation Diagnostics")
-            table.add_column("Rule", style="cyan")
-            table.add_column("Level", style="magenta")
-            table.add_column("Code", style="yellow")
-            table.add_column("Message")
-
-            for rule_idx, diag in all_diagnostics:
-                level_color = {
-                    DiagnosticLevel.ERROR: "red",
-                    DiagnosticLevel.WARNING: "yellow",
-                    DiagnosticLevel.INFO: "blue",
-                }.get(diag.level, "white")
-
-                table.add_row(
-                    str(rule_idx),
-                    f"[{level_color}]{diag.level.value.upper()}[/{level_color}]",
-                    diag.code or "-",
-                    diag.message,
-                )
-
-            console.print(table)
-
-        # Add Lua warnings to output table if any
-        if lua_warnings:
-            table = Table(title="Lua Script Checks")
-            table.add_column("Rule", style="cyan")
-            table.add_column("Message")
-            for r_idx, msg in lua_warnings:
-                table.add_row(str(r_idx), msg)
-            console.print(table)
+        _display_diagnostics(all_diagnostics)
+        _display_lua_warnings(lua_warnings)
 
         # Summary
         console.print()

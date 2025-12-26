@@ -39,10 +39,10 @@ __all__ = [
     "IParser",
     # Parser implementations
     "LarkRuleParser",
-    # Parser factory (recommended for DI)
-    "ParserFactory",
     # Parser configuration
     "ParserConfig",
+    # Parser factory (recommended for DI)
+    "ParserFactory",
     # Main parser interface (backward compatibility)
     "RuleParser",
     # Transformer (for advanced usage)

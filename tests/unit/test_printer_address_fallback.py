@@ -926,14 +926,14 @@ class TestGenericOption:
         assert result == "custom_option:value;"
 
     def test_print_generic_option_without_semicolon(self, text_printer: TextPrinter):
-        """Test printing generic option - printer uses raw text as-is."""
+        """Test printing generic option - printer adds semicolon if not present."""
         from surinort_ast.core.nodes import GenericOption
 
         option = GenericOption(keyword="another_option", value=None, raw="another_option")
         result = text_printer._print_option(option)
 
-        # Printer returns raw text as-is, doesn't add semicolon
-        assert result == "another_option"
+        # Printer adds semicolon if raw text doesn't have one (for roundtrip compatibility)
+        assert result == "another_option;"
 
     def test_print_unknown_option_fallback(self, text_printer: TextPrinter):
         """Test fallback for completely unknown option type (line 390)."""

@@ -39,19 +39,19 @@ from .processor import (
 from .writers import StreamWriter, StreamWriterJSON, StreamWriterText
 
 __all__ = [
+    "AggregateProcessor",
+    "FilterProcessor",
+    "StreamBatch",
     # Parser
     "StreamParser",
-    "StreamBatch",
-    "stream_parse_file",
-    "stream_parse_file_parallel",
     # Processors
     "StreamProcessor",
-    "FilterProcessor",
-    "TransformProcessor",
-    "ValidateProcessor",
-    "AggregateProcessor",
     # Writers
     "StreamWriter",
-    "StreamWriterText",
     "StreamWriterJSON",
+    "StreamWriterText",
+    "TransformProcessor",
+    "ValidateProcessor",
+    "stream_parse_file",
+    "stream_parse_file_parallel",
 ]

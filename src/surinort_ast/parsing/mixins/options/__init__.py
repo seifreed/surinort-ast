@@ -42,19 +42,19 @@ from .scripting_mixin import ScriptingOptionsMixin
 from .threshold_mixin import ThresholdOptionsMixin
 
 __all__ = [
+    "BufferSelectionOptionsMixin",
+    "FileOperationsOptionsMixin",
+    "FlowTrackingOptionsMixin",
+    "GenericOptionsMixin",
     # Mixins
     "MetadataOptionsMixin",
-    "FlowTrackingOptionsMixin",
-    "ThresholdOptionsMixin",
-    "BufferSelectionOptionsMixin",
     "PatternMatchingOptionsMixin",
     "ProtocolSpecificOptionsMixin",
-    "FileOperationsOptionsMixin",
     "ScriptingOptionsMixin",
-    "GenericOptionsMixin",
+    "ThresholdOptionsMixin",
+    "parse_pcre_pattern",
+    "parse_pcre_pattern_cached",
     # Helpers (re-exported for backward compatibility)
     "parse_quoted_string",
     "parse_quoted_string_cached",
-    "parse_pcre_pattern",
-    "parse_pcre_pattern_cached",
 ]

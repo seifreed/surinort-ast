@@ -111,7 +111,7 @@ class Rule(ASTNode):
     header: Header
     # Note: options type will be updated after all Option subclasses are defined
     # See DiscriminatedOption type alias at the end of this file
-    options: "Sequence[DiscriminatedOption]"  # Forward reference
+    options: Sequence[DiscriminatedOption]  # Forward reference
     dialect: Dialect = Dialect.SURICATA
 
     # Metadata

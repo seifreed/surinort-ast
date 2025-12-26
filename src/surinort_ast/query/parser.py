@@ -193,7 +193,7 @@ class SelectorChain:
 # ============================================================================
 
 
-class SelectorTransformer(Transformer):  # type: ignore[type-arg]
+class SelectorTransformer(Transformer):
     """
     Lark transformer that converts parse tree to selector objects.
 

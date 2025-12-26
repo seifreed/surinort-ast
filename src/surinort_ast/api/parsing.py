@@ -90,7 +90,7 @@ def parse_rule(
     # Use injected parser if provided (dependency injection pattern)
     if parser is not None:
         # Custom parser provided - use it directly
-        rule = parser.parse(text.strip())
+        rule: Rule = parser.parse(text.strip())
 
         # Apply include_raw_text preference
         if not include_raw_text and rule.raw_text is not None:

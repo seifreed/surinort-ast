@@ -17,12 +17,19 @@ from __future__ import annotations
 
 import logging
 import warnings
+from collections.abc import Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..core.enums import Dialect
 from ..core.nodes import Rule
 from .lark_parser import LarkRuleParser
 from .parser_config import ParserConfig
+
+if TYPE_CHECKING:
+    from lark import Lark
+
+    from ..core.nodes import ErrorNode
 
 logger = logging.getLogger(__name__)
 

@@ -17,16 +17,16 @@ from .serialization import from_json, to_json, to_json_schema
 from .validation import validate_rule
 
 __all__ = [
+    "from_json",
+    "parse_file",
+    "parse_file_streaming",
     # Parsing
     "parse_rule",
     "parse_rules",
-    "parse_file",
-    "parse_file_streaming",
     # Printing
     "print_rule",
     # JSON serialization
     "to_json",
-    "from_json",
     "to_json_schema",
     # Validation
     "validate_rule",

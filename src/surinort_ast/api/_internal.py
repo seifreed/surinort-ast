@@ -25,7 +25,24 @@ from ..parsing.transformer import RuleTransformer
 # ============================================================================
 
 _PARSERS: dict[tuple[Dialect, bool], Lark] = {}
-_GRAMMAR_CACHE: str | None = None
+
+
+class _GrammarCache:
+    """Thread-safe grammar cache to avoid repeated file I/O."""
+
+    _cache: str | None = None
+
+    @classmethod
+    def get(cls) -> str:
+        """Get or load grammar file with caching."""
+        if cls._cache is not None:
+            return cls._cache
+
+        grammar_path = Path(__file__).parent.parent / "parsing" / "grammar.lark"
+        with grammar_path.open(encoding="utf-8") as f:
+            cls._cache = f.read()
+
+        return cls._cache
 
 
 # ============================================================================
@@ -130,16 +147,7 @@ def _get_grammar() -> str:
     Licensed under GPLv3
     https://www.gnu.org/licenses/gpl-3.0.html
     """
-    global _GRAMMAR_CACHE
-
-    if _GRAMMAR_CACHE is not None:
-        return _GRAMMAR_CACHE
-
-    grammar_path = Path(__file__).parent.parent / "parsing" / "grammar.lark"
-    with grammar_path.open(encoding="utf-8") as f:
-        _GRAMMAR_CACHE = f.read()
-
-    return _GRAMMAR_CACHE
+    return _GrammarCache.get()
 
 
 def _get_parser(dialect: Dialect = Dialect.SURICATA, track_locations: bool = True) -> Lark:

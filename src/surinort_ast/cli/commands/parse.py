@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import traceback
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -22,6 +22,46 @@ from ...api._internal import _get_parser
 from ...core.enums import Dialect
 from ...exceptions import ParseError
 from ..shared import console, err_console, read_input, write_output
+
+
+def _parse_stdin_rules(content: str, dialect: Dialect, verbose: bool) -> list[Any]:
+    """Parse rules from stdin content."""
+    from ...parsing.transformer import RuleTransformer
+
+    parser = _get_parser(dialect)
+    transformer = RuleTransformer(dialect=dialect)
+    rules = []
+
+    # Parse line by line with verbose warnings
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if line and not line.startswith("#"):
+            try:
+                tree = parser.parse(line)
+                rule = transformer.transform(tree)
+                rules.append(rule.model_copy(update={"raw_text": line}))
+            except Exception:
+                if verbose:
+                    err_console.print(f"[yellow]Warning:[/yellow] Failed to parse: {line[:50]}...")
+    return rules
+
+
+def _format_output(rules: list[Any], json_output: bool, dialect: Dialect, verbose: bool) -> str:
+    """Format output based on output mode."""
+    if json_output:
+        output_data = {
+            "rules": [json.loads(to_json(rule)) for rule in rules],
+            "count": len(rules),
+            "dialect": dialect.value,
+        }
+        return json.dumps(output_data, indent=2)
+
+    result = f"Successfully parsed {len(rules)} rule(s)\n\n"
+    if verbose:
+        for idx, rule in enumerate(rules, 1):
+            result += f"[Rule {idx}]\n"
+            result += print_rule(rule) + "\n\n"
+    return result
 
 
 def parse_command(
@@ -47,14 +87,6 @@ def parse_command(
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Show detailed parsing info"),
-    ] = False,
-    strict: Annotated[
-        bool,
-        typer.Option("--strict", help="Use strict resource limits for untrusted input"),
-    ] = False,
-    permissive: Annotated[
-        bool,
-        typer.Option("--permissive", help="Use permissive limits for trusted input"),
     ] = False,
     workers: Annotated[
         int,
@@ -91,46 +123,15 @@ def parse_command(
             if file:
                 rules = parse_file(file, dialect=dialect, workers=workers)
             else:
-                # Parse from stdin using shared helper
-                from ...parsing.transformer import RuleTransformer
-
-                parser = _get_parser(dialect)
-                transformer = RuleTransformer(dialect=dialect)
-                rules = []
-
-                # Parse line by line with verbose warnings
-                for raw_line in content.splitlines():
-                    line = raw_line.strip()
-                    if line and not line.startswith("#"):
-                        try:
-                            tree = parser.parse(line)
-                            rule = transformer.transform(tree)
-                            rules.append(rule.model_copy(update={"raw_text": line}))
-                        except Exception:
-                            if verbose:
-                                err_console.print(
-                                    f"[yellow]Warning:[/yellow] Failed to parse: {line[:50]}..."
-                                )
+                # Parse from stdin
+                rules = _parse_stdin_rules(content, dialect, verbose)
 
         if not rules:
             err_console.print("Error: No valid rules found")
             raise typer.Exit(1) from None
 
         # Output results
-        if json_output:
-            output_data = {
-                "rules": [json.loads(to_json(rule)) for rule in rules],
-                "count": len(rules),
-                "dialect": dialect.value,
-            }
-            result = json.dumps(output_data, indent=2)
-        else:
-            result = f"Successfully parsed {len(rules)} rule(s)\n\n"
-            if verbose:
-                for idx, rule in enumerate(rules, 1):
-                    result += f"[Rule {idx}]\n"
-                    result += print_rule(rule) + "\n\n"
-
+        result = _format_output(rules, json_output, dialect, verbose)
         write_output(result, output)
 
         console.print(f"[green]Success:[/green] Parsed {len(rules)} rule(s)")

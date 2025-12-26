@@ -72,6 +72,10 @@ class Selector(ABC):
     def __eq__(self, other: object) -> bool:
         """Equality comparison for selectors."""
 
+    @abstractmethod
+    def __hash__(self) -> int:
+        """Hash value for selectors."""
+
 
 # ============================================================================
 # Basic Selectors (Phase 1)
@@ -148,6 +152,10 @@ class TypeSelector(Selector):
             return False
         return self.type_name == other.type_name and self.match_subclasses == other.match_subclasses
 
+    def __hash__(self) -> int:
+        """Hash value based on type_name and match_subclasses."""
+        return hash((self.type_name, self.match_subclasses))
+
 
 class UniversalSelector(Selector):
     """
@@ -182,6 +190,10 @@ class UniversalSelector(Selector):
     def __eq__(self, other: object) -> bool:
         """All universal selectors are equal."""
         return isinstance(other, UniversalSelector)
+
+    def __hash__(self) -> int:
+        """Hash value - all universal selectors hash the same."""
+        return hash(UniversalSelector)
 
 
 class AttributeSelector(Selector):
@@ -357,6 +369,15 @@ class AttributeSelector(Selector):
             and self.value == other.value
         )
 
+    def __hash__(self) -> int:
+        """Hash value based on attribute, operator, and value."""
+        # Handle unhashable values (like lists) by converting to string
+        try:
+            value_hash = hash(self.value)
+        except TypeError:
+            value_hash = hash(str(self.value))
+        return hash((self.attribute, self.operator, value_hash))
+
 
 # ============================================================================
 # Compound Selectors (Phase 2)
@@ -430,6 +451,9 @@ class CompoundSelector(Selector):
             return False
         return self.selectors == other.selectors
 
+    # Explicitly unhashable due to mutable list of selectors
+    __hash__ = None  # type: ignore[assignment]
+
 
 class UnionSelector(Selector):
     """
@@ -498,6 +522,9 @@ class UnionSelector(Selector):
         if not isinstance(other, UnionSelector):
             return False
         return self.selectors == other.selectors
+
+    # Explicitly unhashable due to mutable list of selectors
+    __hash__ = None  # type: ignore[assignment]
 
 
 # ============================================================================
@@ -725,6 +752,15 @@ class PseudoSelector(Selector):
         if not isinstance(other, PseudoSelector):
             return False
         return self.pseudo_type == other.pseudo_type and self.argument == other.argument
+
+    def __hash__(self) -> int:
+        """Hash value based on pseudo_type and argument."""
+        # Handle unhashable arguments by converting to string
+        try:
+            arg_hash = hash(self.argument)
+        except TypeError:
+            arg_hash = hash(str(self.argument)) if self.argument is not None else 0
+        return hash((self.pseudo_type, arg_hash))
 
 
 # ============================================================================

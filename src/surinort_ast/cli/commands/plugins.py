@@ -10,11 +10,14 @@ Author: Marc Rivero López | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import typer
 
 from ..shared import console
+
+if TYPE_CHECKING:
+    from surinort_ast.core.nodes import Rule
 
 # ============================================================================
 # Plugin List Command
@@ -57,7 +60,7 @@ def list_plugins_command() -> None:
 
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ============================================================================
@@ -87,9 +90,17 @@ def info_command(
     from surinort_ast.plugins import get_registry
 
     try:
+        from surinort_ast.plugins.interfaces import (
+            AnalysisPlugin,
+            ParserPlugin,
+            QueryPlugin,
+            SerializerPlugin,
+        )
+
         registry = get_registry()
 
         # Get plugin based on type
+        plugin: ParserPlugin | SerializerPlugin | AnalysisPlugin | QueryPlugin | None
         if plugin_type == "parser":
             plugin = registry.get_parser(name)
         elif plugin_type == "serializer":
@@ -124,15 +135,14 @@ def info_command(
             console.print(f"[bold]Version:[/bold] {plugin.version}")
 
         # Type-specific info
-        if plugin_type == "serializer":
-            if hasattr(plugin, "get_format_name"):
-                console.print(f"[bold]Format:[/bold] {plugin.get_format_name()}")
+        if plugin_type == "serializer" and hasattr(plugin, "get_format_name"):
+            console.print(f"[bold]Format:[/bold] {plugin.get_format_name()}")
 
         console.print()
 
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ============================================================================
@@ -200,7 +210,7 @@ def load_command(
 
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ============================================================================
@@ -291,20 +301,22 @@ def analyze_command(
 
         # Output results
         if output:
-            with open(output, "w") as f:
+            with Path(output).open("w") as f:
                 json.dump(all_results, f, indent=2)
             console.print(f"\n[bold green]Results saved to:[/bold green] {output}")
 
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
-def _extract_sid(rule: Rule) -> str | None:  # type: ignore
+def _extract_sid(rule: Rule) -> str | None:
     """Extract SID from rule options."""
+    from surinort_ast.core.nodes import SidOption
+
     for opt in rule.options:
-        if opt.node_type == "SidOption":
-            return str(opt.value)  # type: ignore
+        if isinstance(opt, SidOption):
+            return str(opt.value)
     return None
 
 

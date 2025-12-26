@@ -131,13 +131,7 @@ class PluginLoader:
 
         try:
             # Discover entry points
-            if sys.version_info >= (3, 10):
-                # Python 3.10+ has select() method
-                entry_points = importlib.metadata.entry_points(group=group)
-            else:
-                # Python 3.9 fallback
-                entry_points_dict = importlib.metadata.entry_points()
-                entry_points = entry_points_dict.get(group, [])
+            entry_points = importlib.metadata.entry_points(group=group)
 
             logger.debug(f"Discovered {len(entry_points)} entry points in group '{group}'")
 
@@ -151,11 +145,7 @@ class PluginLoader:
                     plugin_class = entry_point.load()
 
                     # Instantiate plugin
-                    if isinstance(plugin_class, type):
-                        plugin = plugin_class()
-                    else:
-                        # Entry point is already an instance
-                        plugin = plugin_class
+                    plugin = plugin_class() if isinstance(plugin_class, type) else plugin_class
 
                     # Validate plugin
                     self._validate_plugin(plugin)
@@ -305,21 +295,16 @@ class PluginLoader:
             attr = getattr(module, attr_name)
 
             # Check if it's a plugin class
-            if isinstance(attr, type):
-                # Check if it's a plugin subclass
-                if issubclass(attr, (ParserPlugin, SerializerPlugin, AnalysisPlugin, QueryPlugin)):
-                    # Don't instantiate abstract base classes
-                    if attr not in (
-                        ParserPlugin,
-                        SerializerPlugin,
-                        AnalysisPlugin,
-                        QueryPlugin,
-                    ):
-                        try:
-                            plugin = attr()
-                            plugins.append(plugin)
-                        except Exception as e:
-                            logger.warning(f"Failed to instantiate plugin {attr_name}: {e}")
+            if (
+                isinstance(attr, type)
+                and issubclass(attr, (ParserPlugin, SerializerPlugin, AnalysisPlugin, QueryPlugin))
+                and attr not in (ParserPlugin, SerializerPlugin, AnalysisPlugin, QueryPlugin)
+            ):
+                try:
+                    plugin = attr()
+                    plugins.append(plugin)
+                except Exception as e:
+                    logger.warning(f"Failed to instantiate plugin {attr_name}: {e}")
 
         return plugins
 

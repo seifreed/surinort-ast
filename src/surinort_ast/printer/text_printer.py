@@ -302,7 +302,10 @@ def _(option: EndswithOption, fmt_opts: FormatterOptions, printer: "TextPrinter"
 @_print_option_dispatch.register
 def _(option: GenericOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
     # Use raw representation (returned as-is to preserve original formatting)
-    return option.raw
+    # Add semicolon only if not already present
+    if option.raw.endswith(";"):
+        return option.raw
+    return f"{option.raw};"
 
 
 class TextPrinter:

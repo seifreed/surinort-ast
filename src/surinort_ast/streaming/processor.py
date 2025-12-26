@@ -18,7 +18,7 @@ from typing import Any
 
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
 from ..core.enums import Action, Protocol
-from ..core.nodes import Rule
+from ..core.nodes import Rule, SidOption
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ class ChainedProcessor(StreamProcessor):
 
     def __or__(self, other: StreamProcessor) -> ChainedProcessor:
         """Extend chain with another processor."""
-        return ChainedProcessor(self.processors + [other])
+        return ChainedProcessor([*self.processors, other])
 
 
 # ============================================================================
@@ -512,8 +512,8 @@ class AggregateProcessor(StreamProcessor):
 
         # Extract SID
         for opt in rule.options:
-            if opt.node_type == "SidOption":
-                self.stats.unique_sids.add(opt.value)  # type: ignore[attr-defined]
+            if isinstance(opt, SidOption):
+                self.stats.unique_sids.add(opt.value)
 
         # Run custom aggregators
         for aggregator in self.custom_aggregators:

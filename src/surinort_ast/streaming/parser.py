@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from ..core.enums import Dialect
-from ..core.nodes import Rule, SourceOrigin
+from ..core.nodes import Rule, SidOption, SourceOrigin
 from ..exceptions import ParseError
 from ..parsing.parser import RuleParser
 from ..parsing.parser_config import ParserConfig
@@ -245,7 +245,7 @@ class StreamParser:
                     first_line = current_rule_lines[0][1]
                     if any(first_line.startswith(action) for action in action_keywords):
                         # Count parentheses to ensure we're at the closing paren
-                        full_text = " ".join(l for _, l in current_rule_lines)
+                        full_text = " ".join(line for _, line in current_rule_lines)
                         if full_text.count("(") > 0 and full_text.count("(") == full_text.count(
                             ")"
                         ):
@@ -407,11 +407,14 @@ class StreamParser:
             )
 
             # Check if rule has errors
-            if rule and skip_errors:
-                # Check if rule has error-level diagnostics
-                if rule.diagnostics and any(d.level.value == "error" for d in rule.diagnostics):
-                    logger.debug(f"Skipping rule at line {first_line_num} due to errors")
-                    return None
+            if (
+                rule
+                and skip_errors
+                and rule.diagnostics
+                and any(d.level.value == "error" for d in rule.diagnostics)
+            ):
+                logger.debug(f"Skipping rule at line {first_line_num} due to errors")
+                return None
 
             # Attach source metadata
             if rule:
@@ -474,8 +477,8 @@ class StreamParser:
             SID as string if found, None otherwise
         """
         for option in rule.options:
-            if option.node_type == "SidOption":
-                return str(option.value)  # type: ignore[attr-defined]
+            if isinstance(option, SidOption):
+                return str(option.value)
 
         return None
 
@@ -517,7 +520,7 @@ def _parse_chunk_worker(
     Returns:
         List of (line_number, parsed_rule or None, error_string or None)
     """
-    lines, dialect, track_locations, include_raw_text, file_path = args
+    lines, dialect, _track_locations, include_raw_text, file_path = args
 
     parser = RuleParser(dialect=dialect, strict=False, error_recovery=True)
     results: list[tuple[int, Rule | None, str | None]] = []

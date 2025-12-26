@@ -513,8 +513,31 @@ class PluginRegistry:
 # Global Registry Instance
 # ============================================================================
 
-_global_registry: PluginRegistry | None = None
-_registry_lock = threading.Lock()
+
+class _RegistrySingleton:
+    """Thread-safe singleton holder for the global plugin registry."""
+
+    _instance: PluginRegistry | None = None
+    _lock = threading.Lock()
+
+    @classmethod
+    def get(cls) -> PluginRegistry:
+        """Get or create the global plugin registry instance."""
+        if cls._instance is None:
+            with cls._lock:
+                # Double-checked locking
+                if cls._instance is None:
+                    cls._instance = PluginRegistry()
+                    logger.debug("Global plugin registry created")
+
+        return cls._instance
+
+    @classmethod
+    def reset(cls) -> None:
+        """Reset the global registry (primarily for testing)."""
+        with cls._lock:
+            cls._instance = None
+            logger.debug("Global plugin registry reset")
 
 
 def get_registry() -> PluginRegistry:
@@ -532,16 +555,7 @@ def get_registry() -> PluginRegistry:
         >>> registry = get_registry()
         >>> registry.register_serializer("yaml", YAMLSerializer())
     """
-    global _global_registry
-
-    if _global_registry is None:
-        with _registry_lock:
-            # Double-checked locking
-            if _global_registry is None:
-                _global_registry = PluginRegistry()
-                logger.debug("Global plugin registry created")
-
-    return _global_registry
+    return _RegistrySingleton.get()
 
 
 def reset_registry() -> None:
@@ -555,11 +569,7 @@ def reset_registry() -> None:
     Example:
         >>> reset_registry()  # Start with clean registry
     """
-    global _global_registry
-
-    with _registry_lock:
-        _global_registry = None
-        logger.debug("Global plugin registry reset")
+    _RegistrySingleton.reset()
 
 
 # ============================================================================

@@ -381,7 +381,7 @@ def example_printer_integration():
     print("Example 9: Integration with Printer API")
     print("=" * 80)
 
-    from surinort_ast.printer import format_rule
+    from surinort_ast.printer import print_rule
 
     rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; content:"admin"; sid:1;)')
 
@@ -393,7 +393,7 @@ def example_printer_integration():
         print(f"   Node type: {content.node_type}")
 
     # Format the entire rule
-    formatted = format_rule(rule)
+    formatted = print_rule(rule)
     print("\n2. Formatted complete rule:")
     print(f"   {formatted}")
 
