@@ -5,6 +5,12 @@
 [![Code Coverage](https://img.shields.io/badge/coverage-93.42%25-brightgreen)](https://github.com/seifreed/surinort-ast)
 [![Compatibility](https://img.shields.io/badge/compatibility-99.46%25-brightgreen)](https://github.com/seifreed/surinort-ast)
 
+---
+
+**Support the Project**: If you find surinort-ast useful, consider [supporting development](https://buymeacoffee.com/seifreed).
+
+---
+
 Production-grade Abstract Syntax Tree parser for IDS/IPS rules (Suricata/Snort) with comprehensive validation and serialization support.
 
 surinort-ast provides a complete, battle-tested solution for parsing, analyzing, manipulating, and generating Suricata and Snort IDS/IPS rules programmatically. Built on a formal LALR(1) grammar with full AST support, it enables advanced rule analysis, transformation, and validation workflows for security researchers, SOC engineers, and malware analysts.
@@ -78,23 +84,6 @@ surinort-ast provides a complete, battle-tested solution for parsing, analyzing,
 - **CLI Tools**: Seven production-ready command-line utilities
 - **Extensible**: Clean architecture for custom analyzers and transformers
 - **Dependency Injection**: Custom parser support via dependency injection pattern
-
-### Deprecation Notice (v1.1.0)
-
-**RuleParser Deprecated**: The `RuleParser` class is deprecated in v1.1.0 and will be removed in v2.0.0. Use one of these instead:
-
-```python
-# Recommended: Use API function
-from surinort_ast.api.parsing import parse_rule
-rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
-
-# Or: Use LarkRuleParser directly
-from surinort_ast.parsing.lark_parser import LarkRuleParser
-parser = LarkRuleParser()
-rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
-```
-
-See [Migration Guide](docs/MIGRATION_GUIDE.md) for details.
 
 ### Supported Rule Options Reference
 
