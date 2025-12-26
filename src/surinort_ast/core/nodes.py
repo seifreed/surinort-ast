@@ -11,7 +11,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal, Union
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -109,7 +109,9 @@ class Rule(ASTNode):
 
     action: Action
     header: Header
-    options: Sequence[Option]
+    # Note: options type will be updated after all Option subclasses are defined
+    # See DiscriminatedOption type alias at the end of this file
+    options: "Sequence[DiscriminatedOption]"  # Forward reference
     dialect: Dialect = Dialect.SURICATA
 
     # Metadata
@@ -253,36 +255,42 @@ class Option(ASTNode):
 class MsgOption(Option):
     """msg:"alert text";"""
 
+    type: Literal["MsgOption"] = "MsgOption"
     text: str
 
 
 class SidOption(Option):
     """sid:1000001;"""
 
+    type: Literal["SidOption"] = "SidOption"
     value: int = Field(ge=1)
 
 
 class RevOption(Option):
     """rev:1;"""
 
+    type: Literal["RevOption"] = "RevOption"
     value: int = Field(ge=1)
 
 
 class GidOption(Option):
     """gid:1;"""
 
+    type: Literal["GidOption"] = "GidOption"
     value: int = Field(ge=1)
 
 
 class ClasstypeOption(Option):
     """classtype:trojan-activity;"""
 
+    type: Literal["ClasstypeOption"] = "ClasstypeOption"
     value: str
 
 
 class PriorityOption(Option):
     """priority:1;"""
 
+    type: Literal["PriorityOption"] = "PriorityOption"
     value: int = Field(ge=1, le=4)
 
 
@@ -295,6 +303,7 @@ class ReferenceOption(Option):
         ref_id: Reference identifier
     """
 
+    type: Literal["ReferenceOption"] = "ReferenceOption"
     ref_type: str
     ref_id: str
 
@@ -307,6 +316,7 @@ class MetadataOption(Option):
         entries: List of (key, value) tuples
     """
 
+    type: Literal["MetadataOption"] = "MetadataOption"
     entries: Sequence[tuple[str, str]]
 
 
@@ -319,6 +329,7 @@ class ContentOption(Option):
         modifiers: List of content modifiers
     """
 
+    type: Literal["ContentOption"] = "ContentOption"
     pattern: bytes
     modifiers: Sequence[ContentModifier] = Field(default_factory=list)
 
@@ -332,6 +343,7 @@ class PcreOption(Option):
         flags: PCRE flags (i, s, m, x, etc.)
     """
 
+    type: Literal["PcreOption"] = "PcreOption"
     pattern: str
     flags: str = ""
 
@@ -345,6 +357,7 @@ class FlowOption(Option):
         states: Flow states (established, stateless, etc.)
     """
 
+    type: Literal["FlowOption"] = "FlowOption"
     directions: Sequence[FlowDirection] = Field(default_factory=list)
     states: Sequence[FlowState] = Field(default_factory=list)
 
@@ -358,6 +371,7 @@ class FlowbitsOption(Option):
         name: Flowbit name
     """
 
+    type: Literal["FlowbitsOption"] = "FlowbitsOption"
     action: str
     name: str
 
@@ -373,6 +387,7 @@ class ThresholdOption(Option):
         seconds: Time window
     """
 
+    type: Literal["ThresholdOption"] = "ThresholdOption"
     threshold_type: str
     track: str
     count: int = Field(ge=1)
@@ -386,6 +401,7 @@ class DetectionFilterOption(Option):
     Similar to threshold but applies before rule action.
     """
 
+    type: Literal["DetectionFilterOption"] = "DetectionFilterOption"
     track: str
     count: int = Field(ge=1)
     seconds: int = Field(ge=1)
@@ -403,6 +419,7 @@ class BufferSelectOption(Option):
         - tls.sni
     """
 
+    type: Literal["BufferSelectOption"] = "BufferSelectOption"
     buffer_name: str
 
 
@@ -418,6 +435,7 @@ class ByteTestOption(Option):
         flags: Additional flags
     """
 
+    type: Literal["ByteTestOption"] = "ByteTestOption"
     bytes_to_extract: int = Field(ge=1, le=10)
     operator: str
     value: int
@@ -435,6 +453,7 @@ class ByteJumpOption(Option):
         flags: Additional flags
     """
 
+    type: Literal["ByteJumpOption"] = "ByteJumpOption"
     bytes_to_extract: int = Field(ge=1, le=10)
     offset: int
     flags: Sequence[str] = Field(default_factory=list)
@@ -451,6 +470,7 @@ class ByteExtractOption(Option):
         flags: Additional flags
     """
 
+    type: Literal["ByteExtractOption"] = "ByteExtractOption"
     bytes_to_extract: int = Field(ge=1, le=10)
     offset: int
     var_name: str
@@ -466,6 +486,7 @@ class FastPatternOption(Option):
         length: Optional length
     """
 
+    type: Literal["FastPatternOption"] = "FastPatternOption"
     offset: int | None = None
     length: int | None = None
 
@@ -480,6 +501,7 @@ class TagOption(Option):
         metric: packets, seconds, bytes
     """
 
+    type: Literal["TagOption"] = "TagOption"
     tag_type: str
     count: int
     metric: str
@@ -494,6 +516,7 @@ class FilestoreOption(Option):
         scope: Optional scope (file, stream)
     """
 
+    type: Literal["FilestoreOption"] = "FilestoreOption"
     direction: str | None = None
     scope: str | None = None
 
@@ -510,6 +533,7 @@ class LuaOption(Option):
         negated: Whether the match is negated (!)
     """
 
+    type: Literal["LuaOption"] = "LuaOption"
     script_name: str
     negated: bool = False
 
@@ -526,6 +550,7 @@ class LuajitOption(Option):
         negated: Whether the match is negated (!)
     """
 
+    type: Literal["LuajitOption"] = "LuajitOption"
     script_name: str
     negated: bool = False
 
@@ -538,6 +563,7 @@ class DepthOption(Option):
         value: Number of bytes to search (int) or variable name from byte_extract (str)
     """
 
+    type: Literal["DepthOption"] = "DepthOption"
     value: int | str
 
 
@@ -549,6 +575,7 @@ class OffsetOption(Option):
         value: Number of bytes to skip (int) or variable name from byte_extract (str)
     """
 
+    type: Literal["OffsetOption"] = "OffsetOption"
     value: int | str
 
 
@@ -560,6 +587,7 @@ class DistanceOption(Option):
         value: Distance in bytes (int, can be negative) or variable name from byte_extract (str)
     """
 
+    type: Literal["DistanceOption"] = "DistanceOption"
     value: int | str
 
 
@@ -571,6 +599,7 @@ class WithinOption(Option):
         value: Maximum distance in bytes (int) or variable name from byte_extract (str)
     """
 
+    type: Literal["WithinOption"] = "WithinOption"
     value: int | str
 
 
@@ -579,11 +608,15 @@ class NocaseOption(Option):
     nocase; - Case-insensitive pattern matching.
     """
 
+    type: Literal["NocaseOption"] = "NocaseOption"
+
 
 class RawbytesOption(Option):
     """
     rawbytes; - Match on raw packet data (Snort 2.x).
     """
+
+    type: Literal["RawbytesOption"] = "RawbytesOption"
 
 
 class StartswithOption(Option):
@@ -591,11 +624,15 @@ class StartswithOption(Option):
     startswith; - Pattern must match at start of buffer (Suricata).
     """
 
+    type: Literal["StartswithOption"] = "StartswithOption"
+
 
 class EndswithOption(Option):
     """
     endswith; - Pattern must match at end of buffer (Suricata).
     """
+
+    type: Literal["EndswithOption"] = "EndswithOption"
 
 
 class GenericOption(Option):
@@ -605,6 +642,7 @@ class GenericOption(Option):
     Preserves original text for options not explicitly supported.
     """
 
+    type: Literal["GenericOption"] = "GenericOption"
     keyword: str
     value: str | None = None
     raw: str  # Original text
@@ -689,3 +727,11 @@ RuleOption = Union[
     EndswithOption,
     GenericOption,
 ]
+
+# Discriminated union for proper JSON serialization/deserialization
+# This is used in the Rule.options field via forward reference
+DiscriminatedOption = Annotated[RuleOption, Field(discriminator="type")]
+
+# Now that DiscriminatedOption is defined, rebuild the Rule model
+# This resolves the forward reference "Sequence[DiscriminatedOption]"
+Rule.model_rebuild()
