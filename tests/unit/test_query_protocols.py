@@ -13,8 +13,6 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero López | @seifreed | mriverolopez@gmail.com
 """
 
-from typing import Protocol, runtime_checkable
-
 import pytest
 
 from surinort_ast import parse_rule
@@ -23,7 +21,6 @@ from surinort_ast.query.executor import QueryExecutor
 from surinort_ast.query.parser import QueryParser
 from surinort_ast.query.protocols import (
     ExecutionContextProtocol,
-    PseudoSelectorProtocol,
     QueryExecutorProtocol,
     SelectorChainProtocol,
     SelectorProtocol,
@@ -144,7 +141,7 @@ class TestExecutionContextProtocol:
         rule = parse_rule("alert tcp any any -> any 80 (sid:1;)")
 
         # Execute to trigger context creation
-        results = executor.execute(rule)
+        _results = executor.execute(rule)
 
         # After execution, context_stack should exist
         assert hasattr(executor, "context_stack")

@@ -382,7 +382,7 @@ class TestRedundancyRemovalStrategy:
         )
 
         strategy = RedundancyRemovalStrategy()
-        optimized, opts = strategy.apply(rule)
+        optimized, _opts = strategy.apply(rule)
 
         # References should be preserved
         # (this tests PRESERVE_DUPLICATES behavior)
@@ -426,10 +426,10 @@ class TestStrategyIntegration:
 
         # Apply fast_pattern to result (or original if no change)
         next_rule = reordered if reordered is not None else rule
-        optimized, opts2 = fast_pattern.apply(next_rule)
+        _optimized, opts2 = fast_pattern.apply(next_rule)
 
         # At least one should modify (or both return None)
-        total_opts = opts1 + opts2
+        _total_opts = opts1 + opts2
         # Verify they can be applied in sequence
         assert True  # Just testing it doesn't crash
 

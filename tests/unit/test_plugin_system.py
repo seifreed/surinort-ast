@@ -257,7 +257,7 @@ class TestPluginLoader:
 
     def test_manual_registration(self) -> None:
         """Test manual plugin registration."""
-        loader = PluginLoader(auto_load=False)
+        _loader = PluginLoader(auto_load=False)
         registry = get_registry()
 
         plugin = TestSerializerPlugin()

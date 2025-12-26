@@ -189,7 +189,7 @@ def test_stream_location_tracking():
 
         # Without location tracking (faster)
         parser_without = StreamParser(track_locations=False)
-        rules_without = list(parser_without.stream_file(temp_path))
+        _rules_without = list(parser_without.stream_file(temp_path))
         # Note: May still have location from origin metadata
     finally:
         temp_path.unlink()

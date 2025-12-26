@@ -193,7 +193,7 @@ class SelectorChain:
 # ============================================================================
 
 
-class SelectorTransformer(Transformer):
+class SelectorTransformer(Transformer[Any, Any]):
     """
     Lark transformer that converts parse tree to selector objects.
 

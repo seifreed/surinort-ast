@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from surinort_ast.core.enums import Action, Protocol
+from surinort_ast.core.enums import Action
 from surinort_ast.streaming import StreamParser, stream_parse_file
 
 
@@ -29,7 +29,9 @@ class TestMemoryEfficiency:
         """Test that streaming processes rules incrementally."""
         # Create a file with many rules
         num_rules = 1000
-        rules_text = [f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)]
+        rules_text = [
+            f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)
+        ]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             for rule in rules_text:
@@ -55,7 +57,9 @@ class TestMemoryEfficiency:
 
     def test_stream_with_minimal_memory_options(self):
         """Test streaming with all memory-saving options enabled."""
-        rules_text = [f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(100)]
+        rules_text = [
+            f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(100)
+        ]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             for rule in rules_text:
@@ -85,7 +89,9 @@ class TestMemoryEfficiency:
         """Test that batch processing doesn't accumulate all rules."""
         num_rules = 500
         batch_size = 50
-        rules_text = [f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)]
+        rules_text = [
+            f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)
+        ]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             for rule in rules_text:
@@ -169,7 +175,7 @@ class TestLargeFileHandling:
         """Test streaming with excessive blank lines."""
         content_lines = []
         for i in range(10):
-            content_lines.append(f'alert tcp any any -> any {i} (sid:{i};)')
+            content_lines.append(f"alert tcp any any -> any {i} (sid:{i};)")
             content_lines.extend(["", "", "", ""])  # Add blank lines
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
@@ -219,7 +225,7 @@ class TestChunkBoundaries:
             assert len(rules) == 50
 
             # Verify rules are complete
-            for i, rule in enumerate(rules):
+            for _i, rule in enumerate(rules):
                 assert rule.action == Action.ALERT
                 # Find sid option
                 sid_opts = [opt for opt in rule.options if opt.node_type == "SidOption"]
@@ -281,7 +287,9 @@ class TestProgressTracking:
     def test_progress_callback_reports_accurate_counts(self):
         """Test that progress callback receives correct counts."""
         num_rules = 50
-        rules_text = [f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)]
+        rules_text = [
+            f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)
+        ]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             for rule in rules_text:
@@ -320,7 +328,9 @@ class TestBatchProcessing:
         """Test that batch metadata (line numbers, counts) is accurate."""
         num_rules = 75
         batch_size = 25
-        rules_text = [f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)]
+        rules_text = [
+            f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)
+        ]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             for rule in rules_text:

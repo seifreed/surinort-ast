@@ -401,7 +401,7 @@ def test_aggregate_processor_reset():
         input_stream = parser.stream_file(temp_path)
 
         aggregator = AggregateProcessor()
-        rules = list(aggregator.stream(input_stream))
+        list(aggregator.stream(input_stream))
 
         assert aggregator.stats.total_rules == 1
 
@@ -429,7 +429,7 @@ def test_aggregate_stats_to_dict():
         input_stream = parser.stream_file(temp_path)
 
         aggregator = AggregateProcessor()
-        rules = list(aggregator.stream(input_stream))
+        list(aggregator.stream(input_stream))
 
         stats_dict = aggregator.stats.to_dict()
 

@@ -127,7 +127,7 @@ class TestNodesCoverage:
         from surinort_ast.core.nodes import PortRange
 
         # Invalid range (triggers error at lines 219-220)
-        with pytest.raises(ValueError, match="Port range end .* must be >= start"):
+        with pytest.raises(ValueError, match=r"Port range end .* must be >= start"):
             PortRange(start=8080, end=80)
 
     def test_content_option_validate_pattern_non_hex_string_fallback(self):

@@ -11,8 +11,6 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 """
 
-import pytest
-
 from surinort_ast import from_json, parse_rule, print_rule, to_json
 
 
@@ -37,17 +35,17 @@ class TestFromJsonRoundtrip:
 
         # Verify options are preserved (not generic "option" placeholders)
         assert 'msg:"HTTPS Traffic"' in output
-        assert 'sid:1000' in output
-        assert 'rev:1' in output
-        assert 'option;' not in output.lower()
+        assert "sid:1000" in output
+        assert "rev:1" in output
+        assert "option;" not in output.lower()
 
     def test_complex_rule_roundtrip(self) -> None:
         """Test roundtrip with complex rule containing multiple option types."""
         original = (
-            'alert tcp $HOME_NET any -> $EXTERNAL_NET 80 '
+            "alert tcp $HOME_NET any -> $EXTERNAL_NET 80 "
             '(msg:"HTTP GET Request"; content:"GET"; nocase; '
             'pcre:"/^GET\\s+/"; flow:established,to_server; '
-            'sid:2000; rev:2; classtype:web-application-attack; priority:2;)'
+            "sid:2000; rev:2; classtype:web-application-attack; priority:2;)"
         )
 
         # Parse original
@@ -65,14 +63,14 @@ class TestFromJsonRoundtrip:
         # Verify all option types are preserved
         assert 'msg:"HTTP GET Request"' in output
         assert 'content:"GET"' in output
-        assert 'nocase;' in output
-        assert 'pcre:' in output
-        assert 'flow:' in output
-        assert 'sid:2000' in output
-        assert 'rev:2' in output
-        assert 'classtype:web-application-attack' in output
-        assert 'priority:2' in output
-        assert 'option;' not in output.lower()
+        assert "nocase;" in output
+        assert "pcre:" in output
+        assert "flow:" in output
+        assert "sid:2000" in output
+        assert "rev:2" in output
+        assert "classtype:web-application-attack" in output
+        assert "priority:2" in output
+        assert "option;" not in output.lower()
 
     def test_content_option_roundtrip(self) -> None:
         """Test that ContentOption is properly serialized/deserialized."""
@@ -88,7 +86,7 @@ class TestFromJsonRoundtrip:
 
         # Verify content is preserved
         assert 'content:"HTTP/1.1"' in output
-        assert 'option;' not in output.lower()
+        assert "option;" not in output.lower()
 
     def test_pcre_option_roundtrip(self) -> None:
         """Test that PcreOption is properly serialized/deserialized."""
@@ -104,7 +102,7 @@ class TestFromJsonRoundtrip:
 
         # Verify pcre is preserved
         assert 'pcre:"/test/i"' in output
-        assert 'option;' not in output.lower()
+        assert "option;" not in output.lower()
 
     def test_flow_option_roundtrip(self) -> None:
         """Test that FlowOption is properly serialized/deserialized."""
@@ -119,10 +117,10 @@ class TestFromJsonRoundtrip:
         output = print_rule(deserialized)
 
         # Verify flow is preserved
-        assert 'flow:' in output
-        assert 'established' in output
-        assert 'to_server' in output
-        assert 'option;' not in output.lower()
+        assert "flow:" in output
+        assert "established" in output
+        assert "to_server" in output
+        assert "option;" not in output.lower()
 
     def test_metadata_option_roundtrip(self) -> None:
         """Test that MetadataOption is properly serialized/deserialized."""
@@ -137,10 +135,10 @@ class TestFromJsonRoundtrip:
         output = print_rule(deserialized)
 
         # Verify metadata is preserved
-        assert 'metadata:' in output
-        assert 'author John' in output
-        assert 'created 2024' in output
-        assert 'option;' not in output.lower()
+        assert "metadata:" in output
+        assert "author John" in output
+        assert "created 2024" in output
+        assert "option;" not in output.lower()
 
     def test_discriminator_field_in_json(self) -> None:
         """Test that the 'type' discriminator field is present in JSON."""
@@ -166,6 +164,6 @@ class TestFromJsonRoundtrip:
 
         # Verify all options have type field
         for opt in parsed.options:
-            assert hasattr(opt, 'type')
+            assert hasattr(opt, "type")
             assert opt.type is not None
             assert opt.type == opt.__class__.__name__

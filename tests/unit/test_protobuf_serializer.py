@@ -78,9 +78,6 @@ class TestProtobufBasics:
         # Protobuf binary
         binary = to_protobuf(rule, include_metadata=False)
 
-        # JSON equivalent
-        json_str = rule.model_dump_json()
-
         # Protobuf should be more compact (though our implementation uses JSON internally)
         assert len(binary) > 0
         assert isinstance(binary, bytes)
@@ -173,7 +170,7 @@ class TestOptions:
         restored = from_protobuf(binary)
 
         assert len(restored.options) == len(rule.options)
-        for orig_opt, rest_opt in zip(rule.options, restored.options):
+        for orig_opt, rest_opt in zip(rule.options, restored.options, strict=True):
             assert type(orig_opt) == type(rest_opt)  # noqa: E721
 
     def test_content_option(self):
@@ -291,7 +288,7 @@ class TestBatchSerialization:
 
         assert isinstance(restored, list)
         assert len(restored) == len(rules)
-        for orig, rest in zip(rules, restored):
+        for orig, rest in zip(rules, restored, strict=True):
             assert orig == rest
 
     def test_empty_list(self):

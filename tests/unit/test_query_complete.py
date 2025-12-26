@@ -353,7 +353,7 @@ class TestQueryExecutor:
         executor = QueryExecutor(chain)
 
         rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
-        results = executor.execute(rule)
+        _results = executor.execute(rule)
 
         # Context stack should be empty after execution
         assert len(executor.context_stack) == 0

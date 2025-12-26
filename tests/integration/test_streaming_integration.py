@@ -211,7 +211,7 @@ def test_large_file_streaming():
         parser = StreamParser(include_raw_text=False, track_locations=False)
 
         count = 0
-        for rule in parser.stream_file(temp_path):
+        for _rule in parser.stream_file(temp_path):
             count += 1
 
         assert count == num_rules
@@ -326,7 +326,7 @@ def test_rule_analysis_workflow():
         aggregator = AggregateProcessor(custom_aggregators=[count_content])
 
         # Analyze rules
-        rules = list(aggregator.stream(parser.stream_file(temp_path)))
+        list(aggregator.stream(parser.stream_file(temp_path)))
 
         # Generate report
         stats = aggregator.stats.to_dict()

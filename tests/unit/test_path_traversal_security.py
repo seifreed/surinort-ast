@@ -118,7 +118,7 @@ class TestValidateFilePathSecurity:
 
         # When must_exist=True and path doesn't resolve, we get "Invalid path" error
         # When must_exist=False, we can check directory constraint
-        with pytest.raises(ValueError, match="(Path outside allowed directory|Invalid path)"):
+        with pytest.raises(ValueError, match=r"(Path outside allowed directory|Invalid path)"):
             validate_file_path(traversal_path, must_exist=False, allowed_base=base_dir)
 
     def test_path_inside_allowed_base_works(self, tmp_path):

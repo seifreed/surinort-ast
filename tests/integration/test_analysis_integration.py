@@ -99,7 +99,6 @@ class TestCoverageAnalysisWorkflow:
 
         # Should detect TCP-heavy distribution
         gap_types = [gap.gap_type for gap in report.gaps]
-        gap_descriptions = [gap.description.lower() for gap in report.gaps]
 
         # At least one protocol or port gap should be detected
         assert any("protocol" in gt for gt in gap_types) or any("port" in gt for gt in gap_types)

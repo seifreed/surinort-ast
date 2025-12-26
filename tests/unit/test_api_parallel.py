@@ -209,9 +209,8 @@ class TestParseFile:
 
     def test_parse_directory_raises(self):
         """Test that directory path raises ParseError."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with pytest.raises(ParseError, match="Not a file"):
-                parse_file(tmpdir)
+        with tempfile.TemporaryDirectory() as tmpdir, pytest.raises(ParseError, match="Not a file"):
+            parse_file(tmpdir)
 
     def test_parse_file_origin_tracking(self):
         """Test that file origin is tracked correctly."""
