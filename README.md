@@ -2774,11 +2774,6 @@ You should have received a copy of the GNU General Public License along with thi
 
 ## Additional Resources
 
-### Documentation
-- [CHANGELOG.md](CHANGELOG.md) - Version history and release notes
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Contributing guidelines and development workflow
-- [MIGRATION_GUIDE.md](docs/MIGRATION_GUIDE.md) - Migration guide for v1.1.0 deprecations
-- [EXTENSION_PATTERNS.md](docs/EXTENSION_PATTERNS.md) - Patterns for extending surinort-ast
 
 ### Source Code Documentation
 
@@ -2817,7 +2812,6 @@ You should have received a copy of the GNU General Public License along with thi
 ### Community
 - **GitHub Repository**: https://github.com/seifreed/surinort-ast
 - **Issue Tracker**: https://github.com/seifreed/surinort-ast/issues
-- **Discussions**: https://github.com/seifreed/surinort-ast/discussions
 
 ---
 
