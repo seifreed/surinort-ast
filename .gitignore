@@ -120,6 +120,16 @@ cython_debug/
 .AppleDouble
 .LSOverride
 
+# Ruff
+.ruff_cache/
+
+# Temporary files
+*.tmp
+/tmp/
+
+# Claude Code
+.claude/
+
 # Project specific
 *.log
 *.pid
