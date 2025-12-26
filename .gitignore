@@ -123,6 +123,9 @@ cython_debug/
 # Ruff
 .ruff_cache/
 
+# pytest-benchmark
+.benchmarks/
+
 # Temporary files
 *.tmp
 /tmp/
