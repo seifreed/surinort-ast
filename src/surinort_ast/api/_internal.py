@@ -10,6 +10,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,10 @@ from ..parsing.transformer import RuleTransformer
 
 _PARSERS: dict[tuple[Dialect, bool], Lark] = {}
 
+# Backwards-compatible grammar cache handle for tests that clear `_GRAMMAR_CACHE`
+# directly. `_GrammarCache` uses the same underlying storage.
+_GRAMMAR_CACHE: str | None = None
+
 
 class _GrammarCache:
     """Thread-safe grammar cache to avoid repeated file I/O."""
@@ -35,14 +40,33 @@ class _GrammarCache:
     @classmethod
     def get(cls) -> str:
         """Get or load grammar file with caching."""
+        module = sys.modules[__name__]
+        grammar_cache = getattr(module, "_GRAMMAR_CACHE", None)
+
+        # Sync with module-level cache for test overrides
+        if grammar_cache is None and cls._cache is not None:
+            # Explicit reset requested
+            cls._cache = None
+
+        if grammar_cache is not None and cls._cache != grammar_cache:
+            cls._cache = grammar_cache
+
         if cls._cache is not None:
             return cls._cache
 
         grammar_path = Path(__file__).parent.parent / "parsing" / "grammar.lark"
         with grammar_path.open(encoding="utf-8") as f:
             cls._cache = f.read()
+            module.__dict__["_GRAMMAR_CACHE"] = cls._cache
 
         return cls._cache
+
+    @classmethod
+    def clear(cls) -> None:
+        """Clear cached grammar (used by tests to force reload)."""
+        module = sys.modules[__name__]
+        cls._cache = None
+        module.__dict__["_GRAMMAR_CACHE"] = None
 
 
 # ============================================================================

@@ -326,22 +326,58 @@ class StreamParser:
         batch_start_line = 1
         processed_count = 0
 
-        for rule in self.stream_file(path, encoding=encoding, skip_errors=False):
-            # Check if rule has errors
-            if rule.diagnostics and any(d.level.value == "error" for d in rule.diagnostics):
-                # Extract line number from origin
-                line_num = rule.origin.line_number if rule.origin else 0
-                error_msg = "; ".join(d.message for d in rule.diagnostics)
-                batch_errors.append((line_num, error_msg))
+        action_keywords = ("alert", "drop", "pass", "reject", "log", "sdrop")
+        original_include_raw_text = self.include_raw_text
 
-                if skip_errors:
-                    continue
+        # Ensure raw text is available for error classification, then strip if needed.
+        self.include_raw_text = True
+        try:
+            for rule in self.stream_file(path, encoding=encoding, skip_errors=skip_errors):
+                # Check if rule has errors
+                if rule.diagnostics and any(d.level.value == "error" for d in rule.diagnostics):
+                    # Extract line number from origin
+                    line_num = rule.origin.line_number if rule.origin else 0
+                    error_msg = "; ".join(d.message for d in rule.diagnostics)
+                    batch_errors.append((line_num, error_msg))
 
-            batch_rules.append(rule)
-            processed_count += 1
+                    if skip_errors:
+                        continue
 
-            # Emit batch when full
-            if len(batch_rules) >= batch_size:
+                    # Only include erroring rules that still look like rules (start with action keyword).
+                    raw_text = (rule.raw_text or "").lstrip()
+                    if not raw_text.startswith(action_keywords):
+                        continue
+
+                rule_for_batch = rule
+                if not original_include_raw_text and rule_for_batch.raw_text is not None:
+                    rule_for_batch = rule_for_batch.model_copy(update={"raw_text": None})
+
+                batch_rules.append(rule_for_batch)
+                processed_count += 1
+
+                # Emit batch when full
+                if len(batch_rules) >= batch_size:
+                    batch_end_line = batch_start_line + len(batch_rules) - 1
+
+                    yield StreamBatch(
+                        rules=batch_rules,
+                        errors=batch_errors,
+                        batch_number=batch_num,
+                        start_line=batch_start_line,
+                        end_line=batch_end_line,
+                    )
+
+                    if progress_callback:
+                        progress_callback(processed_count, total_lines)
+
+                    # Reset for next batch
+                    batch_num += 1
+                    batch_start_line = batch_end_line + 1
+                    batch_rules = []
+                    batch_errors = []
+
+            # Emit final partial batch
+            if batch_rules:
                 batch_end_line = batch_start_line + len(batch_rules) - 1
 
                 yield StreamBatch(
@@ -354,27 +390,8 @@ class StreamParser:
 
                 if progress_callback:
                     progress_callback(processed_count, total_lines)
-
-                # Reset for next batch
-                batch_num += 1
-                batch_start_line = batch_end_line + 1
-                batch_rules = []
-                batch_errors = []
-
-        # Emit final partial batch
-        if batch_rules:
-            batch_end_line = batch_start_line + len(batch_rules) - 1
-
-            yield StreamBatch(
-                rules=batch_rules,
-                errors=batch_errors,
-                batch_number=batch_num,
-                start_line=batch_start_line,
-                end_line=batch_end_line,
-            )
-
-            if progress_callback:
-                progress_callback(processed_count, total_lines)
+        finally:
+            self.include_raw_text = original_include_raw_text
 
     def _parse_lines(
         self,
