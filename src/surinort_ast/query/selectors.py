@@ -657,23 +657,14 @@ class PseudoSelector(Selector):
 
     def _has_children(self, node: ASTNode) -> bool:
         """Check if node has any children."""
-        # Check common child attributes
-        if hasattr(node, "options") and node.options:
-            return True
-        if hasattr(node, "header") and node.header is not None:
-            return True
-        # Check if node has any attribute that is a list with items or a non-None node
-        for attr_name in dir(node):
+        for attr_name, attr_value in node.__dict__.items():
             if attr_name.startswith("_"):
                 continue
-            try:
-                attr_value = getattr(node, attr_name)
-                if isinstance(attr_value, list) and attr_value:
+            if isinstance(attr_value, list | tuple) and attr_value:
+                if any(hasattr(item, "node_type") for item in attr_value):
                     return True
-                if hasattr(attr_value, "node_type"):
-                    return True
-            except AttributeError:
-                continue
+            elif hasattr(attr_value, "node_type"):
+                return True
         return False
 
     def _is_first_child(self, node: ASTNode, context: Any) -> bool:

@@ -16,7 +16,6 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import logging
-import warnings
 from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -111,15 +110,6 @@ class RuleParser:
             >>> from surinort_ast.parsing.lark_parser import LarkRuleParser
             >>> parser = LarkRuleParser()
         """
-        # Emit deprecation warning
-        warnings.warn(
-            "RuleParser is deprecated and will be removed in version 2.0.0. "
-            "Use LarkRuleParser directly or the parse_rule() function from surinort_ast.api.parsing instead. "
-            "See docs/MIGRATION_GUIDE.md for migration instructions.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
         # Delegate to LarkRuleParser for all functionality
         self._parser = LarkRuleParser(
             dialect=dialect,
@@ -274,13 +264,7 @@ def parse_rule(
         >>> from surinort_ast.api.parsing import parse_rule
         >>> rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
     """
-    warnings.warn(
-        "surinort_ast.parsing.parser.parse_rule() is deprecated. "
-        "Use surinort_ast.api.parsing.parse_rule() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    parser = RuleParser(dialect=dialect, strict=strict)
+    parser = LarkRuleParser(dialect=dialect, strict=strict)
     return parser.parse(text)
 
 
@@ -312,11 +296,5 @@ def parse_rules_file(
         >>> from surinort_ast.api.parsing import parse_file
         >>> rules = parse_file("rules.rules")
     """
-    warnings.warn(
-        "surinort_ast.parsing.parser.parse_rules_file() is deprecated. "
-        "Use surinort_ast.api.parsing.parse_file() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    parser = RuleParser(dialect=dialect, strict=False)
+    parser = LarkRuleParser(dialect=dialect, strict=False)
     return parser.parse_file(path, skip_errors=skip_errors)
