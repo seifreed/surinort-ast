@@ -50,7 +50,7 @@ env:
   PIP_REQUIRE_VIRTUALENV: true
   # Security
   PYTHONDONTWRITEBYTECODE: 1
-  PIP_NO_CACHE_DIR: false
+  PIP_NO_CACHE_DIR: true
 
 jobs:
   # Security scanning job - runs first to fail fast on vulnerabilities
@@ -147,7 +147,7 @@ jobs:
 
       - name: Run MyPy type checker
         run: |
-          mypy src/ --strict --show-error-codes --install-types --non-interactive --install-types --non-interactive --install-types --non-interactive
+          mypy src/ --strict --show-error-codes --install-types --non-interactive
 
   # Test matrix - Python 3.11-3.14 on Ubuntu, macOS, Windows
   test:
