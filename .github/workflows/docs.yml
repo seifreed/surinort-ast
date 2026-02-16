@@ -13,14 +13,14 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
-      - '**.md'
+      - 'mkdocs.yaml'
       - '.github/workflows/docs.yml'
   pull_request:
     branches: [main]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
-      - '**.md'
+      - 'mkdocs.yaml'
   workflow_dispatch:
 
 # Security: Restrict default permissions to read-only
@@ -36,6 +36,7 @@ jobs:
   # Build documentation
   build:
     name: Build Documentation
+    if: ${{ hashFiles('mkdocs.yml') != '' || hashFiles('mkdocs.yaml') != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
@@ -60,7 +61,11 @@ jobs:
 
       - name: Build documentation
         run: |
-          mkdocs build --strict --verbose
+          CONFIG_FILE="mkdocs.yml"
+          if [ ! -f "$CONFIG_FILE" ]; then
+            CONFIG_FILE="mkdocs.yaml"
+          fi
+          mkdocs build --strict --verbose --config-file "$CONFIG_FILE"
 
       - name: Verify documentation build
         run: |
@@ -78,7 +83,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: [build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (hashFiles('mkdocs.yml') != '' || hashFiles('mkdocs.yaml') != '')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -116,12 +121,17 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         run: |
-          mkdocs gh-deploy --force --message "Deploy documentation from {sha}"
+          CONFIG_FILE="mkdocs.yml"
+          if [ ! -f "$CONFIG_FILE" ]; then
+            CONFIG_FILE="mkdocs.yaml"
+          fi
+          mkdocs gh-deploy --config-file "$CONFIG_FILE" --force --message "Deploy documentation from {sha}"
 
   # Documentation link checker
   link-check:
     name: Check Documentation Links
     needs: [build]
+    if: ${{ hashFiles('mkdocs.yml') != '' || hashFiles('mkdocs.yaml') != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
@@ -154,12 +164,16 @@ jobs:
     steps:
       - name: Check all jobs status
         run: |
-          if [[ "${{ needs.build.result }}" != "success" ]]; then
+          if [[ "${{ needs.build.result }}" != "success" && "${{ needs.build.result }}" != "skipped" ]]; then
             echo "Documentation build failed"
             exit 1
           fi
-          if [[ "${{ needs.deploy.result }}" != "success" ]]; then
+          if [[ "${{ needs.deploy.result }}" != "success" && "${{ needs.deploy.result }}" != "skipped" ]]; then
             echo "Documentation deployment failed"
+            exit 1
+          fi
+          if [[ "${{ needs.link-check.result }}" != "success" && "${{ needs.link-check.result }}" != "skipped" ]]; then
+            echo "Documentation link check failed"
             exit 1
           fi
           echo "Documentation deployed successfully!"

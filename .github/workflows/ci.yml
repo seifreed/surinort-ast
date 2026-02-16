@@ -50,7 +50,6 @@ env:
   PIP_REQUIRE_VIRTUALENV: true
   # Security
   PYTHONDONTWRITEBYTECODE: 1
-  PIP_NO_CACHE_DIR: false
 
 jobs:
   # Security scanning job - runs first to fail fast on vulnerabilities
