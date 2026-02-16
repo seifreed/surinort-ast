@@ -127,107 +127,133 @@ def _check_protobuf_available() -> None:
 # Enum Mappings (optimized lookup tables)
 # ============================================================================
 
-_ACTION_TO_PB = {
-    Action.ALERT: pb.ALERT,
-    Action.LOG: pb.LOG,
-    Action.PASS: pb.PASS,
-    Action.DROP: pb.DROP,
-    Action.REJECT: pb.REJECT,
-    Action.SDROP: pb.SDROP,
-}
+_ACTION_TO_PB: dict[Action, int] = {}
+_PB_TO_ACTION: dict[int, Action] = {}
+_PROTOCOL_TO_PB: dict[Protocol, int] = {}
+_PB_TO_PROTOCOL: dict[int, Protocol] = {}
+_DIRECTION_TO_PB: dict[Direction, int] = {}
+_PB_TO_DIRECTION: dict[int, Direction] = {}
+_DIALECT_TO_PB: dict[Dialect, int] = {}
+_PB_TO_DIALECT: dict[int, Dialect] = {}
+_DIAGNOSTIC_LEVEL_TO_PB: dict[DiagnosticLevel, int] = {}
+_PB_TO_DIAGNOSTIC_LEVEL: dict[int, DiagnosticLevel] = {}
+_CONTENT_MODIFIER_TO_PB: dict[ContentModifierType, int] = {}
+_PB_TO_CONTENT_MODIFIER: dict[int, ContentModifierType] = {}
+_FLOW_DIRECTION_TO_PB: dict[FlowDirection, int] = {}
+_PB_TO_FLOW_DIRECTION: dict[int, FlowDirection] = {}
+_FLOW_STATE_TO_PB: dict[FlowState, int] = {}
+_PB_TO_FLOW_STATE: dict[int, FlowState] = {}
 
-_PB_TO_ACTION = {v: k for k, v in _ACTION_TO_PB.items()}
+if PROTOBUF_AVAILABLE:
+    _ACTION_TO_PB.update(
+        {
+            Action.ALERT: pb.ALERT,
+            Action.LOG: pb.LOG,
+            Action.PASS: pb.PASS,
+            Action.DROP: pb.DROP,
+            Action.REJECT: pb.REJECT,
+            Action.SDROP: pb.SDROP,
+        }
+    )
+    _PB_TO_ACTION.update({v: k for k, v in _ACTION_TO_PB.items()})
 
-_PROTOCOL_TO_PB = {
-    Protocol.TCP: pb.TCP,
-    Protocol.UDP: pb.UDP,
-    Protocol.ICMP: pb.ICMP,
-    Protocol.IP: pb.IP,
-    Protocol.HTTP: pb.HTTP,
-    Protocol.HTTP2: pb.HTTP2,
-    Protocol.DNS: pb.DNS,
-    Protocol.TLS: pb.TLS,
-    Protocol.SSH: pb.SSH,
-    Protocol.FTP: pb.FTP,
-    Protocol.FTP_DATA: pb.FTP_DATA,
-    Protocol.SMB: pb.SMB,
-    Protocol.SMTP: pb.SMTP,
-    Protocol.IMAP: pb.IMAP,
-    Protocol.DCERPC: pb.DCERPC,
-    Protocol.DHCP: pb.DHCP,
-    Protocol.NFS: pb.NFS,
-    Protocol.SIP: pb.SIP,
-    Protocol.RDP: pb.RDP,
-    Protocol.MQTT: pb.MQTT,
-    Protocol.MODBUS: pb.MODBUS,
-    Protocol.DNP3: pb.DNP3,
-    Protocol.ENIP: pb.ENIP,
-    Protocol.IKE: pb.IKE,
-    Protocol.KRB5: pb.KRB5,
-    Protocol.NTP: pb.NTP,
-    Protocol.SNMP: pb.SNMP,
-    Protocol.TFTP: pb.TFTP,
-}
+    _PROTOCOL_TO_PB.update(
+        {
+            Protocol.TCP: pb.TCP,
+            Protocol.UDP: pb.UDP,
+            Protocol.ICMP: pb.ICMP,
+            Protocol.IP: pb.IP,
+            Protocol.HTTP: pb.HTTP,
+            Protocol.HTTP2: pb.HTTP2,
+            Protocol.DNS: pb.DNS,
+            Protocol.TLS: pb.TLS,
+            Protocol.SSH: pb.SSH,
+            Protocol.FTP: pb.FTP,
+            Protocol.FTP_DATA: pb.FTP_DATA,
+            Protocol.SMB: pb.SMB,
+            Protocol.SMTP: pb.SMTP,
+            Protocol.IMAP: pb.IMAP,
+            Protocol.DCERPC: pb.DCERPC,
+            Protocol.DHCP: pb.DHCP,
+            Protocol.NFS: pb.NFS,
+            Protocol.SIP: pb.SIP,
+            Protocol.RDP: pb.RDP,
+            Protocol.MQTT: pb.MQTT,
+            Protocol.MODBUS: pb.MODBUS,
+            Protocol.DNP3: pb.DNP3,
+            Protocol.ENIP: pb.ENIP,
+            Protocol.IKE: pb.IKE,
+            Protocol.KRB5: pb.KRB5,
+            Protocol.NTP: pb.NTP,
+            Protocol.SNMP: pb.SNMP,
+            Protocol.TFTP: pb.TFTP,
+        }
+    )
+    _PB_TO_PROTOCOL.update({v: k for k, v in _PROTOCOL_TO_PB.items()})
 
-_PB_TO_PROTOCOL = {v: k for k, v in _PROTOCOL_TO_PB.items()}
+    _DIRECTION_TO_PB.update(
+        {
+            Direction.TO: pb.TO,
+            Direction.FROM: pb.FROM,
+            Direction.BIDIRECTIONAL: pb.BIDIRECTIONAL,
+        }
+    )
+    _PB_TO_DIRECTION.update({v: k for k, v in _DIRECTION_TO_PB.items()})
 
-_DIRECTION_TO_PB = {
-    Direction.TO: pb.TO,
-    Direction.FROM: pb.FROM,
-    Direction.BIDIRECTIONAL: pb.BIDIRECTIONAL,
-}
+    _DIALECT_TO_PB.update(
+        {
+            Dialect.SURICATA: pb.SURICATA,
+            Dialect.SNORT2: pb.SNORT2,
+            Dialect.SNORT3: pb.SNORT3,
+        }
+    )
+    _PB_TO_DIALECT.update({v: k for k, v in _DIALECT_TO_PB.items()})
 
-_PB_TO_DIRECTION = {v: k for k, v in _DIRECTION_TO_PB.items()}
+    _DIAGNOSTIC_LEVEL_TO_PB.update(
+        {
+            DiagnosticLevel.ERROR: pb.ERROR,
+            DiagnosticLevel.WARNING: pb.WARNING,
+            DiagnosticLevel.INFO: pb.INFO,
+        }
+    )
+    _PB_TO_DIAGNOSTIC_LEVEL.update({v: k for k, v in _DIAGNOSTIC_LEVEL_TO_PB.items()})
 
-_DIALECT_TO_PB = {
-    Dialect.SURICATA: pb.SURICATA,
-    Dialect.SNORT2: pb.SNORT2,
-    Dialect.SNORT3: pb.SNORT3,
-}
+    _CONTENT_MODIFIER_TO_PB.update(
+        {
+            ContentModifierType.NOCASE: pb.NOCASE,
+            ContentModifierType.OFFSET: pb.OFFSET,
+            ContentModifierType.DEPTH: pb.DEPTH,
+            ContentModifierType.DISTANCE: pb.DISTANCE,
+            ContentModifierType.WITHIN: pb.WITHIN,
+            ContentModifierType.RAWBYTES: pb.RAWBYTES,
+            ContentModifierType.FAST_PATTERN: pb.FAST_PATTERN,
+            ContentModifierType.STARTSWITH: pb.STARTSWITH,
+            ContentModifierType.ENDSWITH: pb.ENDSWITH,
+            ContentModifierType.BSIZE: pb.BSIZE,
+        }
+    )
+    _PB_TO_CONTENT_MODIFIER.update({v: k for k, v in _CONTENT_MODIFIER_TO_PB.items()})
 
-_PB_TO_DIALECT = {v: k for k, v in _DIALECT_TO_PB.items()}
+    _FLOW_DIRECTION_TO_PB.update(
+        {
+            FlowDirection.TO_CLIENT: pb.TO_CLIENT,
+            FlowDirection.TO_SERVER: pb.TO_SERVER,
+            FlowDirection.FROM_CLIENT: pb.FROM_CLIENT,
+            FlowDirection.FROM_SERVER: pb.FROM_SERVER,
+        }
+    )
+    _PB_TO_FLOW_DIRECTION.update({v: k for k, v in _FLOW_DIRECTION_TO_PB.items()})
 
-_DIAGNOSTIC_LEVEL_TO_PB = {
-    DiagnosticLevel.ERROR: pb.ERROR,
-    DiagnosticLevel.WARNING: pb.WARNING,
-    DiagnosticLevel.INFO: pb.INFO,
-}
-
-_PB_TO_DIAGNOSTIC_LEVEL = {v: k for k, v in _DIAGNOSTIC_LEVEL_TO_PB.items()}
-
-_CONTENT_MODIFIER_TO_PB = {
-    ContentModifierType.NOCASE: pb.NOCASE,
-    ContentModifierType.OFFSET: pb.OFFSET,
-    ContentModifierType.DEPTH: pb.DEPTH,
-    ContentModifierType.DISTANCE: pb.DISTANCE,
-    ContentModifierType.WITHIN: pb.WITHIN,
-    ContentModifierType.RAWBYTES: pb.RAWBYTES,
-    ContentModifierType.FAST_PATTERN: pb.FAST_PATTERN,
-    ContentModifierType.STARTSWITH: pb.STARTSWITH,
-    ContentModifierType.ENDSWITH: pb.ENDSWITH,
-    ContentModifierType.BSIZE: pb.BSIZE,
-}
-
-_PB_TO_CONTENT_MODIFIER = {v: k for k, v in _CONTENT_MODIFIER_TO_PB.items()}
-
-_FLOW_DIRECTION_TO_PB = {
-    FlowDirection.TO_CLIENT: pb.TO_CLIENT,
-    FlowDirection.TO_SERVER: pb.TO_SERVER,
-    FlowDirection.FROM_CLIENT: pb.FROM_CLIENT,
-    FlowDirection.FROM_SERVER: pb.FROM_SERVER,
-}
-
-_PB_TO_FLOW_DIRECTION = {v: k for k, v in _FLOW_DIRECTION_TO_PB.items()}
-
-_FLOW_STATE_TO_PB = {
-    FlowState.ESTABLISHED: pb.ESTABLISHED,
-    FlowState.NOT_ESTABLISHED: pb.NOT_ESTABLISHED,
-    FlowState.STATELESS: pb.STATELESS,
-    FlowState.ONLY_STREAM: pb.ONLY_STREAM,
-    FlowState.NO_STREAM: pb.NO_STREAM,
-}
-
-_PB_TO_FLOW_STATE = {v: k for k, v in _FLOW_STATE_TO_PB.items()}
+    _FLOW_STATE_TO_PB.update(
+        {
+            FlowState.ESTABLISHED: pb.ESTABLISHED,
+            FlowState.NOT_ESTABLISHED: pb.NOT_ESTABLISHED,
+            FlowState.STATELESS: pb.STATELESS,
+            FlowState.ONLY_STREAM: pb.ONLY_STREAM,
+            FlowState.NO_STREAM: pb.NO_STREAM,
+        }
+    )
+    _PB_TO_FLOW_STATE.update({v: k for k, v in _FLOW_STATE_TO_PB.items()})
 
 
 # ============================================================================
