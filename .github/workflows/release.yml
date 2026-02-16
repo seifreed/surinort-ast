@@ -132,7 +132,7 @@ jobs:
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip==24.3.1
-          pip install build==1.3.0 twine==6.2.0
+          python -m pip install build==1.3.0 twine==6.2.0
 
       - name: Build distributions
         run: |
@@ -145,7 +145,7 @@ jobs:
 
       - name: Generate SBOM
         run: |
-          pip install cyclonedx-bom==4.6.3
+          python -m pip install cyclonedx-bom==4.6.3
           cyclonedx-py requirements --format json --output sbom.json requirements.txt
           cyclonedx-py requirements --format xml --output sbom.xml requirements.txt
 
@@ -301,7 +301,7 @@ jobs:
 
       - name: Install Sigstore
         run: |
-          pip install sigstore==3.5.1
+          python -m pip install sigstore==3.5.1
 
       - name: Sign artifacts with Sigstore
         run: |
@@ -340,7 +340,7 @@ jobs:
         run: |
           VERSION="${{ needs.validate.outputs.version }}"
           CLEAN_VERSION="${VERSION#v}"
-          pip install "surinort-ast==${CLEAN_VERSION}"
+          python -m pip install "surinort-ast==${CLEAN_VERSION}"
 
       - name: Verify installation
         run: |

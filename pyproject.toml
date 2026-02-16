@@ -166,7 +166,6 @@ exclude = [
     "benchmarks",
     "examples",
     "check_circular_deps.py",
-    "src/surinort_ast/serialization/protobuf/src",  # Duplicate directory (should be removed)
 ]
 
 [tool.ruff.lint]
@@ -326,17 +325,6 @@ disallow_untyped_defs = false
 # Protobuf generated code lacks type annotations (unfixable without regeneration)
 [[tool.mypy.overrides]]
 module = "surinort_ast.serialization.protobuf.ast_pb2"
-disable_error_code = [
-    "no-untyped-call",
-    "attr-defined",
-    "no-any-return",
-    "unused-ignore",
-    "import-untyped",
-]
-
-# Duplicate protobuf generated file (should be cleaned up)
-[[tool.mypy.overrides]]
-module = "surinort_ast.serialization.protobuf.src.surinort_ast.serialization.protobuf.ast_pb2"
 disable_error_code = [
     "no-untyped-call",
     "attr-defined",

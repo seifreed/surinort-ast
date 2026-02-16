@@ -55,7 +55,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip==24.3.1
-          pip install mkdocs-material==9.6.22
+          python -m pip install mkdocs-material==9.6.22
 
       - name: Resolve MkDocs configuration
         id: mkdocs-config
@@ -124,7 +124,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip==24.3.1
-          pip install mkdocs-material==9.6.22
+          python -m pip install mkdocs-material==9.6.22
 
       - name: Resolve MkDocs configuration
         id: mkdocs-config
