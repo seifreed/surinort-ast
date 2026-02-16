@@ -47,7 +47,7 @@ jobs:
           fetch-depth: 0  # Full history for git-revision-date-localized plugin
 
       - name: Set up Python
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: '3.14'
           cache: 'pip'
@@ -98,7 +98,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: '3.14'
           cache: 'pip'
