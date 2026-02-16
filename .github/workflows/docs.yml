@@ -35,7 +35,6 @@ jobs:
   # Build documentation
   build:
     name: Build Documentation
-    if: ${{ hashFiles('mkdocs.yml') != '' || hashFiles('mkdocs.yaml') != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
@@ -58,20 +57,35 @@ jobs:
           python -m pip install --upgrade pip==24.3.1
           pip install mkdocs-material==9.6.22
 
-      - name: Build documentation
+      - name: Resolve MkDocs configuration
+        id: mkdocs-config
         run: |
-          CONFIG_FILE="mkdocs.yml"
-          if [ ! -f "$CONFIG_FILE" ]; then
-            CONFIG_FILE="mkdocs.yaml"
+          if [ -f "mkdocs.yml" ]; then
+            echo "file=mkdocs.yml" >> "$GITHUB_OUTPUT"
+          elif [ -f "mkdocs.yaml" ]; then
+            echo "file=mkdocs.yaml" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=" >> "$GITHUB_OUTPUT"
           fi
-          mkdocs build --strict --verbose --config-file "$CONFIG_FILE"
+
+      - name: Build documentation
+        if: ${{ steps.mkdocs-config.outputs.file != '' }}
+        run: |
+          mkdocs build --strict --verbose --config-file "${{ steps.mkdocs-config.outputs.file }}"
 
       - name: Verify documentation build
+        if: ${{ steps.mkdocs-config.outputs.file != '' }}
         run: |
+          if [ ! -d "site" ]; then
+            echo "site directory was not created"
+            exit 1
+          fi
           ls -lh site/
           du -sh site/
+        shell: bash
 
       - name: Upload documentation artifacts
+        if: ${{ steps.mkdocs-config.outputs.file != '' }}
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
         with:
           name: documentation
@@ -82,7 +96,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: [build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (hashFiles('mkdocs.yml') != '' || hashFiles('mkdocs.yaml') != '')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -112,25 +126,33 @@ jobs:
           python -m pip install --upgrade pip==24.3.1
           pip install mkdocs-material==9.6.22
 
+      - name: Resolve MkDocs configuration
+        id: mkdocs-config
+        run: |
+          if [ -f "mkdocs.yml" ]; then
+            echo "file=mkdocs.yml" >> "$GITHUB_OUTPUT"
+          elif [ -f "mkdocs.yaml" ]; then
+            echo "file=mkdocs.yaml" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure Git
+        if: ${{ steps.mkdocs-config.outputs.file != '' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Deploy to GitHub Pages
         id: deployment
+        if: ${{ steps.mkdocs-config.outputs.file != '' }}
         run: |
-          CONFIG_FILE="mkdocs.yml"
-          if [ ! -f "$CONFIG_FILE" ]; then
-            CONFIG_FILE="mkdocs.yaml"
-          fi
-          mkdocs gh-deploy --config-file "$CONFIG_FILE" --force --message "Deploy documentation from {sha}"
+          mkdocs gh-deploy --config-file "${{ steps.mkdocs-config.outputs.file }}" --force --message "Deploy documentation from {sha}"
 
   # Documentation link checker
   link-check:
     name: Check Documentation Links
     needs: [build]
-    if: ${{ hashFiles('mkdocs.yml') != '' || hashFiles('mkdocs.yaml') != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
@@ -145,8 +167,19 @@ jobs:
         with:
           name: documentation
           path: site/
+        continue-on-error: true
+
+      - name: Check for documentation artifacts
+        id: docs-artifacts
+        run: |
+          if [ -d site ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Check links
+        if: ${{ steps.docs-artifacts.outputs.available == 'true' }}
         uses: lycheeverse/lychee-action@7da8ec1fc4e01b5a12062ac6c589c10a4ce70d67  # v2.2.0
         with:
           args: '--verbose --no-progress --exclude-mail ./site'
