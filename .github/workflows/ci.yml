@@ -353,11 +353,17 @@ jobs:
 
       - name: Install package from wheel
         run: |
-          python -m pip install dist/*.whl
+          WHEEL_PATH=$(find dist -name '*.whl' | head -n 1)
+          if [ -z "$WHEEL_PATH" ]; then
+            echo "No wheel file found in dist/"
+            find dist -maxdepth 3 -type f
+            exit 1
+          fi
+          python -m pip install "$WHEEL_PATH"
 
       - name: Verify CLI works
         run: |
-          surinort-ast --help || true
+          python -m surinort_ast.cli.main --help
 
       - name: Verify package imports
         run: |
