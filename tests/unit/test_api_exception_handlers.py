@@ -9,6 +9,7 @@ These tests trigger the actual exception handlers through real code execution.
 
 from __future__ import annotations
 
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -89,7 +90,13 @@ class TestApiParsingExceptionHandlers:
         # Create a temporary directory and move grammar file there
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_grammar_path = Path(temp_dir) / "grammar.lark"
-            grammar_path.rename(temp_grammar_path)
+            try:
+                grammar_path.rename(temp_grammar_path)
+            except OSError:
+                # Rename can fail on Windows when source and destination are on different devices.
+                # Fall back to copy + remove to keep the test behavior consistent on all OSes.
+                shutil.copy2(grammar_path, temp_grammar_path)
+                grammar_path.unlink()
 
             try:
                 # Clear parser cache AND grammar cache to force reload

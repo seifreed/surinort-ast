@@ -125,6 +125,9 @@ def _validate_file_path(
         - Symlinks are rejected by default
         - Error messages are sanitized to prevent path disclosure
     """
+    if "\x00" in str(path):
+        raise ParseError(f"Invalid path: {_sanitize_path_for_error(path)}")
+
     try:
         # Resolve to absolute path (strict=False to allow nonexistent files)
         resolved = path.resolve()
