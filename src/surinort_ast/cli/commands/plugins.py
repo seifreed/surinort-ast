@@ -90,7 +90,7 @@ def info_command(
     from surinort_ast.plugins import get_registry
 
     try:
-        from surinort_ast.plugins.interfaces import (
+        from surinort_ast.plugins.interface import (
             AnalysisPlugin,
             ParserPlugin,
             QueryPlugin,
