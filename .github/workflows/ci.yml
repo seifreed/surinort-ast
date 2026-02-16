@@ -47,7 +47,6 @@ env:
   # Reproducible builds
   PYTHONHASHSEED: 0
   PIP_NO_BINARY: ':none:'
-  PIP_REQUIRE_VIRTUALENV: true
   # Security
   PYTHONDONTWRITEBYTECODE: 1
 

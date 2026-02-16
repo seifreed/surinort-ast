@@ -14,7 +14,6 @@ on:
       - 'docs/**'
       - 'mkdocs.yml'
       - 'mkdocs.yaml'
-      - '.github/workflows/docs.yml'
   pull_request:
     branches: [main]
     paths:
