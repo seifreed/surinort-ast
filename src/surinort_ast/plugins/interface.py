@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from surinort_ast.core.nodes import Rule
-    from surinort_ast.parsing.protocols import IParser
+    from surinort_ast.parsing.interfaces import IParser
 
     from .registry import PluginRegistry
 
