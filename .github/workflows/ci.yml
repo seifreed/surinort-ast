@@ -48,7 +48,6 @@ env:
   PYTHONHASHSEED: 0
   PIP_NO_BINARY: ':none:'
   # Security
-  PIP_REQUIRE_VIRTUALENV: true
   PYTHONDONTWRITEBYTECODE: 1
 
 jobs:
