@@ -87,42 +87,49 @@ class TestApiParsingExceptionHandlers:
         if not grammar_path.exists():
             pytest.skip("Grammar file not found - cannot test FileNotFoundError path")
 
-        # Create a temporary directory and move grammar file there
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_grammar_path = Path(temp_dir) / "grammar.lark"
+        # Move grammar file to a temporary backup location in the same directory.
+        # Use explicit restore logic in a finally block so Windows cleanup does not
+        # depend on rename across devices.
+        backup_grammar_path = grammar_path.with_name("grammar.lark.backup")
+        if backup_grammar_path.exists():
+            backup_grammar_path.unlink()
+
+        try:
             try:
-                grammar_path.rename(temp_grammar_path)
+                grammar_path.rename(backup_grammar_path)
             except OSError:
-                # Rename can fail on Windows when source and destination are on different devices.
-                # Fall back to copy + remove to keep the test behavior consistent on all OSes.
-                shutil.copy2(grammar_path, temp_grammar_path)
+                # On odd filesystems, rename can still fail; use copy+delete fallback.
+                shutil.copy2(grammar_path, backup_grammar_path)
                 grammar_path.unlink()
 
-            try:
-                # Clear parser cache AND grammar cache to force reload
-                _internal._PARSERS.clear()
-                _internal._GRAMMAR_CACHE = None
+            # Clear parser cache AND grammar cache to force reload
+            _internal._PARSERS.clear()
+            _internal._GRAMMAR_CACHE = None
 
-                # This will attempt to read the grammar file from its original location
-                # Since we moved it, it will raise FileNotFoundError
-                # This is caught by the generic Exception handler at lines 97-98
-                with pytest.raises(ParseError) as exc_info:
-                    parse_rule(
-                        'alert tcp any any -> any 80 (msg:"test"; sid:1;)', dialect=Dialect.SURICATA
-                    )
-
-                # Verify it's wrapped in ParseError
-                assert (
-                    "Unexpected error during parsing" in str(exc_info.value)
-                    or "Failed to parse rule" in str(exc_info.value)
-                    or "grammar" in str(exc_info.value).lower()
+            # This will attempt to read the grammar file from its original location
+            # Since we moved it, it will raise FileNotFoundError
+            # This is caught by the generic Exception handler at lines 97-98
+            with pytest.raises(ParseError) as exc_info:
+                parse_rule(
+                    'alert tcp any any -> any 80 (msg:"test"; sid:1;)', dialect=Dialect.SURICATA
                 )
 
-            finally:
-                # Restore the grammar file and clear caches
-                _internal._PARSERS.clear()
-                _internal._GRAMMAR_CACHE = None
-                temp_grammar_path.rename(grammar_path)
+            # Verify it's wrapped in ParseError
+            assert (
+                "Unexpected error during parsing" in str(exc_info.value)
+                or "Failed to parse rule" in str(exc_info.value)
+                or "grammar" in str(exc_info.value).lower()
+            )
+
+        finally:
+            # Restore the grammar file and clear caches
+            _internal._PARSERS.clear()
+            _internal._GRAMMAR_CACHE = None
+            if grammar_path.exists():
+                grammar_path.unlink()
+            if backup_grammar_path.exists():
+                shutil.copy2(backup_grammar_path, grammar_path)
+                backup_grammar_path.unlink()
 
     def test_parse_file_with_empty_file(self) -> None:
         """
