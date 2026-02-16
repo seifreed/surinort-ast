@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import singledispatch
+from typing import Protocol
 
 from surinort_ast.core.nodes import (
     AddressExpr,
@@ -69,13 +70,23 @@ from surinort_ast.core.nodes import (
 
 from .formatter import FormatterOptions
 
+
+class _TextPrinter(Protocol):
+    """Minimal interface expected by option dispatch implementations."""
+
+    def _print_content(self, option: ContentOption) -> str:
+        """Format a content option for output."""
+
+
 # ============================================================================
 # Option Printing Dispatch (Singledispatch for O(1) type-based dispatch)
 # ============================================================================
 
 
 @singledispatch
-def _print_option_dispatch(option: Option, fmt_opts: FormatterOptions, printer: TextPrinter) -> str:
+def _print_option_dispatch(
+    option: Option, fmt_opts: FormatterOptions, printer: _TextPrinter
+) -> str:
     """
     Print option using singledispatch pattern.
 
@@ -95,62 +106,62 @@ def _print_option_dispatch(option: Option, fmt_opts: FormatterOptions, printer: 
 
 
 @_print_option_dispatch.register
-def _(option: MsgOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: MsgOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     quote = fmt_opts.get_quote_char()
     return f"msg:{quote}{option.text}{quote};"
 
 
 @_print_option_dispatch.register
-def _(option: SidOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: SidOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"sid:{option.value};"
 
 
 @_print_option_dispatch.register
-def _(option: RevOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: RevOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"rev:{option.value};"
 
 
 @_print_option_dispatch.register
-def _(option: GidOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: GidOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"gid:{option.value};"
 
 
 @_print_option_dispatch.register
-def _(option: ClasstypeOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: ClasstypeOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"classtype:{option.value};"
 
 
 @_print_option_dispatch.register
-def _(option: PriorityOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: PriorityOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"priority:{option.value};"
 
 
 @_print_option_dispatch.register
-def _(option: ReferenceOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: ReferenceOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"reference:{option.ref_type},{option.ref_id};"
 
 
 @_print_option_dispatch.register
-def _(option: MetadataOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: MetadataOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     sep = fmt_opts.format_list_separator()
     entries = sep.join(f"{k} {v}" for k, v in option.entries)
     return f"metadata:{entries};"
 
 
 @_print_option_dispatch.register
-def _(option: ContentOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: ContentOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return printer._print_content(option)
 
 
 @_print_option_dispatch.register
-def _(option: PcreOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: PcreOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     quote = fmt_opts.get_quote_char()
     flags = option.flags if option.flags else ""
     return f"pcre:{quote}/{option.pattern}/{flags}{quote};"
 
 
 @_print_option_dispatch.register
-def _(option: FlowOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: FlowOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     sep = fmt_opts.format_list_separator()
     parts: list[str] = []
     parts.extend(d.value for d in option.directions)
@@ -160,12 +171,12 @@ def _(option: FlowOption, fmt_opts: FormatterOptions, printer: "TextPrinter") ->
 
 
 @_print_option_dispatch.register
-def _(option: FlowbitsOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: FlowbitsOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"flowbits:{option.action},{option.name};"
 
 
 @_print_option_dispatch.register
-def _(option: ThresholdOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: ThresholdOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     sep = fmt_opts.format_list_separator()
     parts = [
         f"type {option.threshold_type}",
@@ -177,7 +188,7 @@ def _(option: ThresholdOption, fmt_opts: FormatterOptions, printer: "TextPrinter
 
 
 @_print_option_dispatch.register
-def _(option: DetectionFilterOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: DetectionFilterOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     sep = fmt_opts.format_list_separator()
     parts = [
         f"track {option.track}",
@@ -188,12 +199,12 @@ def _(option: DetectionFilterOption, fmt_opts: FormatterOptions, printer: "TextP
 
 
 @_print_option_dispatch.register
-def _(option: BufferSelectOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: BufferSelectOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"{option.buffer_name};"
 
 
 @_print_option_dispatch.register
-def _(option: ByteTestOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: ByteTestOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     sep = fmt_opts.format_list_separator()
     parts = [
         str(option.bytes_to_extract),
@@ -207,7 +218,7 @@ def _(option: ByteTestOption, fmt_opts: FormatterOptions, printer: "TextPrinter"
 
 
 @_print_option_dispatch.register
-def _(option: ByteJumpOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: ByteJumpOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     sep = fmt_opts.format_list_separator()
     parts = [str(option.bytes_to_extract), str(option.offset)]
     if option.flags:
@@ -216,7 +227,7 @@ def _(option: ByteJumpOption, fmt_opts: FormatterOptions, printer: "TextPrinter"
 
 
 @_print_option_dispatch.register
-def _(option: ByteExtractOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: ByteExtractOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     sep = fmt_opts.format_list_separator()
     parts = [
         str(option.bytes_to_extract),
@@ -229,19 +240,19 @@ def _(option: ByteExtractOption, fmt_opts: FormatterOptions, printer: "TextPrint
 
 
 @_print_option_dispatch.register
-def _(option: FastPatternOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: FastPatternOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     if option.offset is not None and option.length is not None:
         return f"fast_pattern:{option.offset},{option.length};"
     return "fast_pattern;"
 
 
 @_print_option_dispatch.register
-def _(option: TagOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: TagOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"tag:{option.tag_type},{option.count},{option.metric};"
 
 
 @_print_option_dispatch.register
-def _(option: FilestoreOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: FilestoreOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     if option.direction and option.scope:
         return f"filestore:{option.direction},{option.scope};"
     if option.direction:
@@ -250,57 +261,57 @@ def _(option: FilestoreOption, fmt_opts: FormatterOptions, printer: "TextPrinter
 
 
 @_print_option_dispatch.register
-def _(option: LuaOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: LuaOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"lua:{option.script_name};"
 
 
 @_print_option_dispatch.register
-def _(option: LuajitOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: LuajitOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"luajit:{option.script_name};"
 
 
 @_print_option_dispatch.register
-def _(option: NocaseOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: NocaseOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return "nocase;"
 
 
 @_print_option_dispatch.register
-def _(option: RawbytesOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: RawbytesOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return "rawbytes;"
 
 
 @_print_option_dispatch.register
-def _(option: DepthOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: DepthOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"depth:{option.value};"
 
 
 @_print_option_dispatch.register
-def _(option: OffsetOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: OffsetOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"offset:{option.value};"
 
 
 @_print_option_dispatch.register
-def _(option: DistanceOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: DistanceOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"distance:{option.value};"
 
 
 @_print_option_dispatch.register
-def _(option: WithinOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: WithinOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return f"within:{option.value};"
 
 
 @_print_option_dispatch.register
-def _(option: StartswithOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: StartswithOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return "startswith;"
 
 
 @_print_option_dispatch.register
-def _(option: EndswithOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: EndswithOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     return "endswith;"
 
 
 @_print_option_dispatch.register
-def _(option: GenericOption, fmt_opts: FormatterOptions, printer: "TextPrinter") -> str:
+def _(option: GenericOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     # Use raw representation (returned as-is to preserve original formatting)
     # Add semicolon only if not already present
     if option.raw.endswith(";"):
