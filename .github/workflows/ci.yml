@@ -69,7 +69,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        uses: actions/setup-python@v5  # v5
         with:
           python-version: '3.14'
           cache: 'pip'
@@ -125,7 +125,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        uses: actions/setup-python@v5  # v5
         with:
           python-version: '3.14'
           cache: 'pip'
@@ -147,7 +147,7 @@ jobs:
 
       - name: Run MyPy type checker
         run: |
-          mypy src/ --strict --show-error-codes
+          mypy src/ --strict --show-error-codes --install-types --non-interactive
 
   # Test matrix - Python 3.11-3.14 on Ubuntu, macOS, Windows
   test:
@@ -168,7 +168,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        uses: actions/setup-python@v5  # v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -212,7 +212,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        uses: actions/setup-python@v5  # v5
         with:
           python-version: '3.14'
           cache: 'pip'
@@ -265,7 +265,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        uses: actions/setup-python@v5  # v5
         with:
           python-version: '3.14'
           cache: 'pip'
@@ -317,7 +317,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753cc110f5c709  # v5.3.0
+        uses: actions/setup-python@v5  # v5
         with:
           python-version: '3.14'
 
