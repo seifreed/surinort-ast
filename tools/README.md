@@ -378,9 +378,9 @@ See `CONTRIBUTING.md` for guidelines.
 
 All migration tools are licensed under GNU General Public License v3.0
 
-Copyright (c) 2025 Marc Rivero López
+Copyright (c) 2026 Marc Rivero López
 
 ---
 
 **Version:** 1.0
-**Last Updated:** 2025-12-25
+**Last Updated:** 2026-02-17

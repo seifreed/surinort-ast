@@ -434,7 +434,7 @@ Found an issue or want to add an example? Please submit an issue or pull request
 
 ## License
 
-Copyright (C) 2025 Marc Rivero López
+Copyright (C) 2026 Marc Rivero López
 
 These examples are licensed under the GNU General Public License v3.0.
 See [LICENSE](../LICENSE) for full details.
