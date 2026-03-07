@@ -33,6 +33,7 @@ on:
       - '.gitignore'
       - 'LICENSE'
   workflow_dispatch:
+  workflow_call:
 
 # Security: Restrict default permissions to read-only
 permissions:
