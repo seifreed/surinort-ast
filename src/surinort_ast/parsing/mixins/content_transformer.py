@@ -84,6 +84,7 @@ def parse_quoted_string(s: str) -> str:
 
 # Whitespace translation table for hex strings
 _HEX_WHITESPACE_TRANS = str.maketrans("", "", " \n\r\t")
+_HEX_CHARS = frozenset("0123456789abcdefABCDEF")
 
 
 def parse_hex_string(s: str) -> bytes:
@@ -107,6 +108,26 @@ def parse_hex_string(s: str) -> bytes:
     except ValueError as e:
         logger.warning(f"Invalid hex string '{s}': {e}")
         return b""
+
+
+def _is_pure_hex_piped(s: str) -> bool:
+    """
+    Check whether a pipe-delimited content string contains only hex bytes.
+
+    Args:
+        s: Pipe-delimited content string
+
+    Returns:
+        True if the string is pipe-delimited and inner content is hex-only.
+    """
+    if len(s) < 2 or s[0] != "|" or not s.endswith("|"):
+        return False
+
+    inner = s[1:-1]
+    if not inner:
+        return False
+
+    return all(ch in _HEX_CHARS or ch.isspace() for ch in inner)
 
 
 def _parse_mixed_content(s: str) -> bytes:
@@ -264,16 +285,24 @@ class ContentTransformerMixin:
         # Fast path: check first character for type determination
         first_char = value_str[0] if value_str else ""
 
-        # Check if hex string (starts with |)
-        if first_char == "|" and value_str.endswith("|"):
+        # Check if pure hex string (starts/ends with | and hex-only inside).
+        # Strings like "|08|com|00|" are mixed and must not use parse_hex_string().
+        if first_char == "|" and value_str.endswith("|") and _is_pure_hex_piped(value_str):
             return parse_hex_string(value_str)
+        if first_char == "|" and value_str.endswith("|"):
+            return _parse_mixed_content(value_str)
 
         # Check if quoted hex string (quoted string containing only hex pattern)
         if first_char in ('"', "'"):
             # Remove quotes first
             unquoted = parse_quoted_string(value_str)
-            # Check if the unquoted content is a hex string
-            if unquoted and unquoted[0] == "|" and unquoted.endswith("|"):
+            # Check if the unquoted content is a pure hex string
+            if (
+                unquoted
+                and unquoted[0] == "|"
+                and unquoted.endswith("|")
+                and _is_pure_hex_piped(unquoted)
+            ):
                 return parse_hex_string(unquoted)
             # Check for mixed ASCII and hex (contains | but doesn't start/end with it)
             if "|" in unquoted:

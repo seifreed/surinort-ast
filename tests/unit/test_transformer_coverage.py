@@ -11,7 +11,7 @@ Validates nesting depth limits and diagnostic generation.
 
 import pytest
 
-from surinort_ast import parse_rule
+from surinort_ast import Dialect, parse_rule
 from surinort_ast.core.enums import Action, Direction, FlowDirection, FlowState, Protocol
 from surinort_ast.core.nodes import (
     BufferSelectOption,
@@ -478,6 +478,21 @@ class TestHexStrings:
         content_opt = next((opt for opt in rule.options if isinstance(opt, ContentOption)), None)
         assert content_opt is not None
         assert content_opt.pattern == b"Hello"
+
+    @pytest.mark.parametrize("dialect", [Dialect.SURICATA, Dialect.SNORT2, Dialect.SNORT3])
+    def test_quoted_pipe_delimited_mixed_hex_ascii(self, dialect: Dialect):
+        """Quoted pipe-delimited content must support mixed hex and ASCII segments."""
+        rule_text = (
+            "alert udp any any -> any 53 ("
+            'msg:"DNS query test"; '
+            'content:"|08|9507c4e8|03|com|00|"; '
+            "sid:9999999; rev:1;)"
+        )
+        rule = parse_rule(rule_text, dialect=dialect)
+
+        content_opt = next((opt for opt in rule.options if isinstance(opt, ContentOption)), None)
+        assert content_opt is not None
+        assert content_opt.pattern == b"\x089507c4e8\x03com\x00"
 
 
 class TestByteOperations:
