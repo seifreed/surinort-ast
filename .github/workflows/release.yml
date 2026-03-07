@@ -145,7 +145,7 @@ jobs:
 
       - name: Generate SBOM
         run: |
-          python -m pip install cyclonedx-bom==4.6.3
+          python -m pip install cyclonedx-bom==7.2.2
           cyclonedx-py requirements --format json --output sbom.json requirements.txt
           cyclonedx-py requirements --format xml --output sbom.xml requirements.txt
 
