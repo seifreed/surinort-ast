@@ -344,7 +344,7 @@ jobs:
 
       - name: Verify installation
         run: |
-          surinort-ast --help
+          surinort --help
           python -c "import surinort_ast; print(f'Installed version: {surinort_ast.__version__}')"
 
       - name: Verify version match
