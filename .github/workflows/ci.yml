@@ -347,7 +347,7 @@ jobs:
       - name: Generate SBOM (Software Bill of Materials)
         run: |
           python -m pip install cyclonedx-bom==7.2.2
-          cyclonedx-py requirements --format json --output sbom.json requirements.txt
+          cyclonedx-py requirements --of JSON -o sbom.json requirements.txt
         continue-on-error: true
 
       - name: Upload build artifacts
