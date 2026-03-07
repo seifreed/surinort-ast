@@ -106,8 +106,12 @@ def write_output(content: str, output: Path | None) -> None:
     if output:
         output.write_text(content, encoding="utf-8")
         console.print(f"[green]Output written to:[/green] {output}")
+        return
+
+    if not content.endswith("\n"):
+        sys.stdout.write(content + "\n")
     else:
-        console.print(content)
+        sys.stdout.write(content)
 
 
 def parse_rules_from_content(content: str, dialect, parser=None, transformer=None):

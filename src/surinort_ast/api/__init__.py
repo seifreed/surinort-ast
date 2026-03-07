@@ -13,11 +13,22 @@ from __future__ import annotations
 # Import all public API functions from submodules
 from .parsing import parse_file, parse_file_streaming, parse_rule, parse_rules
 from .printing import print_rule
-from .serialization import from_json, to_json, to_json_schema
+from .serialization import (
+    coverage_report_to_sarif,
+    diagnostics_to_sarif,
+    from_json,
+    optimization_results_to_sarif,
+    to_json,
+    to_json_schema,
+    to_sarif,
+)
 from .validation import validate_rule
 
 __all__ = [
+    "coverage_report_to_sarif",
+    "diagnostics_to_sarif",
     "from_json",
+    "optimization_results_to_sarif",
     "parse_file",
     "parse_file_streaming",
     # Parsing
@@ -25,9 +36,10 @@ __all__ = [
     "parse_rules",
     # Printing
     "print_rule",
-    # JSON serialization
     "to_json",
     "to_json_schema",
+    # JSON serialization
+    "to_sarif",
     # Validation
     "validate_rule",
 ]

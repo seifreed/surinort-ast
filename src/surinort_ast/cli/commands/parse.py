@@ -17,7 +17,8 @@ from typing import Annotated, Any
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from ...api import parse_file, print_rule, to_json
+from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
+from ...api import parse_file, print_rule, to_json, to_sarif
 from ...api._internal import _get_parser
 from ...core.enums import Dialect
 from ...exceptions import ParseError
@@ -64,6 +65,53 @@ def _format_output(rules: list[Any], json_output: bool, dialect: Dialect, verbos
     return result
 
 
+def _build_parse_findings(rules: list[Any], file_path: str | None) -> list[Finding]:
+    findings: list[Finding] = []
+    for rule in rules:
+        findings.extend(
+            diagnostics_to_findings(list(rule.diagnostics), default_file_path=file_path)
+        )
+
+    if not findings:
+        findings.append(
+            Finding(
+                rule_id="SURINORT_PARSE_SUCCESS",
+                level=FindingLevel.NOTE,
+                message=f"Parsed {len(rules)} rule(s) successfully",
+                category="parse",
+                description="Parsing completed with no diagnostics.",
+            )
+        )
+    return findings
+
+
+def _resolve_output_format(output_format: str, json_output: bool) -> str:
+    fmt = output_format.lower()
+    if fmt not in {"text", "json", "sarif"}:
+        err_console.print("Error: --format must be one of: text, json, sarif")
+        raise typer.Exit(1) from None
+    if json_output:
+        return "json"
+    return fmt
+
+
+def _emit_parse_sarif(
+    rules: list[Any], file: Path | None, output: Path | None, fmt: str, sarif_out: Path | None
+) -> bool:
+    if sarif_out is None and fmt != "sarif":
+        return False
+
+    parse_findings = _build_parse_findings(rules, str(file) if file else None)
+    sarif_json = to_sarif(parse_findings)
+    if sarif_out is not None:
+        sarif_out.write_text(sarif_json, encoding="utf-8")
+        console.print(f"[green]SARIF report written:[/green] {sarif_out}")
+    if fmt == "sarif":
+        write_output(sarif_json, output)
+        return True
+    return False
+
+
 def parse_command(
     file: Annotated[
         Path | None,
@@ -84,6 +132,14 @@ def parse_command(
         bool,
         typer.Option("--json", "-j", help="Output as JSON"),
     ] = False,
+    output_format: Annotated[
+        str,
+        typer.Option("--format", help="Output format: text, json, sarif"),
+    ] = "text",
+    sarif_out: Annotated[
+        Path | None,
+        typer.Option("--sarif-out", help="Write SARIF report to file"),
+    ] = None,
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Show detailed parsing info"),
@@ -105,6 +161,8 @@ def parse_command(
         surinort parse rules.txt --json -o output.json
     """
     try:
+        fmt = _resolve_output_format(output_format, json_output)
+
         # Read input
         if file and str(file) == "-":
             file = None
@@ -130,11 +188,16 @@ def parse_command(
             err_console.print("Error: No valid rules found")
             raise typer.Exit(1) from None
 
-        # Output results
-        result = _format_output(rules, json_output, dialect, verbose)
+        # Optional SARIF generation
+        if _emit_parse_sarif(rules, file, output, fmt, sarif_out):
+            return
+
+        # Output text/json results
+        result = _format_output(rules, fmt == "json", dialect, verbose)
         write_output(result, output)
 
-        console.print(f"[green]Success:[/green] Parsed {len(rules)} rule(s)")
+        if fmt == "text":
+            console.print(f"[green]Success:[/green] Parsed {len(rules)} rule(s)")
 
     except ParseError as e:
         err_console.print(f"Parse error: {e}")

@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/surinort--ast-Suricata%2FSnort%20Rule%20Parser-blue?style=for-the-badge" alt="surinort-ast">
+  <img src="https://img.shields.io/badge/surinort--ast-IDS%2FIPS%20AST-blue?style=for-the-badge" alt="surinort-ast">
 </p>
 
 <h1 align="center">surinort-ast</h1>
 
 <p align="center">
-  <strong>Production-grade IDS/IPS rule parser and analyzer for Suricata/Snort</strong>
+  <strong>Production-grade AST parser and analysis toolkit for Suricata/Snort rules</strong>
 </p>
 
 <p align="center">
   <a href="https://pypi.org/project/surinort-ast/"><img src="https://img.shields.io/pypi/v/surinort-ast?style=flat-square&logo=pypi&logoColor=white" alt="PyPI Version"></a>
   <a href="https://pypi.org/project/surinort-ast/"><img src="https://img.shields.io/pypi/pyversions/surinort-ast?style=flat-square&logo=python&logoColor=white" alt="Python Versions"></a>
-  <a href="https://github.com/seifreed/surinort-ast/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-green?style=flat-square" alt="License"></a>
-  <a href="https://github.com/seifreed/surinort-ast/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/seifreed/surinort-ast/ci.yml?style=flat-square&logo=github&label=CI" alt="CI Status"></a>
-  <img src="https://img.shields.io/badge/coverage-93%25-brightgreen?style=flat-square" alt="Coverage">
+  <a href="https://github.com/seifreed/surinort-ast/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-green?style=flat-square" alt="License"></a>
+  <a href="https://github.com/seifreed/surinort-ast/actions"><img src="https://img.shields.io/github/actions/workflow/status/seifreed/surinort-ast/ci.yml?style=flat-square&logo=github&label=CI" alt="CI Status"></a>
+  <a href="https://github.com/seifreed/surinort-ast/security/code-scanning"><img src="https://img.shields.io/badge/code%20scanning-SARIF%20enabled-brightgreen?style=flat-square" alt="SARIF"></a>
 </p>
 
 <p align="center">
@@ -26,24 +26,35 @@
 
 ## Overview
 
-`surinort-ast` provides parsing and structural tooling for IDS/IPS rules used by **Suricata** and **Snort**.
-It converts rule text into a typed AST, lets you validate, transform, serialize, analyze, and re-emit rules with stable formatting.
+**surinort-ast** is a Python toolkit to parse, validate, serialize, and analyze IDS/IPS rules from Suricata, Snort2, and Snort3. It provides a typed AST, CLI workflows, and machine-readable outputs including JSON and SARIF 2.1.0.
 
-## Highlights
+### Key Features
 
 | Feature | Description |
-| --- | --- |
-| **Typed AST** | Full Pydantic-backed AST for rule headers, options, and metadata. |
-| **Multi-dialect** | Suricata, Snort2, and Snort3 parser support. |
-| **Serialization** | JSON and protobuf round-trips with consistent schema. |
-| **CLI toolkit** | Commands for parsing, formatting, validation, conversion, and corpus stats. |
-| **Streaming mode** | Memory-efficient processing for very large rule files. |
-| **Validation** | Syntax and semantic diagnostics with severity-based reporting. |
-| **Query + Builder** | Optional experimental query selectors and fluent builder APIs. |
+|---------|-------------|
+| **Typed AST** | Full Pydantic-backed AST for headers, options, and metadata |
+| **Multi-dialect** | Suricata, Snort2, and Snort3 support |
+| **Validation** | Syntax/semantic diagnostics with severity levels |
+| **Serialization** | JSON and protobuf support |
+| **SARIF 2.1.0** | Parse/validate/analysis findings export for Code Scanning |
+| **CLI + Library** | Use as command-line tool or Python package |
+| **Coverage/Optimization Analysis** | Built-in analyzers for coverage and optimization insights |
+| **Streaming Mode** | Memory-efficient parsing for large rule sets |
+
+### Supported Outputs
+
+```text
+AST Data        JSON, protobuf
+Diagnostics     Human-readable tables, SARIF 2.1.0
+Analysis        Text reports, SARIF 2.1.0 findings
+CI Integration  SARIF artifact + GitHub Code Scanning upload
+```
+
+---
 
 ## Installation
 
-### From PyPI (recommended)
+### From PyPI (Recommended)
 
 ```bash
 pip install surinort-ast
@@ -54,218 +65,196 @@ pip install surinort-ast
 ```bash
 git clone https://github.com/seifreed/surinort-ast.git
 cd surinort-ast
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -e .
 ```
 
-### Optional extras
+### Optional Extras
 
 ```bash
 pip install "surinort-ast[all]"
-pip install "surinort-ast[cli-enhanced]"   # rich CLI output
-pip install "surinort-ast[analysis]"       # analysis utilities
-pip install "surinort-ast[serialization]"  # protobuf support
+pip install "surinort-ast[serialization]"
+pip install "surinort-ast[analysis]"
+pip install "surinort-ast[cli-enhanced]"
 ```
+
+---
 
 ## Quick Start
 
-### Python API
+```bash
+# Parse rule file
+surinort parse rules/local.rules
 
-```python
-from surinort_ast import parse_rule, print_rule, to_json, validate_rule
+# Validate with strict mode
+surinort validate rules/local.rules --strict
 
-rule = parse_rule('alert tcp any any -> any 80 (msg:"HTTP test"; sid:1000001; rev:1;)')
-print(rule.action)      # Action.ALERT
-print(rule.header.protocol)  # Protocol.TCP
-print(print_rule(rule)) # canonical rule text reconstruction
-
-print(to_json(rule))  # JSON serialization
-
-for diag in validate_rule(rule):
-    print(f"{diag.level}: {diag.code} - {diag.message}")
+# Export parse findings to SARIF
+surinort parse rules/local.rules --format sarif -o parse-results.sarif
 ```
 
-### Command Line
+---
+
+## Usage
+
+### Command Line Interface
 
 ```bash
-surinort --help
-surinort parse rules/local.rules
-surinort parse rules/local.rules --json -o local.json
-surinort fmt rules/local.rules --stable -o local.formatted.rules
-surinort validate rules/local.rules --strict
+# Parse to JSON
+surinort parse rules/local.rules --json -o rules.json
+
+# Validate and export SARIF
+surinort validate rules/local.rules --format sarif -o validate-results.sarif
+
+# Stats and coverage findings in SARIF
+surinort stats rules/local.rules --format sarif -o stats-results.sarif
 ```
 
-## API (Most Used)
+### Available Options (Main Commands)
+
+| Command | Description |
+|--------|-------------|
+| `surinort parse` | Parse rules (`text`, `json`, `sarif`) |
+| `surinort validate` | Validate rules with optional strict mode and SARIF output |
+| `surinort stats` | Rule statistics and optional SARIF coverage findings |
+| `surinort fmt` | Canonical formatting for rule files |
+| `surinort to-json` | Convert rules to JSON |
+| `surinort from-json` | Convert JSON back to rule text |
+| `surinort schema` | Print AST JSON schema |
+
+### SARIF Flags
+
+| Option | Description |
+|--------|-------------|
+| `--format sarif` | Print SARIF content as command output |
+| `--sarif-out <file>` | Write SARIF report while keeping default output mode |
+| `-o, --output <file>` | Write primary output to file |
+
+---
+
+## Python Library
+
+### Basic Usage
+
+```python
+from surinort_ast import parse_rule, validate_rule, to_json
+
+rule = parse_rule('alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)')
+diags = validate_rule(rule)
+print(to_json(rule))
+
+for diag in diags:
+    print(diag.level, diag.code, diag.message)
+```
+
+### SARIF API Usage
 
 ```python
 from surinort_ast import (
-    parse_rule,         # parse one rule
-    parse_rules,        # parse many rules, return errors list
-    parse_file,         # parse a rule file
-    parse_file_streaming, # iterator-based parsing for large files
-    print_rule,         # AST -> text
-    to_json, from_json, # JSON serialization
-    to_json_schema,     # AST JSON Schema
-    validate_rule,      # diagnostics list
+    diagnostics_to_sarif,
+    parse_file,
+    validate_rule,
+)
+
+rules = parse_file("rules/local.rules")
+diagnostics = []
+for rule in rules:
+    diagnostics.extend(validate_rule(rule))
+
+sarif = diagnostics_to_sarif(diagnostics, default_file_path="rules/local.rules")
+with open("results.sarif", "w", encoding="utf-8") as f:
+    f.write(sarif)
+```
+
+### Additional SARIF Helpers
+
+```python
+from surinort_ast import (
+    coverage_report_to_sarif,
+    optimization_results_to_sarif,
+    to_sarif,
 )
 ```
 
-### Parse and serialize
+---
 
-```python
-from surinort_ast import parse_rule, to_json, from_json
+## CI and GitHub Code Scanning (SARIF)
 
-rule = parse_rule("alert tcp any any -> any 22 (msg:\"SSH Probe\"; sid:4001; rev:1;)")
-payload = to_json(rule)
-restored = from_json(payload)
+The project CI now supports SARIF generation and upload:
 
-assert rule == restored
+1. Generate `results.sarif` from real validation diagnostics.
+2. Upload SARIF as workflow artifact.
+3. Upload SARIF to GitHub Code Scanning.
+
+Minimal workflow example:
+
+```yaml
+- name: Generate SARIF report
+  run: |
+    python - <<'PY'
+    from pathlib import Path
+    from surinort_ast import diagnostics_to_sarif, parse_file, validate_rule
+
+    fixture_path = Path("tests/fixtures/simple_rules.txt")
+    rules = parse_file(fixture_path)
+    diagnostics = []
+    for rule in rules:
+        diagnostics.extend(validate_rule(rule))
+
+    Path("results.sarif").write_text(
+        diagnostics_to_sarif(diagnostics, default_file_path=str(fixture_path)),
+        encoding="utf-8",
+    )
+    PY
+
+- name: Upload SARIF to GitHub Code Scanning
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
 ```
 
-### Batch parsing with errors
+---
 
-```python
-from surinort_ast import parse_rules
+## Requirements
 
-rules, errors = parse_rules([
-    'alert tcp any any -> any 80 (msg:"ok"; sid:1; rev:1;)',
-    'alert tcp any > any 80 (msg:"bad"; sid:2; rev:2;)',
-    'alert udp any any -> any 53 (msg:"dns"; sid:3; rev:1;)',
-])
+- Python 3.11+
+- See [pyproject.toml](pyproject.toml) for dependencies and extras
 
-print(len(rules), "parsed")
-print("errors:", errors)
-```
-
-### Parse large files safely
-
-```python
-from pathlib import Path
-from surinort_ast import parse_file
-
-rules = parse_file(
-    Path("big.rules"),
-    workers=8,
-    batch_size=200,
-    track_locations=False,
-    include_raw_text=False,
-)
-print("parsed:", len(rules))
-```
-
-```python
-from surinort_ast import parse_file_streaming
-
-for rule in parse_file_streaming("big.rules", track_locations=False):
-    if rule.action.value == "alert":
-        print(rule.header.protocol, "=>", rule.header.dst_port)
-```
-
-## CLI Reference (short)
-
-| Command | What it does |
-| --- | --- |
-| `surinort parse` | Parse and optionally export parsed rules as JSON. |
-| `surinort fmt` | Pretty format rules (`--stable`, `--check`, `--in-place`). |
-| `surinort validate` | Validate syntax/semantics (strict mode available). |
-| `surinort to-json` | Convert rules to JSON output. |
-| `surinort from-json` | Convert JSON back to Suricata/Snort text. |
-| `surinort stats` | Produce corpus statistics. |
-| `surinort schema` | Print JSON Schema for the AST model. |
-
-### Quick CLI samples
-
-```bash
-surinort parse rules/local.rules --json --output local.json
-surinort to-json rules/local.rules --compact -o local.compact.json
-surinort from-json local.compact.json --output local.rules
-surinort validate rules/local.rules --strict
-surinort stats rules/local.rules
-surinort schema > rule_schema.json
-```
-
-## Advanced (Optional)
-
-### Query API (experimental)
-
-```python
-from surinort_ast import parse_rule
-from surinort_ast.query import query, query_exists
-
-rule = parse_rule('alert tcp any any -> any 80 (content:"admin"; pcre:"/admin/i"; sid:1001; rev:1; )')
-has_pcre = query_exists(rule, "PcreOption")
-contents = query(rule, "ContentOption")
-
-print("has_pcre:", has_pcre)
-print("content options:", len(contents))
-```
-
-### Rule builder (experimental)
-
-```python
-from surinort_ast.builder import RuleBuilder
-from surinort_ast.printer import print_rule
-
-rule = (
-    RuleBuilder()
-    .alert()
-    .tcp()
-    .source("$HOME_NET", "any")
-    .destination("$EXTERNAL_NET", 80)
-    .msg("Suspicious request")
-    .content(b"POST")
-    .sid(1000001)
-    .rev(1)
-    .build()
-)
-print(print_rule(rule))
-```
-
-## Examples and project structure
-
-- `examples/` includes executable scripts for core features:
-  - `examples/01_basic_parsing.py`
-  - `examples/04_json_serialization.py`
-  - `examples/05_batch_processing.py`
-  - `examples/06_error_handling.py`
-  - `examples/09_file_processing.py`
-  - `examples/query_basic.py`
-  - `examples/streaming_basic.py`
-- `src/surinort_ast/` contains parser, AST core, CLI, serialization, analysis, streaming, query, and builder packages.
+---
 
 ## Contributing
 
-Contributions are welcome:
+Contributions are welcome.
 
-1. Open an issue describing the change.
-2. Fork the repository.
-3. Create a focused branch (`git checkout -b feature/my-change`).
-4. Add/update tests when behavior changes.
-5. Run the checks and make sure everything passes.
-6. Open a pull request.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Recommended checks:
+---
 
-```bash
-ruff check .
-ruff format --check .
-mypy src/
-pytest tests/ -v --tb=short --strict-markers
-```
+## Support the Project
+
+If this project is useful in your workflows, you can support development:
+
+<a href="https://buymeacoffee.com/seifreed" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50">
+</a>
+
+---
 
 ## License
 
-Copyright (C) 2026 Marc Rivero López
-This project is released under the GNU General Public License v3.0 or later.
+This project is licensed under the GPL-3.0-or-later license. See [LICENSE](LICENSE).
 
-## Contact
+**Attribution**
+- Author: **Marc Rivero López** | [@seifreed](https://github.com/seifreed)
+- Repository: [github.com/seifreed/surinort-ast](https://github.com/seifreed/surinort-ast)
 
-- **Author:** Marc Rivero López (`@seifreed`)
-- **GitHub:** https://github.com/seifreed/surinort-ast
-- **Email:** mriverolopez@gmail.com
-- **License file:** [LICENSE](LICENSE)
+---
 
 <p align="center">
-  <sub>Built for security teams, researchers, and SOC engineers.</sub>
+  <sub>Built for practical IDS/IPS rule engineering and security automation</sub>
 </p>

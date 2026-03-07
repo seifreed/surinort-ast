@@ -202,6 +202,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write  # For coverage comments
+      security-events: write  # For SARIF upload
 
     steps:
       - name: Checkout code
@@ -226,6 +227,36 @@ jobs:
       - name: Run tests with coverage
         run: |
           pytest tests/ --cov=surinort_ast --cov-report=xml --cov-report=html --cov-report=term --strict-markers -m "not slow"
+
+      - name: Generate SARIF report
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from surinort_ast import diagnostics_to_sarif, parse_file, validate_rule
+
+          fixture_path = Path("tests/fixtures/simple_rules.txt")
+          rules = parse_file(fixture_path)
+          diagnostics = []
+          for rule in rules:
+              diagnostics.extend(validate_rule(rule))
+
+          sarif = diagnostics_to_sarif(diagnostics, default_file_path=str(fixture_path))
+          Path("results.sarif").write_text(sarif, encoding="utf-8")
+          print("Generated results.sarif")
+          PY
+
+      - name: Upload SARIF artifact
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        with:
+          name: sarif-results
+          path: results.sarif
+          retention-days: 30
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
+        with:
+          sarif_file: results.sarif
 
   # Slow tests - executed once to avoid matrix timeouts
   slow-tests:

@@ -12,7 +12,10 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 # Core API - most users should import from here
 # Note: Importing from api package (api/__init__.py) maintains backward compatibility
 from .api import (
+    coverage_report_to_sarif,
+    diagnostics_to_sarif,
     from_json,
+    optimization_results_to_sarif,
     parse_file,
     parse_file_streaming,
     parse_rule,
@@ -20,6 +23,7 @@ from .api import (
     print_rule,
     to_json,
     to_json_schema,
+    to_sarif,
     validate_rule,
 )
 
@@ -72,8 +76,11 @@ __all__ = [
     "__email__",
     "__license__",
     "__version__",
+    "coverage_report_to_sarif",
+    "diagnostics_to_sarif",
     # Core API functions
     "from_json",
+    "optimization_results_to_sarif",
     "parse_file",
     "parse_file_streaming",
     "parse_rule",
@@ -81,5 +88,6 @@ __all__ = [
     "print_rule",
     "to_json",
     "to_json_schema",
+    "to_sarif",
     "validate_rule",
 ]

@@ -16,10 +16,11 @@ import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from ...api import parse_file, validate_rule
+from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
+from ...api import parse_file, to_sarif, validate_rule
 from ...core.enums import DiagnosticLevel, Dialect
 from ...exceptions import ParseError
-from ..shared import console, err_console, validate_file_path
+from ..shared import console, err_console, validate_file_path, write_output
 
 
 def _check_lua_scripts(rules: list[Any], lua_dir: Path | None) -> list[tuple[int, str]]:
@@ -141,6 +142,18 @@ def validate_command(
         Path | None,
         typer.Option("--lua-dir", help="Base directory for custom Lua scripts"),
     ] = None,
+    output_format: Annotated[
+        str,
+        typer.Option("--format", help="Output format: text, sarif"),
+    ] = "text",
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Output file (default: stdout)"),
+    ] = None,
+    sarif_out: Annotated[
+        Path | None,
+        typer.Option("--sarif-out", help="Write SARIF report to file"),
+    ] = None,
 ) -> None:
     """
     Validate IDS rules and report issues.
@@ -152,6 +165,11 @@ def validate_command(
         surinort validate rules.txt --strict
     """
     try:
+        fmt = output_format.lower()
+        if fmt not in {"text", "sarif"}:
+            err_console.print("Error: --format must be one of: text, sarif")
+            raise typer.Exit(1) from None
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -167,20 +185,61 @@ def validate_command(
         # Optional Lua script existence checks
         lua_warnings = _check_lua_scripts(rules, lua_dir)
 
-        # Display results
-        _display_diagnostics(all_diagnostics)
-        _display_lua_warnings(lua_warnings)
+        # SARIF output path
+        if sarif_out is not None or fmt == "sarif":
+            findings = diagnostics_to_findings(
+                [diag for _, diag in all_diagnostics], default_file_path=str(file)
+            )
+            for idx, message in lua_warnings:
+                findings.append(
+                    Finding(
+                        rule_id="SURINORT_LUA_SCRIPT_NOT_FOUND",
+                        level=FindingLevel.WARNING,
+                        message=f"Rule {idx}: {message}",
+                        category="validation",
+                        description=message,
+                    )
+                )
+            if not findings:
+                findings.append(
+                    Finding(
+                        rule_id="SURINORT_VALIDATION_OK",
+                        level=FindingLevel.NOTE,
+                        message="Validation completed with no diagnostics",
+                        category="validation",
+                    )
+                )
 
-        # Summary
-        console.print()
-        console.print(f"[cyan]Total rules:[/cyan] {len(rules)}")
-        console.print(f"[red]Errors:[/red] {error_count}")
-        console.print(f"[yellow]Warnings:[/yellow] {warning_count + len(lua_warnings)}")
+            sarif_json = to_sarif(findings)
+            if sarif_out is not None:
+                sarif_out.write_text(sarif_json, encoding="utf-8")
+                console.print(f"[green]SARIF report written:[/green] {sarif_out}")
+            if fmt == "sarif":
+                write_output(sarif_json, output)
+            else:
+                # Display text output if requested.
+                _display_diagnostics(all_diagnostics)
+                _display_lua_warnings(lua_warnings)
+                console.print()
+                console.print(f"[cyan]Total rules:[/cyan] {len(rules)}")
+                console.print(f"[red]Errors:[/red] {error_count}")
+                console.print(f"[yellow]Warnings:[/yellow] {warning_count + len(lua_warnings)}")
+        else:
+            # Display results
+            _display_diagnostics(all_diagnostics)
+            _display_lua_warnings(lua_warnings)
+
+            # Summary
+            console.print()
+            console.print(f"[cyan]Total rules:[/cyan] {len(rules)}")
+            console.print(f"[red]Errors:[/red] {error_count}")
+            console.print(f"[yellow]Warnings:[/yellow] {warning_count + len(lua_warnings)}")
 
         # Exit code
         if error_count > 0 or (strict and (warning_count + len(lua_warnings)) > 0):
             raise typer.Exit(1) from None
-        console.print("\n[green]Validation passed[/green]")
+        if fmt == "text":
+            console.print("\n[green]Validation passed[/green]")
 
     except ParseError as e:
         err_console.print(f"Parse error: {e}")

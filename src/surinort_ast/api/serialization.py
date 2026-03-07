@@ -11,10 +11,21 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from typing import Any
 
+from ..analysis.coverage import CoverageReport
+from ..analysis.findings import (
+    Finding,
+    coverage_report_to_findings,
+    diagnostics_to_findings,
+    optimization_results_to_findings,
+)
+from ..analysis.optimizer import OptimizationResult
+from ..core.diagnostics import Diagnostic
 from ..core.nodes import Rule
 from ..exceptions import SerializationError
+from ..serialization.sarif import to_sarif_json
 
 
 def to_json(rule: Rule, indent: int | None = 2) -> str:
@@ -88,8 +99,53 @@ def to_json_schema() -> dict[str, Any]:
     return Rule.model_json_schema()
 
 
+def to_sarif(findings: Sequence[Finding], indent: int | None = 2) -> str:
+    """
+    Serialize normalized findings to SARIF 2.1.0 JSON.
+
+    Args:
+        findings: Normalized findings collection
+        indent: JSON indentation (None for compact)
+
+    Returns:
+        SARIF JSON string
+    """
+    try:
+        return to_sarif_json(list(findings), indent=indent)
+    except Exception as e:
+        raise SerializationError(f"Failed to serialize to SARIF: {e}") from e
+
+
+def diagnostics_to_sarif(
+    diagnostics: Sequence[Diagnostic],
+    default_file_path: str | None = None,
+    indent: int | None = 2,
+) -> str:
+    """Convert diagnostics directly to SARIF 2.1.0 JSON."""
+    findings = diagnostics_to_findings(list(diagnostics), default_file_path=default_file_path)
+    return to_sarif(findings, indent=indent)
+
+
+def optimization_results_to_sarif(
+    results: Sequence[OptimizationResult], indent: int | None = 2
+) -> str:
+    """Convert optimization results directly to SARIF 2.1.0 JSON."""
+    findings = optimization_results_to_findings(list(results))
+    return to_sarif(findings, indent=indent)
+
+
+def coverage_report_to_sarif(report: CoverageReport, indent: int | None = 2) -> str:
+    """Convert a coverage report to SARIF 2.1.0 JSON."""
+    findings = coverage_report_to_findings(report)
+    return to_sarif(findings, indent=indent)
+
+
 __all__ = [
+    "coverage_report_to_sarif",
+    "diagnostics_to_sarif",
     "from_json",
+    "optimization_results_to_sarif",
     "to_json",
     "to_json_schema",
+    "to_sarif",
 ]
