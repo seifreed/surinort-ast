@@ -151,8 +151,7 @@ jobs:
 
       - name: Generate checksums
         run: |
-          cd dist/
-          sha256sum * > SHA256SUMS
+          sha256sum dist/* > SHA256SUMS
           cat SHA256SUMS
 
       - name: Upload build artifacts
@@ -161,6 +160,7 @@ jobs:
           name: release-distributions
           path: |
             dist/
+            SHA256SUMS
             sbom.json
             sbom.xml
           retention-days: 30
@@ -277,6 +277,7 @@ jobs:
           prerelease: ${{ contains(needs.validate.outputs.version, '-') }}
           files: |
             dist/*
+            SHA256SUMS
             sbom.json
             sbom.xml
           fail_on_unmatched_files: true
