@@ -47,7 +47,9 @@ class BufferSelectionOptionsMixin:
     """
 
     @v_args(inline=True)
-    def buffer_select_option(self, buffer_token: Token) -> BufferSelectOption:
+    def buffer_select_option(
+        self, buffer_token: Token, selector_token: Token | None = None
+    ) -> BufferSelectOption:
         """
         Transform sticky buffer selection.
 
@@ -75,4 +77,8 @@ class BufferSelectionOptionsMixin:
             until a different buffer is selected. This is why they're called
             "sticky" - the buffer selection sticks across multiple options.
         """
-        return BufferSelectOption(buffer_name=str(buffer_token.value))
+        buffer_name = str(buffer_token.value)
+        if selector_token is not None:
+            selector = str(selector_token.value).strip()
+            buffer_name = f"{buffer_name}:{selector}"
+        return BufferSelectOption(buffer_name=buffer_name)

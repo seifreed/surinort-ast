@@ -128,6 +128,10 @@ class HeaderTransformerMixin:
         """Transform 'ip' protocol."""
         return Protocol.IP
 
+    def file(self, _: Any) -> Protocol:
+        """Transform 'file' protocol."""
+        return Protocol.FILE
+
     def http(self, _: Any) -> Protocol:
         """Transform 'http' protocol."""
         return Protocol.HTTP

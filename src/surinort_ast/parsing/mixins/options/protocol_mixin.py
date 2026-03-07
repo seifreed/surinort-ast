@@ -90,7 +90,7 @@ class ProtocolSpecificOptionsMixin:
     # Data Availability Options
     # ========================================================================
 
-    def isdataat_option(self, items: Sequence[Token]) -> GenericOption:
+    def isdataat_option(self, items: Sequence[Any]) -> GenericOption:
         """
         Transform isdataat option (data availability check).
 
@@ -113,5 +113,5 @@ class ProtocolSpecificOptionsMixin:
             Verify sufficient data exists before matching subsequent patterns.
             Prevents false positives from truncated payloads.
         """
-        value_str = ",".join(str(item.value) for item in items)
+        value_str = ",".join(str(item.value if isinstance(item, Token) else item) for item in items)
         return GenericOption(keyword="isdataat", value=value_str, raw=f"isdataat:{value_str}")

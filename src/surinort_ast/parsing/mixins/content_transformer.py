@@ -130,6 +130,15 @@ def _is_pure_hex_piped(s: str) -> bool:
     return all(ch in _HEX_CHARS or ch.isspace() for ch in inner)
 
 
+def _token_to_int_or_str(value: Any) -> int | str:
+    """Convert a token-like value to int when possible, otherwise to str."""
+    raw = str(value.value) if isinstance(value, Token) else str(value)
+    try:
+        return int(raw)
+    except ValueError:
+        return raw
+
+
 def _parse_mixed_content(s: str) -> bytes:
     """
     Parse content string that mixes ASCII and hex notation.
@@ -327,7 +336,7 @@ class ContentTransformerMixin:
         Returns:
             ContentModifier for DEPTH
         """
-        value = int(args[1].value) if isinstance(args[1], Token) else int(args[1])
+        value = _token_to_int_or_str(args[1])
         return ContentModifier(name=ContentModifierType.DEPTH, value=value)
 
     def cm_offset(self, args: list[Any]) -> ContentModifier:
@@ -340,7 +349,7 @@ class ContentTransformerMixin:
         Returns:
             ContentModifier for OFFSET
         """
-        value = int(args[1].value) if isinstance(args[1], Token) else int(args[1])
+        value = _token_to_int_or_str(args[1])
         return ContentModifier(name=ContentModifierType.OFFSET, value=value)
 
     def cm_distance(self, args: list[Any]) -> ContentModifier:
@@ -357,9 +366,10 @@ class ContentTransformerMixin:
             Distance can be negative for backward relative matching.
         """
         if len(args) == 2:
-            value = int(args[1].value) if isinstance(args[1], Token) else int(args[1])
+            value = _token_to_int_or_str(args[1])
         else:
-            value = -int(args[2].value) if isinstance(args[2], Token) else -int(args[2])
+            token_value = _token_to_int_or_str(args[2])
+            value = -token_value if isinstance(token_value, int) else f"-{token_value}"
         return ContentModifier(name=ContentModifierType.DISTANCE, value=value)
 
     def cm_within(self, args: list[Any]) -> ContentModifier:
@@ -372,7 +382,7 @@ class ContentTransformerMixin:
         Returns:
             ContentModifier for WITHIN
         """
-        value = int(args[1].value) if isinstance(args[1], Token) else int(args[1])
+        value = _token_to_int_or_str(args[1])
         return ContentModifier(name=ContentModifierType.WITHIN, value=value)
 
     def cm_nocase(self, args: list[Any]) -> ContentModifier:
@@ -435,6 +445,16 @@ class ContentTransformerMixin:
         """
         return ContentModifier(name=ContentModifierType.FAST_PATTERN, value=None)
 
+    def cm_fast_pattern_offset(self, args: list[Any]) -> ContentModifier:
+        """Transform inline fast_pattern_offset modifier."""
+        value = _token_to_int_or_str(args[1])
+        return ContentModifier(name=ContentModifierType.FAST_PATTERN, value=f"offset {value}")
+
+    def cm_fast_pattern_length(self, args: list[Any]) -> ContentModifier:
+        """Transform inline fast_pattern_length modifier."""
+        value = _token_to_int_or_str(args[1])
+        return ContentModifier(name=ContentModifierType.FAST_PATTERN, value=f"length {value}")
+
     def cm_generic(self, args: list[Any]) -> ContentModifier:
         """
         Handle generic/unknown inline content modifiers.
@@ -456,7 +476,7 @@ class ContentTransformerMixin:
         if len(args) == 2:
             # Modifier name and value
             str(args[0].value) if isinstance(args[0], Token) else str(args[0])
-            value = int(args[1].value) if isinstance(args[1], Token) else int(args[1])
+            value = _token_to_int_or_str(args[1])
             return ContentModifier(name=ContentModifierType.NOCASE, value=value)
         return ContentModifier(name=ContentModifierType.NOCASE, value=None)
 
@@ -806,9 +826,25 @@ class ContentTransformerMixin:
             keyword="byte_extract", value=value_str, raw=f"byte_extract:{value_str}"
         )
 
-    def byte_extract_params(self, items: Sequence[Token]) -> Sequence[Token]:
+    def byte_extract_params(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through byte_extract params."""
         return items
+
+    def byte_extract_offset(self, items: Sequence[Token]) -> str:
+        """
+        Handle byte_extract offset with optional negative sign.
+
+        Args:
+            items: ["-", INT] or [INT]
+
+        Returns:
+            Offset string preserving sign.
+        """
+        if len(items) == 2:
+            return f"-{items[1].value}"
+        if len(items) == 1:
+            return str(items[0].value)
+        return "0"
 
     def byte_math_option(self, items: Sequence[Any]) -> GenericOption:
         """

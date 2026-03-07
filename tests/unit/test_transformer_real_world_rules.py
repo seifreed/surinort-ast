@@ -8,6 +8,8 @@ This file contains ONLY realistic tests that execute through the actual parser.
 Tests must use real IDS rules that trigger specific transformer code paths.
 """
 
+import pytest
+
 from surinort_ast.core.enums import Dialect
 from surinort_ast.parsing.parser import RuleParser
 
@@ -285,6 +287,28 @@ class TestRealisticTransformerCoverage:
         assert ref_opt is not None
         assert ref_opt.ref_type == "cve"
         assert ref_opt.ref_id == "2021-12345"
+
+    @pytest.mark.parametrize(
+        "rule_text",
+        [
+            'alert http any any -> $HOME_NET any ( msg:"SERVER-WEBAPP Ivanti Avalanche Remote Control server server-side request forgery attempt"; flow:to_server,established; http_uri:path; content:"/app/rc",fast_pattern,nocase; http_param:"cmd",nocase; content:"validateAMCWSConnection",distance 0,nocase; http_uri:query; content:"port=",nocase; pcre:"/(^|&)port=[^&]*?[^\\d&\\s]/im"; metadata:policy max-detect-ips drop,policy security-ips drop; reference:cve,2023-46262; reference:url,forums.ivanti.com/s/article/Avalanche-6-4-2-Security-Hardening-and-CVEs-addressed?language=en_US; classtype:web-application-attack; gid:1; sid:301095; rev:1; )',
+            'alert http $EXTERNAL_NET any -> $HOME_NET any ( msg:"SERVER-WEBAPP Multiple products PHP imap_open command injection attempt"; flow:to_server,established; http_uri:query; content:"-oProxyCommand=",fast_pattern,nocase; pcre:"/(^|&)[^=]*?=[^&]*?-oProxyCommand=[^&]*?([\\x60\\x3b\\x7c\\x23\\x0a]|[\\x3c\\x3e\\x24]\\x28)/i"; metadata:policy max-detect-ips drop; reference:cve,2018-19518; reference:url,bugs.php.net/bug.php?id=76428; classtype:web-application-attack; gid:1; sid:64255; rev:1; )',
+            'alert http ( msg:"SERVER-WEBAPP PlaySMS unauthenticated template injection attempt"; flow:to_server,established; http_method; content:"POST"; http_uri:with_body; content:"/index.php"; http_client_body; content:"username"; content:"password"; content:"X-CSRF-Token",fast_pattern,nocase; pcre:"/(^|&)username=[^&]*?\\x7b\\x7b/i"; metadata:policy max-detect-ips drop; reference:cve,2020-8664; classtype:attempted-user; gid:1; sid:60104; rev:1; )',
+            'alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS ( msg:"SERVER-WEBAPP ManageEngine Eventlog Analyzer directory traversal attempt"; flow:to_server,established; http_uri; content:"/agentUpload",fast_pattern,nocase; file_data; content:"PK|03 04|",depth 4; byte_extract:2,22,filename_len,relative,little; content:"../",within filename_len,distance 2; metadata:policy max-detect-ips drop; service:http; reference:bugtraq,69482; reference:cve,2014-6037; classtype:web-application-attack; sid:31838; rev:5; )',
+            'alert tcp $EXTERNAL_NET any -> $HOME_NET 37777 ( msg:"SERVER-WEBAPP Dahua DVR serial number query attempt"; flow:to_server,established; content:"|A4 00 00 00 00 00 00 00 07 00 00 00 00 00 00 00 00 00 00 00|",depth 20,fast_pattern,fast_pattern_offset 0,fast_pattern_length 16; metadata:policy max-detect-ips drop; service:http; reference:bugtraq,63742; reference:cve,2013-3615; reference:cve,2013-6117; classtype:attempted-recon; sid:45320; rev:5; )',
+            'alert http $EXTERNAL_NET any -> $HOME_NET 9880 ( msg:"SERVER-WEBAPP Fluent Bit denial of service attempt"; flow:to_server,established; http_header:field content-type; content:"application/x-www-form-urlencoded",fast_pattern,nocase; http_client_body; bufferlen:>0; content:!"="; reference:cve,2024-23722; reference:url,medium.com/@adurands82/fluent-bit-dos-vulnerability-cve-2024-23722-4e3e74af9d00; classtype:attempted-dos; gid:1; sid:63304; rev:1; )',
+            'alert file ( msg:"SERVER-WEBAPP Novell GroupWise WebAccess cross-site scripting attempt"; flow:established; file_data; content:"<html>"; content:"onfocus",fast_pattern,nocase; pcre:"/\\x3C[^>]*?[\\x22\\x27]onfocus\\s*=/ims"; metadata:policy max-detect-ips drop; reference:cve,2014-0611; classtype:attempted-user; gid:1; sid:300895; rev:1; )',
+            'alert tcp $EXTERNAL_NET any -> $HOME_NET 10000 ( msg:"SERVER-WEBAPP Veritas Backup Exec Agent command execution attempt"; flow:to_server,established; content:"|00 00 00 00|",depth 4,offset 12; content:"|00 00 F3 0F|",within 4,fast_pattern; content:"|00 00 00 00 00 00 00 00|",within 8; byte_extract:4,0,str_len,relative,big; isdataat:str_len,relative; content:"|2F|",within str_len; metadata:policy max-detect-ips drop,policy security-ips drop; reference:cve,2021-27878; reference:url,veritas.com/content/support/en_US/security/VTS21-001#issue3; classtype:attempted-admin; gid:1; sid:61629; rev:1; )',
+            'alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS ( msg:"SERVER-WEBAPP HAProxy H2 Frame heap memory corruption attempt"; flow:to_server,established; content:"PRI * HTTP/2.0|0D 0A 0D 0A|SM|0D 0A 0D 0A|",depth 24; content:"|04|",within 1,distance 3; byte_extract:3,-4,size,relative; content:"|00 05|",within size,distance 2; byte_test:4,>,60000,0,relative; metadata:policy max-detect-ips drop; service:http; reference:cve,2018-10184; classtype:web-application-attack; sid:51725; rev:1; )',
+            'alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS ( msg:"SERVER-WEBAPP CA Total Defense management.asmx sql injection attempt"; flow:to_server,established; http_method; content:"POST"; http_uri; content:"/UNCWS/Management.asmx",fast_pattern,nocase; http_header; content:!"SOAP",nocase; http_client_body; pcre:"/(^|&)SelectedID=[^&]+?(\\x3B|%3B)/im"; metadata:policy max-detect-ips drop,policy security-ips drop; service:http; reference:bugtraq,47355; reference:cve,2011-1653; reference:url,attack.mitre.org/techniques/T1190; reference:url,support.ca.com/irj/portal/anonymous/phpsupcontent?contentID={CD065CEC-AFE2-4D9D-8E0B-BE7F6E345866}; classtype:attempted-admin; sid:24704; rev:10; )',
+            'alert http $EXTERNAL_NET any -> $HOME_NET any ( msg:"SERVER-WEBAPP Zimbra directory traversal remote code execution attempt"; flow:to_server,established; http_method; content:"POST"; http_uri; content:"/service/extension/backup/mboximport",fast_pattern,nocase; file_data; content:"PK|03 04|",depth 4; byte_extract:2,26,filename_len,little; content:"../",depth filename_len,offset 30; metadata:policy max-detect-ips drop,policy security-ips drop; reference:cve,2022-27925; reference:cve,2022-37042; reference:url,github.com/MeDx64/CVE-2022-27925; classtype:web-application-attack; gid:1; sid:63461; rev:1; )',
+        ],
+    )
+    def test_snort3_issue_45_rules_parse(self, rule_text: str):
+        """Regression for issue #45: valid Snort3 rules must parse."""
+        parser = RuleParser(dialect=Dialect.SNORT3)
+        result = parser.parse(rule_text)
+        assert result is not None
 
     def test_classtype_option_real(self):
         """Test classtype option"""

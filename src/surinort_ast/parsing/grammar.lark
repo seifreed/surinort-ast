@@ -29,6 +29,7 @@ protocol: "tcp" -> tcp
         | "udp" -> udp
         | "icmp" -> icmp
         | "ip" -> ip
+        | "file" -> file
         | "ssl" -> ssl
         | "http" -> http
         | "http2" -> http2
@@ -166,7 +167,7 @@ REFERENCE_TAIL.0: /[^;\)]{1,500}/
 // ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 500 chars)
 // Simplified without negative lookahead to avoid exponential complexity
 // Pattern allows URLs with or without trailing alphanumerics but requires at least one separator
-REFERENCE_ID.1: /[A-Za-z0-9]+[_.\/:\-?&=%#~@!+*()][A-Za-z0-9_.\/:\-?&=%#~@!+*()]{0,498}/
+REFERENCE_ID.1: /[A-Za-z0-9]+[_.\/:\-?&=%#~@!+*(){}][A-Za-z0-9_.\/:\-?&=%#~@!+*(){}]{0,498}/
 
 // Metadata - allow action keywords as regular words and multiple values
 metadata_option: "metadata" ":" metadata_entry ("," metadata_entry)*
@@ -177,17 +178,20 @@ metadata_entry: (WORD | ALERT | LOG | PASS | DROP | REJECT | SDROP | INT | METAD
 content_option: "content" ":" "!"? content_value ("," content_modifier)*
 uricontent_option: "uricontent" ":" "!"? content_value ("," content_modifier)*
 content_value: QUOTED_STRING | HEX_STRING
+content_modifier_value: INT | WORD | REFERENCE_ID
 // Snort3 content modifiers - keywords first, then catch-all
-content_modifier: DEPTH_KW INT                   -> cm_depth
-                | OFFSET_KW INT                  -> cm_offset
-                | DISTANCE_KW "-"? INT           -> cm_distance
-                | WITHIN_KW INT                  -> cm_within
+content_modifier: DEPTH_KW content_modifier_value                   -> cm_depth
+                | OFFSET_KW content_modifier_value                  -> cm_offset
+                | DISTANCE_KW "-"? content_modifier_value           -> cm_distance
+                | WITHIN_KW content_modifier_value                  -> cm_within
+                | FAST_PATTERN_OFFSET_KW content_modifier_value     -> cm_fast_pattern_offset
+                | FAST_PATTERN_LENGTH_KW content_modifier_value     -> cm_fast_pattern_length
                 | NOCASE_KW                      -> cm_nocase
                 | RAWBYTES_KW                    -> cm_rawbytes
                 | STARTSWITH_KW                  -> cm_startswith
                 | ENDSWITH_KW                    -> cm_endswith
                 | FAST_PATTERN_KW                -> cm_fast_pattern
-                | WORD INT?                      -> cm_generic
+                | WORD content_modifier_value?   -> cm_generic
 
 // Content modifier keywords (must come before WORD)
 DEPTH_KW.3: "depth"
@@ -199,6 +203,8 @@ RAWBYTES_KW.3: "rawbytes"
 STARTSWITH_KW.3: "startswith"
 ENDSWITH_KW.3: "endswith"
 FAST_PATTERN_KW.3: "fast_pattern"
+FAST_PATTERN_OFFSET_KW.4: "fast_pattern_offset"
+FAST_PATTERN_LENGTH_KW.4: "fast_pattern_length"
 
 // PCRE
 pcre_option: "pcre" ":" "!"? (PCRE_PATTERN | QUOTED_STRING)
@@ -243,7 +249,7 @@ endswith_option: "endswith"
 // Support both decimal and hexadecimal numbers in byte operations
 ?number: HEX_INT | INT
 
-isdataat_option: "isdataat" ":" "!"? INT ("," WORD)?
+isdataat_option: "isdataat" ":" "!"? (INT | WORD | REFERENCE_ID) ("," WORD)?
 
 // URI length check with comparison operators
 urilen_option: "urilen" ":" urilen_value
@@ -265,13 +271,15 @@ byte_jump_params: INT "," "-"? INT ("," byte_jump_flag)*
 byte_jump_flag: WORD (INT)?  // Support "post_offset 10" style flags
 
 byte_extract_option: "byte_extract" ":" byte_extract_params
-byte_extract_params: INT "," INT "," (WORD | REFERENCE_ID) ("," (WORD | REFERENCE_ID))*
+byte_extract_params: INT "," byte_extract_offset "," (WORD | REFERENCE_ID) ("," (WORD | REFERENCE_ID))*
+byte_extract_offset: "-"? INT
 
 byte_math_option: "byte_math" ":" byte_math_params
 byte_math_params: WORD WORD ("," WORD)*
 
 // Sticky buffers (Suricata uses dots, Snort uses underscores)
-buffer_select_option: BUFFER_NAME
+// Snort3 supports selectors like http_uri:path and http_header:field content-type.
+buffer_select_option: BUFFER_NAME (":" BUFFER_SELECTOR)?
 
 BUFFER_NAME.2: "http." ("uri" | "header" | "header_names" | "method" | "cookie" | "user_agent" | "host" | "raw_uri" | "stat_msg" | "stat_code")
              | "http_" ("uri" | "header" | "header_names" | "method" | "cookie" | "user_agent" | "host" | "raw_uri" | "stat_msg" | "stat_code")
@@ -285,6 +293,7 @@ BUFFER_NAME.2: "http." ("uri" | "header" | "header_names" | "method" | "cookie" 
              | "tls_" ("sni" | "cert_subject" | "cert_issuer")
              | "ssh." ("proto" | "software")
              | "ssh_" ("proto" | "software")
+BUFFER_SELECTOR.1: /[^;,\)]{1,500}/
 
 // Tag and filestore
 // Tag can include commas and spaces before numeric args (e.g., "tag:session,packets 5")

@@ -42,6 +42,7 @@ class Protocol(str, Enum):
     UDP = "udp"
     ICMP = "icmp"
     IP = "ip"
+    FILE = "file"
 
     # Application layer (Suricata)
     HTTP = "http"
