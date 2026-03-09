@@ -274,9 +274,9 @@ hypothesis==6.151.2 \
     --hash=sha256:7badb28a0da323d6afaf25eae1c93932cb8ac06193355f5e080d6e6465a51da5 \
     --hash=sha256:dc79672b3771e92e6563ca0c56a24135438f319b257a1a1982deb8fbb791be89
     # via surinort-ast (pyproject.toml)
-id==1.5.0 \
-    --hash=sha256:292cb8a49eacbbdbce97244f47a97b4c62540169c976552e497fd57df0734c1d \
-    --hash=sha256:f1434e1cef91f2cbb8a4ec64663d5a23b9ed43ef44c4c957d02583d61714c658
+id==1.6.1 \
+    --hash=sha256:d0732d624fb46fd4e7bc4e5152f00214450953b9e772c182c1c22964def1a069 \
+    --hash=sha256:f5ec41ed2629a508f5d0988eda142e190c9c6da971100612c4de9ad9f9b237ca
     # via twine
 identify==2.6.16 \
     --hash=sha256:1181ef7608e00704db228516541eb83a88a9f94433a8c80bb9b5bd54b1d81757 \
