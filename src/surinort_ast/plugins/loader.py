@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.metadata
+import importlib.util
 import logging
 import sys
 from pathlib import Path
@@ -217,54 +218,55 @@ class PluginLoader:
         loaded_count = 0
         registry = get_registry()
 
-        # Add directory to Python path temporarily
-        plugin_dir_str = str(plugin_dir.absolute())
-        if plugin_dir_str not in sys.path:
-            sys.path.insert(0, plugin_dir_str)
+        # Scan for plugin files
+        plugin_files = sorted(plugin_dir.glob(pattern))
+        logger.debug(f"Found {len(plugin_files)} plugin files in {plugin_dir}")
 
-        try:
-            # Scan for plugin files
-            plugin_files = sorted(plugin_dir.glob(pattern))
-            logger.debug(f"Found {len(plugin_files)} plugin files in {plugin_dir}")
+        for plugin_file in plugin_files:
+            try:
+                module_name = plugin_file.stem
+                logger.debug(f"Loading plugin from file: {plugin_file.name}")
 
-            for plugin_file in plugin_files:
-                try:
-                    module_name = plugin_file.stem
-                    logger.debug(f"Loading plugin from file: {plugin_file.name}")
+                # Import module using spec_from_file_location (avoids sys.path injection)
+                spec = importlib.util.spec_from_file_location(
+                    f"surinort_ast_plugin_{module_name}",
+                    plugin_file,
+                )
+                if spec is None or spec.loader is None:
+                    logger.warning(f"Cannot load module spec for {plugin_file.name}")
+                    continue
 
-                    # Import module
-                    module = importlib.import_module(module_name)
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = module
+                spec.loader.exec_module(module)
 
-                    # Find plugin classes in module
-                    plugins_found = self._discover_plugins_in_module(module)
+                # Find plugin classes in module
+                plugins_found = self._discover_plugins_in_module(module)
 
-                    if not plugins_found:
-                        logger.warning(f"No plugin classes found in {plugin_file.name}")
-                        continue
+                if not plugins_found:
+                    logger.warning(f"No plugin classes found in {plugin_file.name}")
+                    # Clean up module from sys.modules
+                    sys.modules.pop(spec.name, None)
+                    continue
 
-                    # Register plugins
-                    for plugin in plugins_found:
-                        self._validate_plugin(plugin)
-                        plugin.register(registry)
+                # Register plugins
+                for plugin in plugins_found:
+                    self._validate_plugin(plugin)
+                    plugin.register(registry)
 
-                        plugin_name = getattr(plugin, "name", module_name)
-                        self._loaded_plugins.add(plugin_name)
-                        loaded_count += 1
-                        logger.info(f"Loaded plugin from file: {plugin_file.name}")
+                    plugin_name = getattr(plugin, "name", module_name)
+                    self._loaded_plugins.add(plugin_name)
+                    loaded_count += 1
+                    logger.info(f"Loaded plugin from file: {plugin_file.name}")
 
-                except Exception as e:
-                    error_msg = f"Failed to load plugin from {plugin_file.name}: {e}"
-                    self._failed_plugins[plugin_file.name] = str(e)
+            except Exception as e:
+                error_msg = f"Failed to load plugin from {plugin_file.name}: {e}"
+                self._failed_plugins[plugin_file.name] = str(e)
 
-                    if ignore_errors:
-                        logger.error(error_msg, exc_info=True)
-                    else:
-                        raise PluginLoadError(error_msg) from e
-
-        finally:
-            # Remove directory from path
-            if plugin_dir_str in sys.path:
-                sys.path.remove(plugin_dir_str)
+                if ignore_errors:
+                    logger.error(error_msg, exc_info=True)
+                else:
+                    raise PluginLoadError(error_msg) from e
 
         logger.info(f"Loaded {loaded_count} plugins from directory {plugin_dir}")
         return loaded_count

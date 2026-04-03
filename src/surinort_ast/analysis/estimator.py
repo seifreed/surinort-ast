@@ -111,8 +111,9 @@ class PerformanceEstimator:
         """
         total_cost = 0.0
 
-        # Track previous content option to apply following modifier costs
+        # Track previous content option and its actual cost for modifier adjustments
         prev_content: ContentOption | None = None
+        prev_content_cost: float = 0.0
 
         for option in rule.options:
             option_type = option.node_type
@@ -135,11 +136,10 @@ class PerformanceEstimator:
                 else:
                     modifier_name = option_type.replace("Option", "").lower()
                 multiplier = self.CONTENT_MODIFIER_MULTIPLIERS.get(modifier_name, 1.0)
-                # Adjust total cost by applying modifier retroactively
-                prev_content_base = self.BASE_COSTS["ContentOption"]
-                # Subtract original content cost, add modified cost
-                total_cost -= prev_content_base
-                total_cost += prev_content_base * multiplier
+                # Adjust total cost: subtract actual content cost, add modified cost
+                total_cost -= prev_content_cost
+                prev_content_cost = prev_content_cost * multiplier
+                total_cost += prev_content_cost
             else:
                 # Regular option cost
                 total_cost += self._estimate_option_cost(option)
@@ -147,6 +147,7 @@ class PerformanceEstimator:
             # Track content options for following modifiers
             if option_type == "ContentOption":
                 prev_content = cast("ContentOption", option)
+                prev_content_cost = self._estimate_option_cost(option)
             elif option_type not in [
                 "DepthOption",
                 "OffsetOption",

@@ -212,15 +212,21 @@ class JSONSerializer:
         """
         Check if a version is compatible with current AST version.
 
+        Uses semantic versioning: same major version is compatible.
+        Major version bumps indicate breaking schema changes.
+
         Args:
             version: Version string to check
 
         Returns:
             True if compatible, False otherwise
         """
-        # For now, exact match required
-        # In future, could implement semantic versioning compatibility
-        return version == __ast_version__
+        try:
+            given_major = version.split(".")[0]
+            current_major = __ast_version__.split(".")[0]
+            return given_major == current_major
+        except (AttributeError, IndexError):
+            return False
 
 
 # Convenience functions

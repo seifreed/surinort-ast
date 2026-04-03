@@ -441,9 +441,19 @@ class RuleBuilder:
             >>> builder.content(b"GET", nocase=True, http_uri=True)
             >>> builder.content(b"admin", offset=0, depth=100)
         """
-        modifiers: list[ContentModifier] = []
+        # Add sticky buffer selections BEFORE content (IDS rule ordering)
+        for buffer_name, enabled in sticky_buffers.items():
+            if enabled:
+                self._options.append(BufferSelectOption(buffer_name=buffer_name))
 
-        # Build modifiers list
+        # Add content option
+        self._options.append(ContentOption(pattern=pattern, modifiers=[]))
+
+        # Add modifier options AFTER content (IDS rule ordering)
+        if nocase:
+            self._options.append(NocaseOption())
+        if rawbytes:
+            self._options.append(RawbytesOption())
         if offset is not None:
             self._options.append(OffsetOption(value=offset))
         if depth is not None:
@@ -452,26 +462,12 @@ class RuleBuilder:
             self._options.append(DistanceOption(value=distance))
         if within is not None:
             self._options.append(WithinOption(value=within))
-
-        # Add content option
-        self._options.append(ContentOption(pattern=pattern, modifiers=modifiers))
-
-        # Add boolean modifier options
-        if nocase:
-            self._options.append(NocaseOption())
-        if rawbytes:
-            self._options.append(RawbytesOption())
         if startswith:
             self._options.append(StartswithOption())
         if endswith:
             self._options.append(EndswithOption())
         if fast_pattern:
             self._options.append(FastPatternOption())
-
-        # Add sticky buffer selections
-        for buffer_name, enabled in sticky_buffers.items():
-            if enabled:
-                self._options.append(BufferSelectOption(buffer_name=buffer_name))
 
         return self
 
@@ -825,9 +821,9 @@ class RuleBuilder:
         if addr_str.lower() == "any":
             return AnyAddress()
 
-        # Handle variables ($HOME_NET, etc.)
+        # Handle variables ($HOME_NET, etc.) — store without $ prefix
         if addr_str.startswith("$"):
-            return AddressVariable(name=addr_str)
+            return AddressVariable(name=addr_str[1:])
 
         # Handle negation (!192.168.1.1)
         if addr_str.startswith("!"):
@@ -892,9 +888,9 @@ class RuleBuilder:
         if port_str.lower() == "any":
             return AnyPort()
 
-        # Handle variables ($HTTP_PORTS, etc.)
+        # Handle variables ($HTTP_PORTS, etc.) — store without $ prefix
         if port_str.startswith("$"):
-            return PortVariable(name=port_str)
+            return PortVariable(name=port_str[1:])
 
         # Handle negation (!80)
         if port_str.startswith("!"):

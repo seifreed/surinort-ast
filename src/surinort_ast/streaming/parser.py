@@ -27,6 +27,47 @@ from ..parsing.parser_config import ParserConfig
 logger = logging.getLogger(__name__)
 
 
+def _count_unquoted_parens(text: str) -> tuple[int, int]:
+    """Count parentheses outside of quoted strings and hex pipes.
+
+    Returns:
+        Tuple of (open_count, close_count) for unquoted parentheses.
+    """
+    open_count = 0
+    close_count = 0
+    in_quote = False
+    quote_char = ""
+    in_pipe = False
+    escaped = False
+
+    for ch in text:
+        if escaped:
+            escaped = False
+            continue
+        if ch == "\\":
+            escaped = True
+            continue
+        if in_quote:
+            if ch == quote_char:
+                in_quote = False
+            continue
+        if in_pipe:
+            if ch == "|":
+                in_pipe = False
+            continue
+        if ch in ('"', "'"):
+            in_quote = True
+            quote_char = ch
+        elif ch == "|":
+            in_pipe = True
+        elif ch == "(":
+            open_count += 1
+        elif ch == ")":
+            close_count += 1
+
+    return open_count, close_count
+
+
 # ============================================================================
 # Data Structures
 # ============================================================================
@@ -244,11 +285,10 @@ class StreamParser:
                     # - We have matching opening parenthesis
                     first_line = current_rule_lines[0][1]
                     if any(first_line.startswith(action) for action in action_keywords):
-                        # Count parentheses to ensure we're at the closing paren
+                        # Count unquoted parentheses to ensure we're at the closing paren
                         full_text = " ".join(line for _, line in current_rule_lines)
-                        if full_text.count("(") > 0 and full_text.count("(") == full_text.count(
-                            ")"
-                        ):
+                        open_count, close_count = _count_unquoted_parens(full_text)
+                        if open_count > 0 and open_count == close_count:
                             # Parse complete rule
                             rule = self._parse_lines(
                                 current_rule_lines, str(file_path), skip_errors
@@ -473,15 +513,18 @@ class StreamParser:
 
             return rule
 
+        except ParseError:
+            # Re-raise ParseError as-is when not skipping errors
+            if skip_errors:
+                return None
+            raise
         except Exception as e:
             logger.debug(f"Failed to parse rule at line {first_line_num}: {e}")
 
             if skip_errors:
                 return None
 
-            # Return rule with error diagnostic
-            # (parser already creates error rules in non-strict mode)
-            return None
+            raise ParseError(f"Line {first_line_num}: {e}") from e
 
     def _extract_sid(self, rule: Rule) -> str | None:
         """

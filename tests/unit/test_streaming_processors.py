@@ -131,8 +131,8 @@ def test_filter_processor_error_handling():
         error_filter = FilterProcessor(buggy_predicate)
         filtered_rules = list(error_filter.stream(input_stream))
 
-        # Should filter out all rules due to errors
-        assert len(filtered_rules) == 0
+        # Should keep rules when predicate errors (safe default: don't lose data)
+        assert len(filtered_rules) == len(rules_text)
     finally:
         temp_path.unlink()
 

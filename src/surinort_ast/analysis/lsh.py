@@ -10,10 +10,34 @@ Author: Marc Rivero Lopez
 
 from __future__ import annotations
 
+import hashlib
+import struct
 from collections import defaultdict
 from typing import Any
 
-from ..core.nodes import Rule
+from ..core.nodes import Rule, SidOption
+
+
+def _stable_rule_key(rule: Rule) -> int:
+    """Generate a stable identifier for a rule that survives GC.
+
+    Uses SID + action + protocol hash when available, falls back to
+    a hash of the rule's model dump for rules without SID.
+    """
+    sid = None
+    for opt in rule.options:
+        if isinstance(opt, SidOption):
+            sid = opt.value
+            break
+
+    if sid is not None:
+        # SID is unique per ruleset — combine with action for extra safety
+        seed = f"sid:{sid}:{rule.action.value}"
+    else:
+        # Fallback: hash the full rule content
+        seed = rule.model_dump_json(exclude={"location", "origin", "raw_text", "diagnostics"})
+
+    return int(hashlib.sha256(seed.encode("utf-8")).digest()[:8].hex(), 16)
 
 
 class LSHIndex:
@@ -92,15 +116,19 @@ class LSHIndex:
         """
         Hash a band (list of hash values) to a bucket identifier.
 
+        Uses SHA-256 for deterministic hashing across Python sessions
+        (Python's built-in hash() is randomized via PYTHONHASHSEED).
+
         Args:
             band: List of hash values in the band
 
         Returns:
-            Bucket hash (integer)
+            Bucket hash (integer, deterministic)
         """
-        # Combine hash values using tuple hashing
-        # This ensures different bands map to different spaces
-        return hash(tuple(band))
+        # Pack band values as bytes and hash with SHA-256 for determinism
+        data = struct.pack(f">{len(band)}i", *band)
+        digest = hashlib.sha256(data).digest()[:8]
+        return struct.unpack(">q", digest)[0]
 
     def _get_bands(self, signature: list[int]) -> list[list[int]]:
         """
@@ -117,8 +145,10 @@ class LSHIndex:
         """
         expected_len = self.num_bands * self.rows_per_band
         if len(signature) < expected_len:
-            # Pad signature if too short
-            signature = signature + [0] * (expected_len - len(signature))
+            # Pad with max hash value to preserve MinHash semantics
+            # (padding with 0 would bias similarity toward higher values)
+            max_hash = (1 << 31) - 1
+            signature = signature + [max_hash] * (expected_len - len(signature))
         elif len(signature) > expected_len:
             # Truncate signature if too long
             signature = signature[:expected_len]
@@ -143,8 +173,8 @@ class LSHIndex:
             >>> lsh = LSHIndex(threshold=0.8)
             >>> lsh.add(rule, signature)
         """
-        # Get rule ID (use Python id as unique identifier)
-        rule_id = id(rule)
+        # Get stable rule ID (survives GC, deterministic across sessions)
+        rule_id = _stable_rule_key(rule)
 
         # Store rule and signature
         self.rules[rule_id] = (rule, signature)
@@ -181,7 +211,7 @@ class LSHIndex:
             # Get all rules in the same bucket
             bucket = self.buckets[band_idx].get(bucket_hash, [])
             for rule, sig in bucket:
-                rule_id = id(rule)
+                rule_id = _stable_rule_key(rule)
                 if rule_id not in candidates:
                     candidates[rule_id] = (rule, sig)
 
@@ -238,7 +268,7 @@ class LSHIndex:
             >>> lsh.remove(rule)
             True
         """
-        rule_id = id(rule)
+        rule_id = _stable_rule_key(rule)
 
         if rule_id not in self.rules:
             return False
@@ -255,8 +285,10 @@ class LSHIndex:
             bucket_hash = self._hash_band(band)
             bucket = self.buckets[band_idx].get(bucket_hash, [])
 
-            # Filter out the rule
-            self.buckets[band_idx][bucket_hash] = [(r, s) for r, s in bucket if id(r) != rule_id]
+            # Filter out the rule by stable key
+            self.buckets[band_idx][bucket_hash] = [
+                (r, s) for r, s in bucket if _stable_rule_key(r) != rule_id
+            ]
 
         return True
 

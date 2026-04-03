@@ -325,29 +325,26 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
             return None
 
         if combinator == Combinator.CHILD:
-            # Find immediate parent that matches selector
-            # When walking back through a chain, we need to find the parent
-            # of the current node by looking at its position in ancestors
-            try:
-                node_index = self.execution_context.ancestors.index(node)
-                if node_index > 0:
-                    parent = self.execution_context.ancestors[node_index - 1]
+            # Find immediate parent that matches selector.
+            # Search backwards through ancestors to find this node, then check its parent.
+            ancestors = self.execution_context.ancestors
+            for idx in range(len(ancestors) - 1, -1, -1):
+                if ancestors[idx] is node and idx > 0:
+                    parent = ancestors[idx - 1]
                     if selector.matches(parent):
                         return parent
-            except ValueError:
-                pass
+                    break
             return None
 
         if combinator == Combinator.ADJACENT:
-            # Find immediately preceding sibling that matches selector
-            # Get parent from node's position in ancestors
-            try:
-                node_index = self.execution_context.ancestors.index(node)
-                if node_index > 0:
-                    parent = self.execution_context.ancestors[node_index - 1]
-                else:
-                    return None
-            except ValueError:
+            # Find immediately preceding sibling that matches selector.
+            ancestors = self.execution_context.ancestors
+            parent = None
+            for idx in range(len(ancestors) - 1, -1, -1):
+                if ancestors[idx] is node and idx > 0:
+                    parent = ancestors[idx - 1]
+                    break
+            if parent is None:
                 return None
 
             siblings = self._get_children(parent)
@@ -362,15 +359,14 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
             return None
 
         if combinator == Combinator.GENERAL:
-            # Find any preceding sibling that matches selector
-            # Get parent from node's position in ancestors
-            try:
-                node_index = self.execution_context.ancestors.index(node)
-                if node_index > 0:
-                    parent = self.execution_context.ancestors[node_index - 1]
-                else:
-                    return None
-            except ValueError:
+            # Find any preceding sibling that matches selector.
+            ancestors = self.execution_context.ancestors
+            parent = None
+            for idx in range(len(ancestors) - 1, -1, -1):
+                if ancestors[idx] is node and idx > 0:
+                    parent = ancestors[idx - 1]
+                    break
+            if parent is None:
                 return None
 
             siblings = self._get_children(parent)
@@ -384,80 +380,6 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
             return None
 
         return None
-
-    def _check_combinator(self, node: ASTNode, combinator: Any) -> bool:
-        """
-        Check if node satisfies combinator relationship.
-
-        Validates hierarchical relationship between previous match
-        and current node based on combinator type.
-
-        Args:
-            node: Current node to check
-            combinator: Combinator type to validate
-
-        Returns:
-            True if combinator relationship holds
-
-        Combinator Logic:
-            DESCENDANT: Node is any descendant of previous match
-            CHILD: Node is direct child of previous match
-            ADJACENT: Node is immediately following sibling of previous match
-            GENERAL: Node is any following sibling of previous match
-
-        Implementation:
-            Phase 2: All combinator types using execution context
-        """
-        from .selectors import Combinator
-
-        # Get previous match from context
-        if (
-            not hasattr(self.execution_context, "previous_match")
-            or self.execution_context.previous_match is None
-        ):
-            return False
-
-        previous_match = self.execution_context.previous_match
-
-        if combinator == Combinator.DESCENDANT:
-            # Node must be a descendant of previous match (at any depth)
-            # Check if previous_match is in the ancestor stack
-            return self.execution_context.is_descendant_of(node, previous_match)
-
-        if combinator == Combinator.CHILD:
-            # Node must be a direct child of previous match
-            return self.execution_context.is_child_of(node, previous_match)
-
-        if combinator == Combinator.ADJACENT:
-            # Node must be immediately following sibling
-            # This requires sibling information from parent
-            parent = self.execution_context.get_parent()
-            if parent is None:
-                return False
-
-            siblings = self._get_children(parent)
-            try:
-                prev_index = siblings.index(previous_match)
-                node_index = siblings.index(node)
-                return node_index == prev_index + 1
-            except (ValueError, IndexError):
-                return False
-
-        elif combinator == Combinator.GENERAL:
-            # Node must be any following sibling
-            parent = self.execution_context.get_parent()
-            if parent is None:
-                return False
-
-            siblings = self._get_children(parent)
-            try:
-                prev_index = siblings.index(previous_match)
-                node_index = siblings.index(node)
-                return node_index > prev_index
-            except (ValueError, IndexError):
-                return False
-
-        return False
 
     def _get_children(self, node: ASTNode) -> list[ASTNode]:
         """Get all children of a node."""

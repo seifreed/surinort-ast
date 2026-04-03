@@ -21,6 +21,11 @@ _MISSING_CONTENT_CLOSER_RE = re.compile(
 )
 
 
+_MISSING_CONTENT_CLOSER_RE = re.compile(
+    r'(?P<prefix>\b(?:uri)?content:")(?P<body>(?:[^"\\]|\\.)*?)\\\"(?=;)'
+)
+
+
 def token_to_location(token: Token, file_path: str | None = None) -> Location:
     """
     Convert Lark Token to Location.

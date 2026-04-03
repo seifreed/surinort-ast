@@ -429,10 +429,10 @@ class TestAddressParsing:
             .build()
         )
         assert isinstance(rule.header.src_addr, AddressVariable)
-        assert rule.header.src_addr.name == "$HOME_NET"
+        assert rule.header.src_addr.name == "HOME_NET"
 
         assert isinstance(rule.header.dst_addr, AddressVariable)
-        assert rule.header.dst_addr.name == "$EXTERNAL_NET"
+        assert rule.header.dst_addr.name == "EXTERNAL_NET"
 
     def test_negated_address(self) -> None:
         """Test negated address parsing."""
@@ -583,7 +583,7 @@ class TestPortParsing:
             .build()
         )
         assert isinstance(rule.header.src_port, PortVariable)
-        assert rule.header.src_port.name == "$HTTP_PORTS"
+        assert rule.header.src_port.name == "HTTP_PORTS"
 
     def test_port_negation(self) -> None:
         """Test port negation parsing."""

@@ -189,8 +189,12 @@ class FilterProcessor(StreamProcessor):
                 return rule
             return None
         except Exception as e:
-            logger.warning(f"Filter predicate error: {e}")
-            return None
+            logger.warning(
+                f"Filter predicate raised {type(e).__name__}: {e}. "
+                f"Keeping rule to avoid silent data loss. "
+                f"Fix predicate to handle this case explicitly."
+            )
+            return rule
 
 
 # ============================================================================
@@ -311,8 +315,16 @@ class ValidateProcessor(StreamProcessor):
         """
         diagnostics = list(rule.diagnostics)
 
-        # Run built-in validators
-        diagnostics.extend(self._validate_required_options(rule))
+        # Run built-in validators (reuse canonical validation from API)
+        from ..api.validation import validate_rule
+
+        api_diagnostics = validate_rule(rule)
+        # Filter out diagnostics already present from parsing
+        existing_codes = {d.code for d in diagnostics if d.code}
+        for d in api_diagnostics:
+            if d.code not in existing_codes:
+                diagnostics.append(d)
+
         diagnostics.extend(self._validate_sid_uniqueness(rule))
 
         # Run custom validators
@@ -334,42 +346,6 @@ class ValidateProcessor(StreamProcessor):
                 return None
 
         return rule
-
-    def _validate_required_options(self, rule: Rule) -> list[Diagnostic]:
-        """
-        Validate required options are present.
-
-        Args:
-            rule: Rule to validate
-
-        Returns:
-            List of diagnostics
-        """
-        diagnostics: list[Diagnostic] = []
-
-        # Check for required options
-        has_sid = any(opt.node_type == "SidOption" for opt in rule.options)
-        has_msg = any(opt.node_type == "MsgOption" for opt in rule.options)
-
-        if not has_sid:
-            diagnostics.append(
-                Diagnostic(
-                    level=DiagnosticLevel.WARNING,
-                    message="Missing required option 'sid'",
-                    code="missing_sid",
-                )
-            )
-
-        if not has_msg:
-            diagnostics.append(
-                Diagnostic(
-                    level=DiagnosticLevel.WARNING,
-                    message="Missing required option 'msg'",
-                    code="missing_msg",
-                )
-            )
-
-        return diagnostics
 
     def _validate_sid_uniqueness(self, rule: Rule) -> list[Diagnostic]:
         """

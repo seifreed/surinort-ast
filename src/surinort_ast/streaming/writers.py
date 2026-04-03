@@ -353,7 +353,12 @@ class StreamWriterJSON(StreamWriter):
     def _write_footer(self) -> None:
         """Write JSON array closing."""
         if self._file:
-            self._file.write("\n]\n" if self.indent else "]")
+            if self.indent and not self._first_rule:
+                # Rules were written — close with newline before bracket
+                self._file.write("\n]\n")
+            else:
+                # Empty array or compact mode
+                self._file.write("]\n" if self.indent else "]")
 
 
 # ============================================================================

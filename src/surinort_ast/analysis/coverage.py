@@ -562,11 +562,12 @@ class CoverageAnalyzer:
             )
 
         # Check direction balance
-        self.direction_coverage.get(Direction.TO, 0)
+        inbound = self.direction_coverage.get(Direction.TO, 0)
         outbound = self.direction_coverage.get(Direction.FROM, 0)
-        self.direction_coverage.get(Direction.BIDIRECTIONAL, 0)
+        bidirectional = self.direction_coverage.get(Direction.BIDIRECTIONAL, 0)
 
         outbound_pct = (outbound / total * 100) if total > 0 else 0
+        inbound_pct = (inbound / total * 100) if total > 0 else 0
 
         if outbound_pct < 2 and total >= 100:
             gaps.append(
@@ -578,12 +579,33 @@ class CoverageAnalyzer:
                 )
             )
 
+        if inbound_pct < 2 and bidirectional < 1 and total >= 100:
+            gaps.append(
+                CoverageGap(
+                    gap_type="direction",
+                    description=f"Very low inbound traffic monitoring ({inbound_pct:.1f}%)",
+                    severity="medium",
+                    recommendation="Add rules for inbound attack detection and scanning",
+                )
+            )
+
         # Check action distribution
-        self.action_coverage.get(Action.ALERT, 0)
+        alert_count = self.action_coverage.get(Action.ALERT, 0)
         drop_count = self.action_coverage.get(Action.DROP, 0)
         reject_count = self.action_coverage.get(Action.REJECT, 0)
 
+        alert_pct = (alert_count / total * 100) if total > 0 else 0
         block_pct = ((drop_count + reject_count) / total * 100) if total > 0 else 0
+
+        if alert_pct > 99 and total >= 100:
+            gaps.append(
+                CoverageGap(
+                    gap_type="action",
+                    description=f"Alert-only ruleset ({alert_pct:.1f}% alert, no blocking actions)",
+                    severity="low",
+                    recommendation="Consider adding drop/reject rules for high-confidence threats in IPS mode",
+                )
+            )
 
         if block_pct < 1 and total >= 100:
             gaps.append(

@@ -492,21 +492,35 @@ def validate_selector_chain(chain: SelectorChain) -> None:
     Validate semantic correctness of selector chain.
 
     Checks for:
-        - Invalid combinator sequences
-        - Impossible selector combinations
-        - Type mismatches in attribute operators
+        - Empty selector chains
+        - Mismatched combinator/selector counts
 
     Args:
         chain: Parsed selector chain
 
     Raises:
         InvalidSelectorError: If chain has semantic errors
-
-    Example:
-        >>> chain = parser.parse("Rule[value>string]")  # Type mismatch
-        >>> validate_selector_chain(chain)  # Raises InvalidSelectorError
     """
-    # TODO: Implement validation in Phase 1
+    from . import InvalidSelectorError
+    from .selectors import UnionSelector
+
+    # UnionSelector wraps multiple chains; validate each sub-chain individually
+    if isinstance(chain, UnionSelector):
+        for sub_chain in chain.selectors:
+            if isinstance(sub_chain, SelectorChain):
+                validate_selector_chain(sub_chain)
+        return
+
+    if not chain.selectors:
+        raise InvalidSelectorError("Selector chain is empty")
+
+    expected_combinators = max(0, len(chain.selectors) - 1)
+    if len(chain.combinators) != expected_combinators:
+        raise InvalidSelectorError(
+            f"Selector chain has {len(chain.selectors)} selectors "
+            f"but {len(chain.combinators)} combinators "
+            f"(expected {expected_combinators})"
+        )
 
 
 def normalize_selector(selector: str) -> str:

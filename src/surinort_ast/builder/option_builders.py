@@ -20,6 +20,7 @@ from ..core.nodes import (
     FlowOption,
     NocaseOption,
     OffsetOption,
+    Option,
     RawbytesOption,
     StartswithOption,
     ThresholdOption,
@@ -65,6 +66,7 @@ class ContentBuilder:
         self._parent = parent
         self._pattern: bytes | None = None
         self._modifiers: list[ContentModifier] = []
+        self._pending_modifiers: list[Option] = []
 
     def pattern(self, pattern: bytes) -> ContentBuilder:
         """
@@ -86,7 +88,7 @@ class ContentBuilder:
         Returns:
             Self for chaining
         """
-        self._parent._options.append(NocaseOption())
+        self._pending_modifiers.append(NocaseOption())
         return self
 
     def rawbytes(self) -> ContentBuilder:
@@ -96,7 +98,7 @@ class ContentBuilder:
         Returns:
             Self for chaining
         """
-        self._parent._options.append(RawbytesOption())
+        self._pending_modifiers.append(RawbytesOption())
         return self
 
     def depth(self, depth: int) -> ContentBuilder:
@@ -109,7 +111,7 @@ class ContentBuilder:
         Returns:
             Self for chaining
         """
-        self._parent._options.append(DepthOption(value=depth))
+        self._pending_modifiers.append(DepthOption(value=depth))
         return self
 
     def offset(self, offset: int) -> ContentBuilder:
@@ -122,7 +124,7 @@ class ContentBuilder:
         Returns:
             Self for chaining
         """
-        self._parent._options.append(OffsetOption(value=offset))
+        self._pending_modifiers.append(OffsetOption(value=offset))
         return self
 
     def distance(self, distance: int) -> ContentBuilder:
@@ -135,7 +137,7 @@ class ContentBuilder:
         Returns:
             Self for chaining
         """
-        self._parent._options.append(DistanceOption(value=distance))
+        self._pending_modifiers.append(DistanceOption(value=distance))
         return self
 
     def within(self, within: int) -> ContentBuilder:
@@ -148,7 +150,7 @@ class ContentBuilder:
         Returns:
             Self for chaining
         """
-        self._parent._options.append(WithinOption(value=within))
+        self._pending_modifiers.append(WithinOption(value=within))
         return self
 
     def fast_pattern(self) -> ContentBuilder:
@@ -158,7 +160,7 @@ class ContentBuilder:
         Returns:
             Self for chaining
         """
-        self._parent._options.append(FastPatternOption())
+        self._pending_modifiers.append(FastPatternOption())
         return self
 
     def startswith(self) -> ContentBuilder:
@@ -168,7 +170,7 @@ class ContentBuilder:
         Returns:
             Self for chaining
         """
-        self._parent._options.append(StartswithOption())
+        self._pending_modifiers.append(StartswithOption())
         return self
 
     def endswith(self) -> ContentBuilder:
@@ -178,7 +180,7 @@ class ContentBuilder:
         Returns:
             Self for chaining
         """
-        self._parent._options.append(EndswithOption())
+        self._pending_modifiers.append(EndswithOption())
         return self
 
     def http_uri(self) -> ContentBuilder:
@@ -280,9 +282,12 @@ class ContentBuilder:
         if self._pattern is None:
             raise BuilderError("Content pattern must be set before calling done()")
 
-        # Add content option with modifiers
+        # Add content option with inline modifiers, then standalone modifiers after
         content_opt = ContentOption(pattern=self._pattern, modifiers=self._modifiers)
         self._parent._options.append(content_opt)
+
+        # Append standalone modifiers AFTER content (IDS rule ordering)
+        self._parent._options.extend(self._pending_modifiers)
 
         return self._parent
 

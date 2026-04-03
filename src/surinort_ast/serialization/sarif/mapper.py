@@ -47,13 +47,19 @@ def _to_location(finding: Finding) -> list[SarifLocation]:
     if finding.location is None:
         return []
 
-    region = SarifRegion(
-        start_line=finding.location.start_line,
-        start_column=finding.location.start_column,
-        end_line=finding.location.end_line,
-        end_column=finding.location.end_column,
-    )
-    physical = SarifPhysicalLocation(uri=finding.location.file_path, region=region)
+    loc = finding.location
+
+    # Only create region if at least startLine is present (SARIF 2.1.0 requirement)
+    region: SarifRegion | None = None
+    if loc.start_line is not None:
+        region = SarifRegion(
+            start_line=loc.start_line,
+            start_column=loc.start_column,
+            end_line=loc.end_line,
+            end_column=loc.end_column,
+        )
+
+    physical = SarifPhysicalLocation(uri=loc.file_path, region=region)
     return [SarifLocation(physical_location=physical)]
 
 

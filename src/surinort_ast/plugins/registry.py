@@ -107,11 +107,16 @@ class PluginRegistry:
                     f"Parser plugin '{name}' is already registered. Use overwrite=True to replace."
                 )
 
-            if not isinstance(plugin, type):  # Check if it's an ABC
-                from .interface import ParserPlugin as ParserPluginABC
+            if isinstance(plugin, type):
+                raise TypeError(
+                    f"Plugin must be an instance, not a class. Got {plugin}. "
+                    f"Instantiate it first: register_parser(name, {plugin.__name__}())"
+                )
 
-                if not isinstance(plugin, ParserPluginABC):
-                    raise TypeError(f"Plugin must implement ParserPlugin, got {type(plugin)}")
+            from .interface import ParserPlugin as ParserPluginABC
+
+            if not isinstance(plugin, ParserPluginABC):
+                raise TypeError(f"Plugin must implement ParserPlugin, got {type(plugin)}")
 
             self._parsers[name] = plugin
             logger.info(f"Registered parser plugin: {name}")
@@ -180,11 +185,16 @@ class PluginRegistry:
                     f"Use overwrite=True to replace."
                 )
 
-            if not isinstance(plugin, type):
-                from .interface import SerializerPlugin as SerializerPluginABC
+            if isinstance(plugin, type):
+                raise TypeError(
+                    f"Plugin must be an instance, not a class. Got {plugin}. "
+                    f"Instantiate it first: register_serializer(name, {plugin.__name__}())"
+                )
 
-                if not isinstance(plugin, SerializerPluginABC):
-                    raise TypeError(f"Plugin must implement SerializerPlugin, got {type(plugin)}")
+            from .interface import SerializerPlugin as SerializerPluginABC
+
+            if not isinstance(plugin, SerializerPluginABC):
+                raise TypeError(f"Plugin must implement SerializerPlugin, got {type(plugin)}")
 
             self._serializers[format_name] = plugin
             logger.info(f"Registered serializer plugin: {format_name}")
@@ -253,11 +263,16 @@ class PluginRegistry:
                     f"Use overwrite=True to replace."
                 )
 
-            if not isinstance(plugin, type):
-                from .interface import AnalysisPlugin as AnalysisPluginABC
+            if isinstance(plugin, type):
+                raise TypeError(
+                    f"Plugin must be an instance, not a class. Got {plugin}. "
+                    f"Instantiate it first: register_analyzer(name, {plugin.__name__}())"
+                )
 
-                if not isinstance(plugin, AnalysisPluginABC):
-                    raise TypeError(f"Plugin must implement AnalysisPlugin, got {type(plugin)}")
+            from .interface import AnalysisPlugin as AnalysisPluginABC
+
+            if not isinstance(plugin, AnalysisPluginABC):
+                raise TypeError(f"Plugin must implement AnalysisPlugin, got {type(plugin)}")
 
             self._analyzers[name] = plugin
             logger.info(f"Registered analyzer plugin: {name}")
@@ -325,11 +340,16 @@ class PluginRegistry:
                     f"Query plugin '{name}' is already registered. Use overwrite=True to replace."
                 )
 
-            if not isinstance(plugin, type):
-                from .interface import QueryPlugin as QueryPluginABC
+            if isinstance(plugin, type):
+                raise TypeError(
+                    f"Plugin must be an instance, not a class. Got {plugin}. "
+                    f"Instantiate it first: register_query(name, {plugin.__name__}())"
+                )
 
-                if not isinstance(plugin, QueryPluginABC):
-                    raise TypeError(f"Plugin must implement QueryPlugin, got {type(plugin)}")
+            from .interface import QueryPlugin as QueryPluginABC
+
+            if not isinstance(plugin, QueryPluginABC):
+                raise TypeError(f"Plugin must implement QueryPlugin, got {type(plugin)}")
 
             self._queries[name] = plugin
             logger.info(f"Registered query plugin: {name}")
