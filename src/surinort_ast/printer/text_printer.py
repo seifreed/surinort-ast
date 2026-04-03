@@ -101,8 +101,16 @@ def _print_option_dispatch(
     Returns:
         Formatted option text
     """
-    # Fallback for unknown option types
-    return f"{option.node_type.lower()};"
+    # Fallback for unknown option types — try to preserve data
+    keyword = option.node_type.lower()
+    # Try common field names to avoid silent data loss
+    value = getattr(option, "value", None)
+    if value is not None:
+        return f"{keyword}:{value};"
+    raw = getattr(option, "raw", None)
+    if raw is not None:
+        return f"{raw};" if not raw.endswith(";") else raw
+    return f"{keyword};"
 
 
 @_print_option_dispatch.register
@@ -157,7 +165,8 @@ def _(option: ContentOption, fmt_opts: FormatterOptions, printer: _TextPrinter) 
 def _(option: PcreOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     quote = fmt_opts.get_quote_char()
     flags = option.flags if option.flags else ""
-    return f"pcre:{quote}/{option.pattern}/{flags}{quote};"
+    negation = "!" if option.negated else ""
+    return f"pcre:{negation}{quote}/{option.pattern}/{flags}{quote};"
 
 
 @_print_option_dispatch.register
@@ -262,12 +271,14 @@ def _(option: FilestoreOption, fmt_opts: FormatterOptions, printer: _TextPrinter
 
 @_print_option_dispatch.register
 def _(option: LuaOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
-    return f"lua:{option.script_name};"
+    negation = "!" if option.negated else ""
+    return f"lua:{negation}{option.script_name};"
 
 
 @_print_option_dispatch.register
 def _(option: LuajitOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
-    return f"luajit:{option.script_name};"
+    negation = "!" if option.negated else ""
+    return f"luajit:{negation}{option.script_name};"
 
 
 @_print_option_dispatch.register

@@ -18,10 +18,13 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from lark import Token
 from lark.visitors import v_args
+
+if TYPE_CHECKING:
+    from . import DiagnosticReporter
 
 from ...core.diagnostics import DiagnosticLevel
 from ...core.nodes import (
@@ -67,7 +70,7 @@ class PortTransformerMixin:
 
     # Declare expected attributes for type checking
     file_path: str | None
-    add_diagnostic: Any  # Method signature varies by parent class
+    add_diagnostic: DiagnosticReporter
     config: Any  # ParserConfig instance
     _nesting_depth: int
 
@@ -200,11 +203,26 @@ class PortTransformerMixin:
         if start > end:
             self.add_diagnostic(
                 DiagnosticLevel.ERROR,
-                f"Port range start {start} > end {end}",
+                f"Port range start {start} > end {end}, swapping to create valid range",
                 token_to_location(start_token, self.file_path),
             )
+            start, end = end, start
 
         return PortRange(start=start, end=end)
+
+    @v_args(inline=True)
+    def port_upper_range(self, end_token: Token) -> PortRange:
+        """
+        Transform upper-bounded port range (e.g., :1024).
+
+        Args:
+            end_token: Token containing the inclusive upper bound
+
+        Returns:
+            PortRange from 0 to the specified upper bound
+        """
+        end = int(end_token.value)
+        return PortRange(start=0, end=end)
 
     @v_args(inline=True)
     def port_single(self, port_token: Token) -> Port:

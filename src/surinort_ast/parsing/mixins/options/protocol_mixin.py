@@ -74,17 +74,17 @@ class ProtocolSpecificOptionsMixin:
         Extract urilen value with optional comparison operator.
 
         Args:
-            items: Sequence containing INT token
+            items: Sequence containing optional URILEN_OP token and INT token
 
         Returns:
-            Value string
-
-        Note:
-            Operator information is lost during parsing (see urilen_option note).
+            Value string including operator (e.g., "<100", ">500", "21")
         """
-        if items:
-            return str(items[0].value)
-        return ""
+        if not items:
+            return ""
+
+        # Items may be [URILEN_OP, INT] or [INT]
+        parts = [str(token.value) for token in items]
+        return "".join(parts)
 
     # ========================================================================
     # Data Availability Options

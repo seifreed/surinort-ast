@@ -46,20 +46,20 @@ class TestRealisticTransformerCoverage:
 
     def test_detection_filter_real(self):
         """Test detection_filter with real parsing"""
+        from surinort_ast.core.nodes import DetectionFilterOption
+
         parser = RuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (detection_filter:track by_src, count 1, seconds 60; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
         det_filter = next(
-            (
-                opt
-                for opt in result.options
-                if hasattr(opt, "keyword") and opt.keyword == "detection_filter"
-            ),
+            (opt for opt in result.options if isinstance(opt, DetectionFilterOption)),
             None,
         )
         assert det_filter is not None
-        assert "by_src" in det_filter.value
+        assert det_filter.track == "by_src"
+        assert det_filter.count == 1
+        assert det_filter.seconds == 60
 
     def test_byte_jump_complex_real(self):
         """Test byte_jump with multiple flags"""
@@ -187,19 +187,21 @@ class TestRealisticTransformerCoverage:
 
     def test_threshold_real(self):
         """Test threshold option"""
+        from surinort_ast.core.nodes import ThresholdOption
+
         parser = RuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (threshold:type limit, track by_src, count 1, seconds 60; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
         threshold_opt = next(
-            (
-                opt
-                for opt in result.options
-                if hasattr(opt, "keyword") and opt.keyword == "threshold"
-            ),
+            (opt for opt in result.options if isinstance(opt, ThresholdOption)),
             None,
         )
         assert threshold_opt is not None
+        assert threshold_opt.threshold_type == "limit"
+        assert threshold_opt.track == "by_src"
+        assert threshold_opt.count == 1
+        assert threshold_opt.seconds == 60
 
     def test_flowbits_real(self):
         """Test flowbits option"""

@@ -39,6 +39,7 @@ class Protocol(str, Enum):
 
     # Network layer
     TCP = "tcp"
+    TCP_PKT = "tcp-pkt"
     UDP = "udp"
     ICMP = "icmp"
     IP = "ip"
@@ -46,7 +47,9 @@ class Protocol(str, Enum):
 
     # Application layer (Suricata)
     HTTP = "http"
+    HTTP1 = "http1"
     HTTP2 = "http2"
+    BITTORRENT_DHT = "bittorrent-dht"
     DNS = "dns"
     TLS = "tls"
     SSH = "ssh"

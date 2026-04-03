@@ -11,12 +11,19 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from lark import Token
 
-from ....core.nodes import GenericOption
+if TYPE_CHECKING:
+    from .. import DiagnosticReporter
+
+from ....core.diagnostics import DiagnosticLevel
+from ....core.nodes import DetectionFilterOption, GenericOption, ThresholdOption
+
+logger = logging.getLogger(__name__)
 
 
 class ThresholdOptionsMixin:
@@ -40,13 +47,20 @@ class ThresholdOptionsMixin:
     Track By:
         - by_src: Track per source IP
         - by_dst: Track per destination IP
+
+    Dependencies:
+        This mixin expects the following attributes/methods on the parent class:
+        - add_diagnostic(level, message, location) - Diagnostic reporting method
     """
+
+    # Declare expected attributes for type checking
+    add_diagnostic: DiagnosticReporter
 
     # ========================================================================
     # Threshold Options
     # ========================================================================
 
-    def threshold_option(self, items: Sequence[Any]) -> GenericOption:
+    def threshold_option(self, items: Sequence[Any]) -> ThresholdOption | GenericOption:
         """
         Transform threshold option (rate limiting).
 
@@ -54,7 +68,7 @@ class ThresholdOptionsMixin:
             items: List containing threshold parameters
 
         Returns:
-            GenericOption with keyword="threshold" and formatted parameters
+            ThresholdOption with structured fields, or GenericOption as fallback
 
         Usage:
             threshold:type threshold, track by_src, count 10, seconds 60;
@@ -78,16 +92,50 @@ class ThresholdOptionsMixin:
         # items[0] should be threshold_params which is a list of tuples
         params = items[0] if items else []
 
-        # Build params string
+        # Try to extract structured fields for ThresholdOption
+        param_dict: dict[str, str] = {}
         param_strs = []
         for item in params:
             if isinstance(item, tuple) and len(item) == 2:
-                param_strs.append(f"{item[0]} {item[1]}")
+                key = str(item[0])
+                value = str(item[1])
+                if key in param_dict:
+                    self.add_diagnostic(
+                        DiagnosticLevel.WARNING,
+                        f"Duplicate threshold parameter '{key}' "
+                        f"(was '{param_dict[key]}', now '{value}')",
+                    )
+                param_dict[key] = value
+                param_strs.append(f"{key} {value}")
             elif isinstance(item, Token):
                 param_strs.append(str(item.value))
             else:
                 param_strs.append(str(item))
 
+        # Build ThresholdOption if all required fields are present
+        if all(k in param_dict for k in ("type", "track", "count", "seconds")):
+            try:
+                return ThresholdOption(
+                    threshold_type=param_dict["type"],
+                    track=param_dict["track"],
+                    count=int(param_dict["count"]),
+                    seconds=int(param_dict["seconds"]),
+                )
+            except (ValueError, TypeError) as e:
+                logger.debug(f"Threshold structured parse failed: {e}")
+                self.add_diagnostic(
+                    DiagnosticLevel.WARNING,
+                    f"Could not parse threshold as structured option: {e}. "
+                    "Falling back to generic representation.",
+                )
+
+        # Fallback to GenericOption for non-standard threshold syntax
+        if not all(k in param_dict for k in ("type", "track", "count", "seconds")):
+            self.add_diagnostic(
+                DiagnosticLevel.WARNING,
+                "Threshold option missing required fields (type, track, count, seconds). "
+                "Using generic representation.",
+            )
         params_str = ", ".join(param_strs)
         return GenericOption(keyword="threshold", value=params_str, raw=f"threshold:{params_str}")
 
@@ -117,7 +165,9 @@ class ThresholdOptionsMixin:
     # Detection Filter Options
     # ========================================================================
 
-    def detection_filter_option(self, items: Sequence[Any]) -> GenericOption:
+    def detection_filter_option(
+        self, items: Sequence[Any]
+    ) -> DetectionFilterOption | GenericOption:
         """
         Transform detection_filter option (alert suppression).
 
@@ -125,7 +175,7 @@ class ThresholdOptionsMixin:
             items: List containing detection_filter parameters
 
         Returns:
-            GenericOption with keyword="detection_filter" and formatted parameters
+            DetectionFilterOption with structured fields, or GenericOption as fallback
 
         Usage:
             detection_filter:track by_src, count 10, seconds 60;
@@ -145,18 +195,43 @@ class ThresholdOptionsMixin:
         # items[0] is the list of tuples from detection_params
         params = items[0] if items else []
 
+        param_dict: dict[str, str] = {}
         param_strs = []
         for item in params:
             if isinstance(item, (list, tuple)) and len(item) == 2:
                 # item is a tuple from detection_param: (key, value)
                 key = str(item[0].value if isinstance(item[0], Token) else item[0])
                 value = str(item[1].value if isinstance(item[1], Token) else item[1])
+                param_dict[key] = value
                 param_strs.append(f"{key} {value}")
             elif isinstance(item, Token):
                 param_strs.append(str(item.value))
             else:
                 param_strs.append(str(item))
 
+        # Build DetectionFilterOption if all required fields are present
+        if all(k in param_dict for k in ("track", "count", "seconds")):
+            try:
+                return DetectionFilterOption(
+                    track=param_dict["track"],
+                    count=int(param_dict["count"]),
+                    seconds=int(param_dict["seconds"]),
+                )
+            except (ValueError, TypeError) as e:
+                logger.debug(f"detection_filter structured parse failed: {e}")
+                self.add_diagnostic(
+                    DiagnosticLevel.WARNING,
+                    f"Could not parse detection_filter as structured option: {e}. "
+                    "Falling back to generic representation.",
+                )
+
+        # Fallback to GenericOption for non-standard syntax
+        if not all(k in param_dict for k in ("track", "count", "seconds")):
+            self.add_diagnostic(
+                DiagnosticLevel.WARNING,
+                "detection_filter option missing required fields (track, count, seconds). "
+                "Using generic representation.",
+            )
         params_str = ", ".join(param_strs)
         return GenericOption(
             keyword="detection_filter",

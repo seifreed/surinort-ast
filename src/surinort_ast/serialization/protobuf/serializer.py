@@ -160,11 +160,14 @@ if PROTOBUF_AVAILABLE:
     _PROTOCOL_TO_PB.update(
         {
             Protocol.TCP: pb.TCP,
+            Protocol.TCP_PKT: pb.TCP_PKT,
             Protocol.UDP: pb.UDP,
             Protocol.ICMP: pb.ICMP,
             Protocol.IP: pb.IP,
             Protocol.HTTP: pb.HTTP,
+            Protocol.HTTP1: pb.HTTP1,
             Protocol.HTTP2: pb.HTTP2,
+            Protocol.BITTORRENT_DHT: pb.BITTORRENT_DHT,
             Protocol.DNS: pb.DNS,
             Protocol.TLS: pb.TLS,
             Protocol.SSH: pb.SSH,

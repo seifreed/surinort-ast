@@ -39,6 +39,10 @@ def parse_quoted_string(s: str) -> str:
     # Remove quotes - use slice for performance
     if (s[0] == '"' and s[-1] == '"') or (s[0] == "'" and s[-1] == "'"):
         s = s[1:-1]
+    elif s[0] == '"' and s.endswith('\\"'):
+        # Tolerate rules that terminate a content string as ...\"; without an
+        # additional closing quote. Keep the literal trailing quote in the value.
+        s = s[1:]
 
     # Fast path: no escapes
     if "\\" not in s:
@@ -60,7 +64,9 @@ def parse_quoted_string(s: str) -> str:
 # ============================================================================
 
 # Compiled regex for PCRE pattern parsing (avoid recompilation)
-_PCRE_PATTERN_RE = re.compile(r"^/(.*)/([\w]*)$")
+# Uses a greedy match for pattern content up to the LAST unescaped /
+# This correctly handles patterns with escaped slashes like /foo\/bar/flags
+_PCRE_PATTERN_RE = re.compile(r"^/(.*)/([A-Za-z]*)$")
 
 
 def parse_pcre_pattern(s: str) -> tuple[str, str]:

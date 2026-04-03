@@ -26,13 +26,16 @@ action: ALERT -> alert
 header: protocol address port direction address port
 
 protocol: "tcp" -> tcp
+        | "tcp-pkt" -> tcp_pkt
         | "udp" -> udp
         | "icmp" -> icmp
         | "ip" -> ip
         | "file" -> file
         | "ssl" -> ssl
+        | "http1" -> http1
         | "http" -> http
         | "http2" -> http2
+        | "bittorrent-dht" -> bittorrent_dht
         | "dns" -> dns
         | "tls" -> tls
         | "ssh" -> ssh
@@ -97,17 +100,17 @@ port_any: "any"
 port_var: VARIABLE
 port_negation: "!" port
 port_list: "[" port_elem ("," port_elem)* "]"
-port_elem: VARIABLE | port_range | port_single
-// Support open-ended ranges: "1024:" (from 1024 to 65535)
+port_elem: port_negation | VARIABLE | port_range | port_single
+// Support open-ended ranges: "1024:" (from 1024 to 65535) and ":1024" (0 to 1024)
 port_range: INT ":" INT?
+          | ":" INT  -> port_upper_range
 port_single: INT
 
 // ============================================================================
 // Options
 // ============================================================================
 
-// Support both semicolon (Suricata/Snort2) and comma (Snort3) as separators
-options: option ((";" | ",") option)* (";" | ",")?
+options: option (";" option)* ";"?
 
 ?option: msg_option
        | sid_option
@@ -156,9 +159,9 @@ gid_option: "gid" ":" INT
 classtype_option: "classtype" ":" WORD
 priority_option: "priority" ":" INT
 reference_option: "reference" ":" WORD "," reference_id
-reference_id: REFERENCE_ID | WORD | INT | REFERENCE_TAIL
+reference_id: REFERENCE_TAIL
 // ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 500 chars)
-REFERENCE_TAIL.0: /[^;\)]{1,500}/
+REFERENCE_TAIL.2: /[^;]{1,500}/
 
 // Reference IDs can contain slashes, dots, query params, etc (like URLs)
 // Higher priority than PCRE_PATTERN to match URLs correctly
@@ -177,7 +180,7 @@ metadata_entry: (WORD | ALERT | LOG | PASS | DROP | REJECT | SDROP | INT | METAD
 // Support Snort3 inline modifiers: content:"test",depth 16,nocase
 content_option: "content" ":" "!"? content_value ("," content_modifier)*
 uricontent_option: "uricontent" ":" "!"? content_value ("," content_modifier)*
-content_value: QUOTED_STRING | HEX_STRING
+content_value: CONTENT_STRING | HEX_STRING
 content_modifier_value: INT | WORD | REFERENCE_ID
 // Snort3 content modifiers - keywords first, then catch-all
 content_modifier: DEPTH_KW content_modifier_value                   -> cm_depth
@@ -207,7 +210,7 @@ FAST_PATTERN_OFFSET_KW.4: "fast_pattern_offset"
 FAST_PATTERN_LENGTH_KW.4: "fast_pattern_length"
 
 // PCRE
-pcre_option: "pcre" ":" "!"? (PCRE_PATTERN | QUOTED_STRING)
+pcre_option: "pcre" ":" "!"? (PCRE_PATTERN | PCRE_QUOTED | QUOTED_STRING)
 
 // Flow
 flow_option: "flow" ":" flow_value ("," flow_value)*
@@ -251,24 +254,24 @@ endswith_option: "endswith"
 
 isdataat_option: "isdataat" ":" "!"? (INT | WORD | REFERENCE_ID) ("," WORD)?
 
-// URI length check with comparison operators
-urilen_option: "urilen" ":" urilen_value
-urilen_value: ("<" | ">" | "<=" | ">=" | "=" | "!")? INT
+urilen_option: "urilen" ":" URILEN_TAIL
+URILEN_TAIL.1: /[^;\)]{1,200}/
 
 byte_test_option: "byte_test" ":" byte_test_params
 byte_test_params: number "," byte_test_operator "," byte_test_value "," byte_test_offset ("," byte_test_flag)*
 byte_test_value: number | WORD | REFERENCE_ID  // Support variables from byte_extract
-byte_test_offset: "-"? number  // Support negative offsets
+byte_test_offset: "-"? (number | WORD | REFERENCE_ID)  // Support negative offsets and variables
 byte_test_flag: "bitmask" (number | WORD)  // bitmask 0x8000 (space-separated)
               | WORD  // Regular flags like "relative", "little", etc.
 byte_test_operator: BYTE_TEST_OP | WORD
 
 // Byte test operators - must come before other terminals to match correctly
-BYTE_TEST_OP.2: "!&" | "!=" | "&" | "<=" | ">=" | "<" | ">" | "="
+BYTE_TEST_OP.2: "!&" | "!=" | "^" | "&" | "<=" | ">=" | "<" | ">" | "="
 
 byte_jump_option: "byte_jump" ":" byte_jump_params
-byte_jump_params: INT "," "-"? INT ("," byte_jump_flag)*
-byte_jump_flag: WORD (INT)?  // Support "post_offset 10" style flags
+byte_jump_params: INT "," byte_jump_offset ("," byte_jump_flag)*
+byte_jump_offset: "-"? (INT | WORD | REFERENCE_ID)
+byte_jump_flag: WORD ("-"? INT)?  // Support "post_offset 10" style flags
 
 byte_extract_option: "byte_extract" ":" byte_extract_params
 byte_extract_params: INT "," byte_extract_offset "," (WORD | REFERENCE_ID) ("," (WORD | REFERENCE_ID))*
@@ -282,7 +285,9 @@ byte_math_params: WORD WORD ("," WORD)*
 buffer_select_option: BUFFER_NAME (":" BUFFER_SELECTOR)?
 
 BUFFER_NAME.2: "http." ("uri" | "header" | "header_names" | "method" | "cookie" | "user_agent" | "host" | "raw_uri" | "stat_msg" | "stat_code")
+             | "http." ("uri.raw" | "request_body")
              | "http_" ("uri" | "header" | "header_names" | "method" | "cookie" | "user_agent" | "host" | "raw_uri" | "stat_msg" | "stat_code")
+             | "http_" ("uri_raw" | "request_body")
              | "file." ("data")
              | "file_" ("data")
              | "pkt." ("data")
@@ -319,7 +324,7 @@ lua_script_name: WORD "." WORD  // filename.lua
 // Generic catch‑all: capture everything up to next option delimiter (;, , or )) as a single token
 // ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 1000 chars)
 generic_option: WORD (":" GENERIC_TAIL)?
-GENERIC_TAIL.0: /[^;,\)]{1,1000}/
+GENERIC_TAIL.0: /[^;\)]{1,1000}/
 
 // Retain specific atom definitions for other rules
 option_value: QUOTED_STRING | HEX_STRING | PCRE_PATTERN | GENERIC_VALUE | INT | WORD
@@ -343,11 +348,13 @@ IPV6: /[0-9a-fA-F]*:[0-9a-fA-F:]+/
 
 // Strings
 // ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 10000 chars)
-QUOTED_STRING: /"(?:[^"\\]|\\.){0,10000}"/
+QUOTED_STRING: /"(?:[^"\\]|\\.){0,10000}(?:"|\\"(?=[;,\)]))/
+CONTENT_STRING.2: /"(?:[^"\\]|\\[^"]){0,10000}\\"(?=[;,\)])|"(?:[^"\\]|\\.){0,10000}?"/
 HEX_STRING: /\|(?:[0-9a-fA-F]{2}\s*){1,5000}\|/
 // ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 5000 chars)
 // Simplified to avoid nested quantifier alternation
 PCRE_PATTERN: /\/(?:[^\/\\]|\\[^\n]){0,5000}\/[a-zA-Z]{0,20}/
+PCRE_QUOTED.2: /"[^;\n]{0,5000}"/
 
 // Numbers and words
 // HEX_INT must come before METADATA_VALUE and INT to match hex numbers correctly

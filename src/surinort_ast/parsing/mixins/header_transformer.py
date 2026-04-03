@@ -116,6 +116,10 @@ class HeaderTransformerMixin:
         """Transform 'tcp' protocol."""
         return Protocol.TCP
 
+    def tcp_pkt(self, _: Any) -> Protocol:
+        """Transform 'tcp-pkt' protocol."""
+        return Protocol.TCP_PKT
+
     def udp(self, _: Any) -> Protocol:
         """Transform 'udp' protocol."""
         return Protocol.UDP
@@ -136,9 +140,17 @@ class HeaderTransformerMixin:
         """Transform 'http' protocol."""
         return Protocol.HTTP
 
+    def http1(self, _: Any) -> Protocol:
+        """Transform 'http1' protocol."""
+        return Protocol.HTTP1
+
     def http2(self, _: Any) -> Protocol:
         """Transform 'http2' protocol."""
         return Protocol.HTTP2
+
+    def bittorrent_dht(self, _: Any) -> Protocol:
+        """Transform 'bittorrent-dht' protocol."""
+        return Protocol.BITTORRENT_DHT
 
     def dns(self, _: Any) -> Protocol:
         """Transform 'dns' protocol."""

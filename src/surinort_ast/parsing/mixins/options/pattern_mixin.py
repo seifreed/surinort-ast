@@ -77,6 +77,14 @@ class PatternMatchingOptionsMixin:
         """
         if not items:
             return PcreOption(pattern="", flags="")
+
+        # Detect negation: items may be [!, pattern] or [pattern]
+        negated = False
+        if len(items) >= 2:
+            first = items[0]
+            if isinstance(first, Token) and str(first.value) == "!":
+                negated = True
+
         pattern_token = items[-1]
         pattern_str = str(pattern_token.value)
         # Remove quotes if present (use cached version for performance)
@@ -85,5 +93,6 @@ class PatternMatchingOptionsMixin:
         return PcreOption(
             pattern=pattern,
             flags=flags,
+            negated=negated,
             location=token_to_location(pattern_token, self.file_path),
         )

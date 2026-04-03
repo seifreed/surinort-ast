@@ -215,6 +215,18 @@ class TestRoundtripAddresses:
         assert rule1.header.direction == Direction.TO
         assert rule2.header.direction == Direction.TO
 
+    @pytest.mark.parametrize("protocol_text", ["tcp-pkt", "http1", "bittorrent-dht"])
+    def test_preserves_special_protocol_names(self, protocol_text: str):
+        """Roundtrip should preserve extended protocol names exactly."""
+        rule_text = f'alert {protocol_text} any any -> any any (msg:"Protocol"; sid:1;)'
+        rule1 = parse_rule(rule_text)
+        printed = print_rule(rule1)
+        rule2 = parse_rule(printed)
+
+        assert rule1.header.protocol.value == protocol_text
+        assert printed.split(maxsplit=2)[1] == protocol_text
+        assert rule2.header.protocol == rule1.header.protocol
+
 
 class TestRoundtripPorts:
     """Test port expression roundtrip."""

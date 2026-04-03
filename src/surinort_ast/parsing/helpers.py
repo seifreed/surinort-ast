@@ -10,9 +10,15 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import re
+
 from lark import Token
 
 from ..core.location import Location, Position, Span
+
+_MISSING_CONTENT_CLOSER_RE = re.compile(
+    r'(?P<prefix>\b(?:uri)?content:")(?P<body>(?:[^"\\]|\\.)*?)\\\"(?=;)'
+)
 
 
 def token_to_location(token: Token, file_path: str | None = None) -> Location:
@@ -54,6 +60,21 @@ def token_to_location(token: Token, file_path: str | None = None) -> Location:
 
     span = Span(start=start, end=end)
     return Location(span=span, file_path=file_path)
+
+
+def normalize_rule_text(text: str) -> str:
+    """
+    Normalize a narrow set of real-world rule quirks before lexing.
+
+    Some open-source rules terminate a content string as `...\\\";` without an
+    extra closing quote. Engines accept that form in practice, but the grammar
+    expects an explicit closing delimiter. Normalize only that specific pattern.
+    """
+
+    return _MISSING_CONTENT_CLOSER_RE.sub(
+        lambda match: match.group("prefix") + match.group("body") + '\\""',
+        text,
+    )
 
 
 def token_to_int(value: Token | int | str) -> int:

@@ -13,9 +13,12 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from lark import Token
+
+if TYPE_CHECKING:
+    from .. import DiagnosticReporter
 
 from ....core.diagnostics import DiagnosticLevel
 from ....core.enums import FlowDirection, FlowState
@@ -45,7 +48,7 @@ class FlowTrackingOptionsMixin:
 
     # Declare expected attributes for type checking
     file_path: str | None
-    add_diagnostic: Any  # Method signature varies by parent class
+    add_diagnostic: DiagnosticReporter
 
     # ========================================================================
     # Flow Direction and State
@@ -170,6 +173,15 @@ class FlowTrackingOptionsMixin:
         if len(action_items) >= 2:
             name = str(
                 action_items[1].value if isinstance(action_items[1], Token) else action_items[1]
+            )
+
+        # Validate flowbits action
+        valid_actions = {"set", "isset", "isnotset", "toggle", "unset", "noalert"}
+        if action and action not in valid_actions:
+            self.add_diagnostic(
+                DiagnosticLevel.WARNING,
+                f"Unknown flowbits action '{action}'. "
+                f"Expected one of: {', '.join(sorted(valid_actions))}",
             )
 
         return FlowbitsOption(action=action, name=name)

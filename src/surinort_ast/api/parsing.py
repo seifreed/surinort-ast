@@ -14,13 +14,14 @@ import os
 from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from lark.exceptions import LarkError
 
 from ..core.enums import Dialect
 from ..core.nodes import Rule, SourceOrigin
 from ..exceptions import ParseError
+from ..parsing.helpers import normalize_rule_text
 from ..parsing.transformer import RuleTransformer
 from ._internal import (
     _get_parser,
@@ -29,13 +30,16 @@ from ._internal import (
     _validate_file_path,
 )
 
+if TYPE_CHECKING:
+    from ..parsing.interfaces import IParser
+
 
 def parse_rule(
     text: str,
     dialect: Dialect = Dialect.SURICATA,
     track_locations: bool = True,
     include_raw_text: bool = True,
-    parser: Any | None = None,
+    parser: IParser | None = None,
 ) -> Rule:
     """
     Parse a single IDS rule from text.
@@ -102,8 +106,9 @@ def parse_rule(
 
     # Default path: use built-in Lark parser
     try:
+        normalized_text = normalize_rule_text(text.strip())
         lark_parser = _get_parser(dialect, track_locations=track_locations)
-        tree = lark_parser.parse(text.strip())
+        tree = lark_parser.parse(normalized_text)
         transformer = RuleTransformer(dialect=dialect)
         result: Rule = transformer.transform(tree)
 
@@ -270,101 +275,141 @@ def parse_file(
         file_path, allowed_base=allowed_base, allow_symlinks=allow_symlinks
     )
 
-    # Streaming mode - return iterator for memory-efficient processing
+    # Streaming mode — delegate to streaming module
     if stream:
-        from ..streaming import stream_parse_file
+        return _parse_file_streaming(file_path, dialect, track_locations, include_raw_text)
 
-        return stream_parse_file(
+    # Read and filter lines
+    tasks = _read_rule_lines(file_path)
+
+    # Parse — sequential or parallel
+    max_workers = max(1, workers or 1)
+    if max_workers == 1:
+        rules, errors = _parse_file_sequential(
+            tasks, file_path, dialect, track_locations, include_raw_text
+        )
+    else:
+        rules, errors = _parse_file_parallel(
+            tasks,
             file_path,
-            dialect=dialect,
-            track_locations=track_locations,
-            include_raw_text=include_raw_text,
+            dialect,
+            track_locations,
+            include_raw_text,
+            max_workers,
+            batch_size,
         )
 
+    if errors and not rules:
+        raise ParseError("Failed to parse any rules:\n" + "\n".join(errors[:10]))
+
+    return rules
+
+
+def _parse_file_streaming(
+    file_path: Path,
+    dialect: Dialect,
+    track_locations: bool,
+    include_raw_text: bool,
+) -> Any:
+    """Delegate to streaming module for memory-efficient parsing."""
+    from ..streaming import stream_parse_file
+
+    return stream_parse_file(
+        file_path,
+        dialect=dialect,
+        track_locations=track_locations,
+        include_raw_text=include_raw_text,
+    )
+
+
+def _read_rule_lines(file_path: Path) -> list[tuple[int, str]]:
+    """Read file and extract non-empty, non-comment lines with line numbers."""
     if not file_path.exists():
-        # Sanitized error message
         raise FileNotFoundError(f"File not found: {_sanitize_path_for_error(file_path)}")
 
     if not file_path.is_file():
-        # Sanitized error message
         raise ParseError(f"Not a file: {_sanitize_path_for_error(file_path)}")
 
     try:
         lines = file_path.read_text(encoding="utf-8").splitlines()
-    except Exception as e:
-        # Sanitized error message
+    except OSError as e:
         raise ParseError(f"Failed to read file {_sanitize_path_for_error(file_path)}: {e}") from e
 
-    # Filter candidate lines
     tasks: list[tuple[int, str]] = []
     for line_num, raw_line in enumerate(lines, start=1):
         line = raw_line.strip()
         if line and not line.startswith("#"):
             tasks.append((line_num, line))
+    return tasks
 
+
+def _parse_file_sequential(
+    tasks: list[tuple[int, str]],
+    file_path: Path,
+    dialect: Dialect,
+    track_locations: bool,
+    include_raw_text: bool,
+) -> tuple[list[Rule], list[str]]:
+    """Parse rules sequentially in the current process."""
     rules: list[Rule] = []
     errors: list[str] = []
 
-    # Decide on worker count
-    max_workers = (workers or 1) if (workers or 1) > 0 else 1
+    for line_num, line in tasks:
+        try:
+            rule = parse_rule(line, dialect=dialect, track_locations=track_locations)
 
-    if max_workers == 1:
-        # Sequential path
-        for line_num, line in tasks:
-            try:
-                rule = parse_rule(line, dialect=dialect, track_locations=track_locations)
+            update_dict: dict[str, Any] = {
+                "origin": SourceOrigin(file_path=str(file_path), line_number=line_num)
+            }
+            if not include_raw_text:
+                update_dict["raw_text"] = None
 
-                # Build update dict for lightweight mode support
-                update_dict: dict[str, Any] = {
-                    "origin": SourceOrigin(file_path=str(file_path), line_number=line_num)
-                }
-                # Only include raw_text if requested (memory optimization)
-                if not include_raw_text:
-                    update_dict["raw_text"] = None
+            rule = rule.model_copy(update=update_dict)
+            rules.append(rule)
+        except ParseError as e:
+            errors.append(f"Line {line_num} in {_sanitize_path_for_error(file_path)}: {e}")
 
-                rule = rule.model_copy(update=update_dict)
-                rules.append(rule)
-            except ParseError as e:
-                # Sanitized error: use filename only in user-facing errors
-                errors.append(f"Line {line_num} in {_sanitize_path_for_error(file_path)}: {e}")
-    else:
-        # Parallel path using processes for CPU-bound parsing
-        # Use batch processing for improved throughput (~40% faster)
-        pool_size = min(max_workers, max(1, os.cpu_count() or 1))
+    return rules, errors
 
-        # Validate and normalize batch_size
-        batch_size = max(1, min(batch_size, 1000))  # Clamp to reasonable range
 
-        # Split tasks into batches
-        batches: list[list[tuple[int, str]]] = []
-        for i in range(0, len(tasks), batch_size):
-            batches.append(tasks[i : i + batch_size])
+def _parse_file_parallel(
+    tasks: list[tuple[int, str]],
+    file_path: Path,
+    dialect: Dialect,
+    track_locations: bool,
+    include_raw_text: bool,
+    max_workers: int,
+    batch_size: int,
+) -> tuple[list[Rule], list[str]]:
+    """Parse rules in parallel using process pool with batching."""
+    rules: list[Rule] = []
+    errors: list[str] = []
 
-        with ProcessPoolExecutor(max_workers=pool_size) as ex:
-            # Submit batches to workers
-            futures = [
-                ex.submit(
-                    _parse_batch_worker,
-                    (batch, dialect, track_locations, str(file_path), include_raw_text),
-                )
-                for batch in batches
-            ]
+    pool_size = min(max_workers, max(1, os.cpu_count() or 1))
+    batch_size = max(1, min(batch_size, 1000))
 
-            # Collect results from batches
-            for fut in as_completed(futures):
-                batch_results = fut.result()
-                for ln, parsed_rule, err in batch_results:
-                    if parsed_rule is not None:
-                        rules.append(parsed_rule)
-                    if err:
-                        # Sanitized error: use filename only in user-facing errors
-                        errors.append(f"Line {ln} in {_sanitize_path_for_error(file_path)}: {err}")
+    batches: list[list[tuple[int, str]]] = []
+    for i in range(0, len(tasks), batch_size):
+        batches.append(tasks[i : i + batch_size])
 
-    if errors and not rules:
-        # All rules failed to parse
-        raise ParseError("Failed to parse any rules:\n" + "\n".join(errors[:10]))
+    with ProcessPoolExecutor(max_workers=pool_size) as ex:
+        futures = [
+            ex.submit(
+                _parse_batch_worker,
+                (batch, dialect, track_locations, str(file_path), include_raw_text),
+            )
+            for batch in batches
+        ]
 
-    return rules
+        for fut in as_completed(futures):
+            batch_results = fut.result()
+            for ln, parsed_rule, err in batch_results:
+                if parsed_rule is not None:
+                    rules.append(parsed_rule)
+                if err:
+                    errors.append(f"Line {ln} in {_sanitize_path_for_error(file_path)}: {err}")
+
+    return rules, errors
 
 
 def parse_file_streaming(

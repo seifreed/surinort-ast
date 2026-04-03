@@ -87,12 +87,15 @@ class TestBasicParsing:
         """Parse rules with different protocols."""
         protocols_to_test = [
             ("tcp", Protocol.TCP),
+            ("tcp-pkt", Protocol.TCP_PKT),
             ("udp", Protocol.UDP),
             ("icmp", Protocol.ICMP),
             ("ip", Protocol.IP),
             ("http", Protocol.HTTP),
+            ("http1", Protocol.HTTP1),
             ("dns", Protocol.DNS),
             ("tls", Protocol.TLS),
+            ("bittorrent-dht", Protocol.BITTORRENT_DHT),
         ]
 
         for proto_text, expected_proto in protocols_to_test:

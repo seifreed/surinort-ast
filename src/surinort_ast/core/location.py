@@ -66,8 +66,9 @@ class Span(BaseModel):
 
     @property
     def length(self) -> int:
-        """Get span length in bytes."""
-        return self.end.offset - self.start.offset
+        """Get span length in bytes. Returns 0 if span is invalid (end < start)."""
+        diff = self.end.offset - self.start.offset
+        return max(0, diff)
 
 
 class Location(BaseModel):

@@ -18,10 +18,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from lark import Token, Tree
 from lark.visitors import v_args
+
+if TYPE_CHECKING:
+    from . import DiagnosticReporter
 
 from ...core.diagnostics import DiagnosticLevel
 from ...core.enums import ContentModifierType
@@ -97,6 +100,9 @@ def parse_hex_string(s: str) -> bytes:
     Returns:
         Raw bytes
 
+    Raises:
+        ValueError: If hex string contains invalid characters
+
     Performance:
         Optimized with translation table for whitespace removal.
     """
@@ -107,7 +113,7 @@ def parse_hex_string(s: str) -> bytes:
         return bytes.fromhex(hex_content)
     except ValueError as e:
         logger.warning(f"Invalid hex string '{s}': {e}")
-        return b""
+        raise ValueError(f"Invalid hex content in '{s}': {e}") from e
 
 
 def _is_pure_hex_piped(s: str) -> bool:
@@ -224,7 +230,7 @@ class ContentTransformerMixin:
 
     # Declare expected attributes for type checking
     file_path: str | None
-    add_diagnostic: Any  # Method signature varies by parent class
+    add_diagnostic: DiagnosticReporter
 
     # ========================================================================
     # Content Options
@@ -294,6 +300,19 @@ class ContentTransformerMixin:
         # Fast path: check first character for type determination
         first_char = value_str[0] if value_str else ""
 
+        try:
+            return self._parse_content_value(value_str)
+        except ValueError as e:
+            self.add_diagnostic(
+                DiagnosticLevel.WARNING,
+                f"Invalid hex content, treating as raw bytes: {e}",
+            )
+            return value_str.encode("utf-8", errors="replace")
+
+    def _parse_content_value(self, value_str: str) -> bytes:
+        """Parse content value string to bytes, dispatching by format."""
+        first_char = value_str[0] if value_str else ""
+
         # Check if pure hex string (starts/ends with | and hex-only inside).
         # Strings like "|08|com|00|" are mixed and must not use parse_hex_string().
         if first_char == "|" and value_str.endswith("|") and _is_pure_hex_piped(value_str):
@@ -319,7 +338,7 @@ class ContentTransformerMixin:
             # Regular quoted string
             return unquoted.encode("utf-8", errors="replace")
 
-        # Unquoted string - encode as-is
+        # Unquoted string — encode as-is
         return value_str.encode("utf-8", errors="replace")
 
     # ========================================================================
@@ -463,22 +482,31 @@ class ContentTransformerMixin:
             args: Variable length list from grammar
 
         Returns:
-            ContentModifier (defaults to NOCASE type)
+            ContentModifier with the actual modifier name mapped to ContentModifierType
 
         Note:
             This is a fallback for unrecognized inline modifiers.
-            It defaults to NOCASE type for backward compatibility.
+            Maps known names to their enum, falls back to NOCASE for truly unknown modifiers.
         """
+        # Extract the modifier name
+        modifier_name = ""
+        if args:
+            modifier_name = str(args[0].value) if isinstance(args[0], Token) else str(args[0])
+
+        # Try to map the modifier name to a ContentModifierType
+        modifier_type = ContentModifierType.NOCASE  # Default fallback
+        name_lower = modifier_name.lower()
+        for member in ContentModifierType:
+            if member.value == name_lower:
+                modifier_type = member
+                break
+
         if len(args) == 1:
-            # Modifier name only
-            str(args[0].value) if isinstance(args[0], Token) else str(args[0])
-            return ContentModifier(name=ContentModifierType.NOCASE, value=None)  # Default
+            return ContentModifier(name=modifier_type, value=None)
         if len(args) == 2:
-            # Modifier name and value
-            str(args[0].value) if isinstance(args[0], Token) else str(args[0])
             value = _token_to_int_or_str(args[1])
-            return ContentModifier(name=ContentModifierType.NOCASE, value=value)
-        return ContentModifier(name=ContentModifierType.NOCASE, value=None)
+            return ContentModifier(name=modifier_type, value=value)
+        return ContentModifier(name=modifier_type, value=None)
 
     # ========================================================================
     # Standalone Content Modifiers
@@ -700,10 +728,11 @@ class ContentTransformerMixin:
         """
         if len(items) == 2:
             # Negative offset: "-" followed by number
-            return f"-{items[1].value}"
+            value = items[1].value if isinstance(items[1], Token) else items[1]
+            return f"-{value}"
         if len(items) == 1:
             # Positive offset
-            return str(items[0].value)
+            return str(items[0].value if isinstance(items[0], Token) else items[0])
         return "0"
 
     def byte_test_flag(self, items: Sequence[Token]) -> str:
@@ -798,11 +827,28 @@ class ContentTransformerMixin:
         value_str = ",".join(processed_params)
         return GenericOption(keyword="byte_jump", value=value_str, raw=f"byte_jump:{value_str}")
 
-    def byte_jump_params(self, items: Sequence[Token]) -> Sequence[Token]:
+    def byte_jump_params(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through byte_jump params."""
         return items
 
-    def byte_jump_flag(self, items: Sequence[Token]) -> Sequence[Token]:
+    def byte_jump_offset(self, items: Sequence[Any]) -> str:
+        """
+        Handle byte_jump offset with optional negative sign or variable name.
+
+        Args:
+            items: ["-", value] or [value]
+
+        Returns:
+            Offset string preserving sign
+        """
+        if len(items) == 2:
+            value = items[1].value if isinstance(items[1], Token) else items[1]
+            return f"-{value}"
+        if len(items) == 1:
+            return str(items[0].value if isinstance(items[0], Token) else items[0])
+        return "0"
+
+    def byte_jump_flag(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through byte_jump flag tokens (WORD and optional INT)."""
         return items
 

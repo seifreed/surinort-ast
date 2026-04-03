@@ -98,7 +98,7 @@ class TestRuleComponents:
 
     def test_protocols(self):
         """Test different protocol types."""
-        protocols = ["tcp", "udp", "icmp", "ip", "http"]
+        protocols = ["tcp", "tcp-pkt", "udp", "icmp", "ip", "http", "http1", "bittorrent-dht"]
         for protocol in protocols:
             rule_text = f'alert {protocol} any any -> any any (msg:"Test"; sid:1;)'
             rule = parse_rule(rule_text, dialect=Dialect.SURICATA)

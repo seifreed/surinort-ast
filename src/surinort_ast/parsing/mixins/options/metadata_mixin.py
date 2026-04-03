@@ -14,10 +14,13 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from lark import Token
 from lark.visitors import v_args
+
+if TYPE_CHECKING:
+    from .. import DiagnosticReporter
 
 from ....core.nodes import (
     ClasstypeOption,
@@ -55,7 +58,7 @@ class MetadataOptionsMixin:
 
     # Declare expected attributes for type checking
     file_path: str | None
-    add_diagnostic: Any  # Method signature varies by parent class
+    add_diagnostic: DiagnosticReporter
 
     # ========================================================================
     # Basic Identification Options

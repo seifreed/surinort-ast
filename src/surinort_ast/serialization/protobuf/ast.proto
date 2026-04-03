@@ -51,6 +51,9 @@ enum Protocol {
   NTP = 26;
   SNMP = 27;
   TFTP = 28;
+  TCP_PKT = 29;
+  HTTP1 = 30;
+  BITTORRENT_DHT = 31;
 }
 
 enum Direction {

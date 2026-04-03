@@ -38,6 +38,7 @@ from ..core.nodes import (
     SourceOrigin,
 )
 from ..exceptions import ParseError
+from .helpers import normalize_rule_text
 from .parser_config import ParserConfig
 from .transformer import RuleTransformer
 
@@ -249,6 +250,7 @@ class LarkRuleParser:
             Protocol.TCP
         """
         text = text.strip()
+        parse_text = normalize_rule_text(text)
 
         if not text:
             error = ErrorNode(
@@ -281,7 +283,7 @@ class LarkRuleParser:
 
         try:
             # Validate rule length before parsing
-            self.config.validate_rule_length(len(text))
+            self.config.validate_rule_length(len(parse_text))
 
             # Get parser
             parser = self._get_parser()
@@ -289,7 +291,7 @@ class LarkRuleParser:
             # Parse with timeout enforcement
             with self._timeout_context():
                 # Parse to tree
-                tree = parser.parse(text)
+                tree = parser.parse(parse_text)
 
                 # Transform to AST with config
                 transformer = RuleTransformer(

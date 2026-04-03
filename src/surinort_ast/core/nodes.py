@@ -51,7 +51,7 @@ class ASTNode(BaseModel):
         extra="forbid",  # Strict schema
         use_enum_values=False,
         validate_assignment=True,
-        use_attribute_docstrings=True,  # Enable __slots__ optimization
+        use_attribute_docstrings=True,  # Use docstrings as field descriptions
     )
 
     location: Location | None = None
@@ -336,16 +336,18 @@ class ContentOption(Option):
 
 class PcreOption(Option):
     """
-    pcre:"/pattern/flags";
+    pcre:"/pattern/flags"; or pcre:!"/pattern/flags";
 
     Attributes:
         pattern: Regular expression pattern
         flags: PCRE flags (i, s, m, x, etc.)
+        negated: Whether the match is negated (!)
     """
 
     type: Literal["PcreOption"] = "PcreOption"
     pattern: str
     flags: str = ""
+    negated: bool = False
 
 
 class FlowOption(Option):
