@@ -13,6 +13,8 @@ import pytest
 from typer.testing import CliRunner
 
 from surinort_ast.cli.main import app, read_input, write_output
+from surinort_ast.cli.shared import parse_rules_from_content
+from surinort_ast.core.enums import Dialect
 
 runner = CliRunner()
 
@@ -167,6 +169,19 @@ class TestCLIValidateCommand:
         result = runner.invoke(app, ["validate", str(file), "-d", "suricata"])
 
         assert result.exit_code in {0, 1}
+
+
+class TestCLISharedHelpers:
+    """Test shared CLI helper behavior."""
+
+    def test_parse_rules_from_content_skips_malformed_rules(self):
+        """Malformed lines should be skipped without dropping valid rules."""
+        content = 'invalid rule syntax here\nalert tcp any any -> any 80 (msg:"Valid"; sid:1;)\n'
+
+        rules = parse_rules_from_content(content, Dialect.SURICATA)
+
+        assert len(rules) == 1
+        assert rules[0].raw_text == 'alert tcp any any -> any 80 (msg:"Valid"; sid:1;)'
 
 
 class TestCLIToJSONCommand:

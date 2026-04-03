@@ -9,6 +9,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -22,6 +23,8 @@ from ...core.enums import DiagnosticLevel, Dialect
 from ...exceptions import ParseError
 from ..shared import console, err_console, validate_file_path, write_output
 
+logger = logging.getLogger(__name__)
+
 
 def _check_lua_scripts(rules: list[Any], lua_dir: Path | None) -> list[tuple[int, str]]:
     """Check Lua script paths exist if lua_dir is provided."""
@@ -32,36 +35,36 @@ def _check_lua_scripts(rules: list[Any], lua_dir: Path | None) -> list[tuple[int
 
     try:
         from surinort_ast.core.nodes import LuajitOption, LuaOption
+    except ImportError as exc:
+        logger.debug("Skipping Lua script checks because Lua options are unavailable: %s", exc)
+        return lua_warnings
 
-        for idx, rule in enumerate(rules, 1):
-            for opt in rule.options:
-                if isinstance(opt, (LuaOption, LuajitOption)):
-                    # Securely validate Lua script path to prevent path traversal
-                    try:
-                        script_path = validate_file_path(
-                            lua_dir / opt.script_name,
-                            must_exist=False,
-                            allowed_base=lua_dir,
-                            allow_symlinks=True,  # Allow symlinks for Lua scripts
-                        )
-                        if not script_path.exists():
-                            lua_warnings.append(
-                                (
-                                    idx,
-                                    f"Lua script not found: {opt.script_name} (looked in {lua_dir})",
-                                )
-                            )
-                    except ValueError as e:
-                        # Path traversal attempt detected
+    for idx, rule in enumerate(rules, 1):
+        for opt in rule.options:
+            if isinstance(opt, (LuaOption, LuajitOption)):
+                # Securely validate Lua script path to prevent path traversal
+                try:
+                    script_path = validate_file_path(
+                        lua_dir / opt.script_name,
+                        must_exist=False,
+                        allowed_base=lua_dir,
+                        allow_symlinks=True,  # Allow symlinks for Lua scripts
+                    )
+                    if not script_path.exists():
                         lua_warnings.append(
                             (
                                 idx,
-                                f"Invalid Lua script path: {opt.script_name} - {e}",
+                                f"Lua script not found: {opt.script_name} (looked in {lua_dir})",
                             )
                         )
-    except Exception:
-        # Do not fail validation on optional check
-        pass
+                except ValueError as e:
+                    # Path traversal attempt detected
+                    lua_warnings.append(
+                        (
+                            idx,
+                            f"Invalid Lua script path: {opt.script_name} - {e}",
+                        )
+                    )
 
     return lua_warnings
 

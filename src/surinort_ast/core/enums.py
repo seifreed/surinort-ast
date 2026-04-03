@@ -23,7 +23,7 @@ class Action(str, Enum):
 
     ALERT = "alert"
     LOG = "log"
-    PASS = "pass"
+    PASS = "pass"  # nosec B105 - IDS action keyword, not a secret
     DROP = "drop"
     REJECT = "reject"
     SDROP = "sdrop"

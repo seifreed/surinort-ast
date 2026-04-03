@@ -9,16 +9,19 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
 import typer
+from lark.exceptions import LarkError
 from rich.console import Console
 
 # ============================================================================
 # Console Setup
 # ============================================================================
 
+logger = logging.getLogger(__name__)
 console = Console()
 err_console = Console(stderr=True, style="bold red")
 
@@ -149,8 +152,7 @@ def parse_rules_from_content(content: str, dialect, parser=None, transformer=Non
                 tree = parser.parse(line)
                 rule = transformer.transform(tree)
                 rules.append(rule.model_copy(update={"raw_text": line}))
-            except Exception:
-                # Silently skip malformed rules
-                pass
+            except LarkError as exc:
+                logger.debug("Skipping malformed rule from stream input: %s", exc)
 
     return rules

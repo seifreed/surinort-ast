@@ -78,6 +78,10 @@ class LSHIndex:
         """
         if not 0.0 < threshold <= 1.0:
             raise ValueError(f"threshold must be in (0.0, 1.0], got {threshold}")
+        if num_bands is not None and num_bands <= 0:
+            raise ValueError(f"num_bands must be positive, got {num_bands}")
+        if rows_per_band is not None and rows_per_band <= 0:
+            raise ValueError(f"rows_per_band must be positive, got {rows_per_band}")
 
         self.threshold = threshold
 
@@ -95,9 +99,10 @@ class LSHIndex:
             self.rows_per_band = 128 // num_bands
         else:
             # Calculate num_bands for 128 permutations
-            assert rows_per_band is not None
+            if rows_per_band is None:
+                raise ValueError("rows_per_band must be provided when num_bands is omitted")
             self.rows_per_band = rows_per_band
-            self.num_bands = 128 // rows_per_band
+            self.num_bands = 128 // self.rows_per_band
 
         # Validate configuration
         total_perms = self.num_bands * self.rows_per_band

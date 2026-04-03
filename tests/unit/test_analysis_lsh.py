@@ -70,6 +70,14 @@ class TestLSHIndexInitialization:
         with pytest.raises(ValueError):
             LSHIndex(threshold=0.8, num_bands=64, rows_per_band=5)
 
+    def test_lsh_rejects_non_positive_configuration(self):
+        """Test that invalid band configuration raises ValueError."""
+        with pytest.raises(ValueError):
+            LSHIndex(threshold=0.8, num_bands=0)
+
+        with pytest.raises(ValueError):
+            LSHIndex(threshold=0.8, rows_per_band=0)
+
 
 class TestLSHAddAndQuery:
     """Test adding rules and querying the LSH index."""
