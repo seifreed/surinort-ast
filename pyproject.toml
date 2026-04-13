@@ -81,7 +81,7 @@ serialization = [
 
 # Enhanced CLI output with rich formatting
 cli-enhanced = [
-    "rich>=14.3.3",          # Rich terminal output, colors, tables
+    "rich>=15.0.0",          # Rich terminal output, colors, tables
 ]
 
 # Security analysis tools
