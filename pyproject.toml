@@ -67,7 +67,7 @@ classifiers = [
 # Core production dependencies
 dependencies = [
     "lark>=1.3.1",           # Modern parser with Earley/LALR support
-    "pydantic>=2.12.5",      # Data validation with type hints (includes JSON serialization)
+    "pydantic>=2.13.2",      # Data validation with type hints (includes JSON serialization)
     "typer>=0.24.1",         # Modern CLI framework with type hints
     "jsonschema>=4.26.0",    # JSON Schema validation
 ]
