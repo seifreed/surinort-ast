@@ -109,18 +109,18 @@ benchmark = [
 # Development dependencies
 dev = [
     # Testing
-    "pytest>=9.0.2",
+    "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
     "hypothesis>=6.151.10",  # Property-based testing
 
     # Linting and formatting (ruff replaces: flake8, black, isort, pyupgrade)
-    "ruff>=0.15.9",
+    "ruff>=0.15.12",
 
     # Type checking
     "mypy>=1.20.0",
 
     # Build and publishing
-    "build>=1.4.2",
+    "build>=1.5.0",
     "twine>=6.2.0",
 
     # Pre-commit hooks
