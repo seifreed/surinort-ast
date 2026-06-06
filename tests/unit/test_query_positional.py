@@ -152,3 +152,25 @@ class TestSiblingCombinatorIdentity:
         rule = parse_rule('alert tcp any any -> any any (msg:"a"; content:"b"; sid:1;)')
         assert len(query(rule, "MsgOption + ContentOption")) == 1
         assert len(query(rule, "ContentOption + MsgOption")) == 0
+
+
+class TestNotWithCombinatorChain:
+    """:not(chain) must honor combinators, not just the last selector.
+
+    Regression: :not(Rule > ContentOption) tested only ContentOption against the
+    node, ignoring the child relationship.
+    """
+
+    @pytest.fixture
+    def rule(self):
+        return parse_rule('alert tcp any any -> any any (content:"x"; sid:1;)')
+
+    def test_not_excludes_when_full_chain_matches(self, rule):
+        assert len(query(rule, "ContentOption:not(Rule > ContentOption)")) == 0
+
+    def test_not_keeps_when_chain_does_not_match(self, rule):
+        assert len(query(rule, "ContentOption:not(Rule > SidOption)")) == 1
+
+    def test_simple_not_still_works(self, rule):
+        assert len(query(rule, "Rule:not([action=drop])")) == 1
+        assert len(query(rule, "Rule:not([action=alert])")) == 0

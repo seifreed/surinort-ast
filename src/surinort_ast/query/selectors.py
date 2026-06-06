@@ -670,15 +670,20 @@ class PseudoSelector(Selector):
             else:
                 chain = self.argument
 
-            # Check if the node matches the selector
-            # We test if the selector matches THIS node specifically
-            # For this, we need to test the selector directly
-            # If argument is a selector, test it; if it's a chain with just one selector, test that
+            if not chain.selectors:
+                return True
+            # Single selector with no combinator: test it directly against this node.
             if len(chain.selectors) == 1 and not chain.combinators:
-                # Single selector - test directly against this node.
                 return not chain.selectors[0].matches(node, context)
-            # For complex chains, fall back to testing the last selector.
-            return not chain.selectors[-1].matches(node, context) if chain.selectors else True
+            # Combinator chain (e.g. :not(Rule > ContentOption)): the relationship
+            # matters, so run the chain against the traversal root and check whether
+            # this node is among its matches (by identity).
+            from .executor import QueryExecutor
+
+            ancestors = getattr(context, "ancestors", None)
+            root = ancestors[0] if ancestors else node
+            matches = QueryExecutor(chain).execute(root)
+            return not any(match is node for match in matches)
 
         # Unknown pseudo-selector
         return False
