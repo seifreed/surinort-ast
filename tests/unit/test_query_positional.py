@@ -124,3 +124,31 @@ class TestPositionalParsing:
     def test_within_requires_integer(self, three_contents):
         with pytest.raises(QuerySyntaxError):
             query(three_contents, "ContentOption:within(2.0)")
+
+
+class TestSiblingCombinatorIdentity:
+    """Adjacent (+) and general (~) combinators must locate siblings by identity.
+
+    Regression: the executor used list.index(node) (value-equality on frozen
+    models), so value-equal siblings were mislocated and a negative index
+    wrapped around — e.g. 'ContentOption + ContentOption' on two identical
+    contents returned 0 instead of 1.
+    """
+
+    @pytest.fixture
+    def dup_contents(self):
+        return parse_rule('alert tcp any any -> any any (content:"X"; content:"X"; nocase; sid:1;)')
+
+    def test_adjacent_between_value_equal_siblings(self, dup_contents):
+        assert len(query(dup_contents, "ContentOption + ContentOption")) == 1
+
+    def test_adjacent_value_equal_then_distinct(self, dup_contents):
+        assert len(query(dup_contents, "ContentOption + NocaseOption")) == 1
+
+    def test_general_sibling_value_equal(self, dup_contents):
+        assert len(query(dup_contents, "ContentOption ~ NocaseOption")) == 1
+
+    def test_adjacent_order_matters(self):
+        rule = parse_rule('alert tcp any any -> any any (msg:"a"; content:"b"; sid:1;)')
+        assert len(query(rule, "MsgOption + ContentOption")) == 1
+        assert len(query(rule, "ContentOption + MsgOption")) == 0

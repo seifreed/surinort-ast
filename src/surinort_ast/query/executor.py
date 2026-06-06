@@ -60,6 +60,19 @@ def query_children(node: ASTNode) -> list[ASTNode]:
     return children
 
 
+def _sibling_index(siblings: list[ASTNode], node: ASTNode) -> int | None:
+    """Index of ``node`` among ``siblings`` by identity, or None if absent.
+
+    Identity (``is``) matters because AST nodes are frozen Pydantic models with
+    value-based equality: ``list.index`` would return the first value-equal
+    sibling, mislocating the node when siblings are value-equal.
+    """
+    for index, sibling in enumerate(siblings):
+        if sibling is node:
+            return index
+    return None
+
+
 # ============================================================================
 # Query Executor (Phase 1)
 # ============================================================================
@@ -364,7 +377,7 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
         if combinator == Combinator.DESCENDANT:
             # Find any ancestor that matches selector
             for ancestor in reversed(self.execution_context.ancestors):
-                if ancestor == node:
+                if ancestor is node:
                     continue
                 if selector.matches(ancestor):
                     return ancestor
@@ -394,14 +407,11 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
                 return None
 
             siblings = query_children(parent)
-            try:
-                sibling_index = siblings.index(node)
-                if sibling_index > 0:
-                    prev_sibling = siblings[sibling_index - 1]
-                    if selector.matches(prev_sibling):
-                        return prev_sibling
-            except ValueError:
-                pass
+            sibling_index = _sibling_index(siblings, node)
+            if sibling_index is not None and sibling_index > 0:
+                prev_sibling = siblings[sibling_index - 1]
+                if selector.matches(prev_sibling):
+                    return prev_sibling
             return None
 
         if combinator == Combinator.GENERAL:
@@ -416,13 +426,11 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
                 return None
 
             siblings = query_children(parent)
-            try:
-                sibling_index = siblings.index(node)
+            sibling_index = _sibling_index(siblings, node)
+            if sibling_index is not None:
                 for i in range(sibling_index - 1, -1, -1):
                     if selector.matches(siblings[i]):
                         return siblings[i]
-            except ValueError:
-                pass
             return None
 
         return None
