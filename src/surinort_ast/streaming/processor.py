@@ -302,6 +302,7 @@ class ValidateProcessor(StreamProcessor):
         """
         self.strict = strict
         self.custom_validators = custom_validators or []
+        self._seen_sids: set[int] = set()
 
     def process(self, rule: Rule) -> Rule | None:
         """
@@ -349,17 +350,35 @@ class ValidateProcessor(StreamProcessor):
 
     def _validate_sid_uniqueness(self, rule: Rule) -> list[Diagnostic]:
         """
-        Validate SID uniqueness (placeholder for multi-rule context).
+        Flag a rule whose SID was already seen earlier in the stream.
+
+        Uniqueness is tracked statefully across the rules this processor has
+        handled. Use :meth:`reset` to clear the tracked SIDs before reusing the
+        processor on a new stream.
 
         Args:
             rule: Rule to validate
 
         Returns:
-            List of diagnostics
+            A single duplicate-SID warning if the SID repeats, else an empty list.
         """
-        # Note: True SID uniqueness requires tracking across multiple rules
-        # This is a placeholder for single-rule validation
+        for option in rule.options:
+            if isinstance(option, SidOption):
+                if option.value in self._seen_sids:
+                    return [
+                        Diagnostic(
+                            level=DiagnosticLevel.WARNING,
+                            message=f"Duplicate SID {option.value}",
+                            code="duplicate_sid",
+                        )
+                    ]
+                self._seen_sids.add(option.value)
+                break
         return []
+
+    def reset(self) -> None:
+        """Clear the SIDs tracked for uniqueness checks."""
+        self._seen_sids.clear()
 
 
 # ============================================================================
