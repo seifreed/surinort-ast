@@ -238,10 +238,16 @@ class PluginLoader:
 
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[spec.name] = module
-                spec.loader.exec_module(module)
-
-                # Find plugin classes in module
-                plugins_found = self._discover_plugins_in_module(module)
+                try:
+                    spec.loader.exec_module(module)
+                    # Find plugin classes in module
+                    plugins_found = self._discover_plugins_in_module(module)
+                except Exception:
+                    # A module that fails to import or inspect is unusable; drop
+                    # it from sys.modules so a later reload does not reuse the
+                    # half-initialized module.
+                    sys.modules.pop(spec.name, None)
+                    raise
 
                 if not plugins_found:
                     logger.warning(f"No plugin classes found in {plugin_file.name}")

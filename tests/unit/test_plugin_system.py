@@ -336,6 +336,19 @@ class TestPlugin(SerializerPlugin):
         plugin = registry.get_serializer("test")
         assert plugin is not None
 
+    def test_broken_plugin_is_removed_from_sys_modules(self, tmp_path: Path) -> None:
+        """A plugin file that fails to import must not linger in sys.modules."""
+        import sys
+
+        plugin_file = tmp_path / "broken_plugin.py"
+        plugin_file.write_text("raise RuntimeError('boom on import')\n")
+        module_name = "surinort_ast_plugin_broken_plugin"
+
+        loader = PluginLoader(auto_load=False)
+        loader.load_directory(tmp_path, pattern="*_plugin.py", ignore_errors=True)
+
+        assert module_name not in sys.modules
+
     def test_load_summary(self) -> None:
         """Test get_load_summary."""
         loader = PluginLoader(auto_load=False)
