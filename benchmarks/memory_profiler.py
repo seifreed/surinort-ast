@@ -46,7 +46,7 @@ COMPLEX_RULE = """alert tcp $HOME_NET any -> $EXTERNAL_NET [80,443,8080:8090] (
 def generate_test_rules(count: int) -> list[str]:
     """Generate test rules."""
     rules = []
-    for i in range(count):
+    for i in range(1, count + 1):
         rule = SIMPLE_RULE.replace("sid:1", f"sid:{i}")
         rules.append(rule)
     return rules
@@ -71,7 +71,7 @@ def memory_benchmark_parsing() -> None:
     Run with: python -m memory_profiler -o parsing_memory.txt memory_profiler.py
     """
     rules = []
-    for i in range(10000):
+    for i in range(1, 10001):
         rule = parse_rule(SIMPLE_RULE.replace("sid:1", f"sid:{i}"))
         rules.append(rule)
 
@@ -85,7 +85,7 @@ def memory_benchmark_parsing_no_raw() -> None:
     Should show ~50% memory reduction.
     """
     rules = []
-    for i in range(10000):
+    for i in range(1, 10001):
         rule = parse_rule(SIMPLE_RULE.replace("sid:1", f"sid:{i}"), include_raw_text=False)
         rules.append(rule)
 
@@ -148,7 +148,7 @@ def memory_benchmark_file_parsing() -> None:
         f.write("\n".join(rules_text))
 
     try:
-        parsed = parse_file(temp_path, parallel=False)
+        parsed = parse_file(temp_path, workers=1)
         print(f"File parsed {len(parsed)} rules")
     finally:
         temp_path.unlink()

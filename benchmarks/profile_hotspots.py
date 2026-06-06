@@ -273,7 +273,7 @@ def profile_file_parsing(rule_count: int = 1000, parallel: bool = False, top_n: 
 
         # Profile file parsing
         profiler.enable()
-        parse_file(temp_path, parallel=parallel)
+        parse_file(temp_path, workers=4 if parallel else 1)
         profiler.disable()
 
         # Generate report
