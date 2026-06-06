@@ -219,9 +219,17 @@ class TestPcreOptionNegation:
         pcre_opts = [opt for opt in rule.options if isinstance(opt, PcreOption)]
         assert len(pcre_opts) == 1
         pcre_opt = pcre_opts[0]
-        # Note: Negation is handled at grammar level, transformer receives the pattern
         assert pcre_opt.pattern == "malware"
         assert pcre_opt.flags == "i"
+        # The leading "!" inverts the match and must be captured.
+        assert pcre_opt.negated is True
+
+    def test_pcre_option_without_negation_is_not_negated(self):
+        """A pcre option without a leading ! must have negated=False."""
+        rule = parse_rule('alert tcp any any -> any any (msg:"Test"; pcre:"/malware/i"; sid:1;)')
+
+        pcre_opt = next(opt for opt in rule.options if isinstance(opt, PcreOption))
+        assert pcre_opt.negated is False
 
 
 class TestPcreOptionLocationTracking:

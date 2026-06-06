@@ -78,12 +78,9 @@ class PatternMatchingOptionsMixin:
         if not items:
             return PcreOption(pattern="", flags="")
 
-        # Detect negation: items may be [!, pattern] or [pattern]
-        negated = False
-        if len(items) >= 2:
-            first = items[0]
-            if isinstance(first, Token) and str(first.value) == "!":
-                negated = True
+        # Detect negation: items are [pcre_negation, pattern] when a leading
+        # "!" matched, otherwise just [pattern].
+        negated = len(items) == 2
 
         pattern_token = items[-1]
         pattern_str = str(pattern_token.value)

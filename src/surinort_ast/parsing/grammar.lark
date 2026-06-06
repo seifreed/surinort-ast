@@ -210,7 +210,8 @@ FAST_PATTERN_OFFSET_KW.4: "fast_pattern_offset"
 FAST_PATTERN_LENGTH_KW.4: "fast_pattern_length"
 
 // PCRE
-pcre_option: "pcre" ":" "!"? (PCRE_PATTERN | PCRE_QUOTED | QUOTED_STRING)
+pcre_option: "pcre" ":" pcre_negation? (PCRE_PATTERN | PCRE_QUOTED | QUOTED_STRING)
+pcre_negation: "!"
 
 // Flow
 flow_option: "flow" ":" flow_value ("," flow_value)*
