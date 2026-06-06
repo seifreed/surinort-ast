@@ -21,7 +21,13 @@ from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
 from ...api import parse_file, to_sarif, validate_rule
 from ...core.enums import DiagnosticLevel, Dialect
 from ...exceptions import ParseError
-from ..shared import console, err_console, validate_file_path, write_output
+from ..shared import (
+    console,
+    emit_sarif,
+    err_console,
+    resolve_output_format,
+    validate_file_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -181,12 +187,7 @@ def _emit_validation_report(
         return
 
     sarif_json = to_sarif(_build_validation_findings(file, all_diagnostics, lua_warnings))
-    if sarif_out is not None:
-        sarif_out.write_text(sarif_json, encoding="utf-8")
-        console.print(f"[green]SARIF report written:[/green] {sarif_out}")
-    if fmt == "sarif":
-        write_output(sarif_json, output)
-    else:
+    if not emit_sarif(sarif_json, fmt, output, sarif_out):
         _display_validation_summary(
             rules, all_diagnostics, lua_warnings, error_count, warning_count
         )
@@ -245,10 +246,7 @@ def validate_command(
         surinort validate rules.txt --strict
     """
     try:
-        fmt = output_format.lower()
-        if fmt not in {"text", "sarif"}:
-            err_console.print("Error: --format must be one of: text, sarif")
-            raise typer.Exit(1) from None
+        fmt = resolve_output_format(output_format, ("text", "sarif"))
 
         with Progress(
             SpinnerColumn(),

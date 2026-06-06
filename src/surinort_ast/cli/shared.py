@@ -11,11 +11,14 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import typer
 from lark.exceptions import LarkError
 from rich.console import Console
+
+from ..core.nodes import Rule
 
 # ============================================================================
 # Console Setup
@@ -92,6 +95,45 @@ def validate_file_path(
     return resolved
 
 
+def resolve_output_format(value: str, allowed: Sequence[str]) -> str:
+    """Lower-case and validate an ``--format`` value against the allowed set.
+
+    Args:
+        value: Raw ``--format`` option value.
+        allowed: Accepted format names, in display order.
+
+    Returns:
+        The normalized (lower-cased) format.
+
+    Raises:
+        typer.Exit: With code 1 if the value is not in ``allowed``.
+    """
+    fmt = value.lower()
+    if fmt not in allowed:
+        err_console.print(f"Error: --format must be one of: {', '.join(allowed)}")
+        raise typer.Exit(1) from None
+    return fmt
+
+
+def emit_sarif(sarif_json: str, fmt: str, output: Path | None, sarif_out: Path | None) -> bool:
+    """Write and/or print a SARIF report.
+
+    Writes ``sarif_json`` to ``sarif_out`` when given, and streams it to
+    ``output``/stdout when ``fmt == "sarif"``.
+
+    Returns:
+        True if the SARIF report was emitted as the primary output
+        (``fmt == "sarif"``), so the caller can skip its text rendering.
+    """
+    if sarif_out is not None:
+        sarif_out.write_text(sarif_json, encoding="utf-8")
+        console.print(f"[green]SARIF report written:[/green] {sarif_out}")
+    if fmt == "sarif":
+        write_output(sarif_json, output)
+        return True
+    return False
+
+
 def read_input(file_path: Path | None) -> str:
     """Read input from file or stdin."""
     if file_path:
@@ -119,24 +161,32 @@ def write_output(content: str, output: Path | None) -> None:
         sys.stdout.write(content)
 
 
-def parse_rules_from_content(content: str, dialect, parser=None, transformer=None):
+def parse_rules_from_content(
+    content: str,
+    dialect,
+    parser=None,
+    transformer=None,
+    on_error: Callable[[str, LarkError], None] | None = None,
+) -> list[Rule]:
     """
     Parse rules from text content line by line.
 
     This helper extracts the common pattern of parsing rules from stdin content
-    that is duplicated across parse, fmt, and to_json commands.
+    that is shared across the parse, fmt, and to_json commands.
 
     Args:
         content: Text content containing rules (one per line)
         dialect: Dialect enum for the parser
         parser: Optional pre-initialized parser (will create if None)
         transformer: Optional pre-initialized transformer (will create if None)
+        on_error: Optional callback invoked as ``on_error(line, exc)`` for each
+            line that fails to parse. When omitted, failures are debug-logged.
 
     Returns:
         List of parsed Rule objects
 
     Note:
-        This function silently skips malformed rules, comments, and empty lines.
+        This function skips malformed rules, comments, and empty lines.
     """
     from ..api._internal import _get_parser
     from ..parsing.transformer import RuleTransformer
@@ -146,7 +196,7 @@ def parse_rules_from_content(content: str, dialect, parser=None, transformer=Non
     if transformer is None:
         transformer = RuleTransformer(dialect=dialect)
 
-    rules = []
+    rules: list[Rule] = []
     for raw_line in content.splitlines():
         line = raw_line.strip()
         if line and not line.startswith("#"):
@@ -155,6 +205,9 @@ def parse_rules_from_content(content: str, dialect, parser=None, transformer=Non
                 rule = transformer.transform(tree)
                 rules.append(rule.model_copy(update={"raw_text": line}))
             except LarkError as exc:
-                logger.debug("Skipping malformed rule from stream input: %s", exc)
+                if on_error is not None:
+                    on_error(line, exc)
+                else:
+                    logger.debug("Skipping malformed rule from stream input: %s", exc)
 
     return rules

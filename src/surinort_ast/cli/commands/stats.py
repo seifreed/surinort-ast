@@ -22,15 +22,11 @@ from ...analysis import CoverageAnalyzer
 from ...api import coverage_report_to_sarif, parse_file
 from ...core.enums import Dialect
 from ...exceptions import ParseError
-from ..shared import console, err_console, write_output
+from ..shared import console, emit_sarif, err_console, resolve_output_format
 
 
 def _resolve_output_format(output_format: str) -> str:
-    fmt = output_format.lower()
-    if fmt not in {"text", "sarif"}:
-        err_console.print("Error: --format must be one of: text, sarif")
-        raise typer.Exit(1) from None
-    return fmt
+    return resolve_output_format(output_format, ("text", "sarif"))
 
 
 def _emit_sarif_if_requested(
@@ -41,13 +37,7 @@ def _emit_sarif_if_requested(
 
     report = CoverageAnalyzer().analyze(rules)
     sarif_json = coverage_report_to_sarif(report)
-    if sarif_out is not None:
-        sarif_out.write_text(sarif_json, encoding="utf-8")
-        console.print(f"[green]SARIF report written:[/green] {sarif_out}")
-    if fmt == "sarif":
-        write_output(sarif_json, output)
-        return True
-    return False
+    return emit_sarif(sarif_json, fmt, output, sarif_out)
 
 
 def _build_count_table(title: str, item_name: str, counts: Counter[Any], total: int) -> Table:

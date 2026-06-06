@@ -20,9 +20,7 @@ from ...analysis import ConflictDetectorConfig, Severity, detect_conflicts
 from ...api import parse_file
 from ...core.enums import Dialect
 from ...exceptions import ParseError
-from ..shared import console, err_console, write_output
-
-_FORMATS = {"text", "json", "markdown"}
+from ..shared import console, err_console, resolve_output_format, write_output
 
 
 def conflicts_command(
@@ -49,10 +47,7 @@ def conflicts_command(
 
         surinort conflicts rules.txt --min-severity high --format json
     """
-    fmt = output_format.lower()
-    if fmt not in _FORMATS:
-        err_console.print("Error: --format must be one of: text, json, markdown")
-        raise typer.Exit(1) from None
+    fmt = resolve_output_format(output_format, ("text", "json", "markdown"))
 
     try:
         with Progress(

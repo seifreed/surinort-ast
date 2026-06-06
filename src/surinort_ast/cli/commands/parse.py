@@ -19,32 +19,26 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
 from ...api import parse_file, print_rule, to_json, to_sarif
-from ...api._internal import _get_parser
 from ...core.enums import Dialect
 from ...exceptions import ParseError
-from ..shared import console, err_console, read_input, write_output
+from ..shared import (
+    console,
+    emit_sarif,
+    err_console,
+    parse_rules_from_content,
+    read_input,
+    resolve_output_format,
+    write_output,
+)
 
 
 def _parse_stdin_rules(content: str, dialect: Dialect, verbose: bool) -> list[Any]:
-    """Parse rules from stdin content."""
-    from ...parsing.transformer import RuleTransformer
+    """Parse rules from stdin content, warning per failed line when verbose."""
 
-    parser = _get_parser(dialect)
-    transformer = RuleTransformer(dialect=dialect)
-    rules = []
+    def _warn(line: str, _exc: Exception) -> None:
+        err_console.print(f"[yellow]Warning:[/yellow] Failed to parse: {line[:50]}...")
 
-    # Parse line by line with verbose warnings
-    for raw_line in content.splitlines():
-        line = raw_line.strip()
-        if line and not line.startswith("#"):
-            try:
-                tree = parser.parse(line)
-                rule = transformer.transform(tree)
-                rules.append(rule.model_copy(update={"raw_text": line}))
-            except Exception:
-                if verbose:
-                    err_console.print(f"[yellow]Warning:[/yellow] Failed to parse: {line[:50]}...")
-    return rules
+    return parse_rules_from_content(content, dialect, on_error=_warn if verbose else None)
 
 
 def _format_output(rules: list[Any], json_output: bool, dialect: Dialect, verbose: bool) -> str:
@@ -86,13 +80,8 @@ def _build_parse_findings(rules: list[Any], file_path: str | None) -> list[Findi
 
 
 def _resolve_output_format(output_format: str, json_output: bool) -> str:
-    fmt = output_format.lower()
-    if fmt not in {"text", "json", "sarif"}:
-        err_console.print("Error: --format must be one of: text, json, sarif")
-        raise typer.Exit(1) from None
-    if json_output:
-        return "json"
-    return fmt
+    fmt = resolve_output_format(output_format, ("text", "json", "sarif"))
+    return "json" if json_output else fmt
 
 
 def _emit_parse_sarif(
@@ -103,13 +92,7 @@ def _emit_parse_sarif(
 
     parse_findings = _build_parse_findings(rules, str(file) if file else None)
     sarif_json = to_sarif(parse_findings)
-    if sarif_out is not None:
-        sarif_out.write_text(sarif_json, encoding="utf-8")
-        console.print(f"[green]SARIF report written:[/green] {sarif_out}")
-    if fmt == "sarif":
-        write_output(sarif_json, output)
-        return True
-    return False
+    return emit_sarif(sarif_json, fmt, output, sarif_out)
 
 
 def parse_command(
