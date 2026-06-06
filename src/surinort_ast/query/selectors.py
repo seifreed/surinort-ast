@@ -303,6 +303,11 @@ class AttributeSelector(Selector):
             # It's an enum - use its value
             node_value = node_value.value
 
+        # Decode bytes attributes (e.g. ContentOption.pattern) so comparisons
+        # run against the textual content rather than the b'...' repr.
+        if isinstance(node_value, bytes):
+            node_value = node_value.decode("utf-8", errors="replace")
+
         # Equality operators
         if self.operator == "=":
             return str(node_value) == str(self.value)

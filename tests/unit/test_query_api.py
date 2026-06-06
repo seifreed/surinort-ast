@@ -399,5 +399,30 @@ class TestPerformance:
         assert result.node_type == "ContentOption"
 
 
+class TestBytesAttributeMatching:
+    """Regression tests for matching bytes-valued attributes (content patterns)."""
+
+    def test_content_pattern_exact_match(self):
+        """ContentOption.pattern is bytes; value comparisons must use the text.
+
+        Regression: str(b"GET") is "b'GET'", so [pattern=GET] (and ^=/$=) never
+        matched real content.
+        """
+        rule = parse_rule('alert tcp any any -> any 80 (content:"GET"; content:"POST"; sid:1;)')
+
+        assert len(query(rule, "ContentOption[pattern=GET]")) == 1
+        assert len(query(rule, "ContentOption[pattern=POST]")) == 1
+        assert len(query(rule, "ContentOption[pattern=NOPE]")) == 0
+
+    def test_content_pattern_prefix_suffix_substring(self):
+        """Prefix/suffix/substring operators work against the decoded content."""
+        rule = parse_rule('alert tcp any any -> any 80 (content:"GETPOST"; sid:1;)')
+
+        assert len(query(rule, "ContentOption[pattern^=GET]")) == 1
+        assert len(query(rule, "ContentOption[pattern$=POST]")) == 1
+        assert len(query(rule, "ContentOption[pattern*=TPO]")) == 1
+        assert len(query(rule, "ContentOption[pattern^=POST]")) == 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
