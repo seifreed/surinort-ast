@@ -19,13 +19,13 @@ pip install pyyaml
 
 **Usage**:
 ```python
-from surinort_ast.plugins import get_registry
+from pathlib import Path
+
+from surinort_ast.plugins import PluginLoader, get_registry
 from surinort_ast.parsing import parse_rule
 
-# Import plugin (auto-registers)
-import sys
-sys.path.insert(0, "examples/plugins")
-import yaml_serializer_plugin
+# Load plugins from this directory (the loader registers them)
+PluginLoader(auto_load=False).load_directory(Path("examples/plugins"))
 
 # Get plugin from registry
 registry = get_registry()
@@ -67,13 +67,13 @@ surinort plugins info yaml --type serializer
 
 **Usage**:
 ```python
-from surinort_ast.plugins import get_registry
+from pathlib import Path
+
+from surinort_ast.plugins import PluginLoader, get_registry
 from surinort_ast.parsing import parse_rule
 
-# Import plugin (auto-registers)
-import sys
-sys.path.insert(0, "examples/plugins")
-import security_analyzer_plugin
+# Load plugins from this directory (the loader registers them)
+PluginLoader(auto_load=False).load_directory(Path("examples/plugins"))
 
 # Get plugin from registry
 registry = get_registry()

@@ -8,11 +8,12 @@ Installation:
     pip install pyyaml
 
 Usage:
-    >>> from surinort_ast.plugins import get_registry
+    >>> from pathlib import Path
+    >>> from surinort_ast.plugins import PluginLoader, get_registry
     >>> from surinort_ast.parsing import parse_rule
     >>>
-    >>> # Plugin auto-registers on import
-    >>> import yaml_serializer_plugin
+    >>> # Load plugins from this directory (the loader registers them)
+    >>> PluginLoader(auto_load=False).load_directory(Path("examples/plugins"))
     >>>
     >>> # Get serializer from registry
     >>> registry = get_registry()
@@ -31,7 +32,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from surinort_ast.plugins import SerializerPlugin, get_registry
+from surinort_ast.plugins import SerializerPlugin
 
 if TYPE_CHECKING:
     from surinort_ast.core.nodes import Rule
@@ -196,14 +197,6 @@ class YAMLSerializerPlugin(SerializerPlugin):
         """
         registry.register_serializer(self.get_format_name(), self)
 
-
-# ============================================================================
-# Auto-register on import
-# ============================================================================
-
-# Create plugin instance and register
-_yaml_plugin = YAMLSerializerPlugin()
-_yaml_plugin.register(get_registry())
 
 # ============================================================================
 # License Information

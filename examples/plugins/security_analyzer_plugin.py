@@ -6,11 +6,12 @@ security auditing on IDS rules to identify potential security issues and
 performance problems.
 
 Usage:
-    >>> from surinort_ast.plugins import get_registry
+    >>> from pathlib import Path
+    >>> from surinort_ast.plugins import PluginLoader, get_registry
     >>> from surinort_ast.parsing import parse_rule
     >>>
-    >>> # Plugin auto-registers on import
-    >>> import security_analyzer_plugin
+    >>> # Load plugins from this directory (the loader registers them)
+    >>> PluginLoader(auto_load=False).load_directory(Path("examples/plugins"))
     >>>
     >>> # Get analyzer from registry
     >>> registry = get_registry()
@@ -29,7 +30,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from surinort_ast.plugins import AnalysisPlugin, get_registry
+from surinort_ast.plugins import AnalysisPlugin
 
 if TYPE_CHECKING:
     from surinort_ast.core.nodes import Rule
@@ -355,14 +356,6 @@ class SecurityAnalyzerPlugin(AnalysisPlugin):
         """
         registry.register_analyzer(self.name, self)
 
-
-# ============================================================================
-# Auto-register on import
-# ============================================================================
-
-# Create plugin instance and register
-_security_plugin = SecurityAnalyzerPlugin()
-_security_plugin.register(get_registry())
 
 # ============================================================================
 # License Information
