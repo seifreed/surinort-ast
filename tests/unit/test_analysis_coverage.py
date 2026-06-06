@@ -218,9 +218,29 @@ class TestCoverageAnalyzer:
         analyzer = CoverageAnalyzer()
         report = analyzer.analyze([rule])
 
-        # Should sample ports from range
+        # Endpoints are recorded as discrete covered ports.
         assert 8000 in report.port_coverage
         assert 8100 in report.port_coverage
+
+    def test_common_ports_inside_range_are_covered(self):
+        """A common port inside a covered range must not be reported uncovered.
+
+        Regression: ranges were reduced to a few sampled ports, so common ports
+        inside the range (e.g. 22/53/80/443) were wrongly flagged as uncovered
+        and emitted as gaps.
+        """
+        rule = parse_rule('alert tcp any 1:1024 -> any any (msg:"Range"; sid:1;)')
+
+        report = CoverageAnalyzer().analyze([rule])
+
+        for covered in (22, 53, 80, 443, 110, 143):
+            assert covered not in report.common_ports_uncovered
+        # No port gap should be emitted for a port that is actually inside the range.
+        port_gap_text = " ".join(gap.description for gap in report.gaps if gap.gap_type == "port")
+        assert "port 80 " not in port_gap_text
+        assert "port 443 " not in port_gap_text
+        # Ports outside the range remain uncovered.
+        assert 3306 in report.common_ports_uncovered
 
     def test_analyze_direction_distribution(self):
         """Test direction distribution analysis."""

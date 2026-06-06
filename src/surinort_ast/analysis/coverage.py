@@ -334,6 +334,9 @@ class CoverageAnalyzer:
         """Initialize the coverage analyzer."""
         self.protocol_coverage: Counter[Protocol] = Counter()
         self.port_coverage: dict[int, list[Rule]] = defaultdict(list)
+        # Covered port ranges (start, end), so coverage of a port inside a range
+        # is detected by interval membership rather than discrete enumeration.
+        self.covered_port_ranges: list[tuple[int, int]] = []
         self.direction_coverage: Counter[Direction] = Counter()
         self.action_coverage: Counter[Action] = Counter()
         self.content_types: Counter[str] = Counter()
@@ -357,6 +360,7 @@ class CoverageAnalyzer:
         # Reset state
         self.protocol_coverage = Counter()
         self.port_coverage = defaultdict(list)
+        self.covered_port_ranges = []
         self.direction_coverage = Counter()
         self.action_coverage = Counter()
         self.content_types = Counter()
@@ -374,7 +378,7 @@ class CoverageAnalyzer:
         }
 
         common_ports_uncovered = [
-            port for port in self.COMMON_PORTS if port not in self.port_coverage
+            port for port in self.COMMON_PORTS if not self._is_port_covered(port)
         ]
 
         return CoverageReport(
@@ -406,6 +410,10 @@ class CoverageAnalyzer:
         for port in src_ports | dst_ports:
             self.port_coverage[port].append(rule)
 
+        # Record covered ranges so ports inside a range count as covered.
+        self.covered_port_ranges.extend(self._extract_port_intervals(rule.header.src_port))
+        self.covered_port_ranges.extend(self._extract_port_intervals(rule.header.dst_port))
+
         # Content type analysis from msg option
         content_type = self._classify_content_type(rule)
         if content_type:
@@ -426,14 +434,11 @@ class CoverageAnalyzer:
         if isinstance(port_expr, Port):
             ports.add(port_expr.value)
         elif isinstance(port_expr, PortRange):
-            # For ranges, include start, end, and sample some intermediate
+            # Record the endpoints as discrete covered ports; the full interval
+            # is tracked separately (see _extract_port_intervals) so coverage of
+            # interior ports is decided by membership, not arbitrary sampling.
             ports.add(port_expr.start)
             ports.add(port_expr.end)
-            # Sample a few intermediate ports for large ranges
-            if port_expr.end - port_expr.start > 10:
-                step = (port_expr.end - port_expr.start) // 5
-                for i in range(1, 5):
-                    ports.add(port_expr.start + i * step)
         elif isinstance(port_expr, PortList):
             for element in port_expr.elements:
                 ports.update(self._extract_ports(element))
@@ -445,6 +450,35 @@ class CoverageAnalyzer:
             pass
 
         return ports
+
+    def _extract_port_intervals(self, port_expr: PortExpr) -> list[tuple[int, int]]:
+        """
+        Extract concrete ``(start, end)`` port intervals from a port expression.
+
+        Ranges yield their full interval and lists recurse. ``any``, variables
+        and negations contribute no determinable interval. Singletons are already
+        tracked discretely by :meth:`_extract_ports`, so they are omitted here.
+
+        Args:
+            port_expr: Port expression from rule header
+
+        Returns:
+            List of inclusive ``(start, end)`` intervals.
+        """
+        if isinstance(port_expr, PortRange):
+            return [(port_expr.start, port_expr.end)]
+        if isinstance(port_expr, PortList):
+            intervals: list[tuple[int, int]] = []
+            for element in port_expr.elements:
+                intervals.extend(self._extract_port_intervals(element))
+            return intervals
+        return []
+
+    def _is_port_covered(self, port: int) -> bool:
+        """True if ``port`` is covered by a discrete rule port or a covered range."""
+        if port in self.port_coverage:
+            return True
+        return any(start <= port <= end for start, end in self.covered_port_ranges)
 
     def _classify_content_type(self, rule: Rule) -> str | None:
         """
@@ -511,7 +545,7 @@ class CoverageAnalyzer:
 
         # Check common ports
         for port in self.COMMON_PORTS:
-            if port not in self.port_coverage:
+            if not self._is_port_covered(port):
                 port_name = _get_port_name(port)
                 severity = "high" if port in [80, 443, 22, 445] else "medium"
                 gaps.append(
