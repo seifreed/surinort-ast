@@ -273,6 +273,18 @@ class AttributeSelector(Selector):
 
             raise InvalidSelectorError(f"Invalid operator: {operator}")
 
+    @staticmethod
+    def _values_equal(node_value: Any, query_value: Any) -> bool:
+        """Compare an attribute value to a query value.
+
+        Boolean attributes are compared against the conventional lowercase
+        ``true``/``false`` (Python's ``str(bool)`` is capitalized), so both
+        casings match; everything else falls back to string comparison.
+        """
+        if isinstance(node_value, bool):
+            return ("true" if node_value else "false") == str(query_value).lower()
+        return str(node_value) == str(query_value)
+
     def matches(self, node: ASTNode, context: Any = None) -> bool:
         """
         Test if node attribute matches criteria.
@@ -312,10 +324,10 @@ class AttributeSelector(Selector):
 
         # Equality operators
         if self.operator == "=":
-            return str(node_value) == str(self.value)
+            return self._values_equal(node_value, self.value)
 
         if self.operator == "!=":
-            return str(node_value) != str(self.value)
+            return not self._values_equal(node_value, self.value)
 
         # Comparison operators (Phase 3) - numeric only
         if self.operator in {">", "<", ">=", "<="}:

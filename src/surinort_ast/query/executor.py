@@ -376,6 +376,22 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
 
         return True
 
+    @staticmethod
+    def _context_for(candidate: ASTNode, parent: ASTNode | None) -> ExecutionContext:
+        """Build a context positioning ``candidate`` as the matched node.
+
+        Positional pseudo-selectors (``:first-child``/``:last-child``) resolve a
+        node's position from ``ancestors[-1]`` (the node) and ``ancestors[-2]``
+        (its parent), so the related node must be evaluated with that stack
+        rather than the empty default context.
+        """
+        context = ExecutionContext()
+        if parent is not None:
+            context.ancestors = [parent, candidate]
+        else:
+            context.ancestors = [candidate]
+        return context
+
     def _find_related_node(self, node: ASTNode, combinator: Any, selector: Any) -> ASTNode | None:
         """
         Find a node related to the given node by the combinator that matches the selector.
@@ -390,30 +406,32 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
         """
         from .selectors import Combinator
 
+        ancestors = self.execution_context.ancestors
+
         if combinator == Combinator.DESCENDANT:
             # Find any ancestor that matches selector
-            for ancestor in reversed(self.execution_context.ancestors):
+            for idx in range(len(ancestors) - 1, -1, -1):
+                ancestor = ancestors[idx]
                 if ancestor is node:
                     continue
-                if selector.matches(ancestor):
+                parent = ancestors[idx - 1] if idx > 0 else None
+                if selector.matches(ancestor, self._context_for(ancestor, parent)):
                     return ancestor
             return None
 
         if combinator == Combinator.CHILD:
             # Find immediate parent that matches selector.
             # Search backwards through ancestors to find this node, then check its parent.
-            ancestors = self.execution_context.ancestors
             for idx in range(len(ancestors) - 1, -1, -1):
                 if ancestors[idx] is node and idx > 0:
                     parent = ancestors[idx - 1]
-                    if selector.matches(parent):
+                    grandparent = ancestors[idx - 2] if idx >= 2 else None
+                    if selector.matches(parent, self._context_for(parent, grandparent)):
                         return parent
                     break
             return None
 
-        if combinator == Combinator.ADJACENT:
-            # Find immediately preceding sibling that matches selector.
-            ancestors = self.execution_context.ancestors
+        if combinator in (Combinator.ADJACENT, Combinator.GENERAL):
             parent = None
             for idx in range(len(ancestors) - 1, -1, -1):
                 if ancestors[idx] is node and idx > 0:
@@ -424,29 +442,18 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
 
             siblings = query_children(parent)
             sibling_index = _sibling_index(siblings, node)
-            if sibling_index is not None and sibling_index > 0:
-                prev_sibling = siblings[sibling_index - 1]
-                if selector.matches(prev_sibling):
-                    return prev_sibling
-            return None
-
-        if combinator == Combinator.GENERAL:
-            # Find any preceding sibling that matches selector.
-            ancestors = self.execution_context.ancestors
-            parent = None
-            for idx in range(len(ancestors) - 1, -1, -1):
-                if ancestors[idx] is node and idx > 0:
-                    parent = ancestors[idx - 1]
-                    break
-            if parent is None:
+            if sibling_index is None:
                 return None
 
-            siblings = query_children(parent)
-            sibling_index = _sibling_index(siblings, node)
-            if sibling_index is not None:
-                for i in range(sibling_index - 1, -1, -1):
-                    if selector.matches(siblings[i]):
-                        return siblings[i]
+            if combinator == Combinator.ADJACENT:
+                candidates = [sibling_index - 1] if sibling_index > 0 else []
+            else:
+                candidates = list(range(sibling_index - 1, -1, -1))
+
+            for i in candidates:
+                sibling = siblings[i]
+                if selector.matches(sibling, self._context_for(sibling, parent)):
+                    return sibling
             return None
 
         return None

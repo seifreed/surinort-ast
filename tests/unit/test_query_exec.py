@@ -188,3 +188,46 @@ class TestListAndNegationNodeMatching:
         indexed = IndexedQueryExecutor(chain).execute(rule)
         streaming = list(StreamingQueryExecutor(chain).execute_stream(rule))
         assert len(base) == len(indexed) == len(streaming) == 1
+
+
+class TestPositionalPseudoInCombinator:
+    """Positional pseudo-classes must resolve in the required (ancestor) selector."""
+
+    def _query(self, rule_text: str, selector: str):
+        from surinort_ast.query import query
+
+        return query(parse_rule(rule_text), selector)
+
+    def test_first_child_required_selector_matches_when_first(self):
+        # src_addr (the AddressList) is the first child of Header.
+        rule = "alert tcp [1.1.1.1,2.2.2.2] any -> any any (sid:1;)"
+        assert len(self._query(rule, "AddressList:first-child > IPAddress")) == 2
+        assert len(self._query(rule, "AddressList:first-child IPAddress")) == 2
+
+    def test_last_child_required_selector_rejects_when_not_last(self):
+        # The AddressList is the first child, so :last-child must not match.
+        rule = "alert tcp [1.1.1.1,2.2.2.2] any -> any any (sid:1;)"
+        assert self._query(rule, "AddressList:last-child > IPAddress") == []
+        assert self._query(rule, "AddressList:last-child IPAddress") == []
+
+
+class TestBooleanAttributeMatching:
+    """Boolean attributes match conventional lowercase true/false."""
+
+    RULE = 'alert tcp any any -> any 80 (content:!"abc"; content:"xyz"; sid:1;)'
+
+    def _query(self, selector: str):
+        from surinort_ast.query import query
+
+        return query(parse_rule(self.RULE), selector)
+
+    def test_lowercase_boolean_matches(self):
+        assert len(self._query("ContentOption[negated=true]")) == 1
+        assert len(self._query("ContentOption[negated=false]")) == 1
+
+    def test_capitalized_boolean_still_matches(self):
+        assert len(self._query("ContentOption[negated=True]")) == 1
+        assert len(self._query("ContentOption[negated=False]")) == 1
+
+    def test_boolean_inequality(self):
+        assert len(self._query("ContentOption[negated!=true]")) == 1
