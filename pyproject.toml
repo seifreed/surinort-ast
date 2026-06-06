@@ -64,75 +64,42 @@ classifiers = [
     "Natural Language :: English",
 ]
 
-# Core production dependencies
+# Production dependencies — a plain `pip install surinort-ast` installs the full
+# feature set (serialization, rich CLI, analysis, extra formats). No extras needed.
 dependencies = [
     "lark>=1.3.1",           # Modern parser with Earley/LALR support
     "pydantic>=2.13.4",      # Data validation with type hints (includes JSON serialization)
     "typer>=0.26.5",         # Modern CLI framework with type hints
     "jsonschema>=4.26.0",    # JSON Schema validation
-]
-
-[project.optional-dependencies]
-# Optional serialization formats
-serialization = [
+    "rich>=15.0.0",          # Rich terminal output for the CLI
     "msgpack>=1.1.2",        # Binary serialization (faster than JSON)
-    "protobuf>=7.34.1",      # Protocol Buffers support
-]
-
-# Enhanced CLI output with rich formatting
-cli-enhanced = [
-    "rich>=15.0.0",          # Rich terminal output, colors, tables
-]
-
-# Security analysis tools
-security = [
-    "bandit>=1.9.4",         # Security vulnerability scanner
-    "safety>=3.8.1",         # Dependency security checker
-]
-
-# Advanced analysis features
-analysis = [
+    "protobuf>=7.34.1",      # Protocol Buffers serialization
     "networkx>=3.6.1",       # Graph analysis for rule relationships
-]
-
-# Additional format support
-formats = [
     "pyyaml>=6.0.3",         # YAML serialization support
     "python-magic>=0.4.27",  # File type detection
 ]
 
-# Performance benchmarking (optional)
-benchmark = [
-    "pytest-benchmark>=5.2.3",  # Performance benchmarking for tests
-]
-
-# Development dependencies
+[project.optional-dependencies]
+# Development & CI tooling — everything needed to build, test, lint, type-check,
+# and audit the project. Installed via `pip install -e .[dev]`.
 dev = [
     # Testing
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
-    "hypothesis>=6.155.1",  # Property-based testing
-
-    # Linting and formatting (ruff replaces: flake8, black, isort, pyupgrade)
+    "pytest-benchmark>=5.2.3",
+    "hypothesis>=6.155.1",
+    # Linting, formatting, typing
     "ruff>=0.15.15",
-
-    # Type checking
+    "black>=26.1.0",
     "mypy>=1.20.0",
-
-    # Build and publishing
+    # Security & dependency auditing
+    "bandit>=1.9.4",
+    "pip-audit>=2.10.0",
+    # Build, publishing, hooks, docs
     "build>=1.5.0",
     "twine>=6.2.0",
-
-    # Pre-commit hooks
     "pre-commit>=4.5.1",
-
-    # Documentation
     "mkdocs-material>=9.7.6",
-]
-
-# All optional dependencies combined
-all = [
-    "surinort-ast[serialization,cli-enhanced,security,analysis,formats,benchmark,dev]",
 ]
 
 [project.urls]
@@ -204,12 +171,6 @@ ignore = [
 "src/surinort_ast/printer/text_printer.py" = [
     "ARG001",  # Unused function argument (singledispatch pattern requirement)
     "PLR0911", # Too many returns (inherent to printer dispatch logic)
-]
-"src/surinort_ast/analysis/conflicts/detectors.py" = [
-    "ARG001",  # Detectors share a uniform (index, config) signature; not all use config
-]
-"src/surinort_ast/analysis/conflicts/matchspace.py" = [
-    "PLR0911", # build_addr_set / build_port_set dispatch on node type (inherently many returns)
 ]
 "src/surinort_ast/parsing/lark_parser.py" = [
     "ARG001",  # Unused arguments (Lark transformer interface compliance)
@@ -332,10 +293,6 @@ strict_equality = true
 
 # Pydantic plugin for mypy
 plugins = ["pydantic.mypy"]
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
 
 # Protobuf generated code lacks type annotations (unfixable without regeneration)
 [[tool.mypy.overrides]]
@@ -512,7 +469,6 @@ include = [
     "/CHANGELOG.md",
     "/pyproject.toml",
     "/requirements.txt",
-    "/requirements-dev.txt",
 ]
 exclude = [
     "/.git",
