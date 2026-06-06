@@ -261,7 +261,7 @@ endswith_option: "endswith"
 // Support both decimal and hexadecimal numbers in byte operations
 ?number: HEX_INT | INT
 
-isdataat_option: "isdataat" ":" "!"? (INT | WORD | REFERENCE_ID) ("," WORD)?
+isdataat_option: "isdataat" ":" neg_bang? (INT | WORD | REFERENCE_ID) ("," WORD)?
 
 urilen_option: "urilen" ":" URILEN_TAIL
 URILEN_TAIL.1: /[^;\)]{1,200}/
@@ -324,8 +324,8 @@ flags_atom: WORD | INT | GENERIC_VALUE
 
 // Lua scripting (Suricata/Snort)
 // lua:filename.lua; or lua:!filename.lua; (negation)
-lua_option: "lua" ":" "!"? lua_script_name
-luajit_option: "luajit" ":" "!"? lua_script_name
+lua_option: "lua" ":" neg_bang? lua_script_name
+luajit_option: "luajit" ":" neg_bang? lua_script_name
 lua_script_name: WORD "." WORD  // filename.lua
                | REFERENCE_ID    // Complex filenames with paths
 

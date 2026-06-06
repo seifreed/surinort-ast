@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from lark import Token
+from lark import Token, Tree
 
 from ....core.nodes import GenericOption
 
@@ -113,5 +113,12 @@ class ProtocolSpecificOptionsMixin:
             Verify sufficient data exists before matching subsequent patterns.
             Prevents false positives from truncated payloads.
         """
-        value_str = ",".join(str(item.value if isinstance(item, Token) else item) for item in items)
-        return GenericOption(keyword="isdataat", value=value_str, raw=f"isdataat:{value_str}")
+        negated = bool(items) and isinstance(items[0], Tree) and items[0].data == "neg_bang"
+        rest = items[1:] if negated else items
+        value_str = ",".join(str(item.value if isinstance(item, Token) else item) for item in rest)
+        prefix = "!" if negated else ""
+        return GenericOption(
+            keyword="isdataat",
+            value=f"{prefix}{value_str}",
+            raw=f"isdataat:{prefix}{value_str}",
+        )

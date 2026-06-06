@@ -14,9 +14,19 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from lark import Token
+from lark import Token, Tree
 
 from ....core.nodes import LuajitOption, LuaOption
+
+
+def _script_negation(items: Sequence[Any]) -> tuple[bool, str]:
+    """Return (negated, script_name) from a lua/luajit option's children."""
+    negated = any(isinstance(item, Tree) and item.data == "neg_bang" for item in items)
+    script_name = next(
+        (item for item in items if not isinstance(item, Tree)),
+        "",
+    )
+    return negated, str(script_name) if script_name else ""
 
 
 class ScriptingOptionsMixin:
@@ -68,22 +78,7 @@ class ScriptingOptionsMixin:
             Lua scripts have full access to packet data and system resources.
             Only use trusted scripts.
         """
-        negated = False
-        script_name = ""
-
-        for item in items:
-            if isinstance(item, Token):
-                if item.type == "LPAR" or str(item.value) == "!":
-                    negated = True
-                else:
-                    # Extract script name from token
-                    script_name = str(item.value)
-            elif isinstance(item, str):
-                if item == "!":
-                    negated = True
-                else:
-                    script_name = item
-
+        negated, script_name = _script_negation(items)
         return LuaOption(script_name=script_name, negated=negated)
 
     def luajit_option(self, items: Sequence[Any]) -> LuajitOption:
@@ -110,22 +105,7 @@ class ScriptingOptionsMixin:
             Performance-critical custom detection logic. Prefer luajit over
             lua when script performance matters (high traffic environments).
         """
-        negated = False
-        script_name = ""
-
-        for item in items:
-            if isinstance(item, Token):
-                if item.type == "LPAR" or str(item.value) == "!":
-                    negated = True
-                else:
-                    # Extract script name from token
-                    script_name = str(item.value)
-            elif isinstance(item, str):
-                if item == "!":
-                    negated = True
-                else:
-                    script_name = item
-
+        negated, script_name = _script_negation(items)
         return LuajitOption(script_name=script_name, negated=negated)
 
     def lua_script_name(self, items: Sequence[Token]) -> str:

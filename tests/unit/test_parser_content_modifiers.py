@@ -191,3 +191,52 @@ class TestContentNegation:
 
         rule = parse_rule('alert tcp any any -> any any (content:!"evil"; sid:1;)')
         assert self._content(from_protobuf(to_protobuf(rule))).negated is True
+
+
+class TestScriptAndIsdataatNegation:
+    """lua/luajit/isdataat negation must be captured (shared neg_bang fix).
+
+    Regression: the anonymous '!' literal was filtered by Lark, so lua:!s and
+    isdataat:!N silently lost their negation (LuaOption already had a negated
+    field; isdataat is a GenericOption).
+    """
+
+    def test_lua_negated(self):
+        rule = parse_rule("alert tcp any any -> any any (lua:!script.lua; sid:1;)")
+        lua = _option(rule, "LuaOption")
+        assert lua.negated is True
+        assert lua.script_name == "script.lua"
+
+    def test_lua_non_negated(self):
+        rule = parse_rule("alert tcp any any -> any any (lua:script.lua; sid:1;)")
+        assert _option(rule, "LuaOption").negated is False
+
+    def test_luajit_negated(self):
+        rule = parse_rule("alert tcp any any -> any any (luajit:!s.lua; sid:1;)")
+        assert _option(rule, "LuajitOption").negated is True
+
+    def test_lua_negation_round_trips_through_text(self):
+        from surinort_ast.api import print_rule
+
+        rule = parse_rule("alert tcp any any -> any any (lua:!script.lua; sid:1;)")
+        printed = print_rule(rule)
+        assert "lua:!" in printed
+        assert _option(parse_rule(printed), "LuaOption").negated is True
+
+    def test_isdataat_negated_value_keeps_bang(self):
+        rule = parse_rule(
+            'alert tcp any any -> any any (content:"x"; isdataat:!10,relative; sid:1;)'
+        )
+        isdataat = next(
+            o for o in rule.options if o.node_type == "GenericOption" and o.keyword == "isdataat"
+        )
+        assert isdataat.value == "!10,relative"
+
+    def test_isdataat_non_negated(self):
+        rule = parse_rule(
+            'alert tcp any any -> any any (content:"x"; isdataat:10,relative; sid:1;)'
+        )
+        isdataat = next(
+            o for o in rule.options if o.node_type == "GenericOption" and o.keyword == "isdataat"
+        )
+        assert isdataat.value == "10,relative"
