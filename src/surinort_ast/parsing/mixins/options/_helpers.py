@@ -15,6 +15,19 @@ from __future__ import annotations
 import functools
 import re
 
+from ....core.nodes import GenericOption
+
+
+def generic_kv(keyword: str, value: str) -> GenericOption:
+    """Build a ``GenericOption`` whose raw form is ``keyword:value``.
+
+    Shared by the option transformers that emit a passthrough
+    ``GenericOption`` (byte_test/byte_jump/byte_extract/byte_math, tag, flags,
+    urilen, isdataat, flowint, threshold, detection_filter).
+    """
+    return GenericOption(keyword=keyword, value=value, raw=f"{keyword}:{value}")
+
+
 # ============================================================================
 # String Parsing Helpers
 # ============================================================================

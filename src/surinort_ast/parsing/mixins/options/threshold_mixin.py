@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any
 from lark import Token
 
 from ...helpers import token_to_str
+from ._helpers import generic_kv
 
 if TYPE_CHECKING:
     from .. import DiagnosticReporter
@@ -139,7 +140,7 @@ class ThresholdOptionsMixin:
                 "Using generic representation.",
             )
         params_str = ", ".join(param_strs)
-        return GenericOption(keyword="threshold", value=params_str, raw=f"threshold:{params_str}")
+        return generic_kv("threshold", params_str)
 
     def threshold_params(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through threshold params."""
@@ -235,11 +236,7 @@ class ThresholdOptionsMixin:
                 "Using generic representation.",
             )
         params_str = ", ".join(param_strs)
-        return GenericOption(
-            keyword="detection_filter",
-            value=params_str,
-            raw=f"detection_filter:{params_str}",
-        )
+        return generic_kv("detection_filter", params_str)
 
     def detection_params(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through detection params."""

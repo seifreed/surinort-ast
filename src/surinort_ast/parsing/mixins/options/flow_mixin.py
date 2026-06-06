@@ -24,6 +24,7 @@ from ....core.diagnostics import DiagnosticLevel
 from ....core.enums import FlowDirection, FlowState
 from ....core.nodes import FlowbitsOption, FlowOption, GenericOption
 from ...helpers import token_to_location
+from ._helpers import generic_kv
 
 
 class FlowTrackingOptionsMixin:
@@ -243,4 +244,4 @@ class FlowTrackingOptionsMixin:
             Track numeric state across flow lifetime (packet counts, thresholds).
         """
         value_str = ",".join(str(item.value) for item in items)
-        return GenericOption(keyword="flowint", value=value_str, raw=f"flowint:{value_str}")
+        return generic_kv("flowint", value_str)

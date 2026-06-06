@@ -18,6 +18,7 @@ from lark import Token, Tree
 
 from ....core.nodes import GenericOption
 from ...helpers import token_to_str
+from ._helpers import generic_kv
 
 
 class ProtocolSpecificOptionsMixin:
@@ -68,7 +69,7 @@ class ProtocolSpecificOptionsMixin:
         """
         # items[0] is the transformed urilen_value (which is a string like "21" or "<100")
         value_str = str(items[0]) if items else ""
-        return GenericOption(keyword="urilen", value=value_str, raw=f"urilen:{value_str}")
+        return generic_kv("urilen", value_str)
 
     def urilen_value(self, items: Sequence[Token]) -> str:
         """
@@ -118,8 +119,4 @@ class ProtocolSpecificOptionsMixin:
         rest = items[1:] if negated else items
         value_str = ",".join(token_to_str(item) for item in rest)
         prefix = "!" if negated else ""
-        return GenericOption(
-            keyword="isdataat",
-            value=f"{prefix}{value_str}",
-            raw=f"isdataat:{prefix}{value_str}",
-        )
+        return generic_kv("isdataat", f"{prefix}{value_str}")

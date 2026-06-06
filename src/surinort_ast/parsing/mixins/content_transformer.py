@@ -43,7 +43,7 @@ from ...core.nodes import (
     WithinOption,
 )
 from ..helpers import token_to_str
-from .options._helpers import parse_quoted_string
+from .options._helpers import generic_kv, parse_quoted_string
 
 logger = logging.getLogger(__name__)
 
@@ -732,7 +732,7 @@ class ContentTransformerMixin:
                 processed_params.append(str(p))
 
         value_str = ",".join(processed_params)
-        return GenericOption(keyword="byte_test", value=value_str, raw=f"byte_test:{value_str}")
+        return generic_kv("byte_test", value_str)
 
     def byte_test_params(self, items: Sequence[Token]) -> Sequence[Token]:
         """Pass through byte_test params."""
@@ -847,7 +847,7 @@ class ContentTransformerMixin:
                 processed_params.append(str(p))
 
         value_str = ",".join(processed_params)
-        return GenericOption(keyword="byte_jump", value=value_str, raw=f"byte_jump:{value_str}")
+        return generic_kv("byte_jump", value_str)
 
     def byte_jump_params(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through byte_jump params."""
@@ -889,9 +889,7 @@ class ContentTransformerMixin:
         """
         params = items[0] if items else []
         value_str = ",".join(token_to_str(p) for p in params)
-        return GenericOption(
-            keyword="byte_extract", value=value_str, raw=f"byte_extract:{value_str}"
-        )
+        return generic_kv("byte_extract", value_str)
 
     def byte_extract_params(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through byte_extract params."""
@@ -919,4 +917,4 @@ class ContentTransformerMixin:
         """
         tail = token_to_str(items[0]) if items else ""
         value_str = tail.strip()
-        return GenericOption(keyword="byte_math", value=value_str, raw=f"byte_math:{value_str}")
+        return generic_kv("byte_math", value_str)

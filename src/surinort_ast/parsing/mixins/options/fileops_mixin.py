@@ -19,6 +19,7 @@ from lark import Token, Tree
 
 from ....core.nodes import FilestoreOption, GenericOption
 from ...helpers import token_to_str
+from ._helpers import generic_kv
 
 
 def _atom_text(item: Any) -> str:
@@ -128,7 +129,7 @@ class FileOperationsOptionsMixin:
             Capture related packets after alert triggers for forensic analysis.
         """
         value_str = ",".join(_atom_text(item) for item in items)
-        return GenericOption(keyword="tag", value=value_str, raw=f"tag:{value_str}")
+        return generic_kv("tag", value_str)
 
     def tag_atom(self, items: Sequence[Any]) -> str:
         """Collapse a tag_atom sub-tree to its token text."""
@@ -175,7 +176,7 @@ class FileOperationsOptionsMixin:
             Detect specific TCP handshake patterns, port scans, or anomalies.
         """
         value = ",".join(_atom_text(item) for item in items)
-        return GenericOption(keyword="flags", value=value, raw=f"flags:{value}")
+        return generic_kv("flags", value)
 
     def flags_atom(self, items: Sequence[Any]) -> str:
         """Collapse a flags_atom sub-tree to its token text."""
