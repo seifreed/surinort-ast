@@ -14,13 +14,12 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ...analysis import ConflictDetectorConfig, Severity, detect_conflicts
 from ...api import parse_file
 from ...core.enums import Dialect
 from ...exceptions import ParseError
-from ..shared import console, err_console, resolve_output_format, write_output
+from ..shared import err_console, parsing_progress, resolve_output_format, write_output
 
 
 def conflicts_command(
@@ -50,13 +49,7 @@ def conflicts_command(
     fmt = resolve_output_format(output_format, ("text", "json", "markdown"))
 
     try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-            transient=True,
-        ) as progress:
-            progress.add_task("Detecting conflicts...", total=None)
+        with parsing_progress("Detecting conflicts..."):
             rules = parse_file(file, dialect=dialect)
             report = detect_conflicts(rules, ConflictDetectorConfig(min_severity=min_severity))
 

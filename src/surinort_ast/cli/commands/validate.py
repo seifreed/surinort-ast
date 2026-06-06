@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import typer
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
@@ -25,6 +24,7 @@ from ..shared import (
     console,
     emit_sarif,
     err_console,
+    parsing_progress,
     resolve_output_format,
     validate_file_path,
 )
@@ -248,13 +248,7 @@ def validate_command(
     try:
         fmt = resolve_output_format(output_format, ("text", "sarif"))
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-            transient=True,
-        ) as progress:
-            progress.add_task("Validating rules...", total=None)
+        with parsing_progress("Validating rules..."):
             rules = parse_file(file, dialect=dialect)
 
         # Validate all rules

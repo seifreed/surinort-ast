@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import logging
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from pathlib import Path
 
 import typer
 from lark.exceptions import LarkError
 from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ..core.nodes import Rule
 
@@ -93,6 +95,19 @@ def validate_file_path(
             raise ValueError(f"Path outside allowed directory: {path.name}")
 
     return resolved
+
+
+@contextmanager
+def parsing_progress(label: str) -> Iterator[None]:
+    """Show a transient spinner labelled ``label`` while the wrapped block runs."""
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+    ) as progress:
+        progress.add_task(label, total=None)
+        yield
 
 
 def resolve_output_format(value: str, allowed: Sequence[str]) -> str:

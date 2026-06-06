@@ -15,14 +15,19 @@ from typing import Annotated, Any
 
 import typer
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from ...analysis import CoverageAnalyzer
 from ...api import coverage_report_to_sarif, parse_file
 from ...core.enums import Dialect
 from ...exceptions import ParseError
-from ..shared import console, emit_sarif, err_console, resolve_output_format
+from ..shared import (
+    console,
+    emit_sarif,
+    err_console,
+    parsing_progress,
+    resolve_output_format,
+)
 
 
 def _resolve_output_format(output_format: str) -> str:
@@ -109,13 +114,7 @@ def stats_command(
     try:
         fmt = _resolve_output_format(output_format)
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-            transient=True,
-        ) as progress:
-            progress.add_task("Analyzing rules...", total=None)
+        with parsing_progress("Analyzing rules..."):
             rules = parse_file(file, dialect=dialect)
 
         if not rules:

@@ -13,12 +13,18 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ...api import parse_file, print_rule
 from ...core.enums import Dialect
 from ...exceptions import ParseError
-from ..shared import console, err_console, parse_rules_from_content, read_input, write_output
+from ..shared import (
+    console,
+    err_console,
+    parse_rules_from_content,
+    parsing_progress,
+    read_input,
+    write_output,
+)
 
 
 def _handle_check_mode(content: str, result: str) -> None:
@@ -85,14 +91,7 @@ def fmt_command(
         content = read_input(file)
 
         # Parse and format
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-            transient=True,
-        ) as progress:
-            progress.add_task("Formatting rules...", total=None)
-
+        with parsing_progress("Formatting rules..."):
             if file:
                 rules = parse_file(file, dialect=dialect)
             else:

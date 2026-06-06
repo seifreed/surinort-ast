@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import typer
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
 from ...api import parse_file, print_rule, to_json, to_sarif
@@ -26,6 +25,7 @@ from ..shared import (
     emit_sarif,
     err_console,
     parse_rules_from_content,
+    parsing_progress,
     read_input,
     resolve_output_format,
     write_output,
@@ -153,14 +153,7 @@ def parse_command(
         content = read_input(file)
 
         # Parse rules
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-            transient=True,
-        ) as progress:
-            progress.add_task("Parsing rules...", total=None)
-
+        with parsing_progress("Parsing rules..."):
             if file:
                 rules = parse_file(file, dialect=dialect, workers=workers)
             else:
