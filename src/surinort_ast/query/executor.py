@@ -303,6 +303,22 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
         self.execution_context.pop_ancestor()
         return []
 
+    def visit_AddressList(self, node: Any) -> list[ASTNode]:  # noqa: N802
+        """Match the AddressList itself, then descend with context."""
+        return self.generic_visit(node)
+
+    def visit_AddressNegation(self, node: Any) -> list[ASTNode]:  # noqa: N802
+        """Match the AddressNegation itself, then descend with context."""
+        return self.generic_visit(node)
+
+    def visit_PortList(self, node: Any) -> list[ASTNode]:  # noqa: N802
+        """Match the PortList itself, then descend with context."""
+        return self.generic_visit(node)
+
+    def visit_PortNegation(self, node: Any) -> list[ASTNode]:  # noqa: N802
+        """Match the PortNegation itself, then descend with context."""
+        return self.generic_visit(node)
+
     def _matches_current_selector(self, node: ASTNode) -> bool:
         """
         Test if node matches current selector in chain.

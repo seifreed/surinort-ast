@@ -310,3 +310,33 @@ class TestConflictsCLI:
         rules_file = self._write(tmp_path, 'alert tcp any any -> any 80 (msg:"A"; sid:1; rev:1;)')
         result = CliRunner().invoke(app, ["conflicts", str(rules_file), "--format", "xml"])
         assert result.exit_code == 1
+
+
+class TestProtocolHierarchyCandidates:
+    """Cross-protocol conflicts must be found when the hierarchy is enabled."""
+
+    def test_cross_protocol_conflict_detected_with_hierarchy(self):
+        rules = _rules(
+            'drop tcp any any -> any any (msg:"a"; sid:1;)',
+            'alert http any any -> any any (msg:"b"; sid:2;)',
+        )
+        report = detect_conflicts(rules, ConflictDetectorConfig(protocol_hierarchy=True))
+        types = _types(report)
+        assert ConflictType.CONFLICTING_ACTION in types
+        assert ConflictType.SHADOWING in types
+
+    def test_cross_protocol_ignored_without_hierarchy(self):
+        rules = _rules(
+            'drop tcp any any -> any any (msg:"a"; sid:1;)',
+            'alert http any any -> any any (msg:"b"; sid:2;)',
+        )
+        report = detect_conflicts(rules, ConflictDetectorConfig(protocol_hierarchy=False))
+        assert report.conflicts == []
+
+    def test_unrelated_protocols_never_conflict(self):
+        rules = _rules(
+            'drop tcp any any -> any any (msg:"a"; sid:1;)',
+            'alert udp any any -> any 53 (msg:"d"; sid:4;)',
+        )
+        report = detect_conflicts(rules, ConflictDetectorConfig(protocol_hierarchy=True))
+        assert report.conflicts == []

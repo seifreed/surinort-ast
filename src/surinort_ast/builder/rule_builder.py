@@ -62,6 +62,27 @@ from ..core.nodes import (
 )
 from .option_builders import ContentBuilder, FlowBuilder, ThresholdBuilder
 
+_PCRE_FLAG_CHARS = frozenset("ismxAEGRUBPHKDSWYCO")
+
+
+def _normalize_pcre(pattern: str) -> tuple[str, str]:
+    """Split a ``/body/flags`` PCRE literal into ``(body, flags)``.
+
+    The AST stores the bare regex body separately from the flags (the printer
+    re-adds the ``/.../`` delimiters), so a delimited literal must be unwrapped
+    to round-trip correctly. A bare pattern is returned unchanged with empty
+    flags. Only a leading ``/`` whose closing ``/`` is followed exclusively by
+    valid PCRE flag characters is treated as delimited, so a pattern that merely
+    starts with ``/`` is preserved verbatim.
+    """
+    if len(pattern) >= 2 and pattern.startswith("/"):
+        close = pattern.rfind("/")
+        if close > 0:
+            candidate_flags = pattern[close + 1 :]
+            if all(char in _PCRE_FLAG_CHARS for char in candidate_flags):
+                return pattern[1:close], candidate_flags
+    return pattern, ""
+
 
 class BuilderError(Exception):
     """Exception raised when builder configuration is invalid."""
@@ -491,10 +512,17 @@ class RuleBuilder:
         Returns:
             Self for chaining
 
+        The pattern may be given either as the bare regex body or as a full
+        ``/body/flags`` literal; in both cases the stored option holds the bare
+        body so it re-serializes correctly. An explicit ``flags`` argument takes
+        precedence over flags embedded in a delimited pattern.
+
         Example:
-            >>> builder.pcre(r"/admin/i", flags="i")
+            >>> builder.pcre("admin", flags="i")
+            >>> builder.pcre(r"/admin/i")
         """
-        self._options.append(PcreOption(pattern=pattern, flags=flags))
+        body, embedded_flags = _normalize_pcre(pattern)
+        self._options.append(PcreOption(pattern=body, flags=flags or embedded_flags))
         return self
 
     # ========================================================================

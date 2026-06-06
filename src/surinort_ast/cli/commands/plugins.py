@@ -58,6 +58,8 @@ def list_plugins_command() -> None:
         total = sum(len(names) for names in plugins.values())
         console.print(f"[bold]Total:[/bold] {total} plugins")
 
+    except typer.Exit:
+        raise
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1) from e
@@ -140,6 +142,8 @@ def info_command(
 
         console.print()
 
+    except typer.Exit:
+        raise
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1) from e
@@ -208,6 +212,8 @@ def load_command(
             for plugin_name, error in failed.items():
                 console.print(f"  ✗ {plugin_name}: {error}")
 
+    except typer.Exit:
+        raise
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1) from e
@@ -305,6 +311,8 @@ def analyze_command(
                 json.dump(all_results, f, indent=2)
             console.print(f"\n[bold green]Results saved to:[/bold green] {output}")
 
+    except typer.Exit:
+        raise
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1) from e

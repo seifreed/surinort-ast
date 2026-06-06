@@ -202,6 +202,8 @@ def parse_command(
     except ParseError as e:
         err_console.print(f"Parse error: {e}")
         raise typer.Exit(1) from None
+    except typer.Exit:
+        raise
     except Exception as e:
         err_console.print(f"Unexpected error: {e}")
         if verbose:

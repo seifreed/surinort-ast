@@ -59,6 +59,11 @@ def _to_location(finding: Finding) -> list[SarifLocation]:
             end_column=loc.end_column,
         )
 
+    # A SARIF physicalLocation must carry at least an artifactLocation (uri) or
+    # a region; emitting an empty object is invalid per the 2.1.0 schema.
+    if loc.file_path is None and region is None:
+        return []
+
     physical = SarifPhysicalLocation(uri=loc.file_path, region=region)
     return [SarifLocation(physical_location=physical)]
 

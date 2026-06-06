@@ -891,7 +891,9 @@ class TestContentOptions:
         )
         pcre_opts = [o for o in rule.options if isinstance(o, PcreOption)]
         assert len(pcre_opts) == 1
-        assert pcre_opts[0].pattern == r"/admin/"
+        # The builder unwraps the /body/ delimiters so the stored body matches
+        # what the parser produces and re-serializes correctly.
+        assert pcre_opts[0].pattern == "admin"
         assert pcre_opts[0].flags == "i"
 
 
@@ -1414,3 +1416,50 @@ class TestComplexRules:
         ref_opts = [o for o in rule.options if isinstance(o, ReferenceOption)]
         assert len(ref_opts) == 1
         assert ref_opts[0].ref_type == "url"
+
+
+class TestPcreNormalization:
+    """pcre() must store the bare body so output re-parses identically."""
+
+    def _base(self):
+        return (
+            RuleBuilder()
+            .alert()
+            .tcp()
+            .source_ip("any")
+            .source_port("any")
+            .dest_ip("any")
+            .dest_port(80)
+            .sid(1)
+        )
+
+    @pytest.mark.parametrize(
+        ("pattern", "flags", "expected_body", "expected_flags"),
+        [
+            (r"/admin/i", "i", "admin", "i"),
+            (r"/admin/i", "", "admin", "i"),
+            ("admin", "i", "admin", "i"),
+            (r"/admin/", "", "admin", ""),
+        ],
+    )
+    def test_pcre_unwraps_delimiters(self, pattern, flags, expected_body, expected_flags):
+        rule = self._base().pcre(pattern, flags=flags).build()
+        opt = next(o for o in rule.options if isinstance(o, PcreOption))
+        assert opt.pattern == expected_body
+        assert opt.flags == expected_flags
+
+    def test_pcre_round_trips_through_printer(self):
+        from surinort_ast import parse_rule
+        from surinort_ast.printer import print_rule
+
+        rule = self._base().pcre(r"/admin/i").build()
+        reparsed = parse_rule(print_rule(rule))
+        opt = next(o for o in reparsed.options if isinstance(o, PcreOption))
+        assert opt.pattern == "admin"
+        assert opt.flags == "i"
+
+    def test_pcre_preserves_pattern_starting_with_slash(self):
+        rule = self._base().pcre("/etc/passwd").build()
+        opt = next(o for o in rule.options if isinstance(o, PcreOption))
+        assert opt.pattern == "/etc/passwd"
+        assert opt.flags == ""

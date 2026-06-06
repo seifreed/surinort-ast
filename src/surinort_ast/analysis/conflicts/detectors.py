@@ -165,7 +165,7 @@ def detect_missing_dependency(index: RuleIndex, config: ConflictDetectorConfig) 
 
 def detect_conflicting_action(index: RuleIndex, config: ConflictDetectorConfig) -> list[Conflict]:
     conflicts: list[Conflict] = []
-    for a, b in candidate_pairs(index):
+    for a, b in candidate_pairs(index, hierarchy=config.protocol_hierarchy):
         if _action_class(a.rule.action) == _action_class(b.rule.action):
             continue
         intersect = match_intersect(a, b, config.protocol_hierarchy)
@@ -199,7 +199,7 @@ def detect_conflicting_action(index: RuleIndex, config: ConflictDetectorConfig) 
 def detect_shadowing(index: RuleIndex, config: ConflictDetectorConfig) -> list[Conflict]:
     conflicts: list[Conflict] = []
     hierarchy = config.protocol_hierarchy
-    for a, b in candidate_pairs(index):
+    for a, b in candidate_pairs(index, hierarchy=hierarchy):
         earlier, later = (a, b) if a.index < b.index else (b, a)
         if not _shadows(earlier, later, hierarchy):
             continue
@@ -242,7 +242,7 @@ def _shadows(earlier: PreparedRule, later: PreparedRule, hierarchy: bool) -> boo
 def detect_overlapping(index: RuleIndex, config: ConflictDetectorConfig) -> list[Conflict]:
     conflicts: list[Conflict] = []
     hierarchy = config.protocol_hierarchy
-    for a, b in candidate_pairs(index):
+    for a, b in candidate_pairs(index, hierarchy=hierarchy):
         if _action_class(a.rule.action) != _action_class(b.rule.action):
             continue  # cross-class overlap is reported as CONFLICTING_ACTION
         intersect = match_intersect(a, b, hierarchy)

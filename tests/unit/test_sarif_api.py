@@ -95,3 +95,37 @@ def test_optimizer_results_to_sarif_contract() -> None:
     run = payload["runs"][0]
     assert len(run["results"]) >= 1
     assert run["results"][0]["level"] in {"error", "warning", "note"}
+
+
+def test_finding_with_empty_location_omits_physical_location() -> None:
+    """A location with neither file nor line must not emit an empty object."""
+    from surinort_ast.analysis.findings import Finding, FindingLevel, FindingLocation
+    from surinort_ast.serialization.sarif import to_sarif_log
+
+    finding = Finding(
+        rule_id="R1",
+        level=FindingLevel.ERROR,
+        message="m",
+        category="c",
+        location=FindingLocation(),
+    )
+    result = to_sarif_log([finding])["runs"][0]["results"][0]
+    # No usable physical location -> the locations array is omitted entirely,
+    # never "[{'physicalLocation': {}}]" (invalid per SARIF 2.1.0).
+    assert "locations" not in result or result["locations"] == []
+
+
+def test_finding_with_line_only_keeps_region() -> None:
+    from surinort_ast.analysis.findings import Finding, FindingLevel, FindingLocation
+    from surinort_ast.serialization.sarif import to_sarif_log
+
+    finding = Finding(
+        rule_id="R2",
+        level=FindingLevel.ERROR,
+        message="m",
+        category="c",
+        location=FindingLocation(start_line=5),
+    )
+    result = to_sarif_log([finding])["runs"][0]["results"][0]
+    physical = result["locations"][0]["physicalLocation"]
+    assert physical["region"]["startLine"] == 5

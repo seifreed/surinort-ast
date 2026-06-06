@@ -721,3 +721,38 @@ class TestCliStdoutCleanliness:
         assert result.exit_code == 1
         assert "Unexpected error" not in result.stderr
         assert "No valid rules" in result.stderr
+
+
+class TestNoSpuriousErrorOnIntendedExit:
+    """Intended typer.Exit must not be swallowed and re-reported as an error."""
+
+    def setup_method(self):
+        self.runner = CliRunner()
+
+    def test_parse_no_valid_rules_no_spurious_message(self, tmp_path):
+        rules_file = tmp_path / "bad.rules"
+        rules_file.write_text("not a rule\n", encoding="utf-8")
+        result = self.runner.invoke(app, ["parse", str(rules_file)])
+        assert result.exit_code == 1
+        assert "Unexpected error" not in result.output
+
+    def test_validate_strict_warning_no_spurious_message(self, tmp_path):
+        rules_file = tmp_path / "w.rules"
+        rules_file.write_text(
+            'alert tcp any any -> any 80 (content:"x"; sid:1;)\n', encoding="utf-8"
+        )
+        result = self.runner.invoke(app, ["validate", str(rules_file), "--strict"])
+        assert result.exit_code == 1
+        assert "Unexpected error" not in result.output
+
+    def test_stats_no_valid_rules_no_spurious_message(self, tmp_path):
+        rules_file = tmp_path / "c.rules"
+        rules_file.write_text("# only a comment\n", encoding="utf-8")
+        result = self.runner.invoke(app, ["stats", str(rules_file)])
+        assert result.exit_code == 1
+        assert "Unexpected error" not in result.output
+
+    def test_plugins_bad_type_no_spurious_message(self):
+        result = self.runner.invoke(app, ["plugins", "info", "foo", "--type", "badtype"])
+        assert result.exit_code == 1
+        assert "Error: 1" not in result.output

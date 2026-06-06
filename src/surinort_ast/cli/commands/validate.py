@@ -115,6 +115,83 @@ def _display_diagnostics(all_diagnostics: list[tuple[int, Any]]) -> None:
     console.print(table)
 
 
+def _build_validation_findings(
+    file: Path,
+    all_diagnostics: list[tuple[int, Any]],
+    lua_warnings: list[tuple[int, str]],
+) -> list[Finding]:
+    """Build the SARIF findings list for a validation run."""
+    findings = diagnostics_to_findings(
+        [diag for _, diag in all_diagnostics], default_file_path=str(file)
+    )
+    for idx, message in lua_warnings:
+        findings.append(
+            Finding(
+                rule_id="SURINORT_LUA_SCRIPT_NOT_FOUND",
+                level=FindingLevel.WARNING,
+                message=f"Rule {idx}: {message}",
+                category="validation",
+                description=message,
+            )
+        )
+    if not findings:
+        findings.append(
+            Finding(
+                rule_id="SURINORT_VALIDATION_OK",
+                level=FindingLevel.NOTE,
+                message="Validation completed with no diagnostics",
+                category="validation",
+            )
+        )
+    return findings
+
+
+def _display_validation_summary(
+    rules: list[Any],
+    all_diagnostics: list[tuple[int, Any]],
+    lua_warnings: list[tuple[int, str]],
+    error_count: int,
+    warning_count: int,
+) -> None:
+    """Display diagnostics and the rule/error/warning counts."""
+    _display_diagnostics(all_diagnostics)
+    _display_lua_warnings(lua_warnings)
+    console.print()
+    console.print(f"[cyan]Total rules:[/cyan] {len(rules)}")
+    console.print(f"[red]Errors:[/red] {error_count}")
+    console.print(f"[yellow]Warnings:[/yellow] {warning_count + len(lua_warnings)}")
+
+
+def _emit_validation_report(
+    file: Path,
+    fmt: str,
+    output: Path | None,
+    sarif_out: Path | None,
+    rules: list[Any],
+    all_diagnostics: list[tuple[int, Any]],
+    lua_warnings: list[tuple[int, str]],
+    error_count: int,
+    warning_count: int,
+) -> None:
+    """Emit the validation report as text and/or SARIF."""
+    if sarif_out is None and fmt != "sarif":
+        _display_validation_summary(
+            rules, all_diagnostics, lua_warnings, error_count, warning_count
+        )
+        return
+
+    sarif_json = to_sarif(_build_validation_findings(file, all_diagnostics, lua_warnings))
+    if sarif_out is not None:
+        sarif_out.write_text(sarif_json, encoding="utf-8")
+        console.print(f"[green]SARIF report written:[/green] {sarif_out}")
+    if fmt == "sarif":
+        write_output(sarif_json, output)
+    else:
+        _display_validation_summary(
+            rules, all_diagnostics, lua_warnings, error_count, warning_count
+        )
+
+
 def _display_lua_warnings(lua_warnings: list[tuple[int, str]]) -> None:
     """Display Lua script warnings in a table."""
     if not lua_warnings:
@@ -188,55 +265,17 @@ def validate_command(
         # Optional Lua script existence checks
         lua_warnings = _check_lua_scripts(rules, lua_dir)
 
-        # SARIF output path
-        if sarif_out is not None or fmt == "sarif":
-            findings = diagnostics_to_findings(
-                [diag for _, diag in all_diagnostics], default_file_path=str(file)
-            )
-            for idx, message in lua_warnings:
-                findings.append(
-                    Finding(
-                        rule_id="SURINORT_LUA_SCRIPT_NOT_FOUND",
-                        level=FindingLevel.WARNING,
-                        message=f"Rule {idx}: {message}",
-                        category="validation",
-                        description=message,
-                    )
-                )
-            if not findings:
-                findings.append(
-                    Finding(
-                        rule_id="SURINORT_VALIDATION_OK",
-                        level=FindingLevel.NOTE,
-                        message="Validation completed with no diagnostics",
-                        category="validation",
-                    )
-                )
-
-            sarif_json = to_sarif(findings)
-            if sarif_out is not None:
-                sarif_out.write_text(sarif_json, encoding="utf-8")
-                console.print(f"[green]SARIF report written:[/green] {sarif_out}")
-            if fmt == "sarif":
-                write_output(sarif_json, output)
-            else:
-                # Display text output if requested.
-                _display_diagnostics(all_diagnostics)
-                _display_lua_warnings(lua_warnings)
-                console.print()
-                console.print(f"[cyan]Total rules:[/cyan] {len(rules)}")
-                console.print(f"[red]Errors:[/red] {error_count}")
-                console.print(f"[yellow]Warnings:[/yellow] {warning_count + len(lua_warnings)}")
-        else:
-            # Display results
-            _display_diagnostics(all_diagnostics)
-            _display_lua_warnings(lua_warnings)
-
-            # Summary
-            console.print()
-            console.print(f"[cyan]Total rules:[/cyan] {len(rules)}")
-            console.print(f"[red]Errors:[/red] {error_count}")
-            console.print(f"[yellow]Warnings:[/yellow] {warning_count + len(lua_warnings)}")
+        _emit_validation_report(
+            file,
+            fmt,
+            output,
+            sarif_out,
+            rules,
+            all_diagnostics,
+            lua_warnings,
+            error_count,
+            warning_count,
+        )
 
         # Exit code
         if error_count > 0 or (strict and (warning_count + len(lua_warnings)) > 0):
@@ -247,6 +286,8 @@ def validate_command(
     except ParseError as e:
         err_console.print(f"Parse error: {e}")
         raise typer.Exit(1) from None
+    except typer.Exit:
+        raise
     except Exception as e:
         err_console.print(f"Unexpected error: {e}")
         raise typer.Exit(1) from None

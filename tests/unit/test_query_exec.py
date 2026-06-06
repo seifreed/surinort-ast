@@ -155,3 +155,36 @@ class TestOptimizeSelectorChain:
         assert len(inner) == 2
         assert isinstance(inner[0], TypeSelector)
         assert isinstance(inner[1], UniversalSelector)
+
+
+class TestListAndNegationNodeMatching:
+    """List/negation nodes must match selectors and act as ancestors."""
+
+    LIST_RULE = "alert tcp !1.1.1.1 [80,443] -> [2.2.2.2,3.3.3.3] !53 (sid:1;)"
+
+    def _query(self, selector: str):
+        from surinort_ast.query import query
+
+        return query(parse_rule(self.LIST_RULE), selector)
+
+    def test_container_nodes_match_by_type(self):
+        for node_type in ("AddressList", "PortList", "AddressNegation", "PortNegation"):
+            assert len(self._query(node_type)) == 1, node_type
+
+    def test_descendant_through_list(self):
+        assert len(self._query("AddressList IPAddress")) == 2
+        assert len(self._query("PortList Port")) == 2
+
+    def test_consistent_with_indexed_and_streaming(self):
+        from surinort_ast.query.executor import (
+            IndexedQueryExecutor,
+            StreamingQueryExecutor,
+        )
+        from surinort_ast.query.parser import QueryParser
+
+        rule = parse_rule(self.LIST_RULE)
+        chain = QueryParser().parse("AddressList")
+        base = QueryExecutor(chain).execute(rule)
+        indexed = IndexedQueryExecutor(chain).execute(rule)
+        streaming = list(StreamingQueryExecutor(chain).execute_stream(rule))
+        assert len(base) == len(indexed) == len(streaming) == 1
