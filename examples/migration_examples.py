@@ -27,7 +27,7 @@ from surinort_ast import parse_rule
 
 rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 rule = parse_rule(rule_text)
-print(f"Action: {rule.header.action}")
+print(f"Action: {rule.action}")
 """
 
 # NEW (v1.1.0+ - recommended)
@@ -36,7 +36,7 @@ from surinort_ast.api.parsing import parse_rule
 
 rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 rule = parse_rule(rule_text)
-print(f"Action: {rule.header.action}")
+print(f"Action: {rule.action}")
 print(f"Protocol: {rule.header.protocol}")
 print()
 
@@ -59,13 +59,14 @@ restored_rule = from_json(json_str)
 # NEW (modular imports - explicit categories)
 from surinort_ast.api.parsing import parse_rule
 from surinort_ast.api.serialization import from_json, to_json
+from surinort_ast.core.nodes import extract_sid
 
 rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 json_str = to_json(rule)
 restored_rule = from_json(json_str)
-print(f"Original SID: {rule.options.sid}")
-print(f"Restored SID: {restored_rule.options.sid}")
-print(f"Serialization successful: {rule.options.sid == restored_rule.options.sid}")
+print(f"Original SID: {extract_sid(rule)}")
+print(f"Restored SID: {extract_sid(restored_rule)}")
+print(f"Serialization successful: {extract_sid(rule) == extract_sid(restored_rule)}")
 print()
 
 # =============================================================================
@@ -93,7 +94,7 @@ rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 diagnostics = validate_rule(rule)
 json_output = to_json(rule)
 
-print(f"Rule parsed: {rule.options.sid}")
+print(f"Rule parsed: {extract_sid(rule)}")
 print(f"Validation diagnostics: {len(diagnostics)} issues")
 print(f"JSON output length: {len(json_output)} chars")
 print()
@@ -221,12 +222,12 @@ formatted = print_rule(rule)
 # Deserialize
 restored = from_json(json_str)
 
-print(f"✓ Parsed rule SID: {rule.options.sid}")
+print(f"✓ Parsed rule SID: {extract_sid(rule)}")
 print(f"✓ Validation issues: {len(diagnostics)}")
 print(f"✓ JSON length: {len(json_str)} chars")
 print(f"✓ Schema generated: {len(schema)} chars")
 print(f"✓ Formatted output: {len(formatted)} chars")
-print(f"✓ Round-trip successful: {rule.options.sid == restored.options.sid}")
+print(f"✓ Round-trip successful: {extract_sid(rule) == extract_sid(restored)}")
 print()
 
 # =============================================================================
@@ -241,7 +242,7 @@ print("-" * 70)
 from surinort_ast import parse_rule as quick_parse
 
 quick_rule = quick_parse('alert tcp any any -> any 80 (msg:"Quick test"; sid:1000;)')
-print(f"Quick parse successful: {quick_rule.options.sid}")
+print(f"Quick parse successful: {extract_sid(quick_rule)}")
 print()
 
 # =============================================================================

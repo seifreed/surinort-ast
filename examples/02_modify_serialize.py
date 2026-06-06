@@ -12,9 +12,8 @@ Copyright (C) 2025 Marc Rivero López
 Licensed under the GNU General Public License v3.0
 """
 
-from surinort_ast import parse_rule
+from surinort_ast import parse_rule, print_rule
 from surinort_ast.core.nodes import Action
-from surinort_ast.printer import print_rule
 
 
 def main():

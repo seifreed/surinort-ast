@@ -18,6 +18,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 import gc
 import sys
 import time
+import traceback
 import tracemalloc
 from pathlib import Path
 
@@ -340,9 +341,13 @@ def main():
         run_small_benchmark()
         run_medium_benchmark()
 
-        # Ask before running large benchmark
+        # Ask before running large benchmark (skip when stdin is not interactive)
         print("\n" + "=" * 60)
-        response = input("\nRun large file benchmark (100k rules)? This may take time. [y/N]: ")
+        try:
+            response = input("\nRun large file benchmark (100k rules)? This may take time. [y/N]: ")
+        except EOFError:
+            response = "n"
+            print("n (non-interactive, skipping large benchmark)")
         if response.lower() == "y":
             run_large_benchmark()
 

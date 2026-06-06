@@ -17,7 +17,6 @@ from surinort_ast.parsing import (
     LarkRuleParser,
     ParserConfig,
     ParserFactory,
-    RuleParser,
 )
 
 
@@ -192,26 +191,6 @@ def example_6_type_safe_dependency_injection():
     print()
 
 
-def example_7_backward_compatibility():
-    """Example 7: Backward compatibility with existing RuleParser."""
-    print("Example 7: Backward Compatibility")
-    print("=" * 60)
-
-    # Old code still works (RuleParser now wraps LarkRuleParser)
-    old_parser = RuleParser()
-    rule = old_parser.parse('alert tcp any any -> any 80 (msg:"Old API"; sid:1;)')
-
-    print(f"RuleParser still works: {rule.action}")
-    print(f"RuleParser delegates to: {type(old_parser._parser).__name__}")
-
-    # Convenience functions still work
-    from surinort_ast.parsing import parse_rule as parse_rule_old
-
-    rule2 = parse_rule_old("alert tcp any any -> any 443 (sid:2;)")
-    print(f"Convenience function works: {rule2.header.protocol}")
-    print()
-
-
 if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("Parser Dependency Injection Examples")
@@ -224,7 +203,6 @@ if __name__ == "__main__":
     example_4_registering_default_parser()
     example_5_dependency_injection_in_api()
     example_6_type_safe_dependency_injection()
-    example_7_backward_compatibility()
 
     print("=" * 60)
     print("All examples completed successfully!")
