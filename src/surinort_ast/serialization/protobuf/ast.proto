@@ -300,15 +300,15 @@ message MsgOption {
 }
 
 message SidOption {
-  int32 value = 1;
+  uint32 value = 1;
 }
 
 message RevOption {
-  int32 value = 1;
+  uint32 value = 1;
 }
 
 message GidOption {
-  int32 value = 1;
+  uint32 value = 1;
 }
 
 message ClasstypeOption {
@@ -341,6 +341,7 @@ message ContentOption {
 message PcreOption {
   string pattern = 1;
   string flags = 2;
+  bool negated = 3;
 }
 
 message FlowOption {

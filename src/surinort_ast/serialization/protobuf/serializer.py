@@ -455,6 +455,7 @@ def _(opt: PcreOption) -> Any:
     _serialize_option_base(opt, pb_opt)
     pb_opt.pcre.pattern = opt.pattern
     pb_opt.pcre.flags = opt.flags
+    pb_opt.pcre.negated = opt.negated
     return pb_opt
 
 
@@ -952,6 +953,7 @@ def _deserialize_pcre(pb_opt: Any, location: Location | None, comments: list[str
     return PcreOption(
         pattern=pb_opt.pcre.pattern,
         flags=pb_opt.pcre.flags,
+        negated=pb_opt.pcre.negated,
         location=location,
         comments=comments,
     )

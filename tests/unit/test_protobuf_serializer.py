@@ -420,5 +420,63 @@ class TestPerformance:
         print(f"Compression ratio: {json_size / protobuf_size:.2f}x")
 
 
+class TestRoundtripRegressions:
+    """Regression tests for protobuf round-trip data loss."""
+
+    def test_negated_pcre_roundtrip(self):
+        """A negated PCRE must survive the protobuf round-trip.
+
+        Regression: PcreOption.negated had no proto field and was dropped, so a
+        negated match silently became a positive one.
+        """
+        from surinort_ast.core.enums import Action, Direction, Protocol
+        from surinort_ast.core.nodes import (
+            AnyAddress,
+            AnyPort,
+            Header,
+            MsgOption,
+            PcreOption,
+            Rule,
+            SidOption,
+        )
+
+        rule = Rule(
+            action=Action.ALERT,
+            header=Header(
+                protocol=Protocol.TCP,
+                src_addr=AnyAddress(),
+                src_port=AnyPort(),
+                direction=Direction.TO,
+                dst_addr=AnyAddress(),
+                dst_port=AnyPort(),
+            ),
+            options=[
+                PcreOption(pattern="/evil/", flags="", negated=True),
+                MsgOption(text="t"),
+                SidOption(value=1),
+            ],
+        )
+
+        restored = from_protobuf(to_protobuf(rule))
+
+        negated = [opt.negated for opt in restored.options if isinstance(opt, PcreOption)]
+        assert negated == [True]
+
+    def test_large_sid_roundtrip(self):
+        """A SID above the signed 32-bit range must serialize without crashing.
+
+        Regression: SID/rev/gid used proto int32, so any value above 2**31-1
+        (valid unsigned 32-bit identifiers) raised ValueError on serialize.
+        """
+        from surinort_ast.core.nodes import SidOption
+
+        rule = parse_rule('alert tcp any any -> any 80 (msg:"t"; sid:4000000000;)')
+
+        restored = from_protobuf(to_protobuf(rule))
+
+        sids = [opt.value for opt in restored.options if isinstance(opt, SidOption)]
+        assert sids == [4000000000]
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
