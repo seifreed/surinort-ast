@@ -8,6 +8,16 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 """
 
+from .conflicts import (
+    Conflict,
+    ConflictDetector,
+    ConflictDetectorConfig,
+    ConflictReport,
+    ConflictType,
+    Severity,
+    detect_conflicts,
+    filter_conflicts,
+)
 from .coverage import CoverageAnalyzer, CoverageGap, CoverageReport
 from .estimator import PerformanceEstimator
 from .findings import (
@@ -28,6 +38,11 @@ from .strategies import (
 )
 
 __all__ = [
+    "Conflict",
+    "ConflictDetector",
+    "ConflictDetectorConfig",
+    "ConflictReport",
+    "ConflictType",
     "CoverageAnalyzer",
     "CoverageGap",
     "CoverageReport",
@@ -41,8 +56,11 @@ __all__ = [
     "PerformanceEstimator",
     "RedundancyRemovalStrategy",
     "RuleOptimizer",
+    "Severity",
     "coverage_report_to_findings",
+    "detect_conflicts",
     "diagnostic_to_finding",
     "diagnostics_to_findings",
+    "filter_conflicts",
     "optimization_results_to_findings",
 ]

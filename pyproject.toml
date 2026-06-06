@@ -201,10 +201,11 @@ ignore = [
     "ARG001",  # Unused function argument (singledispatch pattern requirement)
     "PLR0911", # Too many returns (inherent to printer dispatch logic)
 ]
-"src/surinort_ast/analysis/conflicts_outline.py" = [
-    "N802",    # Visitor methods match AST node names
-    "ARG001",  # Unused function arguments (visitor pattern requirement)
-    "ARG002",  # Unused method arguments (visitor pattern requirement)
+"src/surinort_ast/analysis/conflicts/detectors.py" = [
+    "ARG001",  # Detectors share a uniform (index, config) signature; not all use config
+]
+"src/surinort_ast/analysis/conflicts/matchspace.py" = [
+    "PLR0911", # build_addr_set / build_port_set dispatch on node type (inherently many returns)
 ]
 "src/surinort_ast/parsing/lark_parser.py" = [
     "ARG001",  # Unused arguments (Lark transformer interface compliance)
