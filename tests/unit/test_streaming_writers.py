@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from surinort_ast.api import parse_rule
+from surinort_ast.core.nodes import Rule
 from surinort_ast.streaming import StreamParser, StreamWriter, StreamWriterJSON, StreamWriterText
 
 # ============================================================================
@@ -384,5 +385,65 @@ def test_writer_count_tracking():
             assert writer.count == 1
             writer.write(rules[1])
             assert writer.count == 2
+    finally:
+        temp_path.unlink()
+
+
+# ============================================================================
+# Resource Cleanup Tests
+# ============================================================================
+
+
+class _FailingFooterWriter(StreamWriter):
+    """Writer whose footer write fails, to test handle cleanup."""
+
+    def _write_header(self) -> None:
+        pass
+
+    def _write_rule(self, rule: Rule) -> None:
+        return None
+
+    def _write_footer(self) -> None:
+        raise ValueError("footer boom")
+
+
+class _FailingHeaderWriter(StreamWriter):
+    """Writer whose header write fails, to test handle cleanup."""
+
+    def _write_header(self) -> None:
+        raise ValueError("header boom")
+
+    def _write_rule(self, rule: Rule) -> None:
+        return None
+
+    def _write_footer(self) -> None:
+        pass
+
+
+def test_footer_failure_still_closes_file():
+    """A failing footer must not leak the file handle."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
+        temp_path = Path(f.name)
+
+    try:
+        writer = _FailingFooterWriter(temp_path)
+        with pytest.raises(ValueError, match="footer boom"), writer:
+            pass
+        # The error propagated, but the handle is closed, not leaked.
+        assert writer._file is None
+    finally:
+        temp_path.unlink()
+
+
+def test_header_failure_closes_file():
+    """A failing header in __enter__ must close the just-opened handle."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
+        temp_path = Path(f.name)
+
+    try:
+        writer = _FailingHeaderWriter(temp_path)
+        with pytest.raises(ValueError, match="header boom"), writer:
+            pass
+        assert writer._file is None
     finally:
         temp_path.unlink()

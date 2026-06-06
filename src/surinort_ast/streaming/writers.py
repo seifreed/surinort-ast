@@ -76,16 +76,28 @@ class StreamWriter(ABC):
         """Open writer for writing."""
         self._file = self.path.open("w", encoding=self.encoding)
         self._count = 0
-        self._write_header()
+        try:
+            self._write_header()
+        except BaseException:
+            # __exit__ is not called when __enter__ raises, so close here to
+            # avoid leaking the just-opened file handle.
+            self._file.close()
+            self._file = None
+            raise
         logger.debug(f"Opened stream writer: {self.path}")
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Close writer and finalize output."""
         if self._file:
-            self._write_footer()
-            self._file.close()
-            logger.info(f"Closed stream writer: {self.path} ({self._count} rules)")
+            try:
+                self._write_footer()
+            finally:
+                # Always close, even if writing the footer fails, so the file
+                # handle is never leaked.
+                self._file.close()
+                self._file = None
+                logger.info(f"Closed stream writer: {self.path} ({self._count} rules)")
 
     def write(self, rule: Rule) -> None:
         """
