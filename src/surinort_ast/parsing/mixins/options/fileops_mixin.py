@@ -119,10 +119,6 @@ class FileOperationsOptionsMixin:
             value_str = value_str.strip()
         return GenericOption(keyword="tag", value=value_str, raw=f"tag:{value_str}")
 
-    def tag_params(self, items: Sequence[Token]) -> Sequence[Token]:
-        """Legacy handler (not used with new TAG_VALUE) - keep for compatibility."""
-        return items
-
     # ========================================================================
     # TCP Flags Options
     # ========================================================================
