@@ -113,10 +113,22 @@ def _print_option_dispatch(
     return f"{keyword};"
 
 
+_CONTENT_HEX_BYTES = frozenset({ord("|"), ord("\\"), ord('"'), ord(";")})
+
+
+def _escape_quoted(text: str) -> str:
+    """Escape backslashes and double quotes so quoted text re-parses exactly.
+
+    Mirrors the unescaping done when parsing a quoted string (``\\"`` -> ``"``,
+    ``\\\\`` -> ``\\``); backslashes must be escaped first.
+    """
+    return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
 @_print_option_dispatch.register
 def _(option: MsgOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
     quote = fmt_opts.get_quote_char()
-    return f"msg:{quote}{option.text}{quote};"
+    return f"msg:{quote}{_escape_quoted(option.text)}{quote};"
 
 
 @_print_option_dispatch.register
@@ -181,7 +193,11 @@ def _(option: FlowOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> 
 
 @_print_option_dispatch.register
 def _(option: FlowbitsOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
-    return f"flowbits:{option.action},{option.name};"
+    # Actions like noalert have no bit name; emitting a trailing comma
+    # (flowbits:noalert,;) produces unparseable output.
+    if option.name:
+        return f"flowbits:{option.action},{option.name};"
+    return f"flowbits:{option.action};"
 
 
 @_print_option_dispatch.register
@@ -550,22 +566,20 @@ class TextPrinter:
         parts = []
         i = 0
 
+        def is_literal(byte: int) -> bool:
+            # Printable ASCII, excluding bytes that are special inside a quoted
+            # content string and must be hex-encoded: | (hex delimiter),
+            # backslash, double quote (string terminator) and ; (option
+            # terminator). Emitting these literally yields unparseable output.
+            return 32 <= byte <= 126 and byte not in _CONTENT_HEX_BYTES
+
         while i < len(pattern):
             byte = pattern[i]
 
-            # Check if printable ASCII
-            if 32 <= byte <= 126 and byte not in (ord("|"), ord("\\")):
+            if is_literal(byte):
                 # Accumulate printable characters
                 start = i
-                while (
-                    i < len(pattern)
-                    and 32 <= pattern[i] <= 126
-                    and pattern[i]
-                    not in (
-                        ord("|"),
-                        ord("\\"),
-                    )
-                ):
+                while i < len(pattern) and is_literal(pattern[i]):
                     i += 1
                 parts.append(pattern[start:i].decode("ascii"))
             else:
