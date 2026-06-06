@@ -555,3 +555,19 @@ class TestProtobufListShapePreserved:
         restored = from_protobuf(to_protobuf(rule))
         assert not isinstance(restored, list)
         assert restored == rule
+
+
+class TestPayloadlessOptionRoundTrip:
+    """Options whose protobuf payload may be empty must still round-trip."""
+
+    def test_bare_fast_pattern_round_trips(self):
+        rule = parse_rule('alert tcp any any -> any any (content:"x"; fast_pattern; sid:1;)')
+        assert from_protobuf(to_protobuf(rule)) == rule
+
+    def test_parameterized_fast_pattern_round_trips(self):
+        rule = parse_rule('alert tcp any any -> any any (content:"x"; fast_pattern:0,10; sid:1;)')
+        assert from_protobuf(to_protobuf(rule)) == rule
+
+    def test_bare_filestore_round_trips(self):
+        rule = parse_rule("alert tcp any any -> any any (filestore; sid:1;)")
+        assert from_protobuf(to_protobuf(rule)) == rule

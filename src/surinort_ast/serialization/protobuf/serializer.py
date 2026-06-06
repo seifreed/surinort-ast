@@ -545,6 +545,9 @@ def _(opt: ByteExtractOption) -> Any:
 def _(opt: FastPatternOption) -> Any:
     pb_opt = pb.Option()
     _serialize_option_base(opt, pb_opt)
+    # Mark the oneof present so a bare fast_pattern (no offset/length) still
+    # round-trips; otherwise WhichOneof returns None on deserialize.
+    pb_opt.fast_pattern.SetInParent()
     if opt.offset is not None:
         pb_opt.fast_pattern.offset = opt.offset
     if opt.length is not None:
@@ -566,6 +569,9 @@ def _(opt: TagOption) -> Any:
 def _(opt: FilestoreOption) -> Any:
     pb_opt = pb.Option()
     _serialize_option_base(opt, pb_opt)
+    # Mark the oneof present so a bare filestore (no direction/scope) still
+    # round-trips; otherwise WhichOneof returns None on deserialize.
+    pb_opt.filestore.SetInParent()
     if opt.direction is not None:
         pb_opt.filestore.direction = opt.direction
     if opt.scope is not None:
