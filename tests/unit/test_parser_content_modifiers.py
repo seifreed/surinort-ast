@@ -260,3 +260,27 @@ class TestContentEscapeUnescaping:
         printed = print_rule(parse_rule(text))
         assert print_rule(parse_rule(printed)) == printed
         assert _content(parse_rule(printed)).pattern == b"a;b"
+
+
+class TestPcreNewlineRoundTrip:
+    r"""A pcre body containing a literal newline must split body/flags correctly."""
+
+    def test_literal_newline_in_pcre_body_round_trips(self):
+        from surinort_ast.printer import print_rule
+
+        text = 'alert tcp any any -> any any (pcre:"/a[^\n]*b/i"; sid:1;)'
+        rule = parse_rule(text)
+        pcre = _option(rule, "PcreOption")
+        # Delimiters must not leak into the stored body, and flags are extracted.
+        assert pcre.pattern == "a[^\n]*b"
+        assert pcre.flags == "i"
+        printed = print_rule(rule)
+        assert print_rule(parse_rule(printed)) == printed
+
+    def test_pcre_with_newline_and_leading_slash_is_stable(self):
+        from surinort_ast.printer import print_rule
+
+        text = 'alert tcp any any -> any any (pcre:"//x=[^\n]*y/i/"; sid:1;)'
+        first = print_rule(parse_rule(text))
+        second = print_rule(parse_rule(first))
+        assert first == second

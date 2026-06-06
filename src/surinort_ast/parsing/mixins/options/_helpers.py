@@ -67,8 +67,10 @@ def parse_quoted_string(s: str) -> str:
 
 # Compiled regex for PCRE pattern parsing (avoid recompilation)
 # Uses a greedy match for pattern content up to the LAST unescaped /
-# This correctly handles patterns with escaped slashes like /foo\/bar/flags
-_PCRE_PATTERN_RE = re.compile(r"^/(.*)/([A-Za-z]*)$")
+# This correctly handles patterns with escaped slashes like /foo\/bar/flags.
+# DOTALL lets the body span literal newline characters (e.g. /[^\n]*/),
+# otherwise the match fails and the delimiters leak into the pattern.
+_PCRE_PATTERN_RE = re.compile(r"^/(.*)/([A-Za-z]*)$", re.DOTALL)
 
 
 def parse_pcre_pattern(s: str) -> tuple[str, str]:
