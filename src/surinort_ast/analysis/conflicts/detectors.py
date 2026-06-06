@@ -113,7 +113,7 @@ def match_subsumes(general: PreparedRule, specific: PreparedRule, hierarchy: boo
 # ---------------------------------------------------------------------------
 
 
-def detect_duplicate_sid(index: RuleIndex, config: ConflictDetectorConfig) -> list[Conflict]:
+def detect_duplicate_sid(index: RuleIndex, _config: ConflictDetectorConfig) -> list[Conflict]:
     conflicts: list[Conflict] = []
     for sid, rules in index.by_sid.items():
         if len(rules) < 2:

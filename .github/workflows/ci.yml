@@ -72,9 +72,7 @@ jobs:
         with:
           python-version: '3.14'
           cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
+          cache-dependency-path: requirements.txt
 
       - name: Install security scanning tools
         run: |
@@ -128,7 +126,7 @@ jobs:
         with:
           python-version: '3.14'
           cache: 'pip'
-          cache-dependency-path: requirements-dev.txt
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: |
@@ -171,9 +169,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: |
@@ -216,9 +212,7 @@ jobs:
         with:
           python-version: '3.14'
           cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: |

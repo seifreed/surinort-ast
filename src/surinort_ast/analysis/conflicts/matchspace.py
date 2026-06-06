@@ -146,28 +146,25 @@ class AddrSet:
         return not self.any_ and not self.v4 and not self.v6 and bool(self.opaque)
 
 
+def _concrete_ip_interval(expr: AddressExpr) -> tuple[Interval, int] | None:
+    """Return ((lo, hi), version) for a concrete IP address node, else None."""
+    if isinstance(expr, IPAddress):
+        ip = int(ipaddress.ip_address(expr.value))
+        return (ip, ip), expr.version
+    if isinstance(expr, IPCIDRRange):
+        net = ipaddress.ip_network(f"{expr.network}/{expr.prefix_len}", strict=False)
+        return (int(net.network_address), int(net.broadcast_address)), net.version
+    if isinstance(expr, IPRange):
+        start = ipaddress.ip_address(expr.start)
+        end = ipaddress.ip_address(expr.end)
+        return (int(start), int(end)), start.version
+    return None
+
+
 def build_addr_set(expr: AddressExpr) -> AddrSet:
     """Convert an AddressExpr into an :class:`AddrSet`."""
     if isinstance(expr, AnyAddress):
         return AddrSet(any_=True)
-    if isinstance(expr, IPAddress):
-        ip = int(ipaddress.ip_address(expr.value))
-        if expr.version == 6:
-            return AddrSet(v6=((ip, ip),))
-        return AddrSet(v4=((ip, ip),))
-    if isinstance(expr, IPCIDRRange):
-        net = ipaddress.ip_network(f"{expr.network}/{expr.prefix_len}", strict=False)
-        interval = (int(net.network_address), int(net.broadcast_address))
-        if net.version == 6:
-            return AddrSet(v6=(interval,))
-        return AddrSet(v4=(interval,))
-    if isinstance(expr, IPRange):
-        start = ipaddress.ip_address(expr.start)
-        end = ipaddress.ip_address(expr.end)
-        interval = (int(start), int(end))
-        if start.version == 6:
-            return AddrSet(v6=(interval,))
-        return AddrSet(v4=(interval,))
     if isinstance(expr, AddressVariable):
         return AddrSet(opaque=frozenset({expr.name}))
     if isinstance(expr, AddressNegation):
@@ -175,6 +172,10 @@ def build_addr_set(expr: AddressExpr) -> AddrSet:
         return AddrSet(opaque=frozenset({f"!{expr.expr!r}"}))
     if isinstance(expr, AddressList):
         return _union_addr_sets([build_addr_set(e) for e in expr.elements])
+    concrete = _concrete_ip_interval(expr)
+    if concrete is not None:
+        interval, version = concrete
+        return AddrSet(v6=(interval,)) if version == 6 else AddrSet(v4=(interval,))
     # Unknown address node: opaque.
     return AddrSet(opaque=frozenset({repr(expr)}))
 
@@ -241,21 +242,29 @@ class PortSet:
         return not self.any_ and not self.intervals and bool(self.opaque)
 
 
+def _concrete_port_interval(expr: PortExpr) -> Interval | None:
+    """Return (lo, hi) for a concrete port node, else None."""
+    if isinstance(expr, Port):
+        return (expr.value, expr.value)
+    if isinstance(expr, PortRange):
+        lo, hi = sorted((expr.start, expr.end))
+        return (lo, hi)
+    return None
+
+
 def build_port_set(expr: PortExpr) -> PortSet:
     """Convert a PortExpr into a :class:`PortSet`."""
     if isinstance(expr, AnyPort):
         return PortSet(any_=True)
-    if isinstance(expr, Port):
-        return PortSet(intervals=((expr.value, expr.value),))
-    if isinstance(expr, PortRange):
-        lo, hi = sorted((expr.start, expr.end))
-        return PortSet(intervals=((lo, hi),))
     if isinstance(expr, PortVariable):
         return PortSet(opaque=frozenset({expr.name}))
     if isinstance(expr, PortNegation):
         return PortSet(opaque=frozenset({f"!{expr.expr!r}"}))
     if isinstance(expr, PortList):
         return _union_port_sets([build_port_set(e) for e in expr.elements])
+    interval = _concrete_port_interval(expr)
+    if interval is not None:
+        return PortSet(intervals=(interval,))
     return PortSet(opaque=frozenset({repr(expr)}))
 
 

@@ -29,7 +29,6 @@ python:
       extra_requirements:
         - dev
     - requirements: requirements.txt
-    - requirements: requirements-dev.txt
 
 # MkDocs configuration
 mkdocs:
