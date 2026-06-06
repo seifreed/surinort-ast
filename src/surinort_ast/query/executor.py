@@ -562,13 +562,11 @@ def execute_query_first(
     Example:
         >>> chain = parser.parse("SidOption")
         >>> sid_node = execute_query_first(rule, chain)
-
-    Implementation:
-        Phase 1: Execute with early exit flag
     """
-    # TODO: Implement early exit in Phase 1
-    results = execute_query(root, selector_chain)
-    return results[0] if results else None
+    executor = StreamingQueryExecutor(selector_chain)
+    for node in executor.execute_stream(root):
+        return node
+    return None
 
 
 def execute_query_exists(
@@ -590,12 +588,11 @@ def execute_query_exists(
     Example:
         >>> chain = parser.parse("PcreOption")
         >>> has_pcre = execute_query_exists(rule, chain)
-
-    Implementation:
-        Phase 1: Execute with exists flag for fastest early exit
     """
-    # TODO: Implement in Phase 1
-    return len(execute_query(root, selector_chain)) > 0
+    executor = StreamingQueryExecutor(selector_chain)
+    for _node in executor.execute_stream(root):
+        return True
+    return False
 
 
 # ============================================================================

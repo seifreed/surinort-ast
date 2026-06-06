@@ -529,24 +529,23 @@ def validate_selector_chain(chain: SelectorChain | UnionSelector) -> None:
 
 def normalize_selector(selector: str) -> str:
     """
-    Normalize selector string for consistent parsing.
+    Normalize a selector string before parsing.
 
-    Performs:
-        - Whitespace normalization
-        - Quote normalization
-        - Escape sequence handling
+    Only leading and trailing whitespace is trimmed. Internal whitespace is
+    significant in the selector grammar — it is the descendant combinator
+    (``Rule SidOption``) and may appear inside quoted attribute values
+    (``[content="foo bar"]``) — so it must be preserved for the Lark parser.
 
     Args:
         selector: Raw selector string
 
     Returns:
-        Normalized selector string
+        Selector string with surrounding whitespace removed
 
     Example:
-        >>> normalize_selector("  Rule  [  action = alert  ]  ")
-        "Rule[action=alert]"
+        >>> normalize_selector("  Rule[action=alert]  ")
+        'Rule[action=alert]'
     """
-    # TODO: Implement in Phase 1
     return selector.strip()
 
 
