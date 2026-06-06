@@ -129,7 +129,10 @@ Public API Overview:
 
     Classes:
         QueryResult     - Wrapper for query results with convenience methods
-        Q               - Fluent query builder (Phase 3)
+        Q               - Fluent query builder
+
+    Factory:
+        create_selector - Build a selector object from a type + kwargs
 
     Exceptions:
         QueryError              - Base exception
@@ -153,9 +156,13 @@ See Also:
     - tests/unit/query/: Test suite
 """
 
-from collections.abc import Sequence
+from __future__ import annotations
+
+from collections.abc import Iterator, Sequence
 
 from surinort_ast.core.nodes import ASTNode
+
+from .selectors import create_selector
 
 # ============================================================================
 # Module Status - EXPERIMENTAL/ALPHA
@@ -433,7 +440,7 @@ def query_exists(node: ASTNode | Sequence[ASTNode], selector: str) -> bool:
 
 
 # ============================================================================
-# Classes (to be implemented)
+# Result wrapper and fluent builder
 # ============================================================================
 
 
@@ -441,71 +448,206 @@ class QueryResult:
     """
     Wrapper for query results with convenience methods.
 
-    Provides a fluent interface for working with query results,
-    including filtering, iteration, and common operations.
-
-    Attributes:
-        nodes: List of matched AST nodes
+    Provides a fluent interface for working with query results, including
+    counting, first/last access, existence checks, and further filtering.
 
     Example:
-        >>> result = QueryResult(query(rule, "Option"))
+        >>> result = QueryResult(query(rule, "ContentOption, SidOption"))
         >>> result.count()
-        5
-        >>> result.first()
-        <MsgOption>
+        2
+        >>> result.first() is not None
+        True
         >>> result.filter("SidOption").exists()
         True
-
-    Methods:
-        first()     - Get first result or None
-        last()      - Get last result or None
-        count()     - Count results
-        exists()    - Check if any results
-        filter()    - Further filter results
-        __iter__()  - Iterate over results
-        __len__()   - Get count
-        __getitem__() - Access by index
-
-    Note:
-        Phase 3 feature - not included in MVP
     """
 
-    # TODO: Implement in Phase 3
+    def __init__(self, nodes: Sequence[ASTNode], root: ASTNode | None = None) -> None:
+        """
+        Args:
+            nodes: Matched AST nodes.
+            root: Optional root the nodes were queried from (unused by the
+                current convenience methods; kept for future re-querying).
+        """
+        self._nodes: list[ASTNode] = list(nodes)
+        self._root = root
+
+    @property
+    def nodes(self) -> list[ASTNode]:
+        """Return a copy of the matched nodes."""
+        return list(self._nodes)
+
+    def first(self) -> ASTNode | None:
+        """Return the first matched node, or None."""
+        return self._nodes[0] if self._nodes else None
+
+    def last(self) -> ASTNode | None:
+        """Return the last matched node, or None."""
+        return self._nodes[-1] if self._nodes else None
+
+    def count(self) -> int:
+        """Return the number of matched nodes."""
+        return len(self._nodes)
+
+    def exists(self) -> bool:
+        """Return True if there is at least one matched node."""
+        return bool(self._nodes)
+
+    def filter(self, selector: str) -> QueryResult:
+        """
+        Narrow the result to nodes that themselves match a simple selector.
+
+        Args:
+            selector: A simple selector (type/attribute/compound/union, no
+                combinators) tested against each node directly.
+
+        Returns:
+            A new QueryResult with the surviving nodes.
+
+        Raises:
+            QuerySyntaxError: If the selector uses combinators.
+        """
+        return QueryResult(
+            [node for node in self._nodes if _node_matches_selector(node, selector)],
+            self._root,
+        )
+
+    def __iter__(self) -> Iterator[ASTNode]:
+        return iter(self._nodes)
+
+    def __len__(self) -> int:
+        return len(self._nodes)
+
+    def __getitem__(self, index: int) -> ASTNode:
+        return self._nodes[index]
+
+    def __repr__(self) -> str:
+        return f"QueryResult({len(self._nodes)} nodes)"
+
+
+# Friendly operator aliases accepted by Q.with_attr, mapped to grammar operators.
+_ATTR_OPERATORS = {
+    "equals": "=",
+    "eq": "=",
+    "not_equals": "!=",
+    "ne": "!=",
+    "gt": ">",
+    "lt": "<",
+    "gte": ">=",
+    "lte": "<=",
+    "contains": "*=",
+    "startswith": "^=",
+    "endswith": "$=",
+}
+
+
+def _format_attr_value(value: object) -> str:
+    """Format a Python value as a selector attribute value (STRING/NUMBER/IDENT)."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int | float):
+        return str(value)
+    text = str(value)
+    if "'" not in text:
+        return f"'{text}'"
+    if '"' not in text:
+        return f'"{text}"'
+    return "'" + text.replace("'", "") + "'"
+
+
+def _node_matches_selector(node: ASTNode, selector: str) -> bool:
+    """Test a single node against a simple (combinator-free) selector string."""
+    from .parser import QueryParser
+
+    chain = QueryParser().parse(selector)
+    if getattr(chain, "combinators", None):
+        raise QuerySyntaxError(
+            "QueryResult.filter() supports only simple selectors (no combinators)"
+        )
+    sel = chain.selectors[0]
+    try:
+        return bool(sel.matches(node))
+    except TypeError:
+        # Pseudo-selectors require an execution context, which a standalone
+        # node test cannot provide.
+        return bool(sel.matches(node, None))
 
 
 class Q:
     """
-    Fluent query builder for programmatic query construction.
+    Fluent query builder for programmatic selector construction.
 
-    Provides a Python API for building queries without string manipulation.
-    Useful for dynamic query construction and IDE autocompletion.
+    Builds a selector string without manual string manipulation; the result of
+    :meth:`build` round-trips through :func:`query`.
 
     Example:
-        >>> # Build query programmatically
-        >>> query_obj = (
+        >>> selector = (
         ...     Q("Rule")
         ...     .with_attr("action", "alert")
-        ...     .descendant(Q("ContentOption").with_attr("pattern", "*admin*", "contains"))
+        ...     .descendant(Q("ContentOption"))
+        ...     .build()
         ... )
-        >>> selector_string = query_obj.build()
-        >>> results = query(rule, selector_string)
-        >>>
-        >>> # Equivalent to: "Rule[action=alert] ContentOption[pattern*='admin']"
-
-    Methods:
-        with_attr()     - Add attribute filter
-        descendant()    - Add descendant combinator
-        child()         - Add child combinator
-        adjacent()      - Add adjacent sibling
-        sibling()       - Add general sibling
-        or_()           - Add union (OR)
-        build()         - Build selector string
-
-    Note:
-        Phase 3 feature - not included in MVP
+        >>> selector
+        "Rule[action='alert'] ContentOption"
     """
 
-    # TODO: Implement in Phase 3
+    def __init__(self, type_name: str | None = None) -> None:
+        """
+        Args:
+            type_name: Optional initial type selector (e.g. "Rule"). Omit for
+                a universal-style start built up purely from attributes.
+        """
+        self._selector = "" if type_name is None else str(type_name)
+
+    def with_attr(self, name: str, value: object = None, operator: str = "=") -> Q:
+        """
+        Append an attribute filter ``[name op value]`` (or ``[name]`` for existence).
+
+        Args:
+            name: Attribute name.
+            value: Value to compare; omit for an existence check.
+            operator: Grammar operator ("=", "!=", ">", ...) or a friendly
+                alias ("equals", "contains", "startswith", ...).
+        """
+        op = _ATTR_OPERATORS.get(operator, operator)
+        if value is None:
+            self._selector += f"[{name}]"
+        else:
+            self._selector += f"[{name}{op}{_format_attr_value(value)}]"
+        return self
+
+    def descendant(self, other: Q | str) -> Q:
+        """Append a descendant combinator (space) followed by ``other``."""
+        return self._combine(" ", other)
+
+    def child(self, other: Q | str) -> Q:
+        """Append a child combinator (>) followed by ``other``."""
+        return self._combine(" > ", other)
+
+    def adjacent(self, other: Q | str) -> Q:
+        """Append an adjacent-sibling combinator (+) followed by ``other``."""
+        return self._combine(" + ", other)
+
+    def sibling(self, other: Q | str) -> Q:
+        """Append a general-sibling combinator (~) followed by ``other``."""
+        return self._combine(" ~ ", other)
+
+    def or_(self, other: Q | str) -> Q:
+        """Append a union (comma) followed by ``other``."""
+        return self._combine(", ", other)
+
+    def _combine(self, combinator: str, other: Q | str) -> Q:
+        self._selector += f"{combinator}{other.build() if isinstance(other, Q) else other}"
+        return self
+
+    def build(self) -> str:
+        """Return the assembled selector string."""
+        return self._selector
+
+    def __str__(self) -> str:
+        return self._selector
+
+    def __repr__(self) -> str:
+        return f"Q({self._selector!r})"
 
 
 # ============================================================================
@@ -581,13 +723,11 @@ class InvalidSelectorError(QueryError):
 __all__ = [
     "InvalidSelectorError",
     "Q",
-    # Exceptions
     "QueryError",
     "QueryExecutionError",
-    # Classes (Phase 3)
     "QueryResult",
     "QuerySyntaxError",
-    # Core query functions
+    "create_selector",
     "query",
     "query_all",
     "query_exists",

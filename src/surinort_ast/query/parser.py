@@ -14,6 +14,8 @@ from typing import Any
 
 from lark import Lark, Token, Transformer
 
+from .selectors import UnionSelector
+
 # ============================================================================
 # Parser Implementation (Phase 1)
 # ============================================================================
@@ -487,22 +489,24 @@ class SelectorTransformer(Transformer[Any, Any]):
 # ============================================================================
 
 
-def validate_selector_chain(chain: SelectorChain) -> None:
+def validate_selector_chain(chain: SelectorChain | UnionSelector) -> None:
     """
     Validate semantic correctness of selector chain.
+
+    A union query (``A, B``) transforms to a :class:`UnionSelector`; each of its
+    sub-chains is validated individually.
 
     Checks for:
         - Empty selector chains
         - Mismatched combinator/selector counts
 
     Args:
-        chain: Parsed selector chain
+        chain: Parsed selector chain or union of chains.
 
     Raises:
         InvalidSelectorError: If chain has semantic errors
     """
     from . import InvalidSelectorError
-    from .selectors import UnionSelector
 
     # UnionSelector wraps multiple chains; validate each sub-chain individually
     if isinstance(chain, UnionSelector):
