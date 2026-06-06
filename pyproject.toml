@@ -87,7 +87,7 @@ cli-enhanced = [
 # Security analysis tools
 security = [
     "bandit>=1.9.4",         # Security vulnerability scanner
-    "safety>=3.7.0",         # Dependency security checker
+    "safety>=3.8.1",         # Dependency security checker
 ]
 
 # Advanced analysis features
