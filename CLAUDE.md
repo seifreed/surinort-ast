@@ -6,6 +6,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **surinort-ast** is a Python library and CLI for parsing, validating, serializing, and analyzing IDS/IPS rules (Suricata, Snort2, Snort3) into a typed AST backed by Pydantic v2 models.
 
+## Engineering Policies (MANDATORY)
+
+These are hard requirements for every change. Do not commit, merge, or hand off work that violates them.
+
+### Clean code & clean architecture
+- All code must follow clean-code and clean-architecture principles: small single-responsibility units; descriptive names; dependencies pointing inward (the `core/` domain stays independent of infrastructure, CLI, and external frameworks); no leaking of implementation details across module boundaries; no dead, duplicated, or commented-out code; no premature abstractions.
+
+### Quality gates (all must pass with zero findings)
+Before any commit or merge, every one of these must pass clean:
+- `ruff check src/ tests/`
+- `ruff format --check src/ tests/`
+- `black --check src/ tests/`
+- `mypy src/ --strict`
+- `bandit -r src/`
+- `pip-audit`
+- the full non-slow test suite: `pytest tests/ -m "not slow"`
+
+### No suppressions, no policy bypasses
+- Do NOT silence findings instead of fixing them. Fix the root cause.
+- Forbidden: adding `# noqa`, `# type: ignore`, `# nosec`, `# pragma: no cover`, or any *new* suppression in `pyproject.toml` / tool config — including entries under `[tool.ruff.lint] ignore`, `[tool.ruff.lint.per-file-ignores]`, or `[[tool.mypy.overrides]]` `disable_error_code`.
+- Do NOT bypass hooks or CI (`--no-verify`, skipping pre-commit, disabling or weakening checks) to get a change through.
+
+### Commits
+- Do NOT add Claude or any assistant as a commit co-author. Do not add a `Co-Authored-By` trailer for the assistant.
+
 ## Common Commands
 
 ```bash
@@ -27,15 +52,19 @@ pytest tests/unit/test_parser.py::TestClassName::test_name -v
 # Run slow/golden tests (require rules/ directory with real rule files)
 pytest tests/ -m slow -v
 
-# Lint
+# Lint + format
 ruff check src/ tests/
 ruff format --check src/ tests/
+black --check src/ tests/
 
 # Type check
 mypy src/ --strict
 
 # Security scan
 bandit -r src/ -f screen
+
+# Dependency vulnerability audit
+pip-audit
 
 # Full test script (lint + type check + security + tests + coverage)
 ./scripts/test.sh

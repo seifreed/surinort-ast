@@ -157,6 +157,10 @@ surinort = "surinort_ast.cli:app"
 # toml_serializer = "surinort_toml:TOMLSerializerPlugin"
 # security_auditor = "surinort_security:SecurityAuditorPlugin"
 
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
 # Ruff configuration (replaces flake8, black, isort)
 [tool.ruff]
 line-length = 100
