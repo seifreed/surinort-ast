@@ -33,9 +33,10 @@ def validate_rule(rule: Rule) -> list[Diagnostic]:
     """
     diagnostics: list[Diagnostic] = []
 
-    # Check for required options
+    # Check for recommended options
     has_sid = any(opt.node_type == "SidOption" for opt in rule.options)
     has_msg = any(opt.node_type == "MsgOption" for opt in rule.options)
+    has_rev = any(opt.node_type == "RevOption" for opt in rule.options)
 
     if not has_sid:
         diagnostics.append(
@@ -55,10 +56,18 @@ def validate_rule(rule: Rule) -> list[Diagnostic]:
             )
         )
 
-    # Check for duplicate SIDs (would need multiple rules context)
-    # Check for deprecated options based on dialect
-    # Check for conflicting options
-    # etc.
+    if has_sid and not has_rev:
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.INFO,
+                message="Missing recommended option 'rev'",
+                code="missing_rev",
+            )
+        )
+
+    # Cross-rule checks (duplicate SIDs, shadowing, conflicting actions) require a
+    # whole rule set and live in surinort_ast.analysis.conflicts and the streaming
+    # ValidateProcessor, not in this single-rule validator.
 
     # Include any diagnostics from parsing
     if rule.diagnostics:
