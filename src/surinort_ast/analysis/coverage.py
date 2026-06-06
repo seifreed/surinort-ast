@@ -159,9 +159,10 @@ class CoverageReport:
         # Content types
         if self.content_types:
             lines.extend(["", "Content Type Distribution:", "-" * 80])
-            for content_type, count in sorted(
+            top_content_types = sorted(
                 self.content_types.items(), key=lambda x: x[1], reverse=True
-            )[:10]:  # Top 10
+            )[:10]
+            for content_type, count in top_content_types:
                 pct = (count / self.total_rules) * 100 if self.total_rules > 0 else 0
                 lines.append(f"  {content_type:20s} {count:6,d} rules ({pct:5.1f}%)")
 
@@ -264,9 +265,10 @@ class CoverageReport:
                     "|------|------:|-----------:|",
                 ]
             )
-            for content_type, count in sorted(
+            top_content_types = sorted(
                 self.content_types.items(), key=lambda x: x[1], reverse=True
-            )[:10]:
+            )[:10]
+            for content_type, count in top_content_types:
                 pct = (count / self.total_rules) * 100 if self.total_rules > 0 else 0
                 lines.append(f"| {content_type} | {count:,} | {pct:.1f}% |")
 

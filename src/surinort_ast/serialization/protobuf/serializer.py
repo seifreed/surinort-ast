@@ -1262,6 +1262,7 @@ def _deserialize_option(pb_opt: Any) -> Option:
 
 def _deserialize_header(pb_header: Any) -> Header:
     """Deserialize Header from protobuf message."""
+    location = _deserialize_location(pb_header.location) if pb_header.HasField("location") else None
     return Header(
         protocol=_PB_TO_PROTOCOL[pb_header.protocol],
         src_addr=_deserialize_address_expr(pb_header.src_addr),
@@ -1269,9 +1270,7 @@ def _deserialize_header(pb_header: Any) -> Header:
         direction=_PB_TO_DIRECTION[pb_header.direction],
         dst_addr=_deserialize_address_expr(pb_header.dst_addr),
         dst_port=_deserialize_port_expr(pb_header.dst_port),
-        location=_deserialize_location(pb_header.location)
-        if pb_header.HasField("location")
-        else None,
+        location=location,
         comments=list(pb_header.comments) if pb_header.comments else [],
     )
 
@@ -1300,15 +1299,16 @@ def _deserialize_source_origin(pb_origin: Any | None) -> SourceOrigin | None:
 
 def _deserialize_rule(pb_rule: Any) -> Rule:
     """Deserialize Rule from protobuf message."""
+    diagnostics = (
+        [_deserialize_diagnostic(d) for d in pb_rule.diagnostics] if pb_rule.diagnostics else []
+    )
     return Rule(
         action=_PB_TO_ACTION[pb_rule.action],
         header=_deserialize_header(pb_rule.header),
         options=[_deserialize_option(opt) for opt in pb_rule.options],
         dialect=_PB_TO_DIALECT[pb_rule.dialect],
         origin=_deserialize_source_origin(pb_rule.origin) if pb_rule.HasField("origin") else None,
-        diagnostics=[_deserialize_diagnostic(d) for d in pb_rule.diagnostics]
-        if pb_rule.diagnostics
-        else [],
+        diagnostics=diagnostics,
         raw_text=pb_rule.raw_text if pb_rule.HasField("raw_text") else None,
         location=_deserialize_location(pb_rule.location) if pb_rule.HasField("location") else None,
         comments=list(pb_rule.comments) if pb_rule.comments else [],

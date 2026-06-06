@@ -20,7 +20,7 @@ Before any commit or merge, every one of these must pass clean:
 - `black --check src/ tests/`
 - `mypy src/ --strict`
 - `bandit -r src/`
-- `pip-audit`
+- `pip-audit -r requirements.txt -r requirements-dev.txt`
 - the full non-slow test suite: `pytest tests/ -m "not slow"`
 
 ### No suppressions, no policy bypasses
@@ -63,8 +63,8 @@ mypy src/ --strict
 # Security scan
 bandit -r src/ -f screen
 
-# Dependency vulnerability audit
-pip-audit
+# Dependency vulnerability audit (against the committed lockfiles)
+pip-audit -r requirements.txt -r requirements-dev.txt
 
 # Full test script (lint + type check + security + tests + coverage)
 ./scripts/test.sh

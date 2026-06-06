@@ -359,9 +359,8 @@ class TestAllRulesGolden:
                 print(f"  {source} line {line_num}: {error}")
 
         # Assert 95% overall success
-        assert overall_success_rate >= 95.0, (
-            f"Overall success rate {overall_success_rate:.2f}% below 95% threshold"
-        )
+        overall_msg = f"Overall success rate {overall_success_rate:.2f}% below 95% threshold"
+        assert overall_success_rate >= 95.0, overall_msg
         assert grand_total >= 35000, f"Expected at least 35,000 rules, found {grand_total}"
 
 

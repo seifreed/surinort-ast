@@ -178,9 +178,8 @@ class TestRoundtripParsing:
 
                     # Verify key fields match
                     assert rule1.action == rule2.action, f"Action mismatch at line {line_num}"
-                    assert rule1.header.protocol == rule2.header.protocol, (
-                        f"Protocol mismatch at line {line_num}"
-                    )
+                    protocol_msg = f"Protocol mismatch at line {line_num}"
+                    assert rule1.header.protocol == rule2.header.protocol, protocol_msg
                 except Exception as e:
                     pytest.fail(
                         f"Roundtrip failed at line {line_num}\nOriginal: {line}\nPrinted: {printed_text}\nError: {e}"

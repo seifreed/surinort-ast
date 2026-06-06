@@ -105,14 +105,14 @@ class ASTVisitor(Generic[T]):
         return cast(T, None)
 
     # Specialized visit methods for common nodes
-    def visit_Rule(self, node: Rule) -> T:  # noqa: N802 - Visitor pattern method name
+    def visit_Rule(self, node: Rule) -> T:  # noqa: N802
         """Visit Rule node."""
         self.visit(node.header)
         for option in node.options:
             self.visit(option)
         return self.default_return()
 
-    def visit_Header(self, node: Header) -> T:  # noqa: N802 - Visitor pattern method name
+    def visit_Header(self, node: Header) -> T:  # noqa: N802
         """Visit Header node."""
         self.visit(node.src_addr)
         self.visit(node.src_port)
@@ -120,24 +120,24 @@ class ASTVisitor(Generic[T]):
         self.visit(node.dst_port)
         return self.default_return()
 
-    def visit_AddressList(self, node: AddressList) -> T:  # noqa: N802 - Visitor pattern method name
+    def visit_AddressList(self, node: AddressList) -> T:  # noqa: N802
         """Visit AddressList node."""
         for addr in node.elements:
             self.visit(addr)
         return self.default_return()
 
-    def visit_AddressNegation(self, node: AddressNegation) -> T:  # noqa: N802 - Visitor pattern method name
+    def visit_AddressNegation(self, node: AddressNegation) -> T:  # noqa: N802
         """Visit AddressNegation node."""
         self.visit(node.expr)
         return self.default_return()
 
-    def visit_PortList(self, node: PortList) -> T:  # noqa: N802 - Visitor pattern method name
+    def visit_PortList(self, node: PortList) -> T:  # noqa: N802
         """Visit PortList node."""
         for port in node.elements:
             self.visit(port)
         return self.default_return()
 
-    def visit_PortNegation(self, node: PortNegation) -> T:  # noqa: N802 - Visitor pattern method name
+    def visit_PortNegation(self, node: PortNegation) -> T:  # noqa: N802
         """Visit PortNegation node."""
         self.visit(node.expr)
         return self.default_return()
@@ -213,7 +213,7 @@ class ASTTransformer(ASTVisitor[ASTNode]):
             return node.model_copy(update=updates)
         return node
 
-    def visit_Rule(self, node: Rule) -> Rule:  # noqa: N802 - Visitor pattern method name
+    def visit_Rule(self, node: Rule) -> Rule:  # noqa: N802
         """Transform Rule node."""
         new_header = self.visit(node.header)
         new_options = [self.visit(opt) for opt in node.options]
@@ -227,7 +227,7 @@ class ASTTransformer(ASTVisitor[ASTNode]):
             )
         return node
 
-    def visit_Header(self, node: Header) -> Header:  # noqa: N802 - Visitor pattern method name
+    def visit_Header(self, node: Header) -> Header:  # noqa: N802
         """Transform Header node."""
         new_src_addr = self.visit(node.src_addr)
         new_src_port = self.visit(node.src_port)
@@ -250,28 +250,28 @@ class ASTTransformer(ASTVisitor[ASTNode]):
             )
         return node
 
-    def visit_AddressList(self, node: AddressList) -> AddressList:  # noqa: N802 - Visitor pattern method name
+    def visit_AddressList(self, node: AddressList) -> AddressList:  # noqa: N802
         """Transform AddressList node."""
         new_elements = [self.visit(addr) for addr in node.elements]
         if new_elements != list(node.elements):
             return node.model_copy(update={"elements": new_elements})
         return node
 
-    def visit_AddressNegation(self, node: AddressNegation) -> AddressNegation:  # noqa: N802 - Visitor pattern method name
+    def visit_AddressNegation(self, node: AddressNegation) -> AddressNegation:  # noqa: N802
         """Transform AddressNegation node."""
         new_expr = self.visit(node.expr)
         if new_expr != node.expr:
             return node.model_copy(update={"expr": new_expr})
         return node
 
-    def visit_PortList(self, node: PortList) -> PortList:  # noqa: N802 - Visitor pattern method name
+    def visit_PortList(self, node: PortList) -> PortList:  # noqa: N802
         """Transform PortList node."""
         new_elements = [self.visit(port) for port in node.elements]
         if new_elements != list(node.elements):
             return node.model_copy(update={"elements": new_elements})
         return node
 
-    def visit_PortNegation(self, node: PortNegation) -> PortNegation:  # noqa: N802 - Visitor pattern method name
+    def visit_PortNegation(self, node: PortNegation) -> PortNegation:  # noqa: N802
         """Transform PortNegation node."""
         new_expr = self.visit(node.expr)
         if new_expr != node.expr:
@@ -326,13 +326,13 @@ class ASTWalker:
                     if isinstance(item, ASTNode):
                         self.walk(item)
 
-    def visit_Rule(self, node: Rule) -> None:  # noqa: N802 - Visitor pattern method name
+    def visit_Rule(self, node: Rule) -> None:  # noqa: N802
         """Visit Rule node."""
         self.walk(node.header)
         for option in node.options:
             self.walk(option)
 
-    def visit_Header(self, node: Header) -> None:  # noqa: N802 - Visitor pattern method name
+    def visit_Header(self, node: Header) -> None:  # noqa: N802
         """Visit Header node."""
         self.walk(node.src_addr)
         self.walk(node.src_port)
