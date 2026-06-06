@@ -114,7 +114,7 @@ dev = [
     "hypothesis>=6.151.13",  # Property-based testing
 
     # Linting and formatting (ruff replaces: flake8, black, isort, pyupgrade)
-    "ruff>=0.15.12",
+    "ruff>=0.15.15",
 
     # Type checking
     "mypy>=1.20.0",
