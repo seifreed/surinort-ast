@@ -284,3 +284,36 @@ class TestPcreNewlineRoundTrip:
         first = print_rule(parse_rule(text))
         second = print_rule(parse_rule(first))
         assert first == second
+
+
+class TestInlineFastPatternOffsetLength:
+    """Snort3 inline fast_pattern offset/length must serialize to valid syntax."""
+
+    def test_inline_fast_pattern_offset_length_merged(self):
+        rule = parse_rule(
+            "alert tcp any any -> any any "
+            '(content:"x",fast_pattern,fast_pattern_offset 0,fast_pattern_length 10; sid:1;)'
+        )
+        content = _content(rule)
+        fps = [m for m in content.modifiers if m.name.value == "fast_pattern"]
+        assert len(fps) == 1
+        assert fps[0].value == "0,10"
+
+    def test_inline_fast_pattern_offset_length_round_trips(self):
+        from surinort_ast.printer import print_rule
+
+        text = (
+            "alert tcp any any -> any any "
+            '(content:"x",fast_pattern,fast_pattern_offset 0,fast_pattern_length 10; sid:1;)'
+        )
+        printed = print_rule(parse_rule(text))
+        assert "fast_pattern:0,10" in printed
+        reparsed = parse_rule(printed)
+        assert not reparsed.diagnostics
+        assert print_rule(reparsed) == printed
+
+    def test_bare_inline_fast_pattern_unchanged(self):
+        rule = parse_rule('alert tcp any any -> any any (content:"x",fast_pattern; sid:1;)')
+        fps = [m for m in _content(rule).modifiers if m.name.value == "fast_pattern"]
+        assert len(fps) == 1
+        assert fps[0].value is None

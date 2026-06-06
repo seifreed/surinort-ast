@@ -209,6 +209,58 @@ class ContentTransformerMixin:
             return True, list(items[1:])
         return False, list(items)
 
+    @staticmethod
+    def _canonical_fast_pattern_value(values: list[str | None]) -> str | None:
+        """Reduce inline fast_pattern modifier values to a canonical form.
+
+        Values are ``None`` (bare), ``"only"``, ``"offset N"`` or ``"length M"``;
+        the result is ``"only"``, ``"offset,length"`` or ``None``.
+        """
+        offset: str | None = None
+        length: str | None = None
+        for value in values:
+            if value == "only":
+                return "only"
+            if value is not None and value.startswith("offset "):
+                offset = value[len("offset ") :]
+            elif value is not None and value.startswith("length "):
+                length = value[len("length ") :]
+        if offset is not None and length is not None:
+            return f"{offset},{length}"
+        return None
+
+    @classmethod
+    def _merge_fast_pattern_modifiers(cls, modifiers: list[Any]) -> list[Any]:
+        """Collapse Snort3 inline fast_pattern modifiers into one canonical form.
+
+        Snort3 spells fast_pattern offset/length as the separate inline
+        modifiers ``fast_pattern``, ``fast_pattern_offset N`` and
+        ``fast_pattern_length M`` (each becoming its own FAST_PATTERN
+        ``ContentModifier`` with a value like ``"offset 0"``). Those values do
+        not serialize to valid syntax. Merge them into a single FAST_PATTERN
+        modifier carrying the canonical ``"offset,length"`` value so the printer
+        emits a re-parseable ``fast_pattern:offset,length``.
+        """
+        fp_indices = [
+            i
+            for i, modifier in enumerate(modifiers)
+            if isinstance(modifier, ContentModifier)
+            and modifier.name == ContentModifierType.FAST_PATTERN
+        ]
+        if not fp_indices:
+            return modifiers
+
+        merged_value = cls._canonical_fast_pattern_value([modifiers[i].value for i in fp_indices])
+        merged = ContentModifier(name=ContentModifierType.FAST_PATTERN, value=merged_value)
+
+        first = fp_indices[0]
+        drop = set(fp_indices[1:])
+        return [
+            merged if i == first else modifier
+            for i, modifier in enumerate(modifiers)
+            if i not in drop
+        ]
+
     def content_option(self, items: Sequence[Any]) -> ContentOption:
         """
         Transform content option with optional negation and inline modifiers.
@@ -225,8 +277,8 @@ class ContentTransformerMixin:
         """
         negated, rest = self._split_content_negation(items)
         content_value = rest[0]
-        modifiers = rest[1:]
-        return ContentOption(pattern=content_value, modifiers=list(modifiers), negated=negated)
+        modifiers = self._merge_fast_pattern_modifiers(list(rest[1:]))
+        return ContentOption(pattern=content_value, modifiers=modifiers, negated=negated)
 
     def uricontent_option(self, items: Sequence[Any]) -> ContentOption:
         """
@@ -249,8 +301,8 @@ class ContentTransformerMixin:
         )
         negated, rest = self._split_content_negation(items)
         content_value = rest[0]
-        modifiers = rest[1:]
-        return ContentOption(pattern=content_value, modifiers=list(modifiers), negated=negated)
+        modifiers = self._merge_fast_pattern_modifiers(list(rest[1:]))
+        return ContentOption(pattern=content_value, modifiers=modifiers, negated=negated)
 
     @v_args(inline=True)
     def content_value(self, value_token: Token) -> bytes:
