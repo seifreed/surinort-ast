@@ -54,6 +54,7 @@ enum Protocol {
   TCP_PKT = 29;
   HTTP1 = 30;
   BITTORRENT_DHT = 31;
+  FILE = 32;
 }
 
 enum Direction {

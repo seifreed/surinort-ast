@@ -480,3 +480,17 @@ class TestRoundtripRegressions:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestProtobufFileProtocol:
+    """The 'file' protocol must serialize without crashing.
+
+    Regression: Protocol.FILE existed in the enum and grammar but was missing
+    from the proto enum and _PROTOCOL_TO_PB, so to_protobuf on an `alert file`
+    rule raised KeyError.
+    """
+
+    def test_file_protocol_round_trips(self):
+        rule = parse_rule('alert file any any -> any any (msg:"x"; sid:1;)')
+        restored = from_protobuf(to_protobuf(rule))
+        assert restored.header.protocol == rule.header.protocol

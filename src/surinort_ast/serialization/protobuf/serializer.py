@@ -187,6 +187,7 @@ if PROTOBUF_AVAILABLE:
             Protocol.NTP: pb.NTP,
             Protocol.SNMP: pb.SNMP,
             Protocol.TFTP: pb.TFTP,
+            Protocol.FILE: pb.FILE,
         }
     )
     _PB_TO_PROTOCOL.update({v: k for k, v in _PROTOCOL_TO_PB.items()})
