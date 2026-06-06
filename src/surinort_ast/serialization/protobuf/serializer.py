@@ -563,9 +563,9 @@ def _(opt: TagOption) -> Any:
 def _(opt: FilestoreOption) -> Any:
     pb_opt = pb.Option()
     _serialize_option_base(opt, pb_opt)
-    if opt.direction:
+    if opt.direction is not None:
         pb_opt.filestore.direction = opt.direction
-    if opt.scope:
+    if opt.scope is not None:
         pb_opt.filestore.scope = opt.scope
     return pb_opt
 
@@ -669,7 +669,7 @@ def _(opt: GenericOption) -> Any:
     pb_opt = pb.Option()
     _serialize_option_base(opt, pb_opt)
     pb_opt.generic.keyword = opt.keyword
-    if opt.value:
+    if opt.value is not None:
         pb_opt.generic.value = opt.value
     pb_opt.generic.raw = opt.raw
     return pb_opt

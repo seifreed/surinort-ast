@@ -230,10 +230,10 @@ class PerformanceEstimator:
 
         # Pattern complexity
         pattern_len = len(pcre.pattern)
-        if pattern_len > 50:
-            base_cost *= 1.5
-        elif pattern_len > 100:
+        if pattern_len > 100:
             base_cost *= 2.0
+        elif pattern_len > 50:
+            base_cost *= 1.5
 
         # Detect expensive constructs
         if any(construct in pcre.pattern for construct in [".*", ".+", ".*?", ".+?"]):

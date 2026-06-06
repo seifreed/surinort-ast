@@ -131,6 +131,20 @@ class TestPerformanceEstimator:
         # Costs may be similar or long may be higher due to pattern length
         assert short_cost > 0 and long_cost > 0
 
+    def test_pcre_over_100_chars_costs_more_than_50_to_100(self):
+        """A PCRE pattern longer than 100 chars must cost more than a 50-100 one.
+
+        Regression: the length tiers were ordered ``> 50`` before ``> 100``,
+        making the ``> 100`` (2.0x) branch unreachable, so long patterns were
+        under-costed at the 1.5x tier.
+        """
+        mid = parse_rule(f'alert tcp any any -> any 80 (pcre:"/{"a" * 70}/"; sid:1;)')
+        long = parse_rule(f'alert tcp any any -> any 80 (pcre:"/{"a" * 150}/"; sid:2;)')
+
+        estimator = PerformanceEstimator()
+
+        assert estimator.estimate_cost(long) > estimator.estimate_cost(mid)
+
     def test_get_cost_breakdown(self):
         """Test getting detailed cost breakdown."""
         rule = parse_rule(

@@ -108,6 +108,21 @@ class StreamBatch:
         return self.success_count + self.error_count
 
 
+def _batch_line_bounds(rules: list[Rule]) -> tuple[int, int]:
+    """Return the (first, last) source line numbers covered by a batch's rules.
+
+    Falls back to (0, 0) when no rule carries a tracked line number.
+    """
+    lines = [
+        rule.origin.line_number
+        for rule in rules
+        if rule.origin is not None and rule.origin.line_number is not None
+    ]
+    if not lines:
+        return 0, 0
+    return min(lines), max(lines)
+
+
 # ============================================================================
 # Streaming Parser
 # ============================================================================
@@ -363,7 +378,6 @@ class StreamParser:
         batch_num = 0
         batch_rules: list[Rule] = []
         batch_errors: list[tuple[int, str]] = []
-        batch_start_line = 1
         processed_count = 0
 
         action_keywords = ("alert", "drop", "pass", "reject", "log", "sdrop")
@@ -397,14 +411,14 @@ class StreamParser:
 
                 # Emit batch when full
                 if len(batch_rules) >= batch_size:
-                    batch_end_line = batch_start_line + len(batch_rules) - 1
+                    start_line, end_line = _batch_line_bounds(batch_rules)
 
                     yield StreamBatch(
                         rules=batch_rules,
                         errors=batch_errors,
                         batch_number=batch_num,
-                        start_line=batch_start_line,
-                        end_line=batch_end_line,
+                        start_line=start_line,
+                        end_line=end_line,
                     )
 
                     if progress_callback:
@@ -412,20 +426,19 @@ class StreamParser:
 
                     # Reset for next batch
                     batch_num += 1
-                    batch_start_line = batch_end_line + 1
                     batch_rules = []
                     batch_errors = []
 
             # Emit final partial batch
             if batch_rules:
-                batch_end_line = batch_start_line + len(batch_rules) - 1
+                start_line, end_line = _batch_line_bounds(batch_rules)
 
                 yield StreamBatch(
                     rules=batch_rules,
                     errors=batch_errors,
                     batch_number=batch_num,
-                    start_line=batch_start_line,
-                    end_line=batch_end_line,
+                    start_line=start_line,
+                    end_line=end_line,
                 )
 
                 if progress_callback:

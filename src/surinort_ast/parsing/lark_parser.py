@@ -195,8 +195,11 @@ class LarkRuleParser:
             """Thread-based timeout handler for Windows systems."""
             timeout_occurred.set()
 
-        if not is_windows and hasattr(signal, "SIGALRM"):
-            # Unix-like systems: use signal.alarm() for better interrupt capability
+        on_main_thread = threading.current_thread() is threading.main_thread()
+        if not is_windows and hasattr(signal, "SIGALRM") and on_main_thread:
+            # Unix-like systems on the main thread: use signal.alarm() for better
+            # interrupt capability. signal.signal() only works on the main thread,
+            # so any other thread falls through to the timer-based path below.
             old_handler = signal.signal(signal.SIGALRM, timeout_handler_signal)
             signal.alarm(int(self.config.timeout_seconds))
             try:
