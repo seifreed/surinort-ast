@@ -138,10 +138,6 @@ class AddrSet:
     opaque: frozenset[str] = field(default_factory=frozenset)
 
     @property
-    def is_pure_concrete(self) -> bool:
-        return not self.any_ and not self.opaque
-
-    @property
     def is_pure_token(self) -> bool:
         return not self.any_ and not self.v4 and not self.v6 and bool(self.opaque)
 
@@ -220,10 +216,6 @@ def addr_subset(a: AddrSet, b: AddrSet) -> Tri:
     return Tri.TRUE if v4_ok and v6_ok else Tri.FALSE
 
 
-def addr_equal(a: AddrSet, b: AddrSet) -> Tri:
-    return tri_and(addr_subset(a, b), addr_subset(b, a))
-
-
 # ---------------------------------------------------------------------------
 # Port sets
 # ---------------------------------------------------------------------------
@@ -299,10 +291,6 @@ def port_subset(a: PortSet, b: PortSet) -> Tri:
             return Tri.TRUE
         return Tri.UNKNOWN
     return Tri.TRUE if _intervals_cover(list(a.intervals), list(b.intervals)) else Tri.FALSE
-
-
-def port_equal(a: PortSet, b: PortSet) -> Tri:
-    return tri_and(port_subset(a, b), port_subset(b, a))
 
 
 # ---------------------------------------------------------------------------

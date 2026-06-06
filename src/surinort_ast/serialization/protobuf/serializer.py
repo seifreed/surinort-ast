@@ -31,15 +31,12 @@ from functools import singledispatch
 from typing import Any
 
 try:
-    from google.protobuf.message import Message as ProtoMessage
-
     # Import generated protobuf classes
     from . import ast_pb2 as pb
 
     PROTOBUF_AVAILABLE = True
 except ImportError:
     PROTOBUF_AVAILABLE = False
-    ProtoMessage = Any  # type: ignore[misc,assignment]
     pb = Any  # type: ignore[misc,assignment]
 
 from surinort_ast.core.diagnostics import Diagnostic, DiagnosticLevel

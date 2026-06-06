@@ -220,39 +220,6 @@ def _get_parser(dialect: Dialect = Dialect.SURICATA, track_locations: bool = Tru
 # ============================================================================
 
 
-def _parse_rule_worker(
-    args: tuple[int, str, Dialect, bool, str],
-) -> tuple[int, Rule | None, str | None]:
-    """
-    Worker function for parallel rule parsing.
-
-    This function is defined at module level to enable pickling for multiprocessing.
-
-    Args:
-        args: Tuple of (line_number, rule_text, dialect, track_locations, file_path)
-
-    Returns:
-        Tuple of (line_number, parsed_rule or None, error_string or None)
-    """
-    line_num, text, dialect, track_locations, file_path = args
-    try:
-        # Create fresh parser per process to avoid serialization issues
-        parser = _get_parser(dialect, track_locations=track_locations)
-        tree = parser.parse(text)
-        transformer = RuleTransformer(dialect=dialect)
-        result: Rule = transformer.transform(tree)
-        result = result.model_copy(
-            update={
-                "raw_text": text,
-                "origin": SourceOrigin(file_path=file_path, line_number=line_num),
-            }
-        )
-        return (line_num, result, None)
-    except Exception as exc:
-        # Return error string for reporting
-        return (line_num, None, str(exc))
-
-
 def _parse_batch_worker(
     args: tuple[list[tuple[int, str]], Dialect, bool, str, bool],
 ) -> list[tuple[int, Rule | None, str | None]]:
