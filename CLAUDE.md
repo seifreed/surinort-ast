@@ -13,6 +13,11 @@ These are hard requirements for every change. Do not commit, merge, or hand off 
 ### Clean code & clean architecture
 - All code must follow clean-code and clean-architecture principles: small single-responsibility units; descriptive names; dependencies pointing inward (the `core/` domain stays independent of infrastructure, CLI, and external frameworks); no leaking of implementation details across module boundaries; no dead, duplicated, or commented-out code; no premature abstractions.
 
+### No legacy for backward compatibility
+- This project keeps NO legacy code for backward-compatibility reasons. When new code replaces old code, delete the old code in the same change — do not keep both paths side by side.
+- Forbidden: dead or superseded implementations, compatibility shims, deprecated aliases/wrappers kept "just in case", `@deprecated` paths retained for old callers, and duplicate old/new variants of the same function or class.
+- When you replace something, update every call site and test to the new code and remove the old one. There is no external API stability guarantee that justifies retaining superseded code.
+
 ### Quality gates (all must pass with zero findings)
 Before any commit or merge, every one of these must pass clean:
 - `ruff check src/ tests/`
