@@ -572,13 +572,12 @@ class ContentTransformerMixin:
             value = str(offset_token.value)
         return OffsetOption(value=value)
 
-    @v_args(inline=True)
-    def distance_option(self, distance_token: Token) -> DistanceOption:
+    def distance_option(self, items: list[Any]) -> DistanceOption:
         """
         Transform distance modifier (standalone option).
 
         Args:
-            distance_token: Token containing distance value (int or variable name)
+            items: ``[value]`` or ``[neg_sign, value]`` when negative.
 
         Returns:
             DistanceOption node with int value or string variable name
@@ -586,11 +585,16 @@ class ContentTransformerMixin:
         Usage:
             distance:N - Relative offset from previous match (can be negative)
         """
+        negative = len(items) == 2
+        token = items[-1]
         value: int | str
         try:
-            value = int(distance_token.value)
+            value = int(token.value)
+            if negative:
+                value = -value
         except ValueError:
-            value = str(distance_token.value)
+            text = str(token.value)
+            value = f"-{text}" if negative else text
         return DistanceOption(value=value)
 
     @v_args(inline=True)
@@ -632,12 +636,21 @@ class ContentTransformerMixin:
         """
         return EndswithOption()
 
-    def fast_pattern_option(self, items: Sequence[Token]) -> FastPatternOption:
+    def fast_pattern_offset(self, items: list[Any]) -> tuple[str, int, int]:
+        """Transform ``fast_pattern:<offset>,<length>`` parameters."""
+        return ("offset", int(items[0].value), int(items[1].value))
+
+    def fast_pattern_only(self, items: list[Any]) -> tuple[str]:
+        """Transform ``fast_pattern:only``."""
+        return ("only",)
+
+    def fast_pattern_option(self, items: Sequence[Any]) -> FastPatternOption:
         """
         Transform fast_pattern option (standalone with optional parameters).
 
         Args:
-            items: Optional [offset, length] tokens
+            items: Empty, or a single parameter spec produced by
+                :meth:`fast_pattern_offset` / :meth:`fast_pattern_only`.
 
         Returns:
             FastPatternOption node with optional offset and length
@@ -645,13 +658,16 @@ class ContentTransformerMixin:
         Usage:
             fast_pattern; - Use entire pattern for fast matching
             fast_pattern:10,20; - Use 20 bytes starting at offset 10
+            fast_pattern:only; - Use only this content for fast matching
         """
         offset = None
         length = None
 
-        if len(items) >= 2:
-            offset = int(items[0].value)
-            length = int(items[1].value)
+        if items:
+            spec = items[0]
+            if isinstance(spec, tuple) and spec[0] == "offset":
+                offset = spec[1]
+                length = spec[2]
 
         return FastPatternOption(offset=offset, length=length)
 

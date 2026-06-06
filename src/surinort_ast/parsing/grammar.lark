@@ -181,11 +181,16 @@ metadata_entry: (WORD | ALERT | LOG | PASS | DROP | REJECT | SDROP | INT | METAD
 content_option: "content" ":" "!"? content_value ("," content_modifier)*
 uricontent_option: "uricontent" ":" "!"? content_value ("," content_modifier)*
 content_value: CONTENT_STRING | HEX_STRING
-content_modifier_value: INT | WORD | REFERENCE_ID
+// Inlined (?) so the single value token reaches the transformer directly
+// instead of a wrapping Tree.
+?content_modifier_value: INT | WORD | REFERENCE_ID
+// Named marker for an optional minus sign; anonymous "-" literals are filtered
+// out by Lark, which would silently drop negative values.
+neg_sign: "-"
 // Snort3 content modifiers - keywords first, then catch-all
 content_modifier: DEPTH_KW content_modifier_value                   -> cm_depth
                 | OFFSET_KW content_modifier_value                  -> cm_offset
-                | DISTANCE_KW "-"? content_modifier_value           -> cm_distance
+                | DISTANCE_KW neg_sign? content_modifier_value      -> cm_distance
                 | WITHIN_KW content_modifier_value                  -> cm_within
                 | FAST_PATTERN_OFFSET_KW content_modifier_value     -> cm_fast_pattern_offset
                 | FAST_PATTERN_LENGTH_KW content_modifier_value     -> cm_fast_pattern_length
@@ -242,8 +247,8 @@ depth_option: "depth" ":" (INT | WORD | REFERENCE_ID)
             | "depth" (INT | WORD | REFERENCE_ID)         // Snort3 inline style
 offset_option: "offset" ":" (INT | WORD | REFERENCE_ID)
              | "offset" (INT | WORD | REFERENCE_ID)
-distance_option: "distance" ":" "-"? (INT | WORD | REFERENCE_ID)
-               | "distance" "-"? (INT | WORD | REFERENCE_ID)
+distance_option: "distance" ":" neg_sign? (INT | WORD | REFERENCE_ID)
+               | "distance" neg_sign? (INT | WORD | REFERENCE_ID)
 within_option: "within" ":" (INT | WORD | REFERENCE_ID)
              | "within" (INT | WORD | REFERENCE_ID)
 startswith_option: "startswith"
