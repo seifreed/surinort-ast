@@ -19,6 +19,7 @@ from typing import Any
 from lark import Token
 
 from ....core.nodes import GenericOption
+from ...helpers import token_to_str
 from ._helpers import parse_quoted_string_cached
 
 
@@ -97,7 +98,7 @@ class GenericOptionsMixin:
         value = None
 
         if items:
-            keyword = str(items[0].value if isinstance(items[0], Token) else items[0])
+            keyword = token_to_str(items[0])
 
         if len(items) > 1:
             value_item = items[1]

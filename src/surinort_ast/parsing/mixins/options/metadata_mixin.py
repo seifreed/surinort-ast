@@ -19,6 +19,8 @@ from typing import TYPE_CHECKING, Any
 from lark import Token
 from lark.visitors import v_args
 
+from ...helpers import token_to_str
+
 if TYPE_CHECKING:
     from .. import DiagnosticReporter
 
@@ -243,7 +245,7 @@ class MetadataOptionsMixin:
         """
         ref_type = str(ref_type_token.value)
         # ref_id can be Token or already processed string
-        ref_id_str = str(ref_id.value if isinstance(ref_id, Token) else ref_id)
+        ref_id_str = token_to_str(ref_id)
         return ReferenceOption(
             ref_type=ref_type,
             ref_id=ref_id_str,

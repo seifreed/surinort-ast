@@ -771,10 +771,10 @@ class ContentTransformerMixin:
         """
         if len(items) >= 2:
             # bitmask with value: join with space
-            return " ".join(str(item.value if isinstance(item, Token) else item) for item in items)
+            return " ".join(token_to_str(item) for item in items)
         if len(items) == 1:
             # Regular flag
-            return str(items[0].value if isinstance(items[0], Token) else items[0])
+            return token_to_str(items[0])
         return ""
 
     @v_args(inline=True)
@@ -819,7 +819,7 @@ class ContentTransformerMixin:
                 # For Tree objects (like byte_jump_flag), extract the actual value
                 if p.children:
                     flag = p.children[0]
-                    flag_value = str(flag.value if isinstance(flag, Token) else flag)
+                    flag_value = token_to_str(flag)
                     # If there's a second child (INT for flags like "post_offset 10")
                     if len(p.children) > 1:
                         flag_arg = p.children[1]
@@ -834,15 +834,13 @@ class ContentTransformerMixin:
             elif isinstance(p, (list, tuple)):
                 # For list/tuple (from byte_jump_flag returning items)
                 if len(p) == 1:
-                    processed_params.append(str(p[0].value if isinstance(p[0], Token) else p[0]))
+                    processed_params.append(token_to_str(p[0]))
                 elif len(p) == 2:
-                    flag_name = str(p[0].value if isinstance(p[0], Token) else p[0])
-                    flag_arg = str(p[1].value if isinstance(p[1], Token) else p[1])
+                    flag_name = token_to_str(p[0])
+                    flag_arg = token_to_str(p[1])
                     processed_params.append(f"{flag_name} {flag_arg}")
                 else:
-                    processed_params.append(
-                        " ".join(str(item.value if isinstance(item, Token) else item) for item in p)
-                    )
+                    processed_params.append(" ".join(token_to_str(item) for item in p))
             elif isinstance(p, Token):
                 processed_params.append(str(p.value))
             else:
@@ -890,7 +888,7 @@ class ContentTransformerMixin:
             byte_extract:4,0,extracted_value,relative
         """
         params = items[0] if items else []
-        value_str = ",".join(str(p.value if isinstance(p, Token) else p) for p in params)
+        value_str = ",".join(token_to_str(p) for p in params)
         return GenericOption(
             keyword="byte_extract", value=value_str, raw=f"byte_extract:{value_str}"
         )
@@ -919,6 +917,6 @@ class ContentTransformerMixin:
         The parameter list is captured verbatim (BYTE_MATH_TAIL), preserving the
         original Snort3/Suricata syntax in the GenericOption.
         """
-        tail = str(items[0].value if isinstance(items[0], Token) else items[0]) if items else ""
+        tail = token_to_str(items[0]) if items else ""
         value_str = tail.strip()
         return GenericOption(keyword="byte_math", value=value_str, raw=f"byte_math:{value_str}")

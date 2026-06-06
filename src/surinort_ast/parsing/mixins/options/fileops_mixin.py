@@ -18,6 +18,7 @@ from typing import Any
 from lark import Token, Tree
 
 from ....core.nodes import FilestoreOption, GenericOption
+from ...helpers import token_to_str
 
 
 def _atom_text(item: Any) -> str:
@@ -86,9 +87,9 @@ class FileOperationsOptionsMixin:
         if items and len(items) > 0:
             params = items[0] if isinstance(items[0], (list, tuple)) else items
             if len(params) >= 1:
-                direction = str(params[0].value if isinstance(params[0], Token) else params[0])
+                direction = token_to_str(params[0])
             if len(params) >= 2:
-                scope = str(params[1].value if isinstance(params[1], Token) else params[1])
+                scope = token_to_str(params[1])
 
         return FilestoreOption(direction=direction, scope=scope)
 

@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING, Any
 
 from lark import Token
 
+from ...helpers import token_to_str
+
 if TYPE_CHECKING:
     from .. import DiagnosticReporter
 
@@ -200,8 +202,8 @@ class ThresholdOptionsMixin:
         for item in params:
             if isinstance(item, (list, tuple)) and len(item) == 2:
                 # item is a tuple from detection_param: (key, value)
-                key = str(item[0].value if isinstance(item[0], Token) else item[0])
-                value = str(item[1].value if isinstance(item[1], Token) else item[1])
+                key = token_to_str(item[0])
+                value = token_to_str(item[1])
                 param_dict[key] = value
                 param_strs.append(f"{key} {value}")
             elif isinstance(item, Token):

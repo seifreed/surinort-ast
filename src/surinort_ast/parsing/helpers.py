@@ -100,12 +100,16 @@ def token_to_int(value: Token | int | str) -> int:
     return int(value)
 
 
-def token_to_str(value: Token | str) -> str:
+def token_to_str(value: object) -> str:
     """
-    Convert Token or string to string.
+    Convert a Lark Token (or any value) to its string text.
+
+    A Token yields its ``.value``; anything else is stringified directly, which
+    matches the ``str(x.value if isinstance(x, Token) else x)`` idiom used
+    throughout the transformer mixins.
 
     Args:
-        value: Token or string to convert
+        value: Token or any other value to convert
 
     Returns:
         String value

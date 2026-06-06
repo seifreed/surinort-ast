@@ -17,6 +17,7 @@ from typing import Any
 from lark import Token, Tree
 
 from ....core.nodes import GenericOption
+from ...helpers import token_to_str
 
 
 class ProtocolSpecificOptionsMixin:
@@ -115,7 +116,7 @@ class ProtocolSpecificOptionsMixin:
         """
         negated = bool(items) and isinstance(items[0], Tree) and items[0].data == "neg_bang"
         rest = items[1:] if negated else items
-        value_str = ",".join(str(item.value if isinstance(item, Token) else item) for item in rest)
+        value_str = ",".join(token_to_str(item) for item in rest)
         prefix = "!" if negated else ""
         return GenericOption(
             keyword="isdataat",
