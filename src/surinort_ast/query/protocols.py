@@ -24,42 +24,23 @@ class SelectorProtocol(Protocol):
     """
     Protocol for selector objects.
 
-    All selectors must implement a matches() method to test nodes.
-    This protocol allows executor to work with selectors without
+    All selectors implement a matches() method to test nodes. The optional
+    execution context carries parent/sibling position for selectors that need
+    it (positional pseudo-selectors); selectors that match on the node alone
+    ignore it. This protocol lets the executor work with selectors without
     importing concrete selector classes.
     """
 
-    def matches(self, node: ASTNode) -> bool:
+    def matches(self, node: ASTNode, context: Any = None) -> bool:
         """
         Test if AST node matches this selector.
 
         Args:
             node: AST node to test
+            context: Execution context (ExecutionContext instance) or None.
 
         Returns:
             True if node matches, False otherwise
-        """
-        ...
-
-
-class PseudoSelectorProtocol(Protocol):
-    """
-    Protocol for pseudo-selectors that require execution context.
-
-    Pseudo-selectors need context (parent, siblings) from the executor
-    during matching.
-    """
-
-    def matches(self, node: ASTNode, context: Any = None) -> bool:
-        """
-        Test if node matches pseudo-selector with context.
-
-        Args:
-            node: AST node to test
-            context: Execution context (ExecutionContext instance)
-
-        Returns:
-            True if matches
         """
         ...
 
@@ -115,6 +96,10 @@ class ExecutionContextProtocol(Protocol):
         """Get immediate parent of current node."""
         ...
 
+    def child_position(self, node: ASTNode) -> tuple[int, int] | None:
+        """Return ``(index, count)`` of node among its parent's children."""
+        ...
+
     def is_descendant_of(self, node: ASTNode, ancestor: ASTNode) -> bool:
         """Check if node is descendant of ancestor."""
         ...
@@ -165,7 +150,6 @@ class QueryExecutorProtocol(Protocol):
 
 __all__ = [
     "ExecutionContextProtocol",
-    "PseudoSelectorProtocol",
     "QueryExecutorProtocol",
     "SelectorChainProtocol",
     "SelectorProtocol",

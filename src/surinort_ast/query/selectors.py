@@ -49,12 +49,14 @@ class Selector(ABC):
     """
 
     @abstractmethod
-    def matches(self, node: ASTNode) -> bool:
+    def matches(self, node: ASTNode, context: Any = None) -> bool:
         """
         Test if AST node matches this selector.
 
         Args:
             node: AST node to test
+            context: Execution context (parent/sibling position) for selectors
+                that need it; ignored by selectors that match on the node alone.
 
         Returns:
             True if node matches, False otherwise
@@ -119,7 +121,7 @@ class TypeSelector(Selector):
         self.type_name = type_name
         self.match_subclasses = match_subclasses
 
-    def matches(self, node: ASTNode) -> bool:
+    def matches(self, node: ASTNode, context: Any = None) -> bool:
         """
         Test if node type matches.
 
@@ -180,7 +182,7 @@ class UniversalSelector(Selector):
         Phase 1: Simple always-true matcher
     """
 
-    def matches(self, node: ASTNode) -> bool:
+    def matches(self, node: ASTNode, context: Any = None) -> bool:
         """Always matches."""
         return True
 
@@ -271,7 +273,7 @@ class AttributeSelector(Selector):
 
             raise InvalidSelectorError(f"Invalid operator: {operator}")
 
-    def matches(self, node: ASTNode) -> bool:
+    def matches(self, node: ASTNode, context: Any = None) -> bool:
         """
         Test if node attribute matches criteria.
 
@@ -430,22 +432,22 @@ class CompoundSelector(Selector):
             raise InvalidSelectorError("CompoundSelector requires at least one selector")
         self.selectors = selectors
 
-    def matches(self, node: ASTNode) -> bool:
+    def matches(self, node: ASTNode, context: Any = None) -> bool:
         """
         Test if node matches all selectors.
 
+        The execution context is threaded to every member selector so that a
+        positional pseudo-selector combined with a type selector
+        (e.g. ``ContentOption:first``) can resolve the node's sibling position.
+
         Args:
             node: AST node to test
+            context: Execution context passed through to member selectors.
 
         Returns:
             True if all selectors match
-
-        Implementation:
-            Phase 2: Simple all() check
-            Phase 3: Optimize order (fail-fast selectors first)
         """
-        # Phase 1: Simple AND logic
-        return all(selector.matches(node) for selector in self.selectors)
+        return all(selector.matches(node, context) for selector in self.selectors)
 
     def __repr__(self) -> str:
         """String representation."""
@@ -503,21 +505,19 @@ class UnionSelector(Selector):
             raise InvalidSelectorError("UnionSelector requires at least one selector")
         self.selectors = selectors
 
-    def matches(self, node: ASTNode) -> bool:
+    def matches(self, node: ASTNode, context: Any = None) -> bool:
         """
         Test if node matches any selector.
 
         Args:
             node: AST node to test
+            context: Execution context passed through to member selectors.
 
         Returns:
             True if any selector matches
-
-        Implementation:
-            Phase 2: Simple any() check with early exit
         """
         # Early exit optimization: return True on first match
-        return any(selector.matches(node) for selector in self.selectors)
+        return any(selector.matches(node, context) for selector in self.selectors)
 
     def __repr__(self) -> str:
         """String representation."""
@@ -538,6 +538,16 @@ class UnionSelector(Selector):
 # ============================================================================
 
 
+# CSS-style positional pseudo-selectors: a per-node test against the node's
+# index among its parent's children.
+_CHILD_POSITION_PSEUDO = frozenset({"first-child", "last-child"})
+
+# jQuery-style positional pseudo-selectors: they narrow the ordered set of
+# matched nodes rather than testing a single node. The executor applies them to
+# the result list; per node they are always satisfied (see PseudoSelector.matches).
+_RESULT_SET_PSEUDO = frozenset({"first", "last", "even", "odd", "nth", "within"})
+
+
 class PseudoSelector(Selector):
     """
     Special selector types with custom matching logic.
@@ -546,13 +556,30 @@ class PseudoSelector(Selector):
     These selectors require context information beyond the node itself.
 
     Types:
-        :first              - First child in parent
-        :last               - Last child in parent
-        :nth(n)             - Nth child (0-indexed)
-        :empty              - No children
-        :not-empty          - Has children
-        :has(selector)      - Has descendant matching selector
-        :not(selector)      - Does not match selector
+        :first                - First node in the matched set (jQuery-style)
+        :last                 - Last node in the matched set
+        :even                 - Matches at even 0-based result index (0, 2, 4, ...)
+        :odd                  - Matches at odd 0-based result index (1, 3, 5, ...)
+        :nth(n)               - Match at exactly result index n (0-based)
+        :within(n)            - The first n matches (result index < n)
+        :first-child          - First child of its parent (CSS-style, per-node)
+        :last-child           - Last child of its parent (CSS-style, per-node)
+        :empty                - No child nodes
+        :not-empty            - Has child nodes
+        :has(selector)        - Has descendant matching selector
+        :not(selector)        - Does not match selector
+
+    Two positional families with different scopes:
+
+    - Result-set (:first, :last, :even, :odd, :nth, :within) narrow the ordered
+      list of nodes the rest of the selector matched, like jQuery. They are not
+      a per-node test; the executor applies them to the collected result set, so
+      ``ContentOption:first`` is the first matched content option.
+    - Child-position (:first-child, :last-child) test whether the node is the
+      first/last child of its parent. Position comes from the execution
+      context's ancestor stack and the node is found among its siblings by
+      identity, so value-equal siblings (e.g. two ``any`` addresses) are never
+      confused. The root node, which has no parent, is treated as a sole child.
 
     Attributes:
         pseudo_type: Type of pseudo-selector
@@ -613,12 +640,15 @@ class PseudoSelector(Selector):
             # Node has children
             return self._has_children(node)
 
-        # Positional pseudo-selectors (require context)
-        if self.pseudo_type in {"first", "first-child"}:
-            return self._is_first_child(node, context)
+        # CSS-style positional pseudo-selectors test this node's position.
+        if self.pseudo_type in _CHILD_POSITION_PSEUDO:
+            return self._matches_position(node, context)
 
-        if self.pseudo_type in {"last", "last-child"}:
-            return self._is_last_child(node, context)
+        # jQuery-style positional pseudo-selectors narrow the matched set; a
+        # single node always satisfies them and the executor applies the actual
+        # selection to the ordered result list.
+        if self.pseudo_type in _RESULT_SET_PSEUDO:
+            return True
 
         # Functional pseudo-selectors (require argument)
         if self.pseudo_type == "has":
@@ -645,18 +675,10 @@ class PseudoSelector(Selector):
             # For this, we need to test the selector directly
             # If argument is a selector, test it; if it's a chain with just one selector, test that
             if len(chain.selectors) == 1 and not chain.combinators:
-                selector = chain.selectors[0]
-                # Single selector - test directly
-                if hasattr(selector, "matches"):
-                    # Handle different selector signatures
-                    try:
-                        matches = selector.matches(node, context)
-                    except TypeError:
-                        matches = selector.matches(node)
-                    return not matches
-            # For complex chains, we can't easily test them
-            # For now, just test the last selector
-            return not chain.selectors[-1].matches(node) if chain.selectors else True
+                # Single selector - test directly against this node.
+                return not chain.selectors[0].matches(node, context)
+            # For complex chains, fall back to testing the last selector.
+            return not chain.selectors[-1].matches(node, context) if chain.selectors else True
 
         # Unknown pseudo-selector
         return False
@@ -673,50 +695,24 @@ class PseudoSelector(Selector):
                 return True
         return False
 
-    def _is_first_child(self, node: ASTNode, context: Any) -> bool:
-        """Check if node is first child of parent."""
-        parent = context.get_parent() if hasattr(context, "get_parent") else None
-        if parent is None:
-            return True  # Root node is considered first
+    def _matches_position(self, node: ASTNode, context: Any) -> bool:
+        """Match :first-child / :last-child against the node's sibling index.
 
-        # Get children from parent
-        children = self._get_children(parent)
-        if not children:
+        The 0-based index and sibling count come from the execution context,
+        which locates the node by identity among its parent's query children.
+        """
+        position: tuple[int, int] | None = (
+            context.child_position(node) if hasattr(context, "child_position") else None
+        )
+        if position is None:
             return False
 
-        return children[0] == node
-
-    def _is_last_child(self, node: ASTNode, context: Any) -> bool:
-        """Check if node is last child of parent."""
-        parent = context.get_parent() if hasattr(context, "get_parent") else None
-        if parent is None:
-            return True  # Root node is considered last
-
-        # Get children from parent
-        children = self._get_children(parent)
-        if not children:
-            return False
-
-        return children[-1] == node
-
-    def _get_children(self, node: ASTNode) -> list[ASTNode]:
-        """Get all children of a node."""
-        children = []
-        # For Rule nodes, header comes first, then options
-        if hasattr(node, "header") and node.header is not None:
-            children.append(node.header)
-        if hasattr(node, "options") and node.options:
-            children.extend(node.options)
-        # For Header nodes, include address and port children
-        if hasattr(node, "src_addr") and node.src_addr is not None:
-            children.append(node.src_addr)
-        if hasattr(node, "src_port") and node.src_port is not None:
-            children.append(node.src_port)
-        if hasattr(node, "dst_addr") and node.dst_addr is not None:
-            children.append(node.dst_addr)
-        if hasattr(node, "dst_port") and node.dst_port is not None:
-            children.append(node.dst_port)
-        return children
+        index, count = position
+        if self.pseudo_type == "first-child":
+            return index == 0
+        if self.pseudo_type == "last-child":
+            return index == count - 1
+        return False
 
     def _has_descendant(self, node: ASTNode, selector: Any) -> bool:
         """Check if node has any descendant matching selector."""
@@ -758,6 +754,94 @@ class PseudoSelector(Selector):
         except TypeError:
             arg_hash = hash(str(self.argument)) if self.argument is not None else 0
         return hash((self.pseudo_type, arg_hash))
+
+
+# ============================================================================
+# Result-set Pseudo-selector Support
+# ============================================================================
+
+
+def split_result_set_pseudos(
+    selector: "Selector",
+) -> tuple["Selector", list[PseudoSelector]]:
+    """Partition a combinator-free selector into a per-node base and result-set pseudos.
+
+    Result-set pseudo-selectors (:first/:last/:even/:odd/:nth/:within) are not a
+    per-node predicate; they select from the ordered set of matched nodes. This
+    splits them off so the executor can match every node against ``base`` and
+    then narrow the collected results with ``pseudos`` (in source order).
+
+    Args:
+        selector: The result-producing selector of a chain (no combinators).
+
+    Returns:
+        ``(base, pseudos)``. ``base`` is matched per node and is a
+        :class:`UniversalSelector` when the selector consisted solely of
+        result-set pseudos. ``pseudos`` is empty when there is nothing to narrow.
+    """
+    if isinstance(selector, PseudoSelector):
+        if selector.pseudo_type in _RESULT_SET_PSEUDO:
+            return UniversalSelector(), [selector]
+        return selector, []
+
+    if isinstance(selector, CompoundSelector):
+        base_members: list[Selector] = []
+        pseudos: list[PseudoSelector] = []
+        for member in selector.selectors:
+            if isinstance(member, PseudoSelector) and member.pseudo_type in _RESULT_SET_PSEUDO:
+                pseudos.append(member)
+            else:
+                base_members.append(member)
+        if not pseudos:
+            return selector, []
+        if not base_members:
+            return UniversalSelector(), pseudos
+        if len(base_members) == 1:
+            return base_members[0], pseudos
+        return CompoundSelector(base_members), pseudos
+
+    return selector, []
+
+
+def apply_result_set_pseudos(nodes: list[ASTNode], pseudos: list[PseudoSelector]) -> list[ASTNode]:
+    """Narrow an ordered list of matched nodes by result-set pseudo-selectors.
+
+    Each pseudo is applied in turn to the surviving nodes, so combinations like
+    ``:even:first`` compose left to right.
+    """
+    for pseudo in pseudos:
+        nodes = _select_result_subset(nodes, pseudo)
+    return nodes
+
+
+def _select_result_subset(nodes: list[ASTNode], pseudo: PseudoSelector) -> list[ASTNode]:
+    """Apply a single result-set pseudo-selector to an ordered list of nodes."""
+    pseudo_type = pseudo.pseudo_type
+    if pseudo_type == "first":
+        return nodes[:1]
+    if pseudo_type == "last":
+        return nodes[-1:]
+    if pseudo_type == "even":
+        return nodes[0::2]
+    if pseudo_type == "odd":
+        return nodes[1::2]
+    index = pseudo.argument
+    if not isinstance(index, int) or index < 0:
+        return []
+    if pseudo_type == "nth":
+        return [nodes[index]] if index < len(nodes) else []
+    if pseudo_type == "within":
+        return nodes[:index]
+    return nodes
+
+
+def selector_contains_pseudo(selector: "Selector") -> bool:
+    """Return True if ``selector`` is or contains any pseudo-selector."""
+    if isinstance(selector, PseudoSelector):
+        return True
+    if isinstance(selector, (CompoundSelector, UnionSelector)):
+        return any(selector_contains_pseudo(member) for member in selector.selectors)
+    return False
 
 
 # ============================================================================

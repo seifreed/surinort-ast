@@ -494,11 +494,15 @@ class QueryResult:
 
     def filter(self, selector: str) -> QueryResult:
         """
-        Narrow the result to nodes that themselves match a simple selector.
+        Narrow the result to nodes matching a simple selector.
+
+        The node is tested per-element against the base selector; result-set
+        pseudo-selectors (:first/:last/:even/:odd/:nth/:within) then narrow the
+        surviving ordered list, so ``filter("ContentOption:first")`` keeps the
+        first matched content option.
 
         Args:
-            selector: A simple selector (type/attribute/compound/union, no
-                combinators) tested against each node directly.
+            selector: A simple selector (type/attribute/compound, no combinators).
 
         Returns:
             A new QueryResult with the surviving nodes.
@@ -506,10 +510,20 @@ class QueryResult:
         Raises:
             QuerySyntaxError: If the selector uses combinators.
         """
-        return QueryResult(
-            [node for node in self._nodes if _node_matches_selector(node, selector)],
-            self._root,
-        )
+        from .parser import QueryParser
+        from .selectors import apply_result_set_pseudos, split_result_set_pseudos
+
+        chain = QueryParser().parse(selector)
+        if getattr(chain, "combinators", None):
+            raise QuerySyntaxError(
+                "QueryResult.filter() supports only simple selectors (no combinators)"
+            )
+
+        base, pseudos = split_result_set_pseudos(chain.selectors[0])
+        # Pseudo-selectors require an execution context, which a standalone node
+        # test cannot provide; the base predicate ignores it.
+        survivors = [node for node in self._nodes if bool(base.matches(node, None))]
+        return QueryResult(apply_result_set_pseudos(survivors, pseudos), self._root)
 
     def __iter__(self) -> Iterator[ASTNode]:
         return iter(self._nodes)
@@ -552,24 +566,6 @@ def _format_attr_value(value: object) -> str:
     if '"' not in text:
         return f'"{text}"'
     return "'" + text.replace("'", "") + "'"
-
-
-def _node_matches_selector(node: ASTNode, selector: str) -> bool:
-    """Test a single node against a simple (combinator-free) selector string."""
-    from .parser import QueryParser
-
-    chain = QueryParser().parse(selector)
-    if getattr(chain, "combinators", None):
-        raise QuerySyntaxError(
-            "QueryResult.filter() supports only simple selectors (no combinators)"
-        )
-    sel = chain.selectors[0]
-    try:
-        return bool(sel.matches(node))
-    except TypeError:
-        # Pseudo-selectors require an execution context, which a standalone
-        # node test cannot provide.
-        return bool(sel.matches(node, None))
 
 
 class Q:

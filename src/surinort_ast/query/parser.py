@@ -469,19 +469,42 @@ class SelectorTransformer(Transformer[Any, Any]):
         """
         Transform pseudo_selector.
 
-        Grammar: ":" PSEUDO_CLASS | ":" PSEUDO_FUNCTION "(" selector_chain ")"
+        Grammar:
+            ":" PSEUDO_CLASS
+            | ":" PSEUDO_SELECTOR_FUNC "(" selector_chain ")"
+            | ":" PSEUDO_INDEX_FUNC "(" WS* NUMBER WS* ")"
+
+        Produces a PseudoSelector whose argument is ``None`` for a bare class,
+        a SelectorChain for a selector-argument function (``:has``/``:not``), or
+        a non-negative integer for an index-argument function (``:nth``/``:within``).
         """
         from .selectors import PseudoSelector
 
-        if len(items) == 1:
-            # Simple pseudo-class: items[0] is the PSEUDO_CLASS token
-            pseudo_type = items[0].value if hasattr(items[0], "value") else str(items[0])
-            return PseudoSelector(pseudo_type, None)
-        # Pseudo-function with argument
-        # items[0] is PSEUDO_FUNCTION token, items[1] is selector_chain
-        pseudo_type = items[0].value if hasattr(items[0], "value") else str(items[0])
-        argument = items[1]  # selector_chain
-        return PseudoSelector(pseudo_type, argument)
+        func_token: Token | None = None
+        number_token: Token | None = None
+        argument_chain: Any = None
+        for item in items:
+            if isinstance(item, Token):
+                if item.type in {"PSEUDO_CLASS", "PSEUDO_SELECTOR_FUNC", "PSEUDO_INDEX_FUNC"}:
+                    func_token = item
+                elif item.type == "NUMBER":
+                    number_token = item
+                # WS and other anonymous tokens carry no meaning here.
+            else:
+                argument_chain = item  # selector_chain result
+
+        pseudo_type = func_token.value if func_token is not None else ""
+
+        if number_token is not None:
+            if "." in number_token.value:
+                from . import InvalidSelectorError
+
+                raise InvalidSelectorError(
+                    f":{pseudo_type}() requires a non-negative integer, got {number_token.value!r}"
+                )
+            return PseudoSelector(pseudo_type, int(number_token.value))
+
+        return PseudoSelector(pseudo_type, argument_chain)
 
 
 # ============================================================================

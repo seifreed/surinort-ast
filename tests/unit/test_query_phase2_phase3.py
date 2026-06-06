@@ -351,22 +351,25 @@ class TestPseudoSelectors:
     """Test pseudo-selectors (:first, :last, :has, :not, :empty)."""
 
     def test_first_child(self):
-        """Test :first-child pseudo-selector."""
+        """:first-child matches the first child of its parent (the Header)."""
         rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1; rev:2;)')
 
-        # Find first option (should be MsgOption)
-        results = query(rule, "Rule > MsgOption:first-child")
-        # MsgOption should be the first child option
-        assert len(results) == 1 or len(results) == 0  # Depends on implementation
+        # The Header is the first child of the Rule, so it matches :first-child.
+        assert len(query(rule, "Header:first-child")) == 1
+        # An option is never the first child of a Rule (the Header is), so
+        # MsgOption:first-child matches nothing.
+        assert query(rule, "Rule > MsgOption:first-child") == []
 
     def test_last_child(self):
-        """Test :last-child pseudo-selector."""
+        """:last-child matches the last child of its parent (the last option)."""
         rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1; rev:2;)')
 
-        # Find last option (should be RevOption)
+        # RevOption is the last option and therefore the Rule's last child.
         results = query(rule, "Rule > RevOption:last-child")
-        # RevOption should be the last child option
-        assert len(results) == 1 or len(results) == 0  # Depends on implementation
+        assert len(results) == 1
+        assert results[0].node_type == "RevOption"
+        # SidOption is not the last child, so it does not match :last-child.
+        assert query(rule, "Rule > SidOption:last-child") == []
 
     def test_has_descendant(self):
         """Test :has() pseudo-selector."""

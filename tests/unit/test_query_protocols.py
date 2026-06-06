@@ -238,7 +238,6 @@ class TestProtocolExports:
 
         expected_protocols = [
             "SelectorProtocol",
-            "PseudoSelectorProtocol",
             "SelectorChainProtocol",
             "ExecutionContextProtocol",
             "QueryExecutorProtocol",

@@ -60,11 +60,16 @@ attribute_value: STRING | NUMBER | IDENTIFIER
 
 // Pseudo-selectors (Phase 3)
 pseudo_selector: ":" PSEUDO_CLASS
-               | ":" PSEUDO_FUNCTION "(" selector_chain ")"
+               | ":" PSEUDO_SELECTOR_FUNC "(" selector_chain ")"
+               | ":" PSEUDO_INDEX_FUNC "(" WS* NUMBER WS* ")"
 
 PSEUDO_CLASS: "first-child" | "last-child" | "first" | "last" | "empty" | "not-empty" | "even" | "odd"
 
-PSEUDO_FUNCTION: "has" | "not" | "within" | "nth"
+// Functions taking a nested selector argument.
+PSEUDO_SELECTOR_FUNC: "has" | "not"
+
+// Functions taking a numeric index argument.
+PSEUDO_INDEX_FUNC: "within" | "nth"
 
 // Combinators (Phase 2)
 combinator: descendant_combinator

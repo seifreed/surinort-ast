@@ -17,11 +17,48 @@ from collections.abc import Iterator, Sequence
 # Combinator enum and other selector classes imported locally where used
 from typing import TYPE_CHECKING, Any
 
-from surinort_ast.core.nodes import ASTNode
+from surinort_ast.core.nodes import ASTNode, Header, Rule
 from surinort_ast.core.visitor import ASTVisitor
 
 if TYPE_CHECKING:
     pass
+
+
+def query_children(node: ASTNode) -> list[ASTNode]:
+    """Child AST nodes of ``node`` in canonical query-traversal order.
+
+    A single source of truth shared by traversal, indexing, sibling
+    combinators, and positional pseudo-selectors so they can never disagree on
+    what "first"/"nth"/"last" means. ``Rule`` and ``Header`` use an explicit
+    ordering (header before options; the four address/port slots in header
+    order). Every other node falls back to its declared Pydantic fields,
+    descending into ASTNode fields and into ASTNodes inside list/tuple fields,
+    which mirrors :meth:`ASTVisitor.generic_visit`.
+
+    Args:
+        node: Node whose children to enumerate.
+
+    Returns:
+        Child nodes in the order the executor visits them.
+    """
+    # Rule: header followed by options.
+    if isinstance(node, Rule):
+        return [node.header, *node.options]
+
+    # Header: source/destination address and port slots in order.
+    if isinstance(node, Header):
+        return [node.src_addr, node.src_port, node.dst_addr, node.dst_port]
+
+    # Generic node: declared fields in order, descending into nested AST nodes.
+    children: list[ASTNode] = []
+    for field_name in type(node).model_fields:
+        value = getattr(node, field_name)
+        if isinstance(value, ASTNode):
+            children.append(value)
+        elif isinstance(value, (list, tuple)):
+            children.extend(item for item in value if isinstance(item, ASTNode))
+    return children
+
 
 # ============================================================================
 # Query Executor (Phase 1)
@@ -163,7 +200,21 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
         else:
             self.visit(root)
 
-        return self.results
+        # Apply jQuery-style result-set pseudo-selectors (:first/:last/:even/
+        # :odd/:nth/:within) to the ordered matches.
+        return self._narrow_results(self.results)
+
+    def _narrow_results(self, results: list[ASTNode]) -> list[ASTNode]:
+        """Narrow collected matches by any result-set pseudo-selectors."""
+        from .selectors import apply_result_set_pseudos, split_result_set_pseudos
+
+        selectors = self.selector_chain.selectors
+        if not selectors:
+            return results
+        _, pseudos = split_result_set_pseudos(selectors[-1])
+        if not pseudos:
+            return results
+        return apply_result_set_pseudos(results, pseudos)
 
     def generic_visit(self, node: ASTNode) -> list[ASTNode]:
         """
@@ -256,14 +307,12 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
         if not self.selector_chain.selectors:
             return False
 
-        # Single selector - simple match
+        # Single selector - simple match. The execution context is always
+        # passed so positional pseudo-selectors can resolve sibling position;
+        # selectors that don't need it ignore the argument.
         if len(self.selector_chain.selectors) == 1:
             selector = self.selector_chain.selectors[0]
-            from .selectors import PseudoSelector
-
-            if isinstance(selector, PseudoSelector):
-                return selector.matches(node, self.execution_context)
-            return bool(selector.matches(node))
+            return bool(selector.matches(node, self.execution_context))
 
         # Multi-selector chain with combinators
         # We only match the LAST selector in the chain, but we must verify
@@ -276,13 +325,10 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
         # the chain validating combinators.
 
         last_selector = self.selector_chain.selectors[-1]
-        from .selectors import PseudoSelector
 
-        # Check if node matches the final selector
-        if isinstance(last_selector, PseudoSelector):
-            if not last_selector.matches(node, self.execution_context):
-                return False
-        elif not last_selector.matches(node):
+        # Check if node matches the final selector (the node currently visited
+        # is the top of the ancestor stack, so positional matching is valid).
+        if not last_selector.matches(node, self.execution_context):
             return False
 
         # Node matches final selector - now validate the chain
@@ -347,7 +393,7 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
             if parent is None:
                 return None
 
-            siblings = self._get_children(parent)
+            siblings = query_children(parent)
             try:
                 sibling_index = siblings.index(node)
                 if sibling_index > 0:
@@ -369,7 +415,7 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
             if parent is None:
                 return None
 
-            siblings = self._get_children(parent)
+            siblings = query_children(parent)
             try:
                 sibling_index = siblings.index(node)
                 for i in range(sibling_index - 1, -1, -1):
@@ -380,25 +426,6 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
             return None
 
         return None
-
-    def _get_children(self, node: ASTNode) -> list[ASTNode]:
-        """Get all children of a node."""
-        children = []
-        # For Rule nodes, header comes first, then options
-        if hasattr(node, "header") and node.header is not None:
-            children.append(node.header)
-        if hasattr(node, "options") and node.options:
-            children.extend(node.options)
-        # For Header nodes, include address and port children
-        if hasattr(node, "src_addr") and node.src_addr is not None:
-            children.append(node.src_addr)
-        if hasattr(node, "src_port") and node.src_port is not None:
-            children.append(node.src_port)
-        if hasattr(node, "dst_addr") and node.dst_addr is not None:
-            children.append(node.dst_addr)
-        if hasattr(node, "dst_port") and node.dst_port is not None:
-            children.append(node.dst_port)
-        return children
 
     def default_return(self) -> list[ASTNode]:
         """
@@ -450,7 +477,7 @@ class IndexedQueryExecutor(QueryExecutor):
     def _index_node(self, node: ASTNode) -> None:
         # Pre-order, mirroring the base traversal so result order is identical.
         self._type_index.setdefault(node.node_type, []).append(node)
-        for child in self._get_children(node):
+        for child in query_children(node):
             self._index_node(child)
 
     def execute(self, root: ASTNode | Sequence[ASTNode]) -> list[ASTNode]:
@@ -494,10 +521,12 @@ class StreamingQueryExecutor(QueryExecutor):
 
     def execute_stream(self, root: ASTNode | Sequence[ASTNode]) -> Iterator[ASTNode]:
         """Yield matching nodes, incrementally where possible."""
-        from .selectors import PseudoSelector
+        from .selectors import selector_contains_pseudo
 
         selectors = None if self.is_union else self.selector_chain.selectors
-        if selectors and len(selectors) == 1 and not isinstance(selectors[0], PseudoSelector):
+        # Pseudo-selectors need full context (per-node position) or the whole
+        # ordered result set (result-set narrowing), so they cannot be streamed.
+        if selectors and len(selectors) == 1 and not selector_contains_pseudo(selectors[0]):
             selector = selectors[0]
             nodes = root if isinstance(root, Sequence) else [root]
             for node in nodes:
@@ -508,7 +537,7 @@ class StreamingQueryExecutor(QueryExecutor):
     def _stream_node(self, node: ASTNode, selector: Any) -> Iterator[ASTNode]:
         if selector.matches(node):
             yield node
-        for child in self._get_children(node):
+        for child in query_children(node):
             yield from self._stream_node(child, selector)
 
 
@@ -642,6 +671,30 @@ class ExecutionContext:
         So the parent is the second-to-last item in the stack.
         """
         return self.ancestors[-2] if len(self.ancestors) >= 2 else None
+
+    def child_position(self, node: ASTNode) -> tuple[int, int] | None:
+        """Position of ``node`` among its parent's query children.
+
+        Returns ``(index, count)`` with a 0-based ``index``, identifying the
+        node by identity so value-equal siblings (e.g. two ``any`` addresses)
+        are never confused. The root node, which has no parent, is reported as
+        ``(0, 1)``. Returns ``None`` only when ``node`` is not among its
+        parent's enumerated children.
+
+        Args:
+            node: The node currently being matched (top of the ancestor stack).
+
+        Returns:
+            ``(index, count)`` or ``None`` if the position is undeterminable.
+        """
+        parent = self.get_parent()
+        if parent is None:
+            return 0, 1
+        siblings = query_children(parent)
+        for index, child in enumerate(siblings):
+            if child is node:
+                return index, len(siblings)
+        return None
 
     def is_descendant_of(self, node: ASTNode, ancestor: ASTNode) -> bool:
         """Check if node is descendant of ancestor."""
