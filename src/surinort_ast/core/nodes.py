@@ -10,10 +10,11 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import base64
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 if TYPE_CHECKING:
     pass
@@ -337,6 +338,11 @@ class MetadataOption(Option):
     entries: Sequence[tuple[str, str]]
 
 
+# JSON key used to tag base64-encoded binary content patterns that are not
+# valid UTF-8, so they survive a JSON round-trip without data loss.
+_BYTES_B64_KEY = "__bytes_b64__"
+
+
 class ContentOption(Option):
     """
     content:"GET"; nocase; offset:0; depth:10;
@@ -344,11 +350,36 @@ class ContentOption(Option):
     Attributes:
         pattern: Raw bytes pattern
         modifiers: List of content modifiers
+
+    JSON round-tripping:
+        ``pattern`` is raw bytes and IDS content is frequently binary, so it
+        cannot always be decoded as UTF-8. For JSON it is emitted as a plain
+        string when the bytes are valid UTF-8 (keeping printable patterns
+        readable) and otherwise as ``{"__bytes_b64__": "<base64>"}``. Both forms
+        decode back to the exact original bytes.
     """
 
     type: Literal["ContentOption"] = "ContentOption"
     pattern: bytes
     modifiers: Sequence[ContentModifier] = Field(default_factory=list)
+
+    @field_validator("pattern", mode="before")
+    @classmethod
+    def _coerce_pattern(cls, value: Any) -> Any:
+        """Accept raw bytes, a UTF-8 string, or the base64-tagged binary form."""
+        if isinstance(value, str):
+            return value.encode("utf-8")
+        if isinstance(value, dict) and _BYTES_B64_KEY in value:
+            return base64.b64decode(value[_BYTES_B64_KEY])
+        return value
+
+    @field_serializer("pattern", when_used="json")
+    def _serialize_pattern(self, value: bytes) -> str | dict[str, str]:
+        """Emit UTF-8 patterns as readable strings, binary as a base64 tag."""
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError:
+            return {_BYTES_B64_KEY: base64.b64encode(value).decode("ascii")}
 
 
 class PcreOption(Option):
