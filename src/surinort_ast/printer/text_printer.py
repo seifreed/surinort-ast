@@ -524,7 +524,8 @@ class TextPrinter:
         pattern_str = self._format_content_pattern(content.pattern)
 
         # Build content string
-        result = f"content:{quote}{pattern_str}{quote};"
+        negation = "!" if content.negated else ""
+        result = f"content:{negation}{quote}{pattern_str}{quote};"
 
         # Add modifiers
         if content.modifiers:

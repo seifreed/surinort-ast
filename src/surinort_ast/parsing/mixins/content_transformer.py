@@ -236,31 +236,39 @@ class ContentTransformerMixin:
     # Content Options
     # ========================================================================
 
-    @v_args(inline=True)
-    def content_option(self, content_value: bytes, *modifiers: ContentModifier) -> ContentOption:
+    @staticmethod
+    def _split_content_negation(items: Sequence[Any]) -> tuple[bool, list[Any]]:
+        """Strip a leading neg_bang marker, returning (negated, remaining items)."""
+        if items and isinstance(items[0], Tree) and items[0].data == "neg_bang":
+            return True, list(items[1:])
+        return False, list(items)
+
+    def content_option(self, items: Sequence[Any]) -> ContentOption:
         """
-        Transform content option with inline modifiers (Snort3 syntax).
+        Transform content option with optional negation and inline modifiers.
 
         Args:
-            content_value: Parsed content bytes (from content_value)
-            *modifiers: Optional inline content modifiers
+            items: ``[content_value, *modifiers]``, optionally preceded by a
+                ``neg_bang`` marker for ``content:!"..."``.
 
         Returns:
-            ContentOption node with pattern and inline modifiers
+            ContentOption node with pattern, inline modifiers and negation flag
 
         Snort3 Syntax:
             content:("pattern", depth 10, nocase)
         """
-        return ContentOption(pattern=content_value, modifiers=list(modifiers) if modifiers else [])
+        negated, rest = self._split_content_negation(items)
+        content_value = rest[0]
+        modifiers = rest[1:]
+        return ContentOption(pattern=content_value, modifiers=list(modifiers), negated=negated)
 
-    @v_args(inline=True)
-    def uricontent_option(self, content_value: bytes, *modifiers: ContentModifier) -> ContentOption:
+    def uricontent_option(self, items: Sequence[Any]) -> ContentOption:
         """
         Transform uricontent option (legacy Snort2).
 
         Args:
-            content_value: Parsed content bytes
-            *modifiers: Optional inline content modifiers
+            items: ``[content_value, *modifiers]``, optionally preceded by a
+                ``neg_bang`` marker for ``uricontent:!"..."``.
 
         Returns:
             ContentOption node (same as content)
@@ -273,7 +281,10 @@ class ContentTransformerMixin:
             DiagnosticLevel.WARNING,
             "uricontent is deprecated, use content with http_uri buffer",
         )
-        return ContentOption(pattern=content_value, modifiers=list(modifiers) if modifiers else [])
+        negated, rest = self._split_content_negation(items)
+        content_value = rest[0]
+        modifiers = rest[1:]
+        return ContentOption(pattern=content_value, modifiers=list(modifiers), negated=negated)
 
     @v_args(inline=True)
     def content_value(self, value_token: Token) -> bytes:

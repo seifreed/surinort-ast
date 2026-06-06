@@ -444,6 +444,7 @@ def _(opt: ContentOption) -> Any:
     pb_opt = pb.Option()
     _serialize_option_base(opt, pb_opt)
     pb_opt.content.pattern = bytes(opt.pattern)
+    pb_opt.content.negated = opt.negated
     for modifier in opt.modifiers:
         pb_opt.content.modifiers.append(_serialize_content_modifier(modifier))
     return pb_opt
@@ -943,6 +944,7 @@ def _deserialize_content(
     return ContentOption(
         pattern=pb_opt.content.pattern,
         modifiers=[_deserialize_content_modifier(m) for m in pb_opt.content.modifiers],
+        negated=pb_opt.content.negated,
         location=location,
         comments=comments,
     )

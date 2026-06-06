@@ -9,9 +9,11 @@ These cover bugs where the parser silently corrupted or dropped values:
 - ``fast_pattern:<offset>,<length>`` dropped both parameters.
 - Negative offsets in ``byte_test`` / ``byte_jump`` / ``byte_extract`` (and
   ``byte_jump`` ``post_offset -N``) dropped the minus sign.
+- ``content:!"..."`` negation was dropped (no negated field, '!' filtered).
 
-The shared root cause is that anonymous ``"-"`` literals are filtered out by
-Lark; the fix promotes them to a named ``neg_sign`` marker rule.
+The shared root cause is that anonymous ``"-"`` / ``"!"`` literals are filtered
+out by Lark; the fix promotes them to named ``neg_sign`` / ``neg_bang`` marker
+rules.
 
 Licensed under GNU General Public License v3.0
 Author: Marc Rivero López | @seifreed | mriverolopez@gmail.com
@@ -143,3 +145,49 @@ class TestByteOperationOffsetSigns:
             '(content:"x"; byte_test:2,&,1,0,relative,bitmask 0x8000; sid:1;)'
         )
         assert self._generic(rule, "byte_test") == "2,&,1,0,relative,bitmask 0x8000"
+
+
+class TestContentNegation:
+    """content:!"..." negation must be captured and round-trip through all formats.
+
+    Regression: the anonymous '!' literal was filtered by Lark and ContentOption
+    had no negated field, so negated content (the logical inverse of a positive
+    match) was silently parsed as a positive match.
+    """
+
+    def _content(self, rule):
+        return next(o for o in rule.options if o.node_type == "ContentOption")
+
+    def test_negated_content_parsed(self):
+        rule = parse_rule('alert tcp any any -> any any (content:!"evil"; sid:1;)')
+        assert self._content(rule).negated is True
+
+    def test_non_negated_content_default(self):
+        rule = parse_rule('alert tcp any any -> any any (content:"good"; sid:1;)')
+        assert self._content(rule).negated is False
+
+    def test_negated_content_with_inline_modifier(self):
+        rule = parse_rule('alert tcp any any -> any any (content:!"x",depth 5; sid:1;)')
+        content = self._content(rule)
+        assert content.negated is True
+        assert next(m.value for m in content.modifiers if m.name.value == "depth") == 5
+
+    def test_negation_round_trips_through_text(self):
+        from surinort_ast.api import print_rule
+
+        rule = parse_rule('alert tcp any any -> any any (content:!"evil"; sid:1;)')
+        printed = print_rule(rule)
+        assert "content:!" in printed
+        assert self._content(parse_rule(printed)).negated is True
+
+    def test_negation_round_trips_through_json(self):
+        from surinort_ast.serialization import from_json, to_json
+
+        rule = parse_rule('alert tcp any any -> any any (content:!"evil"; sid:1;)')
+        assert self._content(from_json(to_json(rule))).negated is True
+
+    def test_negation_round_trips_through_protobuf(self):
+        from surinort_ast.serialization.protobuf import from_protobuf, to_protobuf
+
+        rule = parse_rule('alert tcp any any -> any any (content:!"evil"; sid:1;)')
+        assert self._content(from_protobuf(to_protobuf(rule))).negated is True

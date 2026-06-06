@@ -350,6 +350,7 @@ class ContentOption(Option):
     Attributes:
         pattern: Raw bytes pattern
         modifiers: List of content modifiers
+        negated: Whether the match is negated (content:!"...")
 
     JSON round-tripping:
         ``pattern`` is raw bytes and IDS content is frequently binary, so it
@@ -362,6 +363,7 @@ class ContentOption(Option):
     type: Literal["ContentOption"] = "ContentOption"
     pattern: bytes
     modifiers: Sequence[ContentModifier] = Field(default_factory=list)
+    negated: bool = False
 
     @field_validator("pattern", mode="before")
     @classmethod

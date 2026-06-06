@@ -336,6 +336,7 @@ message MetadataOption {
 message ContentOption {
   bytes pattern = 1;
   repeated ContentModifier modifiers = 2;
+  bool negated = 3;
 }
 
 message PcreOption {
