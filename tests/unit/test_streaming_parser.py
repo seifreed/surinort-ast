@@ -393,6 +393,44 @@ def test_parallel_streaming_small_chunks():
         temp_path.unlink()
 
 
+def test_parallel_streaming_reassembles_multiline_rules():
+    """Parallel parsing must group multi-line rules, not parse each line alone.
+
+    Regression: the parallel path parsed every physical line independently, so
+    multi-line rules failed to parse and were dropped (while emitting spurious
+    error nodes). It must reassemble rules exactly like sequential streaming.
+    """
+    text = (
+        'alert tcp any any -> any 80 (msg:"one"; sid:1;)\n'
+        "alert tcp any any -> any 80 (\n"
+        '    msg:"two";\n'
+        '    content:"abc";\n'
+        "    sid:2;\n"
+        ")\n"
+        "# a comment line\n"
+        'alert tcp any any -> any 80 (msg:"three"; sid:3;)\n'
+    )
+
+    def sids(rules):
+        return sorted(o.value for r in rules for o in r.options if o.node_type == "SidOption")
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
+        f.write(text)
+        temp_path = Path(f.name)
+
+    try:
+        sequential = list(stream_parse_file(temp_path))
+        parallel = list(stream_parse_file_parallel(temp_path, workers=2, chunk_size=2))
+
+        assert sids(sequential) == [1, 2, 3]
+        # Parallel must find the same rules (order is not guaranteed) and must
+        # not drop the multi-line rule or emit extra error nodes.
+        assert len(parallel) == 3
+        assert sids(parallel) == [1, 2, 3]
+    finally:
+        temp_path.unlink()
+
+
 # ============================================================================
 # Convenience Function Tests
 # ============================================================================

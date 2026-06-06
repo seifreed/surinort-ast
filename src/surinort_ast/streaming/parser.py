@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Callable, Generator, Iterator
+from collections.abc import Callable, Generator, Iterable, Iterator
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -66,6 +66,65 @@ def _count_unquoted_parens(text: str) -> tuple[int, int]:
             close_count += 1
 
     return open_count, close_count
+
+
+# Rule action keywords that begin a new rule.
+_ACTION_KEYWORDS: tuple[str, ...] = ("alert", "drop", "pass", "reject", "log", "sdrop")
+
+
+def _line_starts_rule(line: str) -> bool:
+    """True if ``line`` begins a new rule (starts with an action keyword)."""
+    return line.startswith(_ACTION_KEYWORDS)
+
+
+def _iter_rule_blocks(lines: Iterable[tuple[int, str]]) -> Iterator[tuple[int, str]]:
+    """Group physical lines into complete rules.
+
+    Accepts ``(line_number, raw_line)`` pairs and yields
+    ``(first_line_number, rule_text)`` for each rule. Blank lines and ``#``
+    comments are skipped; a new rule starts at an action keyword; a rule is
+    complete once its unquoted parentheses balance. A trailing incomplete block
+    is yielded as-is so malformed tails still surface (with diagnostics) rather
+    than being silently dropped.
+
+    This is the single source of truth for rule boundary detection, shared by
+    sequential streaming and the parallel parser so they agree on what one rule
+    is — in particular, rules that span multiple physical lines.
+    """
+    current: list[str] = []
+    first_line = 0
+
+    def block() -> tuple[int, str]:
+        return first_line, " ".join(current)
+
+    for line_num, raw_line in lines:
+        line = raw_line.strip()
+
+        if not line:
+            if current:
+                yield block()
+                current = []
+            continue
+
+        if line.startswith("#"):
+            continue
+
+        if current and _line_starts_rule(line):
+            yield block()
+            current = []
+
+        if not current:
+            first_line = line_num
+        current.append(line)
+
+        if line.endswith(")") and _line_starts_rule(current[0]):
+            open_count, close_count = _count_unquoted_parens(" ".join(current))
+            if open_count > 0 and open_count == close_count:
+                yield block()
+                current = []
+
+    if current:
+        yield block()
 
 
 # ============================================================================
@@ -244,82 +303,10 @@ class StreamParser:
 
         processed_count = 0
 
-        # Stream file line by line
+        # Stream file rule by rule, reassembling multi-line rules.
         with file_path.open(encoding=encoding) as f:
-            current_rule_lines: list[tuple[int, str]] = []
-
-            for line_num, raw_line in enumerate(f, start=1):
-                line = raw_line.strip()
-
-                # Skip empty lines
-                if not line:
-                    if current_rule_lines:
-                        # Parse accumulated multi-line rule
-                        rule = self._parse_lines(current_rule_lines, str(file_path), skip_errors)
-                        if rule is not None:
-                            yield rule
-                            processed_count += 1
-
-                            if progress_callback:
-                                progress_callback(processed_count, total_lines)
-
-                        current_rule_lines = []
-                    continue
-
-                # Skip comment lines
-                if line.startswith("#"):
-                    continue
-
-                # Check if this line starts a new rule while we have accumulated lines
-                # If so, flush the previous accumulated lines first
-                action_keywords = ["alert", "drop", "pass", "reject", "log", "sdrop"]
-                line_starts_new_rule = any(line.startswith(action) for action in action_keywords)
-
-                if line_starts_new_rule and current_rule_lines:
-                    # Flush previous accumulated lines
-                    rule = self._parse_lines(current_rule_lines, str(file_path), skip_errors)
-                    if rule is not None:
-                        yield rule
-                        processed_count += 1
-
-                        if progress_callback:
-                            progress_callback(processed_count, total_lines)
-
-                    current_rule_lines = []
-
-                # Accumulate rule lines
-                current_rule_lines.append((line_num, line))
-
-                # Check if rule is complete
-                # A rule is complete when:
-                # 1. Line ends with ) AND is the closing paren of the options section
-                # 2. We have accumulated lines that start with an action keyword
-                if line.endswith(")") and current_rule_lines:
-                    # Check if this looks like a complete rule by verifying:
-                    # - First line starts with action keyword (alert, drop, etc)
-                    # - We have matching opening parenthesis
-                    first_line = current_rule_lines[0][1]
-                    if any(first_line.startswith(action) for action in action_keywords):
-                        # Count unquoted parentheses to ensure we're at the closing paren
-                        full_text = " ".join(line for _, line in current_rule_lines)
-                        open_count, close_count = _count_unquoted_parens(full_text)
-                        if open_count > 0 and open_count == close_count:
-                            # Parse complete rule
-                            rule = self._parse_lines(
-                                current_rule_lines, str(file_path), skip_errors
-                            )
-                            if rule is not None:
-                                yield rule
-                                processed_count += 1
-
-                                if progress_callback:
-                                    progress_callback(processed_count, total_lines)
-
-                            current_rule_lines = []
-
-            # Handle remaining lines (incomplete rule)
-            if current_rule_lines:
-                rule = self._parse_lines(current_rule_lines, str(file_path), skip_errors)
+            for first_line_num, rule_text in _iter_rule_blocks(enumerate(f, start=1)):
+                rule = self._parse_lines([(first_line_num, rule_text)], str(file_path), skip_errors)
                 if rule is not None:
                     yield rule
                     processed_count += 1
@@ -380,7 +367,6 @@ class StreamParser:
         batch_errors: list[tuple[int, str]] = []
         processed_count = 0
 
-        action_keywords = ("alert", "drop", "pass", "reject", "log", "sdrop")
         original_include_raw_text = self.include_raw_text
 
         # Ensure raw text is available for error classification, then strip if needed.
@@ -399,7 +385,7 @@ class StreamParser:
 
                     # Only include erroring rules that still look like rules (start with action keyword).
                     raw_text = (rule.raw_text or "").lstrip()
-                    if not raw_text.startswith(action_keywords):
+                    if not _line_starts_rule(raw_text):
                         continue
 
                 rule_for_batch = rule
@@ -669,22 +655,19 @@ def stream_parse_file_parallel(
     # Determine worker count
     max_workers = workers or min(8, os.cpu_count() or 1)
 
-    # Read file and extract rule lines
+    # Reassemble complete rules (including multi-line rules) before chunking, so
+    # each worker parse unit is a whole rule rather than a single physical line.
     with file_path.open(encoding=encoding) as f:
-        lines = [
-            (line_num, line.strip())
-            for line_num, line in enumerate(f, start=1)
-            if line.strip() and not line.strip().startswith("#")
-        ]
+        rule_blocks = list(_iter_rule_blocks(enumerate(f, start=1)))
 
-    if not lines:
+    if not rule_blocks:
         logger.warning(f"No parseable rules found in {file_path}")
         return
 
-    # Split lines into chunks for parallel processing
+    # Split rules into chunks for parallel processing
     chunks: list[list[tuple[int, str]]] = []
-    for i in range(0, len(lines), chunk_size):
-        chunks.append(lines[i : i + chunk_size])
+    for i in range(0, len(rule_blocks), chunk_size):
+        chunks.append(rule_blocks[i : i + chunk_size])
 
     # Process chunks in parallel
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
