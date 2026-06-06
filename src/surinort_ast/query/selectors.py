@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING, Any
 
 from surinort_ast.core.nodes import ASTNode
 
+from .registry import resolve_node_type
+
 # Avoid circular imports - ExecutionContext, QueryExecutor, SelectorChain
 # are imported locally where needed
 if TYPE_CHECKING:
@@ -104,10 +106,6 @@ class TypeSelector(Selector):
         >>> selector = TypeSelector("AddressExpr", match_subclasses=True)
         >>> selector.matches(IPAddress(value="192.168.1.1", version=4))
         True
-
-    Implementation:
-        Phase 1: Exact type matching only
-        Phase 2: Subclass matching with isinstance()
     """
 
     def __init__(self, type_name: str, match_subclasses: bool = False) -> None:
@@ -125,20 +123,23 @@ class TypeSelector(Selector):
         """
         Test if node type matches.
 
+        With ``match_subclasses`` the node matches the named type or any of
+        its AST subclasses (e.g. ``TypeSelector("Option", match_subclasses=True)``
+        matches ``SidOption``, ``MsgOption``, ...). Otherwise the match is on the
+        exact ``node_type`` name.
+
         Args:
             node: AST node to test
 
         Returns:
             True if node type matches
-
-        Implementation:
-            Phase 1: Simple string comparison with node.node_type
-            Phase 2: Add isinstance() check for subclass matching
         """
-        # Phase 1: Simple exact type matching
         if self.match_subclasses:
-            # Phase 2 feature - not implemented yet
-            raise NotImplementedError("Subclass matching not yet implemented")
+            target = resolve_node_type(self.type_name)
+            if target is not None:
+                return isinstance(node, target)
+            # Unknown type name: fall back to exact-name matching.
+            return node.node_type == self.type_name
         return node.node_type == self.type_name
 
     def __repr__(self) -> str:
@@ -795,9 +796,36 @@ class Combinator(Enum):
 # ============================================================================
 
 
+_VALID_PSEUDO_TYPES = frozenset(
+    {
+        "first",
+        "first-child",
+        "last",
+        "last-child",
+        "empty",
+        "not-empty",
+        "even",
+        "odd",
+        "has",
+        "not",
+        "within",
+        "nth",
+    }
+)
+
+
 def create_selector(selector_type: str, **kwargs: Any) -> Selector:
     """
-    Factory function for creating selectors.
+    Factory for creating selectors from a type string and keyword arguments.
+
+    Supported ``selector_type`` values and their required kwargs:
+
+    - ``"type"``: ``type_name`` (optional ``match_subclasses``)
+    - ``"universal"``: none
+    - ``"attribute"``: ``attribute``, ``operator`` (optional ``value``)
+    - ``"compound"``: ``selectors``
+    - ``"union"``: ``selectors``
+    - ``"pseudo"``: ``pseudo_type`` (optional ``argument``)
 
     Args:
         selector_type: Type of selector to create
@@ -807,15 +835,41 @@ def create_selector(selector_type: str, **kwargs: Any) -> Selector:
         Selector instance
 
     Raises:
-        InvalidSelectorError: If selector_type is unknown
+        InvalidSelectorError: If ``selector_type`` is unknown, required
+            arguments are missing, or an argument is invalid.
 
     Example:
         >>> selector = create_selector("type", type_name="Rule")
-        >>> selector = create_selector("attribute", attribute="value", operator="=", value=1)
-
-    Implementation:
-        Phase 1: Basic factory for type and attribute selectors
-        Phase 3: Complete factory for all selector types
+        >>> selector = create_selector("attribute", attribute="value", operator=">", value=1)
     """
-    # TODO: Implement in Phase 1
-    raise NotImplementedError("create_selector not yet implemented")
+    from . import InvalidSelectorError
+
+    def _require(*names: str) -> None:
+        missing = [name for name in names if name not in kwargs]
+        if missing:
+            raise InvalidSelectorError(
+                f"create_selector({selector_type!r}) requires: {', '.join(missing)}"
+            )
+
+    if selector_type == "type":
+        _require("type_name")
+        return TypeSelector(kwargs["type_name"], kwargs.get("match_subclasses", False))
+    if selector_type == "universal":
+        return UniversalSelector()
+    if selector_type == "attribute":
+        _require("attribute", "operator")
+        return AttributeSelector(kwargs["attribute"], kwargs["operator"], kwargs.get("value"))
+    if selector_type == "compound":
+        _require("selectors")
+        return CompoundSelector(kwargs["selectors"])
+    if selector_type == "union":
+        _require("selectors")
+        return UnionSelector(kwargs["selectors"])
+    if selector_type == "pseudo":
+        _require("pseudo_type")
+        pseudo_type = kwargs["pseudo_type"]
+        if pseudo_type not in _VALID_PSEUDO_TYPES:
+            raise InvalidSelectorError(f"Invalid pseudo-selector type: {pseudo_type}")
+        return PseudoSelector(pseudo_type, kwargs.get("argument"))
+
+    raise InvalidSelectorError(f"Unknown selector type: {selector_type}")
