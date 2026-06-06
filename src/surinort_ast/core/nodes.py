@@ -796,3 +796,11 @@ PortNegation.model_rebuild()
 PortList.model_rebuild()
 Header.model_rebuild()
 Rule.model_rebuild()
+
+
+def extract_sid(rule: Rule) -> int | None:
+    """Return the rule's SID value, or None when it has no sid option."""
+    for option in rule.options:
+        if isinstance(option, SidOption):
+            return option.value
+    return None

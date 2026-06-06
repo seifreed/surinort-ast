@@ -14,16 +14,18 @@ from ...core.nodes import (
     FlowbitsOption,
     PcreOption,
     Rule,
-    SidOption,
+    extract_sid,
 )
 
-
-def extract_sid(rule: Rule) -> int | None:
-    """Return the rule's SID value, or None if it has no sid option."""
-    for option in rule.options:
-        if isinstance(option, SidOption):
-            return option.value
-    return None
+# ``extract_sid`` is re-exported from core (single implementation) so callers
+# can keep using ``extractors.extract_sid``.
+__all__ = [
+    "compute_specificity",
+    "content_count",
+    "extract_flowbits",
+    "extract_sid",
+    "has_pcre",
+]
 
 
 def extract_flowbits(rule: Rule) -> list[tuple[str, str]]:

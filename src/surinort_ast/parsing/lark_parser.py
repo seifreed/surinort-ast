@@ -32,8 +32,8 @@ from ..core.nodes import (
     ErrorNode,
     Header,
     Rule,
-    SidOption,
     SourceOrigin,
+    extract_sid,
 )
 from ..exceptions import ParseError
 from .helpers import normalize_rule_text
@@ -686,17 +686,5 @@ class LarkRuleParser:
         return rule.model_copy(update={"origin": origin, "raw_text": raw_text})
 
     def _extract_sid(self, rule: Rule) -> int | None:
-        """
-        Extract SID from rule options.
-
-        Args:
-            rule: Rule node
-
-        Returns:
-            SID value if found, None otherwise
-        """
-        for option in rule.options:
-            if isinstance(option, SidOption):
-                return option.value
-
-        return None
+        """Extract the SID from a rule's options (None if absent)."""
+        return extract_sid(rule)

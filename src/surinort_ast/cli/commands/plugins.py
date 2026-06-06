@@ -319,13 +319,11 @@ def analyze_command(
 
 
 def _extract_sid(rule: Rule) -> str | None:
-    """Extract SID from rule options."""
-    from surinort_ast.core.nodes import SidOption
+    """Extract the SID as a string from a rule's options (None if absent)."""
+    from surinort_ast.core.nodes import extract_sid
 
-    for opt in rule.options:
-        if isinstance(opt, SidOption):
-            return str(opt.value)
-    return None
+    sid = extract_sid(rule)
+    return None if sid is None else str(sid)
 
 
 # ============================================================================
