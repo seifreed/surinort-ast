@@ -266,7 +266,7 @@ URILEN_TAIL.1: /[^;\)]{1,200}/
 byte_test_option: "byte_test" ":" byte_test_params
 byte_test_params: number "," byte_test_operator "," byte_test_value "," byte_test_offset ("," byte_test_flag)*
 byte_test_value: number | WORD | REFERENCE_ID  // Support variables from byte_extract
-byte_test_offset: "-"? (number | WORD | REFERENCE_ID)  // Support negative offsets and variables
+byte_test_offset: neg_sign? (number | WORD | REFERENCE_ID)  // Support negative offsets and variables
 byte_test_flag: "bitmask" (number | WORD)  // bitmask 0x8000 (space-separated)
               | WORD  // Regular flags like "relative", "little", etc.
 byte_test_operator: BYTE_TEST_OP | WORD
@@ -276,12 +276,12 @@ BYTE_TEST_OP.2: "!&" | "!=" | "^" | "&" | "<=" | ">=" | "<" | ">" | "="
 
 byte_jump_option: "byte_jump" ":" byte_jump_params
 byte_jump_params: INT "," byte_jump_offset ("," byte_jump_flag)*
-byte_jump_offset: "-"? (INT | WORD | REFERENCE_ID)
-byte_jump_flag: WORD ("-"? INT)?  // Support "post_offset 10" style flags
+byte_jump_offset: neg_sign? (INT | WORD | REFERENCE_ID)
+byte_jump_flag: WORD (neg_sign? INT)?  // Support "post_offset 10" style flags
 
 byte_extract_option: "byte_extract" ":" byte_extract_params
 byte_extract_params: INT "," byte_extract_offset "," (WORD | REFERENCE_ID) ("," (WORD | REFERENCE_ID))*
-byte_extract_offset: "-"? INT
+byte_extract_offset: neg_sign? INT
 
 byte_math_option: "byte_math" ":" byte_math_params
 byte_math_params: WORD WORD ("," WORD)*

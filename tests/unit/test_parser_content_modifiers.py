@@ -1,12 +1,17 @@
 """
 Regression tests for content-modifier parsing data loss.
 
-These cover three bugs where the parser silently corrupted or dropped values:
+These cover bugs where the parser silently corrupted or dropped values:
 
 - Inline content modifiers (Snort3 ``content:"x",depth 16`` form) stored the
   string repr of a Lark ``Tree`` instead of the integer value.
 - Negative ``distance`` lost its sign (``distance:-5`` parsed as ``5``).
 - ``fast_pattern:<offset>,<length>`` dropped both parameters.
+- Negative offsets in ``byte_test`` / ``byte_jump`` / ``byte_extract`` (and
+  ``byte_jump`` ``post_offset -N``) dropped the minus sign.
+
+The shared root cause is that anonymous ``"-"`` literals are filtered out by
+Lark; the fix promotes them to a named ``neg_sign`` marker rule.
 
 Licensed under GNU General Public License v3.0
 Author: Marc Rivero López | @seifreed | mriverolopez@gmail.com
@@ -86,3 +91,43 @@ class TestFastPatternParameters:
         fp = _option(rule, "FastPatternOption")
         assert fp.offset is None
         assert fp.length is None
+
+
+class TestByteOperationOffsetSigns:
+    """Negative offsets in byte_test / byte_jump / byte_extract must keep their sign."""
+
+    def _generic(self, rule, keyword):
+        return next(
+            o.value for o in rule.options if o.node_type == "GenericOption" and o.keyword == keyword
+        )
+
+    def test_byte_test_negative_offset(self):
+        rule = parse_rule(
+            'alert tcp any any -> any any (content:"x"; byte_test:4,>,1000,-4,relative; sid:1;)'
+        )
+        assert self._generic(rule, "byte_test") == "4,>,1000,-4,relative"
+
+    def test_byte_test_positive_offset_unchanged(self):
+        rule = parse_rule(
+            'alert tcp any any -> any any (content:"x"; byte_test:4,>,1000,4,relative; sid:1;)'
+        )
+        assert self._generic(rule, "byte_test") == "4,>,1000,4,relative"
+
+    def test_byte_jump_negative_offset(self):
+        rule = parse_rule(
+            'alert tcp any any -> any any (content:"x"; byte_jump:4,-8,relative; sid:1;)'
+        )
+        assert self._generic(rule, "byte_jump") == "4,-8,relative"
+
+    def test_byte_jump_post_offset_negative(self):
+        rule = parse_rule(
+            "alert tcp any any -> any any "
+            '(content:"x"; byte_jump:4,0,relative,post_offset -10; sid:1;)'
+        )
+        assert self._generic(rule, "byte_jump") == "4,0,relative,post_offset -10"
+
+    def test_byte_extract_negative_offset(self):
+        rule = parse_rule(
+            'alert tcp any any -> any any (content:"x"; byte_extract:4,-2,var,relative; sid:1;)'
+        )
+        assert self._generic(rule, "byte_extract") == "4,-2,var,relative"

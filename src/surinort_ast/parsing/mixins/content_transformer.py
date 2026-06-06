@@ -865,8 +865,20 @@ class ContentTransformerMixin:
         return "0"
 
     def byte_jump_flag(self, items: Sequence[Any]) -> Sequence[Any]:
-        """Pass through byte_jump flag tokens (WORD and optional INT)."""
-        return items
+        """Resolve a byte_jump flag and its optional (possibly negative) argument.
+
+        Handles ``relative`` (no arg), ``post_offset 10`` and ``post_offset -10``;
+        the leading minus arrives as a ``neg_sign`` marker rule.
+        """
+        if not items:
+            return []
+        name = items[0]
+        if len(items) == 1:
+            return [name]
+        negative = any(isinstance(item, Tree) and item.data == "neg_sign" for item in items[1:])
+        int_token = items[-1]
+        int_value = int_token.value if isinstance(int_token, Token) else int_token
+        return [name, f"-{int_value}" if negative else str(int_value)]
 
     def byte_extract_option(self, items: Sequence[Any]) -> GenericOption:
         """
