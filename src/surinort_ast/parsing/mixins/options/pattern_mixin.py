@@ -16,7 +16,7 @@ from lark import Token
 
 from ....core.nodes import PcreOption
 from ...helpers import token_to_location
-from ._helpers import parse_pcre_pattern_cached, parse_quoted_string_cached
+from ._helpers import parse_pcre_pattern_cached, strip_outer_quotes
 
 
 class PatternMatchingOptionsMixin:
@@ -84,8 +84,10 @@ class PatternMatchingOptionsMixin:
 
         pattern_token = items[-1]
         pattern_str = str(pattern_token.value)
-        # Remove quotes if present (use cached version for performance)
-        pattern_str = parse_quoted_string_cached(pattern_str)
+        # A PCRE pattern is an opaque regex: strip only the surrounding quotes and
+        # preserve every regex escape (\n, \r, \t, \xNN, \\) verbatim so the
+        # pattern round-trips through serialization unchanged.
+        pattern_str = strip_outer_quotes(pattern_str)
         pattern, flags = parse_pcre_pattern_cached(pattern_str)
         return PcreOption(
             pattern=pattern,

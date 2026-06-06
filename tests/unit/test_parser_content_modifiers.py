@@ -285,6 +285,27 @@ class TestPcreNewlineRoundTrip:
         second = print_rule(parse_rule(first))
         assert first == second
 
+    def test_pcre_escape_sequences_are_preserved_verbatim(self):
+        r"""Regex escapes (\n, \r, \t, \xNN) inside a pcre are part of the regex
+        and must not be interpreted by the rule parser. Interpreting \n into a
+        real newline used to split the rule across physical lines, silently
+        dropping rules on the next parse."""
+        from surinort_ast.printer import print_rule
+
+        text = r'alert tcp any any -> any any (pcre:"/filename=[^\r\n]*\x2eemf/i"; sid:1;)'
+        rule = parse_rule(text)
+        pcre = _option(rule, "PcreOption")
+        assert pcre.pattern == r"filename=[^\r\n]*\x2eemf"
+        assert pcre.flags == "i"
+
+        printed = print_rule(rule)
+        # No control characters leaked into the serialized rule.
+        assert "\n" not in printed
+        assert "\r" not in printed
+        assert "\t" not in printed
+        # Stable fixed point: re-parsing the output yields the same text.
+        assert print_rule(parse_rule(printed)) == printed
+
 
 class TestInlineFastPatternOffsetLength:
     """Snort3 inline fast_pattern offset/length must serialize to valid syntax."""

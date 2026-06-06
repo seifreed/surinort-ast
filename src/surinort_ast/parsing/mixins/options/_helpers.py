@@ -33,6 +33,25 @@ def generic_kv(keyword: str, value: str) -> GenericOption:
 # ============================================================================
 
 
+def strip_outer_quotes(s: str) -> str:
+    """Remove the surrounding quotes from a value without unescaping its body.
+
+    PCRE patterns are opaque regexes whose escape sequences (``\\n``, ``\\r``,
+    ``\\t``, ``\\xNN``, ``\\\\``) are part of the regex and must round-trip
+    verbatim, so they must not pass through :func:`parse_quoted_string`.
+    """
+    if len(s) < 2:
+        return s
+
+    if (s[0] == '"' and s[-1] == '"') or (s[0] == "'" and s[-1] == "'"):
+        return s[1:-1]
+    if s[0] == '"' and s.endswith('\\"'):
+        # Tolerate rules that terminate a string as ...\"; without an additional
+        # closing quote. Keep the literal trailing quote in the value.
+        return s[1:]
+    return s
+
+
 def parse_quoted_string(s: str) -> str:
     """
     Parse quoted string, handling escape sequences.
@@ -49,13 +68,7 @@ def parse_quoted_string(s: str) -> str:
     if not s or len(s) < 2:
         return s
 
-    # Remove quotes - use slice for performance
-    if (s[0] == '"' and s[-1] == '"') or (s[0] == "'" and s[-1] == "'"):
-        s = s[1:-1]
-    elif s[0] == '"' and s.endswith('\\"'):
-        # Tolerate rules that terminate a content string as ...\"; without an
-        # additional closing quote. Keep the literal trailing quote in the value.
-        s = s[1:]
+    s = strip_outer_quotes(s)
 
     # Fast path: no escapes
     if "\\" not in s:
