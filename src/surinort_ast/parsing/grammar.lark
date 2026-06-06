@@ -287,8 +287,12 @@ byte_extract_option: "byte_extract" ":" byte_extract_params
 byte_extract_params: INT "," byte_extract_offset "," (WORD | REFERENCE_ID) ("," (WORD | REFERENCE_ID))*
 byte_extract_offset: neg_sign? INT
 
-byte_math_option: "byte_math" ":" byte_math_params
-byte_math_params: WORD WORD ("," WORD)*
+// byte_math has a rich, comma-separated "<keyword> <value>" parameter syntax
+// (bytes N, offset N, oper +, rvalue N, result name, relative, endian big, ...).
+// Capture it verbatim as a tail (like urilen) so the whole option round-trips
+// as a GenericOption instead of failing to parse and dropping the rule body.
+byte_math_option: "byte_math" ":" BYTE_MATH_TAIL
+BYTE_MATH_TAIL.1: /[^;)]{1,300}/
 
 // Sticky buffers (Suricata uses dots, Snort uses underscores)
 // Snort3 supports selectors like http_uri:path and http_header:field content-type.

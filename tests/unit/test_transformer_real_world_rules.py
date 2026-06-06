@@ -548,13 +548,20 @@ class TestRealisticTransformerCoverage:
         assert result.header.direction == Direction.FROM
 
     def test_byte_math_real(self):
-        """Test byte_math option"""
+        """byte_math's standard syntax must parse and preserve the whole rule.
+
+        Regression: byte_math:bytes N,... failed to parse and error recovery
+        dropped every option (the entire rule body was lost).
+        """
         parser = LarkRuleParser(dialect=Dialect.SURICATA)
-        # Use simpler byte_math syntax
-        rule_text = 'alert tcp any any -> any any (byte_math:bytes 2,offset 0,oper +,rvalue 10,result var; msg:"test"; sid:1; rev:1;)'
+        rule_text = (
+            "alert tcp any any -> any any "
+            '(byte_math:bytes 2,offset 0,oper +,rvalue 10,result var; msg:"test"; sid:1; rev:1;)'
+        )
         result = parser.parse(rule_text)
         assert result is not None
-        next(
+
+        byte_math = next(
             (
                 opt
                 for opt in result.options
@@ -562,5 +569,9 @@ class TestRealisticTransformerCoverage:
             ),
             None,
         )
-        # byte_math may not be fully supported, check it doesn't crash
-        assert result is not None
+        # The byte_math option is captured verbatim ...
+        assert byte_math is not None
+        assert byte_math.value == "bytes 2,offset 0,oper +,rvalue 10,result var"
+        # ... and the rest of the rule survives (no dropped options).
+        assert any(opt.node_type == "MsgOption" for opt in result.options)
+        assert any(opt.node_type == "SidOption" for opt in result.options)

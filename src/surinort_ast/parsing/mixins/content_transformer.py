@@ -942,13 +942,11 @@ class ContentTransformerMixin:
             GenericOption with keyword="byte_math" and formatted value string
 
         Usage:
-            byte_math:bytes,offset,operator,rvalue,result[,flags]
-            byte_math:4,0,+,10,calculated_value
-        """
-        params = items[0] if items else []
-        value_str = ",".join(str(p.value if isinstance(p, Token) else p) for p in params)
-        return GenericOption(keyword="byte_math", value=value_str, raw=f"byte_math:{value_str}")
+            byte_math:bytes 4, offset 0, oper +, rvalue 10, result var[, flags]
 
-    def byte_math_params(self, items: Sequence[Token]) -> Sequence[Token]:
-        """Pass through byte_math params."""
-        return items
+        The parameter list is captured verbatim (BYTE_MATH_TAIL), preserving the
+        original Snort3/Suricata syntax in the GenericOption.
+        """
+        tail = str(items[0].value if isinstance(items[0], Token) else items[0]) if items else ""
+        value_str = tail.strip()
+        return GenericOption(keyword="byte_math", value=value_str, raw=f"byte_math:{value_str}")
