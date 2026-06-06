@@ -111,7 +111,7 @@ dev = [
     # Testing
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
-    "hypothesis>=6.151.13",  # Property-based testing
+    "hypothesis>=6.155.1",  # Property-based testing
 
     # Linting and formatting (ruff replaces: flake8, black, isort, pyupgrade)
     "ruff>=0.15.15",
