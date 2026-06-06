@@ -545,22 +545,57 @@ class TestTransformerGenericVisitDetailedPaths:
     """Test transformer generic_visit detailed execution paths (lines 176-194)."""
 
     def test_generic_visit_with_none_return(self, lark_parser: Lark, transformer: RuleTransformer):
-        """Test generic_visit when visit returns None (line 177)."""
+        """A visit returning None means 'no change': the child is preserved.
+
+        This is the documented contract (see ASTTransformer.default_return and the
+        class docstring) and must hold for the specialized visit_* methods, not
+        just generic_visit. Returning None must never corrupt the node by setting
+        a child to None.
+        """
         rule_text = 'alert tcp 192.168.1.1 any -> any 80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
 
         class NoneReturningTransformer(ASTTransformer):
             def visit_IPAddress(self, node):
-                # Return None to test line 177 condition
-                # When None is returned, it actually changes the node
+                # None signals "no change"; the original node must be preserved.
                 return None
 
         none_transformer = NoneReturningTransformer()
         new_rule = none_transformer.visit(rule)
-        # Header should be changed (src_addr set to None)
-        assert new_rule.header is not rule.header
-        assert new_rule.header.src_addr is None
+        # src_addr is preserved (not set to None); nothing changed, so the rule
+        # is returned unchanged.
+        assert new_rule.header.src_addr is rule.header.src_addr
+        assert new_rule is rule
+
+    def test_none_return_in_options_preserves_option(
+        self, lark_parser: Lark, transformer: RuleTransformer
+    ):
+        """Returning None for one option preserves it while others transform.
+
+        Regression: visit_Rule injected the None into the options list, which
+        either corrupted the node (None in options) or raised. None must mean
+        'keep this option unchanged'.
+        """
+        rule_text = 'alert tcp any any -> any 80 (msg:"hi"; sid:1; rev:2;)'
+        parse_tree = lark_parser.parse(rule_text)
+        rule = transformer.transform(parse_tree)[0]
+
+        class PartialTransformer(ASTTransformer):
+            def visit_SidOption(self, node):
+                return None  # no change
+
+            def visit_MsgOption(self, node):
+                return node.model_copy(update={"text": node.text.upper()})
+
+        new_rule = PartialTransformer().visit(rule)
+
+        assert not any(opt is None for opt in new_rule.options)
+        assert [o.node_type for o in new_rule.options] == [o.node_type for o in rule.options]
+        msg = next(o for o in new_rule.options if o.node_type == "MsgOption")
+        sid = next(o for o in new_rule.options if o.node_type == "SidOption")
+        assert msg.text == "HI"
+        assert sid.value == 1
 
     def test_generic_visit_list_with_non_astnode_items(
         self, lark_parser: Lark, transformer: RuleTransformer

@@ -172,6 +172,12 @@ class ASTTransformer(ASTVisitor[ASTNode]):
         # generic_visit() handles None by keeping the original node.
         return cast(ASTNode, None)
 
+    def _visit_child(self, child: ASTNode) -> ASTNode:
+        """Visit a child node, preserving the original when the visit returns
+        None (the documented "no change" signal)."""
+        result = self.visit(child)
+        return result if result is not None else child
+
     def generic_visit(self, node: ASTNode) -> ASTNode:
         """
         Transform node by visiting children and creating new node if changed.
@@ -191,19 +197,15 @@ class ASTTransformer(ASTVisitor[ASTNode]):
             field_value = getattr(node, field_name)
 
             if isinstance(field_value, ASTNode):
-                new_value = self.visit(field_value)
-                if new_value is not None and new_value != field_value:
+                new_value = self._visit_child(field_value)
+                if new_value != field_value:
                     updates[field_name] = new_value
                     changed = True
             elif isinstance(field_value, (list, tuple)):
-                new_list: list[Any] = []
-                for item in field_value:
-                    if isinstance(item, ASTNode):
-                        new_item = self.visit(item)
-                        new_list.append(new_item if new_item is not None else item)
-                    else:
-                        new_list.append(item)
-
+                new_list: list[Any] = [
+                    self._visit_child(item) if isinstance(item, ASTNode) else item
+                    for item in field_value
+                ]
                 if new_list != list(field_value):
                     # Safe: Pydantic validates field types at runtime
                     updates[field_name] = new_list
@@ -215,8 +217,8 @@ class ASTTransformer(ASTVisitor[ASTNode]):
 
     def visit_Rule(self, node: Rule) -> Rule:  # noqa: N802
         """Transform Rule node."""
-        new_header = self.visit(node.header)
-        new_options = [self.visit(opt) for opt in node.options]
+        new_header = self._visit_child(node.header)
+        new_options = [self._visit_child(opt) for opt in node.options]
 
         if new_header != node.header or new_options != list(node.options):
             return node.model_copy(
@@ -229,10 +231,10 @@ class ASTTransformer(ASTVisitor[ASTNode]):
 
     def visit_Header(self, node: Header) -> Header:  # noqa: N802
         """Transform Header node."""
-        new_src_addr = self.visit(node.src_addr)
-        new_src_port = self.visit(node.src_port)
-        new_dst_addr = self.visit(node.dst_addr)
-        new_dst_port = self.visit(node.dst_port)
+        new_src_addr = self._visit_child(node.src_addr)
+        new_src_port = self._visit_child(node.src_port)
+        new_dst_addr = self._visit_child(node.dst_addr)
+        new_dst_port = self._visit_child(node.dst_port)
 
         if (
             new_src_addr != node.src_addr
@@ -252,28 +254,28 @@ class ASTTransformer(ASTVisitor[ASTNode]):
 
     def visit_AddressList(self, node: AddressList) -> AddressList:  # noqa: N802
         """Transform AddressList node."""
-        new_elements = [self.visit(addr) for addr in node.elements]
+        new_elements = [self._visit_child(addr) for addr in node.elements]
         if new_elements != list(node.elements):
             return node.model_copy(update={"elements": new_elements})
         return node
 
     def visit_AddressNegation(self, node: AddressNegation) -> AddressNegation:  # noqa: N802
         """Transform AddressNegation node."""
-        new_expr = self.visit(node.expr)
+        new_expr = self._visit_child(node.expr)
         if new_expr != node.expr:
             return node.model_copy(update={"expr": new_expr})
         return node
 
     def visit_PortList(self, node: PortList) -> PortList:  # noqa: N802
         """Transform PortList node."""
-        new_elements = [self.visit(port) for port in node.elements]
+        new_elements = [self._visit_child(port) for port in node.elements]
         if new_elements != list(node.elements):
             return node.model_copy(update={"elements": new_elements})
         return node
 
     def visit_PortNegation(self, node: PortNegation) -> PortNegation:  # noqa: N802
         """Transform PortNegation node."""
-        new_expr = self.visit(node.expr)
+        new_expr = self._visit_child(node.expr)
         if new_expr != node.expr:
             return node.model_copy(update={"expr": new_expr})
         return node
