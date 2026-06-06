@@ -17,11 +17,12 @@ from typing import Any
 from lark import Token, Tree
 
 from ....core.nodes import LuajitOption, LuaOption
+from ...helpers import is_marker
 
 
 def _script_negation(items: Sequence[Any]) -> tuple[bool, str]:
     """Return (negated, script_name) from a lua/luajit option's children."""
-    negated = any(isinstance(item, Tree) and item.data == "neg_bang" for item in items)
+    negated = any(is_marker(item, "neg_bang") for item in items)
     script_name = next(
         (item for item in items if not isinstance(item, Tree)),
         "",

@@ -42,7 +42,7 @@ from ...core.nodes import (
     StartswithOption,
     WithinOption,
 )
-from ..helpers import token_to_str
+from ..helpers import is_marker, token_to_str
 from .options._helpers import generic_kv, parse_quoted_string
 
 logger = logging.getLogger(__name__)
@@ -206,7 +206,7 @@ class ContentTransformerMixin:
     @staticmethod
     def _split_content_negation(items: Sequence[Any]) -> tuple[bool, list[Any]]:
         """Strip a leading neg_bang marker, returning (negated, remaining items)."""
-        if items and isinstance(items[0], Tree) and items[0].data == "neg_bang":
+        if items and is_marker(items[0], "neg_bang"):
             return True, list(items[1:])
         return False, list(items)
 
@@ -822,10 +822,7 @@ class ContentTransformerMixin:
                     flag_value = token_to_str(flag)
                     # If there's a second child (INT for flags like "post_offset 10")
                     if len(p.children) > 1:
-                        flag_arg = p.children[1]
-                        flag_arg_value = str(
-                            flag_arg.value if isinstance(flag_arg, Token) else flag_arg
-                        )
+                        flag_arg_value = token_to_str(p.children[1])
                         processed_params.append(f"{flag_value} {flag_arg_value}")
                     else:
                         processed_params.append(flag_value)
@@ -868,10 +865,9 @@ class ContentTransformerMixin:
         name = items[0]
         if len(items) == 1:
             return [name]
-        negative = any(isinstance(item, Tree) and item.data == "neg_sign" for item in items[1:])
-        int_token = items[-1]
-        int_value = int_token.value if isinstance(int_token, Token) else int_token
-        return [name, f"-{int_value}" if negative else str(int_value)]
+        negative = any(is_marker(item, "neg_sign") for item in items[1:])
+        int_value = token_to_str(items[-1])
+        return [name, f"-{int_value}" if negative else int_value]
 
     def byte_extract_option(self, items: Sequence[Any]) -> GenericOption:
         """

@@ -11,14 +11,25 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import re
+from typing import Any
 
-from lark import Token
+from lark import Token, Tree
 
 from ..core.location import Location, Position, Span
 
 _MISSING_CONTENT_CLOSER_RE = re.compile(
     r'(?P<prefix>\b(?:uri)?content:")(?P<body>(?:[^"\\]|\\.)*?)\\\"(?=;)'
 )
+
+
+def is_marker(item: Any, name: str) -> bool:
+    """True if ``item`` is a Lark ``Tree`` for the given anonymous marker rule.
+
+    Grammar promotes anonymous ``!``/``-`` literals to named marker rules
+    (``neg_bang``/``neg_sign``) so they survive transformation; this checks for
+    one of them.
+    """
+    return isinstance(item, Tree) and item.data == name
 
 
 def token_to_location(token: Token, file_path: str | None = None) -> Location:

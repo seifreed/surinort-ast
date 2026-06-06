@@ -14,10 +14,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from lark import Token, Tree
+from lark import Token
 
 from ....core.nodes import GenericOption
-from ...helpers import token_to_str
+from ...helpers import is_marker, token_to_str
 from ._helpers import generic_kv
 
 
@@ -115,7 +115,7 @@ class ProtocolSpecificOptionsMixin:
             Verify sufficient data exists before matching subsequent patterns.
             Prevents false positives from truncated payloads.
         """
-        negated = bool(items) and isinstance(items[0], Tree) and items[0].data == "neg_bang"
+        negated = bool(items) and is_marker(items[0], "neg_bang")
         rest = items[1:] if negated else items
         value_str = ",".join(token_to_str(item) for item in rest)
         prefix = "!" if negated else ""

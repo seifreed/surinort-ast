@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 from ....core.diagnostics import DiagnosticLevel
 from ....core.enums import FlowDirection, FlowState
 from ....core.nodes import FlowbitsOption, FlowOption, GenericOption
-from ...helpers import token_to_location
+from ...helpers import token_to_location, token_to_str
 from ._helpers import generic_kv
 
 
@@ -168,13 +168,9 @@ class FlowTrackingOptionsMixin:
         name = ""
 
         if len(action_items) >= 1:
-            action = str(
-                action_items[0].value if isinstance(action_items[0], Token) else action_items[0]
-            )
+            action = token_to_str(action_items[0])
         if len(action_items) >= 2:
-            name = str(
-                action_items[1].value if isinstance(action_items[1], Token) else action_items[1]
-            )
+            name = token_to_str(action_items[1])
 
         # Validate flowbits action
         valid_actions = {"set", "isset", "isnotset", "toggle", "unset", "noalert"}
