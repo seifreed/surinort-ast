@@ -380,6 +380,23 @@ class TestValidateCommand:
         assert result.exit_code == 0
         assert "Validation passed" in result.output
 
+    def test_validate_output_file_writes_text_report(self, tmp_path):
+        """Validate --output should write the text summary to the file."""
+        rules_file = tmp_path / "rules.txt"
+        rules_file.write_text(
+            "alert tcp any any -> any 80 (sid:1;)\n",
+            encoding="utf-8",
+        )
+        out_file = tmp_path / "report.txt"
+
+        result = self.runner.invoke(app, ["validate", str(rules_file), "--output", str(out_file)])
+
+        assert result.exit_code == 0
+        assert out_file.exists()
+        contents = out_file.read_text(encoding="utf-8")
+        assert "Total rules:" in contents
+        assert "Missing required option 'msg'" in contents
+
     def test_validate_with_warnings(self, tmp_path):
         """Validate command should show warnings"""
         rules_file = tmp_path / "rules.txt"
@@ -606,6 +623,24 @@ class TestStatsCommand:
         assert "Total Rules: 2" in result.output
         assert "Actions" in result.output
         assert "Protocols" in result.output
+
+    def test_stats_output_file_writes_text_report(self, tmp_path):
+        """Stats --output should write the statistics tables to the file."""
+        rules_file = tmp_path / "rules.txt"
+        rules_file.write_text(
+            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n'
+            'drop tcp any any -> any 443 (msg:"HTTPS"; sid:2;)\n',
+            encoding="utf-8",
+        )
+        out_file = tmp_path / "stats.txt"
+
+        result = self.runner.invoke(app, ["stats", str(rules_file), "-o", str(out_file)])
+
+        assert result.exit_code == 0
+        assert out_file.exists()
+        contents = out_file.read_text(encoding="utf-8")
+        assert "Total Rules: 2" in contents
+        assert "Actions" in contents
 
     def test_stats_with_dialect(self, tmp_path):
         """Stats command should accept dialect option"""

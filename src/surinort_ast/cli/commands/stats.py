@@ -9,11 +9,13 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import io
 from collections import Counter
 from pathlib import Path
 from typing import Annotated, Any
 
 import typer
+from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
@@ -27,6 +29,7 @@ from ..shared import (
     err_console,
     parsing_progress,
     resolve_output_format,
+    write_output,
 )
 
 
@@ -57,12 +60,12 @@ def _build_count_table(title: str, item_name: str, counts: Counter[Any], total: 
     return table
 
 
-def _display_stats(file: Path, dialect: Dialect, rules: list[Any]) -> None:
+def _display_stats(file: Path, dialect: Dialect, rules: list[Any], target: Console) -> None:
     action_counts = Counter(rule.action for rule in rules)
     protocol_counts = Counter(rule.header.protocol for rule in rules)
     direction_counts = Counter(rule.header.direction for rule in rules)
 
-    console.print(
+    target.print(
         Panel.fit(
             f"[bold cyan]Rule Statistics[/bold cyan]\n\n"
             f"File: {file}\n"
@@ -72,12 +75,23 @@ def _display_stats(file: Path, dialect: Dialect, rules: list[Any]) -> None:
         )
     )
 
-    console.print()
-    console.print(_build_count_table("Actions", "Action", action_counts, len(rules)))
-    console.print()
-    console.print(_build_count_table("Protocols", "Protocol", protocol_counts, len(rules)))
-    console.print()
-    console.print(_build_count_table("Directions", "Direction", direction_counts, len(rules)))
+    target.print()
+    target.print(_build_count_table("Actions", "Action", action_counts, len(rules)))
+    target.print()
+    target.print(_build_count_table("Protocols", "Protocol", protocol_counts, len(rules)))
+    target.print()
+    target.print(_build_count_table("Directions", "Direction", direction_counts, len(rules)))
+
+
+def _emit_stats_text(file: Path, dialect: Dialect, rules: list[Any], output: Path | None) -> None:
+    """Render the statistics tables to ``output`` when given, else to the console."""
+    if output is None:
+        _display_stats(file, dialect, rules, console)
+        return
+
+    buffer = io.StringIO()
+    _display_stats(file, dialect, rules, Console(file=buffer, width=100))
+    write_output(buffer.getvalue(), output)
 
 
 def stats_command(
@@ -123,7 +137,7 @@ def stats_command(
 
         if _emit_sarif_if_requested(rules, fmt, output, sarif_out):
             return
-        _display_stats(file, dialect, rules)
+        _emit_stats_text(file, dialect, rules, output)
 
     except ParseError as e:
         err_console.print(f"Parse error: {e}")

@@ -9,11 +9,13 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import io
 import logging
 from pathlib import Path
 from typing import Annotated, Any
 
 import typer
+from rich.console import Console
 from rich.table import Table
 
 from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
@@ -27,6 +29,7 @@ from ..shared import (
     parsing_progress,
     resolve_output_format,
     validate_file_path,
+    write_output,
 )
 
 logger = logging.getLogger(__name__)
@@ -93,7 +96,7 @@ def _collect_diagnostics(rules: list[Any]) -> tuple[list[tuple[int, Any]], int, 
     return all_diagnostics, error_count, warning_count
 
 
-def _display_diagnostics(all_diagnostics: list[tuple[int, Any]]) -> None:
+def _display_diagnostics(all_diagnostics: list[tuple[int, Any]], target: Console) -> None:
     """Display validation diagnostics in a table."""
     if not all_diagnostics:
         return
@@ -118,7 +121,7 @@ def _display_diagnostics(all_diagnostics: list[tuple[int, Any]]) -> None:
             diag.message,
         )
 
-    console.print(table)
+    target.print(table)
 
 
 def _build_validation_findings(
@@ -158,14 +161,42 @@ def _display_validation_summary(
     lua_warnings: list[tuple[int, str]],
     error_count: int,
     warning_count: int,
+    target: Console,
 ) -> None:
     """Display diagnostics and the rule/error/warning counts."""
-    _display_diagnostics(all_diagnostics)
-    _display_lua_warnings(lua_warnings)
-    console.print()
-    console.print(f"[cyan]Total rules:[/cyan] {len(rules)}")
-    console.print(f"[red]Errors:[/red] {error_count}")
-    console.print(f"[yellow]Warnings:[/yellow] {warning_count + len(lua_warnings)}")
+    _display_diagnostics(all_diagnostics, target)
+    _display_lua_warnings(lua_warnings, target)
+    target.print()
+    target.print(f"[cyan]Total rules:[/cyan] {len(rules)}")
+    target.print(f"[red]Errors:[/red] {error_count}")
+    target.print(f"[yellow]Warnings:[/yellow] {warning_count + len(lua_warnings)}")
+
+
+def _emit_validation_text(
+    rules: list[Any],
+    all_diagnostics: list[tuple[int, Any]],
+    lua_warnings: list[tuple[int, str]],
+    error_count: int,
+    warning_count: int,
+    output: Path | None,
+) -> None:
+    """Render the validation summary to ``output`` when given, else to the console."""
+    if output is None:
+        _display_validation_summary(
+            rules, all_diagnostics, lua_warnings, error_count, warning_count, console
+        )
+        return
+
+    buffer = io.StringIO()
+    _display_validation_summary(
+        rules,
+        all_diagnostics,
+        lua_warnings,
+        error_count,
+        warning_count,
+        Console(file=buffer, width=100),
+    )
+    write_output(buffer.getvalue(), output)
 
 
 def _emit_validation_report(
@@ -181,19 +212,19 @@ def _emit_validation_report(
 ) -> None:
     """Emit the validation report as text and/or SARIF."""
     if sarif_out is None and fmt != "sarif":
-        _display_validation_summary(
-            rules, all_diagnostics, lua_warnings, error_count, warning_count
+        _emit_validation_text(
+            rules, all_diagnostics, lua_warnings, error_count, warning_count, output
         )
         return
 
     sarif_json = to_sarif(_build_validation_findings(file, all_diagnostics, lua_warnings))
     if not emit_sarif(sarif_json, fmt, output, sarif_out):
-        _display_validation_summary(
-            rules, all_diagnostics, lua_warnings, error_count, warning_count
+        _emit_validation_text(
+            rules, all_diagnostics, lua_warnings, error_count, warning_count, output
         )
 
 
-def _display_lua_warnings(lua_warnings: list[tuple[int, str]]) -> None:
+def _display_lua_warnings(lua_warnings: list[tuple[int, str]], target: Console) -> None:
     """Display Lua script warnings in a table."""
     if not lua_warnings:
         return
@@ -203,7 +234,7 @@ def _display_lua_warnings(lua_warnings: list[tuple[int, str]]) -> None:
     table.add_column("Message")
     for r_idx, msg in lua_warnings:
         table.add_row(str(r_idx), msg)
-    console.print(table)
+    target.print(table)
 
 
 def validate_command(
