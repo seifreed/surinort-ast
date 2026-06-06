@@ -258,6 +258,23 @@ class TestOptionReorderStrategy:
         assert optimized is None
         assert len(opts) == 0
 
+    def test_reorder_preserves_positional_modifiers(self):
+        """Reordering must not detach sticky modifiers from their content.
+
+        Regression: sorting by priority moved standalone depth/within options
+        behind every content, reattaching them to the wrong content and
+        changing detection. Such rules must be left untouched.
+        """
+        rule = parse_rule(
+            "alert tcp any any -> any 80 ("
+            'content:"A"; depth:5; content:"B"; within:10; msg:"Test"; sid:1;)'
+        )
+
+        optimized, opts = OptionReorderStrategy().apply(rule)
+
+        assert optimized is None
+        assert opts == []
+
 
 class TestFastPatternStrategy:
     """Test FastPatternStrategy."""
@@ -391,6 +408,24 @@ class TestRedundancyRemovalStrategy:
             ref_count = sum(1 for opt in optimized.options if opt.node_type == "ReferenceOption")
             # Should still have 2 references
             assert ref_count == 2
+
+    def test_redundancy_preserves_positional_modifiers(self):
+        """Per-content sticky modifiers must not be deduplicated.
+
+        Regression: identical standalone modifiers (e.g. nocase) on different
+        contents collided on a type+value key, so the second was dropped and
+        its content silently became case-sensitive. They must be preserved.
+        """
+        rule = parse_rule(
+            "alert tcp any any -> any 80 ("
+            'content:"A"; nocase; content:"B"; nocase; msg:"Test"; sid:1;)'
+        )
+
+        optimized, _opts = RedundancyRemovalStrategy().apply(rule)
+
+        # Nothing safe to remove -> rule left untouched, both nocase kept.
+        assert optimized is None
+        assert sum(1 for opt in rule.options if opt.node_type == "NocaseOption") == 2
 
     def test_redundancy_estimate_gain(self):
         """Test estimating gain from removing duplicates."""

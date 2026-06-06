@@ -22,6 +22,30 @@ if TYPE_CHECKING:
 
 from .optimizer import Optimization
 
+# Options whose meaning depends on their position in the option sequence: sticky
+# content modifiers, relative offsets, sticky-buffer selection, and the byte_*
+# family (which defines and consumes extracted variables in order). Reordering
+# them, or removing a "duplicate", detaches them from the content they qualify
+# and silently changes detection semantics, so strategies must treat their
+# presence as order-significant.
+POSITIONAL_OPTIONS: frozenset[str] = frozenset(
+    {
+        "DepthOption",
+        "OffsetOption",
+        "DistanceOption",
+        "WithinOption",
+        "NocaseOption",
+        "RawbytesOption",
+        "StartswithOption",
+        "EndswithOption",
+        "FastPatternOption",
+        "BufferSelectOption",
+        "ByteTestOption",
+        "ByteJumpOption",
+        "ByteExtractOption",
+    }
+)
+
 
 class OptimizationStrategy(ABC):
     """
@@ -148,6 +172,12 @@ class OptionReorderStrategy(OptimizationStrategy):
             # Nothing to reorder
             return None, []
 
+        if any(opt.node_type in POSITIONAL_OPTIONS for opt in rule.options):
+            # A positional option (sticky modifier, relative offset, sticky
+            # buffer, or byte_* variable) is present; reordering would detach it
+            # from the content it qualifies and change detection. Leave as-is.
+            return None, []
+
         # Sort options by priority (stable sort)
         sorted_options = sorted(
             rule.options,
@@ -192,6 +222,10 @@ class OptionReorderStrategy(OptimizationStrategy):
         Higher gain when expensive options are early in the current order.
         """
         from .estimator import PerformanceEstimator
+
+        if any(opt.node_type in POSITIONAL_OPTIONS for opt in rule.options):
+            # Reordering is unsafe for these rules (see apply), so no gain.
+            return 0.0
 
         estimator = PerformanceEstimator()
 
@@ -407,7 +441,11 @@ class RedundancyRemovalStrategy(OptimizationStrategy):
         4. Preserve metadata options (msg, sid, etc.) even if duplicate
     """
 
-    # Option types that should never be deduplicated
+    # Option types that should never be deduplicated. Beyond metadata (where
+    # repetition is meaningful), this covers every position-dependent option
+    # plus the content/pcre anchors they attach to: a repeated sticky modifier
+    # or a repeated content can belong to a different match, so dropping the
+    # "duplicate" would change detection semantics.
     PRESERVE_DUPLICATES: ClassVar[set[str]] = {
         "MsgOption",
         "SidOption",
@@ -415,6 +453,9 @@ class RedundancyRemovalStrategy(OptimizationStrategy):
         "GidOption",
         "ReferenceOption",
         "MetadataOption",
+        "ContentOption",
+        "PcreOption",
+        *POSITIONAL_OPTIONS,
     }
 
     @property
