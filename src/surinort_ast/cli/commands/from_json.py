@@ -17,7 +17,7 @@ import typer
 
 from ...api import from_json, print_rule
 from ...exceptions import SerializationError
-from ..shared import console, err_console, read_input, write_output
+from ..shared import err_console, read_input, status_console, write_output
 
 
 def from_json_command(
@@ -78,7 +78,7 @@ def from_json_command(
         result = "\n".join(formatted_lines) + "\n"
         write_output(result, output)
 
-        console.print(f"[green]Success:[/green] Converted {len(rules)} rule(s) from JSON")
+        status_console.print(f"[green]Success:[/green] Converted {len(rules)} rule(s) from JSON")
 
     except json.JSONDecodeError as e:
         err_console.print(f"JSON decode error: {e}")
@@ -86,6 +86,8 @@ def from_json_command(
     except SerializationError as e:
         err_console.print(f"Serialization error: {e}")
         raise typer.Exit(1) from None
+    except typer.Exit:
+        raise
     except Exception as e:
         err_console.print(f"Unexpected error: {e}")
         raise typer.Exit(1) from None

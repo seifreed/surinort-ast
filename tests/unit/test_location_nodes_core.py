@@ -402,7 +402,9 @@ class TestCliCompleteCoverage:
         result = runner.invoke(app, ["schema"])
         # Should succeed normally
         assert result.exit_code == 0
-        assert "Generated JSON Schema" in result.stdout
+        # The status message goes to stderr so stdout stays clean for piping.
+        assert "Generated JSON Schema" in result.stderr
+        assert "Generated JSON Schema" not in result.stdout
 
 
 # ============================================================================

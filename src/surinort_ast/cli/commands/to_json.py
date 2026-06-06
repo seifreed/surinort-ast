@@ -18,7 +18,13 @@ import typer
 from ...api import parse_file, to_json
 from ...core.enums import Dialect
 from ...exceptions import ParseError
-from ..shared import console, err_console, parse_rules_from_content, read_input, write_output
+from ..shared import (
+    err_console,
+    parse_rules_from_content,
+    read_input,
+    status_console,
+    write_output,
+)
 
 
 def to_json_command(
@@ -76,11 +82,13 @@ def to_json_command(
         result = json.dumps(output_data, indent=None if compact else 2)
         write_output(result, output)
 
-        console.print(f"[green]Success:[/green] Converted {len(rules)} rule(s) to JSON")
+        status_console.print(f"[green]Success:[/green] Converted {len(rules)} rule(s) to JSON")
 
     except ParseError as e:
         err_console.print(f"Parse error: {e}")
         raise typer.Exit(1) from None
+    except typer.Exit:
+        raise
     except Exception as e:
         err_console.print(f"Unexpected error: {e}")
         raise typer.Exit(1) from None

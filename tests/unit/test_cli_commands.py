@@ -693,3 +693,31 @@ class TestMainCallback:
         assert result.exit_code in (0, 2)
         # Should show help or command list
         assert "surinort-ast" in result.output or "Commands" in result.output
+
+
+class TestCliStdoutCleanliness:
+    """Status messages and handled exits must not pollute stdout.
+
+    Regression: to-json/from-json/schema printed 'Success:' to stdout (breaking
+    piped output), and the broad 'except Exception' caught typer.Exit, emitting
+    a spurious 'Unexpected error: 1'.
+    """
+
+    def test_to_json_stdout_is_clean_json(self, tmp_path):
+        rules = tmp_path / "one.rules"
+        rules.write_text("alert tcp any any -> any any (sid:1;)\n")
+        runner = CliRunner()
+        result = runner.invoke(app, ["to-json", str(rules)])
+        assert result.exit_code == 0
+        # stdout must be valid JSON with no 'Success:' line appended.
+        json.loads(result.stdout)
+        assert "Success" not in result.stdout
+
+    def test_to_json_no_rules_has_no_spurious_unexpected_error(self, tmp_path):
+        rules = tmp_path / "empty.rules"
+        rules.write_text("# only a comment\n")
+        runner = CliRunner()
+        result = runner.invoke(app, ["to-json", str(rules)])
+        assert result.exit_code == 1
+        assert "Unexpected error" not in result.stderr
+        assert "No valid rules" in result.stderr

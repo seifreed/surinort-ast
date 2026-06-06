@@ -24,6 +24,8 @@ from rich.console import Console
 logger = logging.getLogger(__name__)
 console = Console()
 err_console = Console(stderr=True, style="bold red")
+# Status/progress messages go to stderr so stdout stays clean for piped output.
+status_console = Console(stderr=True)
 
 
 # ============================================================================

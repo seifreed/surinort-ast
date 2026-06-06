@@ -16,7 +16,7 @@ from typing import Annotated
 import typer
 
 from ...api import to_json_schema
-from ..shared import console, err_console, write_output
+from ..shared import err_console, status_console, write_output
 
 
 def schema_command(
@@ -39,8 +39,10 @@ def schema_command(
         result = json.dumps(schema_dict, indent=2)
         write_output(result, output)
 
-        console.print("[green]Success:[/green] Generated JSON Schema")
+        status_console.print("[green]Success:[/green] Generated JSON Schema")
 
+    except typer.Exit:
+        raise
     except Exception as e:
         err_console.print(f"Error: {e}")
         raise typer.Exit(1) from None
