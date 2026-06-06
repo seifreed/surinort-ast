@@ -415,15 +415,24 @@ class LarkRuleParser:
             if line.startswith("#"):
                 continue
 
+            # Honor explicit backslash line continuation (canonical IDS syntax).
+            continuation = line.endswith("\\")
+            if continuation:
+                line = line[:-1].rstrip()
+
             # Accumulate rule lines
             current_rule_lines.append((line_num, line))
 
-            # Check if rule is complete (ends with semicolon or closing paren)
-            if line.endswith(";") or (
-                line.endswith(")")
-                and "(" in "".join(rule_line for _, rule_line in current_rule_lines)
-            ):
-                # Parse complete rule
+            if continuation:
+                continue
+
+            # A rule is complete once its option block is balanced. Parenthesis
+            # depth is tracked outside quoted strings so parens inside content,
+            # pcre, or msg values do not affect the count. A line that never
+            # opens an option block (depth <= 0) is parsed on its own instead of
+            # being merged into the following rule.
+            combined = " ".join(rule_line for _, rule_line in current_rule_lines)
+            if self._paren_depth(combined) <= 0:
                 rule = self._parse_multiline_rule(current_rule_lines, str(file_path), skip_errors)
                 if rule:
                     rules.append(rule)
@@ -438,6 +447,40 @@ class LarkRuleParser:
         logger.info(f"Parsed {len(rules)} rules from {file_path}")
 
         return rules
+
+    @staticmethod
+    def _paren_depth(text: str) -> int:
+        """
+        Count the net parenthesis depth of an option block, ignoring parens
+        inside double-quoted strings (content, pcre, msg, ...).
+
+        Args:
+            text: Accumulated rule text
+
+        Returns:
+            Net depth of unbalanced parentheses (``> 0`` means the option block
+            is still open)
+        """
+        depth = 0
+        in_string = False
+        escaped = False
+        for char in text:
+            if escaped:
+                escaped = False
+                continue
+            if char == "\\":
+                escaped = True
+                continue
+            if char == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+        return depth
 
     def _parse_multiline_rule(
         self,
@@ -465,6 +508,13 @@ class LarkRuleParser:
 
         try:
             rule = self.parse(full_text, file_path=file_path, line_offset=first_line_num - 1)
+
+            # In non-strict mode ``parse`` does not raise on failure; it returns
+            # a placeholder rule carrying a PARSE_ERROR diagnostic. Honor
+            # skip_errors for that path too, otherwise unparseable lines would
+            # silently turn into bogus rules.
+            if skip_errors and any(d.code == "PARSE_ERROR" for d in rule.diagnostics):
+                return None
 
             # Update source origin with line number
             if rule and hasattr(rule, "origin") and rule.origin:

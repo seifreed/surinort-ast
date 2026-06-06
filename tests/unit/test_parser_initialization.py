@@ -30,6 +30,16 @@ from surinort_ast.exceptions import ParseError
 from surinort_ast.parsing.lark_parser import LarkRuleParser
 
 
+def _is_error_rule(rule: Rule) -> bool:
+    """Return True if the rule is a placeholder produced by a parse failure."""
+    return any(d.code == "PARSE_ERROR" for d in rule.diagnostics)
+
+
+def _rule_sids(rules: list[Rule]) -> list[int]:
+    """Collect SID values from parsed rules in order."""
+    return [opt.value for rule in rules for opt in rule.options if isinstance(opt, SidOption)]
+
+
 class TestRuleParserInitialization:
     """Test LarkRuleParser initialization with different configurations."""
 
@@ -489,13 +499,16 @@ class TestFileParsing:
         try:
             rules = parser.parse_file(temp_path, skip_errors=True)
 
-            # Should get 2 valid rules, invalid one skipped
+            # Both valid rules must be recovered and the invalid line skipped;
+            # the bad line must not swallow the following rule (regression for
+            # the multi-line accumulation merge bug).
             assert len(rules) == 2
             assert all(isinstance(r, Rule) for r in rules)
+            assert all(not _is_error_rule(r) for r in rules)
+            assert _rule_sids(rules) == [1, 2]
         finally:
             Path(temp_path).unlink()
 
-    @pytest.mark.skip(reason="Test needs adjustment for error handling")
     def test_parse_file_skip_errors_false(self):
         """Parse file with skip_errors=False includes error rules."""
         parser = LarkRuleParser(strict=False)
@@ -565,7 +578,6 @@ class TestFileParsing:
 
         assert result is None
 
-    @pytest.mark.skip(reason="Test needs adjustment for error handling")
     def test_parse_multiline_rule_with_error_skip(self):
         """Test _parse_multiline_rule with error and skip_errors=True."""
         parser = LarkRuleParser(strict=True)  # Use strict mode to trigger exception
@@ -692,7 +704,6 @@ class TestConvenienceFunctions:
         finally:
             Path(temp_path).unlink()
 
-    @pytest.mark.skip(reason="Test needs adjustment for error handling")
     def test_parse_rules_file_function_skip_errors(self):
         """Test parse_rules_file with skip_errors parameter."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
@@ -1412,3 +1423,105 @@ class TestSpecificErrorPaths:
         # Extract SID should work regardless of location
         sid = parser._extract_sid(rule)
         assert sid == 999
+
+
+class TestMultilineAccumulation:
+    """Regression tests for parse_file multi-line accumulation."""
+
+    def test_multiline_rule_parses_to_single_clean_rule(self):
+        """A rule whose option block spans several lines parses cleanly."""
+        parser = LarkRuleParser(strict=False)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
+            f.write("alert tcp any any -> any 80 (\n")
+            f.write('    msg:"Multi-line rule";\n')
+            f.write("    flow:established,to_server;\n")
+            f.write("    sid:1;\n")
+            f.write(")\n")
+            temp_path = f.name
+
+        try:
+            rules = parser.parse_file(temp_path)
+
+            assert len(rules) == 1
+            assert not _is_error_rule(rules[0])
+            assert _rule_sids(rules) == [1]
+        finally:
+            Path(temp_path).unlink()
+
+    def test_non_terminated_line_does_not_swallow_next_rule(self):
+        """A junk line without a terminator must not merge with the next rule."""
+        parser = LarkRuleParser(strict=False)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
+            f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
+            f.write("garbage line without terminator\n")
+            f.write('drop tcp any any -> any 443 (msg:"Also good"; sid:2;)\n')
+            temp_path = f.name
+
+        try:
+            rules = parser.parse_file(temp_path, skip_errors=True)
+
+            assert _rule_sids(rules) == [1, 2]
+            assert all(not _is_error_rule(r) for r in rules)
+        finally:
+            Path(temp_path).unlink()
+
+    def test_skip_errors_skips_error_rules_in_non_strict_mode(self):
+        """skip_errors=True drops parse-error rules even when strict is False."""
+        parser = LarkRuleParser(strict=False)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
+            f.write("garbage line without terminator\n")
+            temp_path = f.name
+
+        try:
+            assert parser.parse_file(temp_path, skip_errors=True) == []
+
+            error_rules = parser.parse_file(temp_path, skip_errors=False)
+            assert len(error_rules) == 1
+            assert _is_error_rule(error_rules[0])
+        finally:
+            Path(temp_path).unlink()
+
+    def test_backslash_line_continuation(self):
+        """A backslash at end of line continues the rule onto the next line."""
+        parser = LarkRuleParser(strict=False)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
+            f.write('alert tcp any any -> any 80 (msg:"Cont"; \\\n')
+            f.write("sid:7;)\n")
+            temp_path = f.name
+
+        try:
+            rules = parser.parse_file(temp_path)
+
+            assert len(rules) == 1
+            assert not _is_error_rule(rules[0])
+            assert _rule_sids(rules) == [7]
+        finally:
+            Path(temp_path).unlink()
+
+    def test_parens_inside_quoted_values_do_not_break_accumulation(self):
+        """Parens inside msg/content/pcre must not affect rule boundaries."""
+        parser = LarkRuleParser(strict=False)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
+            f.write('alert tcp any any -> any 80 (msg:"has (paren) inside"; sid:1;)\n')
+            f.write('alert tcp any any -> any 81 (msg:"second"; sid:2;)\n')
+            temp_path = f.name
+
+        try:
+            rules = parser.parse_file(temp_path)
+
+            assert _rule_sids(rules) == [1, 2]
+            assert all(not _is_error_rule(r) for r in rules)
+        finally:
+            Path(temp_path).unlink()
+
+    def test_paren_depth_ignores_quoted_parens(self):
+        """_paren_depth counts only unquoted parentheses."""
+        assert LarkRuleParser._paren_depth('alert (msg:"a (b)"; sid:1;)') == 0
+        assert LarkRuleParser._paren_depth("alert tcp any any -> any 80 (") == 1
+        assert LarkRuleParser._paren_depth("garbage without terminator") == 0
+        assert LarkRuleParser._paren_depth('content:"a\\"b"; (x)') == 0
