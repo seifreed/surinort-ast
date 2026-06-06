@@ -494,3 +494,43 @@ class TestProtobufFileProtocol:
         rule = parse_rule('alert file any any -> any any (msg:"x"; sid:1;)')
         restored = from_protobuf(to_protobuf(rule))
         assert restored.header.protocol == rule.header.protocol
+
+
+class TestProtobufLargeByteTestValue:
+    """byte_test values beyond int32 must not overflow protobuf serialization.
+
+    Regression: ByteTestOption.value/offset were int32 in the proto, so a
+    multi-byte value (> 2^31) raised on serialize.
+    """
+
+    def test_large_value_and_negative_offset_round_trip(self):
+        from surinort_ast.core.enums import Action, Direction, Protocol
+        from surinort_ast.core.nodes import (
+            AnyAddress,
+            AnyPort,
+            ByteTestOption,
+            Header,
+            Port,
+            Rule,
+            SidOption,
+        )
+
+        rule = Rule(
+            action=Action.ALERT,
+            header=Header(
+                protocol=Protocol.TCP,
+                src_addr=AnyAddress(),
+                src_port=AnyPort(),
+                direction=Direction.TO,
+                dst_addr=AnyAddress(),
+                dst_port=Port(value=80),
+            ),
+            options=[
+                ByteTestOption(bytes_to_extract=8, operator=">", value=5_000_000_000, offset=-4),
+                SidOption(value=1),
+            ],
+        )
+        restored = from_protobuf(to_protobuf(rule))
+        byte_test = next(o for o in restored.options if o.node_type == "ByteTestOption")
+        assert byte_test.value == 5_000_000_000
+        assert byte_test.offset == -4
