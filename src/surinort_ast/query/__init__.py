@@ -127,10 +127,6 @@ Public API Overview:
         query_first()   - Query for first match
         query_exists()  - Check if any match exists
 
-    Classes:
-        QueryResult     - Wrapper for query results with convenience methods
-        Q               - Fluent query builder (Phase 3)
-
     Exceptions:
         QueryError              - Base exception
         QuerySyntaxError        - Invalid query syntax
@@ -433,82 +429,6 @@ def query_exists(node: ASTNode | Sequence[ASTNode], selector: str) -> bool:
 
 
 # ============================================================================
-# Classes (to be implemented)
-# ============================================================================
-
-
-class QueryResult:
-    """
-    Wrapper for query results with convenience methods.
-
-    Provides a fluent interface for working with query results,
-    including filtering, iteration, and common operations.
-
-    Attributes:
-        nodes: List of matched AST nodes
-
-    Example:
-        >>> result = QueryResult(query(rule, "Option"))
-        >>> result.count()
-        5
-        >>> result.first()
-        <MsgOption>
-        >>> result.filter("SidOption").exists()
-        True
-
-    Methods:
-        first()     - Get first result or None
-        last()      - Get last result or None
-        count()     - Count results
-        exists()    - Check if any results
-        filter()    - Further filter results
-        __iter__()  - Iterate over results
-        __len__()   - Get count
-        __getitem__() - Access by index
-
-    Note:
-        Phase 3 feature - not included in MVP
-    """
-
-    # TODO: Implement in Phase 3
-
-
-class Q:
-    """
-    Fluent query builder for programmatic query construction.
-
-    Provides a Python API for building queries without string manipulation.
-    Useful for dynamic query construction and IDE autocompletion.
-
-    Example:
-        >>> # Build query programmatically
-        >>> query_obj = (
-        ...     Q("Rule")
-        ...     .with_attr("action", "alert")
-        ...     .descendant(Q("ContentOption").with_attr("pattern", "*admin*", "contains"))
-        ... )
-        >>> selector_string = query_obj.build()
-        >>> results = query(rule, selector_string)
-        >>>
-        >>> # Equivalent to: "Rule[action=alert] ContentOption[pattern*='admin']"
-
-    Methods:
-        with_attr()     - Add attribute filter
-        descendant()    - Add descendant combinator
-        child()         - Add child combinator
-        adjacent()      - Add adjacent sibling
-        sibling()       - Add general sibling
-        or_()           - Add union (OR)
-        build()         - Build selector string
-
-    Note:
-        Phase 3 feature - not included in MVP
-    """
-
-    # TODO: Implement in Phase 3
-
-
-# ============================================================================
 # Exceptions
 # ============================================================================
 
@@ -580,14 +500,9 @@ class InvalidSelectorError(QueryError):
 
 __all__ = [
     "InvalidSelectorError",
-    "Q",
-    # Exceptions
     "QueryError",
     "QueryExecutionError",
-    # Classes (Phase 3)
-    "QueryResult",
     "QuerySyntaxError",
-    # Core query functions
     "query",
     "query_all",
     "query_exists",
@@ -602,29 +517,6 @@ __all__ = [
 __author__ = "Marc Rivero López"
 __license__ = "GPL-3.0"
 
-# Implementation notes:
-#
-# Phase 1 (MVP - Foundation):
-# - Implement parser.py with basic Lark grammar
-# - Implement selectors.py with TypeSelector and AttributeSelector
-# - Implement executor.py with QueryExecutor(ASTVisitor)
-# - Implement query(), query_all(), query_first() functions
-# - Unit tests for basic functionality
-#
-# Phase 2 (Hierarchical Navigation):
-# - Add combinators.py for hierarchical logic
-# - Extend executor.py with context stack
-# - Support descendant, child, sibling combinators
-# - Integration tests with real corpus
-#
-# Phase 3 (Advanced Features):
-# - Add matchers.py for advanced attribute matching
-# - Implement pseudo-selectors
-# - Add QueryResult wrapper class
-# - Add Q fluent builder
-# - Performance optimizations
-# - Comprehensive documentation
-#
 # Design constraints:
 # - Must work with frozen Pydantic models
 # - Must be thread-safe (read-only)

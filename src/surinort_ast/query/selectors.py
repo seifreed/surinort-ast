@@ -87,39 +87,24 @@ class TypeSelector(Selector):
     Selects nodes by type name.
 
     Matches nodes where node.node_type equals the specified type name.
-    Optionally matches base classes (e.g., "AddressExpr" matches all
-    address types).
 
     Attributes:
         type_name: Node type to match (e.g., "ContentOption")
-        match_subclasses: If True, match derived types too
 
     Example:
-        >>> # Exact type match
         >>> selector = TypeSelector("ContentOption")
         >>> selector.matches(ContentOption(pattern=b"test"))
         True
-        >>>
-        >>> # Base class match
-        >>> selector = TypeSelector("AddressExpr", match_subclasses=True)
-        >>> selector.matches(IPAddress(value="192.168.1.1", version=4))
-        True
-
-    Implementation:
-        Phase 1: Exact type matching only
-        Phase 2: Subclass matching with isinstance()
     """
 
-    def __init__(self, type_name: str, match_subclasses: bool = False) -> None:
+    def __init__(self, type_name: str) -> None:
         """
         Initialize type selector.
 
         Args:
             type_name: Node type name to match
-            match_subclasses: Match derived types if True
         """
         self.type_name = type_name
-        self.match_subclasses = match_subclasses
 
     def matches(self, node: ASTNode) -> bool:
         """
@@ -130,31 +115,22 @@ class TypeSelector(Selector):
 
         Returns:
             True if node type matches
-
-        Implementation:
-            Phase 1: Simple string comparison with node.node_type
-            Phase 2: Add isinstance() check for subclass matching
         """
-        # Phase 1: Simple exact type matching
-        if self.match_subclasses:
-            # Phase 2 feature - not implemented yet
-            raise NotImplementedError("Subclass matching not yet implemented")
         return node.node_type == self.type_name
 
     def __repr__(self) -> str:
         """String representation."""
-        subclass_marker = "~" if self.match_subclasses else ""
-        return f"TypeSelector({subclass_marker}{self.type_name})"
+        return f"TypeSelector({self.type_name})"
 
     def __eq__(self, other: object) -> bool:
         """Equality comparison."""
         if not isinstance(other, TypeSelector):
             return False
-        return self.type_name == other.type_name and self.match_subclasses == other.match_subclasses
+        return self.type_name == other.type_name
 
     def __hash__(self) -> int:
-        """Hash value based on type_name and match_subclasses."""
-        return hash((self.type_name, self.match_subclasses))
+        """Hash value based on type_name."""
+        return hash(self.type_name)
 
 
 class UniversalSelector(Selector):
@@ -788,34 +764,3 @@ class Combinator(Enum):
     CHILD = ">"  # Direct child only
     ADJACENT = "+"  # Immediately following sibling
     GENERAL = "~"  # Any following sibling
-
-
-# ============================================================================
-# Helper Functions
-# ============================================================================
-
-
-def create_selector(selector_type: str, **kwargs: Any) -> Selector:
-    """
-    Factory function for creating selectors.
-
-    Args:
-        selector_type: Type of selector to create
-        **kwargs: Selector-specific arguments
-
-    Returns:
-        Selector instance
-
-    Raises:
-        InvalidSelectorError: If selector_type is unknown
-
-    Example:
-        >>> selector = create_selector("type", type_name="Rule")
-        >>> selector = create_selector("attribute", attribute="value", operator="=", value=1)
-
-    Implementation:
-        Phase 1: Basic factory for type and attribute selectors
-        Phase 3: Complete factory for all selector types
-    """
-    # TODO: Implement in Phase 1
-    raise NotImplementedError("create_selector not yet implemented")

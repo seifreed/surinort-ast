@@ -411,58 +411,6 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
 
 
 # ============================================================================
-# Optimized Executors (Phase 3)
-# ============================================================================
-
-
-class IndexedQueryExecutor(QueryExecutor):
-    """
-    Query executor with pre-computed indices for fast lookups.
-
-    Builds type and attribute indices during initialization for
-    O(1) lookups instead of O(n) traversals. Useful for repeated
-    queries on large corpora.
-
-    Attributes:
-        type_index: Dict mapping node types to lists of nodes
-        attribute_indices: Dict of attribute-specific indices
-
-    Example:
-        >>> # Build indices for 30K rules
-        >>> executor = IndexedQueryExecutor.build(rules)
-        >>>
-        >>> # Fast type lookup
-        >>> results = executor.execute(chain)  # Uses index, not traversal
-
-    Implementation:
-        Phase 3 (optional): For performance-critical use cases
-        Trade-off: Memory usage vs. query speed
-    """
-
-    # TODO: Implement in Phase 3 (post-MVP)
-
-
-class StreamingQueryExecutor(QueryExecutor):
-    """
-    Query executor for streaming/incremental results.
-
-    Yields results as they are found instead of accumulating them.
-    Useful for large result sets or when processing can start before
-    query completes.
-
-    Example:
-        >>> executor = StreamingQueryExecutor(chain)
-        >>> for node in executor.execute_stream(rules):
-        ...     process(node)  # Process incrementally
-
-    Implementation:
-        Phase 3 (optional): For memory-constrained environments
-    """
-
-    # TODO: Implement in Phase 3 (post-MVP)
-
-
-# ============================================================================
 # Helper Functions
 # ============================================================================
 
@@ -497,10 +445,7 @@ def execute_query_first(
     selector_chain: Any,  # SelectorChain type
 ) -> ASTNode | None:
     """
-    Execute query and return first match.
-
-    More efficient than execute_query() when only first result needed.
-    Uses early exit optimization.
+    Execute query and return the first match, or None.
 
     Args:
         root: Single node or sequence of nodes
@@ -512,11 +457,7 @@ def execute_query_first(
     Example:
         >>> chain = parser.parse("SidOption")
         >>> sid_node = execute_query_first(rule, chain)
-
-    Implementation:
-        Phase 1: Execute with early exit flag
     """
-    # TODO: Implement early exit in Phase 1
     results = execute_query(root, selector_chain)
     return results[0] if results else None
 
@@ -526,9 +467,7 @@ def execute_query_exists(
     selector_chain: Any,  # SelectorChain type
 ) -> bool:
     """
-    Check if any node matches selector.
-
-    Most efficient existence check with immediate early exit.
+    Check whether any node matches the selector.
 
     Args:
         root: Single node or sequence of nodes
@@ -540,11 +479,7 @@ def execute_query_exists(
     Example:
         >>> chain = parser.parse("PcreOption")
         >>> has_pcre = execute_query_exists(rule, chain)
-
-    Implementation:
-        Phase 1: Execute with exists flag for fastest early exit
     """
-    # TODO: Implement in Phase 1
     return len(execute_query(root, selector_chain)) > 0
 
 
@@ -603,50 +538,3 @@ class ExecutionContext:
     def is_child_of(self, node: ASTNode, parent: ASTNode) -> bool:
         """Check if node is direct child of parent."""
         return self.get_parent() == parent
-
-
-# ============================================================================
-# Performance Utilities (Phase 3)
-# ============================================================================
-
-
-def estimate_query_cost(selector_chain: Any) -> int:  # SelectorChain type
-    """
-    Estimate computational cost of query.
-
-    Returns cost estimate for query execution, useful for
-    optimization decisions.
-
-    Args:
-        selector_chain: Selector chain to estimate
-
-    Returns:
-        Cost estimate (higher = more expensive)
-
-    Implementation:
-        Phase 3: Heuristic-based cost model
-    """
-    # TODO: Implement in Phase 3
-    return 0
-
-
-def optimize_selector_chain(selector_chain: Any) -> Any:  # SelectorChain type
-    """
-    Optimize selector chain for faster execution.
-
-    Applies optimizations like:
-        - Reordering compound selectors (fail-fast first)
-        - Combining adjacent type selectors
-        - Simplifying redundant conditions
-
-    Args:
-        selector_chain: Original selector chain
-
-    Returns:
-        Optimized selector chain
-
-    Implementation:
-        Phase 3: Query optimization pass
-    """
-    # TODO: Implement in Phase 3
-    return selector_chain

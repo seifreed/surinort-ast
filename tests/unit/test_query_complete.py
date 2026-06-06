@@ -911,17 +911,8 @@ class TestSelectorChainValidation:
             )
 
 
-class TestNotImplementedFeatures:
-    """Test that Phase 2/3 features properly raise NotImplementedError."""
-
-    def test_type_selector_subclass_matching_not_implemented(self):
-        """Test subclass matching raises NotImplementedError."""
-        selector = TypeSelector("Option", match_subclasses=True)
-        rule = parse_rule("alert tcp any any -> any 80 (sid:1;)")
-        sid_node = query_first(rule, "SidOption")
-
-        with pytest.raises(NotImplementedError):
-            selector.matches(sid_node)
+class TestSelectorBehavior:
+    """Behavioural tests for selector matching."""
 
     def test_attribute_selector_comparison_operators_work(self):
         """Test comparison operators work correctly."""
@@ -956,13 +947,9 @@ class TestNotImplementedFeatures:
         selector_lte_fail = AttributeSelector("value", "<=", 1000000)
         assert selector_lte_fail.matches(sid_node) is False
 
-    def test_multi_selector_chain_not_implemented(self):
-        """Test multi-selector chains raise NotImplementedError."""
+    def test_single_selector_chain_parses(self):
+        """A bare type selector parses to a chain with one selector."""
         parser = QueryParser()
-
-        # Phase 2 feature - descendant combinator with whitespace
-        # This will parse but the executor doesn't support it yet
-        # For now, just test that parsing a complex chain works
         chain = parser.parse("Rule")
         assert len(chain.selectors) == 1
 
