@@ -53,6 +53,8 @@ def parse_quoted_string(s: str) -> str:
     s = s.replace("\\\\", "\x00")  # Temporary marker for literal backslash
     s = s.replace('\\"', '"')
     s = s.replace("\\'", "'")
+    # Suricata/Snort escape the option separator inside quoted values as "\;".
+    s = s.replace("\\;", ";")
     s = s.replace("\\n", "\n")
     s = s.replace("\\r", "\r")
     s = s.replace("\\t", "\t")

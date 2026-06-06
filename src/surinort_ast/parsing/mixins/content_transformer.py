@@ -42,47 +42,13 @@ from ...core.nodes import (
     StartswithOption,
     WithinOption,
 )
+from .options._helpers import parse_quoted_string
 
 logger = logging.getLogger(__name__)
 
 # ============================================================================
 # Helper Functions for Content Parsing
 # ============================================================================
-
-
-def parse_quoted_string(s: str) -> str:
-    """
-    Parse quoted string, handling escape sequences.
-
-    Args:
-        s: Quoted string (e.g., "text" or "text with \\"quotes\\"")
-
-    Returns:
-        Unquoted and unescaped string
-
-    Performance:
-        Optimized with early returns for common cases.
-    """
-    if not s or len(s) < 2:
-        return s
-
-    # Remove quotes - use slice for performance
-    if (s[0] == '"' and s[-1] == '"') or (s[0] == "'" and s[-1] == "'"):
-        s = s[1:-1]
-
-    # Fast path: no escapes
-    if "\\" not in s:
-        return s
-
-    # Handle escape sequences - chained replace is fastest for small strings
-    # Process in order: backslash first to avoid double-processing
-    s = s.replace("\\\\", "\x00")  # Temporary marker for literal backslash
-    s = s.replace('\\"', '"')
-    s = s.replace("\\'", "'")
-    s = s.replace("\\n", "\n")
-    s = s.replace("\\r", "\r")
-    s = s.replace("\\t", "\t")
-    return s.replace("\x00", "\\")  # Restore literal backslash
 
 
 # Whitespace translation table for hex strings

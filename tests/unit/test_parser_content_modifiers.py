@@ -240,3 +240,23 @@ class TestScriptAndIsdataatNegation:
             o for o in rule.options if o.node_type == "GenericOption" and o.keyword == "isdataat"
         )
         assert isdataat.value == "10,relative"
+
+
+class TestContentEscapeUnescaping:
+    r"""Quoted content must unescape \;, \" and \\ to their literal bytes."""
+
+    def test_escaped_semicolon_becomes_literal(self):
+        rule = parse_rule(r'alert tcp any any -> any any (content:"a\;b"; sid:1;)')
+        assert _content(rule).pattern == b"a;b"
+
+    def test_escaped_quote_and_backslash(self):
+        rule = parse_rule(r'alert tcp any any -> any any (content:"a\"b\\c"; sid:1;)')
+        assert _content(rule).pattern == b'a"b\\c'
+
+    def test_escapes_round_trip(self):
+        from surinort_ast.printer import print_rule
+
+        text = r'alert tcp any any -> any any (content:"a\;b"; sid:1;)'
+        printed = print_rule(parse_rule(text))
+        assert print_rule(parse_rule(printed)) == printed
+        assert _content(parse_rule(printed)).pattern == b"a;b"
