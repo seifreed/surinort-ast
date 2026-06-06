@@ -534,3 +534,24 @@ class TestProtobufLargeByteTestValue:
         byte_test = next(o for o in restored.options if o.node_type == "ByteTestOption")
         assert byte_test.value == 5_000_000_000
         assert byte_test.offset == -4
+
+
+class TestProtobufListShapePreserved:
+    """A single-element list must round-trip to a list, like the JSON serializer.
+
+    Regression: from_protobuf(to_protobuf([rule])) returned a scalar Rule
+    (count == 1 special-case), silently changing a list input into a scalar.
+    """
+
+    def test_single_element_list_round_trips_to_list(self):
+        rule = parse_rule("alert tcp any any -> any any (sid:1;)")
+        restored = from_protobuf(to_protobuf([rule]))
+        assert isinstance(restored, list)
+        assert len(restored) == 1
+        assert restored[0] == rule
+
+    def test_scalar_rule_round_trips_to_scalar(self):
+        rule = parse_rule("alert tcp any any -> any any (sid:1;)")
+        restored = from_protobuf(to_protobuf(rule))
+        assert not isinstance(restored, list)
+        assert restored == rule

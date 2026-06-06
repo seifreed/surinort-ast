@@ -1402,10 +1402,12 @@ class ProtobufSerializer:
                 # Check if it's actually a batch (has rules field populated)
                 if pb_batch.rules:
                     rules = [_deserialize_rule(r) for r in pb_batch.rules]
-                    # If count is 1, return single rule (not a list)
-                    if pb_batch.count == 1:
-                        return rules[0]
-                    return rules
+                    # Preserve the input shape: a collection (including a
+                    # single-element list) round-trips to a list; a scalar Rule
+                    # (count == 1, not flagged a collection) returns a Rule.
+                    if pb_batch.is_collection or pb_batch.count != 1:
+                        return rules
+                    return rules[0]
                 # Empty batch
                 return []
             # Parse as single Rule (no metadata)
@@ -1460,6 +1462,9 @@ class ProtobufSerializer:
             pb_batch.ast_version = __ast_version__
             pb_batch.timestamp = datetime.now(UTC).isoformat()
             pb_batch.count = len(rules)
+            # Mark this as a collection so a single-element list round-trips
+            # back to a list rather than a scalar Rule.
+            pb_batch.is_collection = True
 
         return pb_batch
 

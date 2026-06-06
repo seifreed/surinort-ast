@@ -508,4 +508,8 @@ message RuleBatch {
   string ast_version = 2;
   string timestamp = 3;
   int32 count = 4;
+  // True when the payload was serialized from a collection, so a single-element
+  // list round-trips back to a list (matching the JSON serializer) instead of a
+  // scalar Rule.
+  bool is_collection = 5;
 }
