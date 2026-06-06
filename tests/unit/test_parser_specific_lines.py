@@ -13,7 +13,7 @@ from lark import Lark
 from lark.exceptions import LarkError
 
 from surinort_ast.core.nodes import Rule
-from surinort_ast.parsing.parser import RuleParser
+from surinort_ast.parsing.lark_parser import LarkRuleParser
 
 
 class TestParserExactLines:
@@ -26,7 +26,7 @@ class TestParserExactLines:
         This is the generic LarkError catch-all that isn't UnexpectedInput/Token/Characters.
         We need to cause a LarkError that doesn't fall into those specific categories.
         """
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Monkeypatch Lark's parse method to raise a generic LarkError
 
@@ -59,7 +59,7 @@ class TestParserExactLines:
 
         When location is None, we skip line 526 and line_num stays None.
         """
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Parse valid rule
         rule = parser.parse('alert tcp any any -> any 80 (msg:"test"; sid:1;)')
@@ -88,7 +88,7 @@ class TestParserExactLines:
         """
         from surinort_ast.core.location import Location, Position, Span
 
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Parse valid rule
         rule = parser.parse('alert tcp any any -> any 80 (msg:"test"; sid:1;)')
@@ -124,7 +124,7 @@ class TestParserExactLines:
 
         This verifies that the error handlers properly raise exceptions in strict mode.
         """
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         from surinort_ast.exceptions import ParseError
 
@@ -133,7 +133,7 @@ class TestParserExactLines:
 
     def test_empty_input_handling(self) -> None:
         """Test empty input error path."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         result = parser.parse("")
         assert result is not None
@@ -142,7 +142,7 @@ class TestParserExactLines:
 
     def test_comment_line_handling(self) -> None:
         """Test comment line error path."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         result = parser.parse("# This is a comment")
         assert result is not None

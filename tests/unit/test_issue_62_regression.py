@@ -3,7 +3,7 @@ from pathlib import Path
 
 from surinort_ast.api.parsing import parse_rule
 from surinort_ast.core.enums import Dialect
-from surinort_ast.parsing.parser import RuleParser
+from surinort_ast.parsing.lark_parser import LarkRuleParser
 from surinort_ast.printer.text_printer import print_rule
 
 FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "issue_62_parse_error.jsonl"
@@ -43,6 +43,6 @@ def test_issue_62_preserves_protocol_names_in_ast_and_printed_text():
 
 def test_issue_62_wrapper_parser_handles_escaped_content_terminator():
     case = _load_issue_62_cases()[16]
-    parser = RuleParser(dialect=DIALECT_BY_ENGINE[case["engine"]])
+    parser = LarkRuleParser(dialect=DIALECT_BY_ENGINE[case["engine"]])
     rule = parser.parse(case["raw_text"])
     assert rule is not None

@@ -3,23 +3,13 @@
 # This test suite validates real code behavior without mocks or stubs.
 
 """
-Comprehensive coverage tests for RuleParser class.
+Comprehensive coverage tests for the LarkRuleParser class.
 
-This test suite specifically targets the RuleParser class to achieve 100% code
-coverage. Tests execute real code paths with various inputs, dialects, error
-conditions, and file operations.
+This test suite specifically targets the LarkRuleParser class to achieve 100%
+code coverage. Tests execute real code paths with various inputs, dialects,
+error conditions, and file operations.
 
 NO MOCKS - all tests use actual parser execution with real grammar and files.
-
-DEPRECATION NOTICE:
-The following tests are for the deprecated RuleParser class and access private attributes:
-- test_parser_default_initialization (line 40)
-- test_get_grammar_caches_result (line 101)
-- test_get_parser_creates_instance (line 136)
-- test_unexpected_exception_strict_mode (line 1217)
-
-These tests will be removed in v2.0.0 along with RuleParser.
-They are currently skipped to avoid test suite failures.
 """
 
 import tempfile
@@ -37,22 +27,15 @@ from surinort_ast.core.nodes import (
     SidOption,
 )
 from surinort_ast.exceptions import ParseError
-from surinort_ast.parsing.parser import (
-    RuleParser,
-    parse_rule,
-    parse_rules_file,
-)
+from surinort_ast.parsing.lark_parser import LarkRuleParser
 
 
 class TestRuleParserInitialization:
-    """Test RuleParser initialization with different configurations."""
+    """Test LarkRuleParser initialization with different configurations."""
 
-    # DEPRECATED: This test is for legacy RuleParser class
-    # TODO: Remove in v2.0.0 when RuleParser is removed
-    @pytest.mark.skip(reason="Deprecated RuleParser - will be removed in v2.0.0")
     def test_parser_default_initialization(self):
         """Initialize parser with default settings."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         assert parser.dialect == Dialect.SURICATA
         assert parser.strict is False
@@ -62,7 +45,7 @@ class TestRuleParserInitialization:
 
     def test_parser_custom_dialect(self):
         """Initialize parser with custom dialect."""
-        parser = RuleParser(dialect=Dialect.SNORT2)
+        parser = LarkRuleParser(dialect=Dialect.SNORT2)
 
         assert parser.dialect == Dialect.SNORT2
         assert parser.strict is False
@@ -70,7 +53,7 @@ class TestRuleParserInitialization:
 
     def test_parser_strict_mode(self):
         """Initialize parser with strict mode enabled."""
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         assert parser.dialect == Dialect.SURICATA
         assert parser.strict is True
@@ -78,7 +61,7 @@ class TestRuleParserInitialization:
 
     def test_parser_no_error_recovery(self):
         """Initialize parser with error recovery disabled."""
-        parser = RuleParser(error_recovery=False)
+        parser = LarkRuleParser(error_recovery=False)
 
         assert parser.dialect == Dialect.SURICATA
         assert parser.strict is False
@@ -86,7 +69,7 @@ class TestRuleParserInitialization:
 
     def test_parser_all_custom_params(self):
         """Initialize parser with all custom parameters."""
-        parser = RuleParser(
+        parser = LarkRuleParser(
             dialect=Dialect.SNORT3,
             strict=True,
             error_recovery=False,
@@ -102,7 +85,7 @@ class TestGrammarLoading:
 
     def test_get_grammar_loads_file(self):
         """Grammar loading reads actual grammar file."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         grammar = parser._get_grammar()
 
         assert grammar is not None
@@ -111,12 +94,9 @@ class TestGrammarLoading:
         # Grammar should contain Lark syntax
         assert "start:" in grammar or "rule:" in grammar
 
-    # DEPRECATED: This test is for legacy RuleParser class
-    # TODO: Remove in v2.0.0 when RuleParser is removed
-    @pytest.mark.skip(reason="Deprecated RuleParser - will be removed in v2.0.0")
     def test_get_grammar_caches_result(self):
         """Grammar is cached after first load."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # First call loads from file
         grammar1 = parser._get_grammar()
@@ -129,7 +109,7 @@ class TestGrammarLoading:
 
     def test_get_grammar_missing_file(self, tmp_path):
         """Grammar loading raises FileNotFoundError for missing file."""
-        RuleParser()
+        LarkRuleParser()
 
         # Manipulate internal state to point to non-existent file
         # We test error handling by creating parser with invalid grammar path
@@ -149,12 +129,9 @@ class TestGrammarLoading:
 class TestParserCaching:
     """Test Lark parser instance caching."""
 
-    # DEPRECATED: This test is for legacy RuleParser class
-    # TODO: Remove in v2.0.0 when RuleParser is removed
-    @pytest.mark.skip(reason="Deprecated RuleParser - will be removed in v2.0.0")
     def test_get_parser_creates_instance(self):
         """Parser instance is created on first access."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         assert parser._lark_parser is None
 
@@ -166,7 +143,7 @@ class TestParserCaching:
 
     def test_get_parser_caches_instance(self):
         """Parser instance is cached after first creation."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # First call creates parser
         lark1 = parser._get_parser()
@@ -178,8 +155,8 @@ class TestParserCaching:
 
     def test_get_parser_with_different_dialects(self):
         """Different parsers for different dialects."""
-        parser1 = RuleParser(dialect=Dialect.SURICATA)
-        parser2 = RuleParser(dialect=Dialect.SNORT2)
+        parser1 = LarkRuleParser(dialect=Dialect.SURICATA)
+        parser2 = LarkRuleParser(dialect=Dialect.SNORT2)
 
         lark1 = parser1._get_parser()
         lark2 = parser2._get_parser()
@@ -193,7 +170,7 @@ class TestBasicRuleParsing:
 
     def test_parse_simple_rule(self):
         """Parse a simple valid rule."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
         rule = parser.parse(rule_text)
@@ -205,7 +182,7 @@ class TestBasicRuleParsing:
 
     def test_parse_with_file_path(self):
         """Parse rule with file path for location tracking."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
         file_path = "/test/rules.rules"
 
@@ -217,7 +194,7 @@ class TestBasicRuleParsing:
 
     def test_parse_with_line_offset(self):
         """Parse rule with line offset for multi-line files."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
         rule = parser.parse(rule_text, line_offset=42)
@@ -229,7 +206,7 @@ class TestBasicRuleParsing:
 
     def test_parse_extracts_sid(self):
         """Parse rule and extract SID value."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:999888;)'
 
         rule = parser.parse(rule_text)
@@ -245,7 +222,7 @@ class TestBasicRuleParsing:
 
     def test_parse_rule_without_sid(self):
         """Parse rule without SID option."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         # Note: This might fail parsing depending on grammar
         # If SID is required, test error handling instead
         rule_text = 'alert tcp any any -> any 80 (msg:"Test";)'
@@ -265,7 +242,7 @@ class TestEmptyAndCommentHandling:
 
     def test_parse_empty_string(self):
         """Parse empty string creates ErrorNode."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         rule = parser.parse("")
 
@@ -275,7 +252,7 @@ class TestEmptyAndCommentHandling:
 
     def test_parse_whitespace_only(self):
         """Parse whitespace-only string creates ErrorNode."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         rule = parser.parse("   \t\n   ")
 
@@ -284,7 +261,7 @@ class TestEmptyAndCommentHandling:
 
     def test_parse_empty_string_strict_mode(self):
         """Parse empty string in strict mode raises ParseError."""
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         with pytest.raises(ParseError) as excinfo:
             parser.parse("")
@@ -293,7 +270,7 @@ class TestEmptyAndCommentHandling:
 
     def test_parse_comment_line(self):
         """Parse comment line returns error rule."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         rule = parser.parse("# This is a comment")
 
@@ -303,7 +280,7 @@ class TestEmptyAndCommentHandling:
 
     def test_parse_comment_line_with_file_path(self):
         """Parse comment with file path tracking."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         rule = parser.parse("# Comment", file_path="/test.rules")
 
@@ -315,7 +292,7 @@ class TestErrorRecovery:
 
     def test_parse_invalid_syntax_non_strict(self):
         """Parse invalid syntax in non-strict mode returns error rule."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         rule = parser.parse("invalid syntax here")
 
@@ -325,14 +302,14 @@ class TestErrorRecovery:
 
     def test_parse_invalid_syntax_strict(self):
         """Parse invalid syntax in strict mode raises ParseError."""
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         with pytest.raises(ParseError):
             parser.parse("invalid syntax here")
 
     def test_parse_malformed_rule(self):
         """Parse malformed rule with missing parts."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         rule = parser.parse('alert tcp any any -> (msg:"Incomplete")')
 
@@ -341,7 +318,7 @@ class TestErrorRecovery:
 
     def test_handle_unexpected_token_error(self):
         """Handle UnexpectedToken error."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Rule with unexpected token
         rule = parser.parse('alert tcp any any => any 80 (msg:"Test"; sid:1;)')
@@ -351,7 +328,7 @@ class TestErrorRecovery:
 
     def test_handle_unexpected_characters_error(self):
         """Handle UnexpectedCharacters error."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Rule with unexpected characters
         rule = parser.parse('alert tcp any any -> any 80 @@@@ (msg:"Test"; sid:1;)')
@@ -361,7 +338,7 @@ class TestErrorRecovery:
 
     def test_error_recovery_preserves_original_text(self):
         """Error recovery preserves original rule text."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
         original = "alert tcp malformed"
 
         rule = parser.parse(original)
@@ -371,7 +348,7 @@ class TestErrorRecovery:
 
     def test_unexpected_error_handling(self):
         """Handle unexpected errors during parsing."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Create a scenario that might cause unexpected error
         # (this is difficult to trigger without mocking, so we test the code path exists)
@@ -386,7 +363,7 @@ class TestFileParsing:
 
     def test_parse_file_single_rule(self):
         """Parse file containing single rule."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
@@ -403,7 +380,7 @@ class TestFileParsing:
 
     def test_parse_file_multiple_rules(self):
         """Parse file containing multiple rules."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)\n')
@@ -424,7 +401,7 @@ class TestFileParsing:
 
     def test_parse_file_with_comments(self):
         """Parse file with comment lines (should be skipped)."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write("# This is a comment\n")
@@ -443,7 +420,7 @@ class TestFileParsing:
 
     def test_parse_file_with_blank_lines(self):
         """Parse file with blank lines (should be skipped)."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
@@ -462,7 +439,7 @@ class TestFileParsing:
 
     def test_parse_file_multiline_rule(self):
         """Parse file with multi-line rule."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             # Multi-line rule needs proper closing with semicolon
@@ -483,7 +460,7 @@ class TestFileParsing:
 
     def test_parse_file_incomplete_rule_at_end(self):
         """Parse file with incomplete rule at end."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Complete"; sid:1;)\n')
@@ -501,7 +478,7 @@ class TestFileParsing:
 
     def test_parse_file_skip_errors_true(self):
         """Parse file with skip_errors=True ignores bad rules."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
@@ -521,7 +498,7 @@ class TestFileParsing:
     @pytest.mark.skip(reason="Test needs adjustment for error handling")
     def test_parse_file_skip_errors_false(self):
         """Parse file with skip_errors=False includes error rules."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
@@ -541,14 +518,14 @@ class TestFileParsing:
 
     def test_parse_file_nonexistent(self):
         """Parse non-existent file raises FileNotFoundError."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with pytest.raises(FileNotFoundError):
             parser.parse_file("/nonexistent/path/to/rules.rules")
 
     def test_parse_file_with_custom_encoding(self):
         """Parse file with custom encoding."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".rules", delete=False, encoding="latin-1"
@@ -566,7 +543,7 @@ class TestFileParsing:
 
     def test_parse_multiline_rule_helper(self):
         """Test _parse_multiline_rule helper method."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         lines = [
             (1, "alert tcp any any -> any 80 ("),
@@ -582,7 +559,7 @@ class TestFileParsing:
 
     def test_parse_multiline_rule_empty_lines(self):
         """Test _parse_multiline_rule with empty lines list."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         result = parser._parse_multiline_rule([], "/test.rules", skip_errors=False)
 
@@ -591,7 +568,7 @@ class TestFileParsing:
     @pytest.mark.skip(reason="Test needs adjustment for error handling")
     def test_parse_multiline_rule_with_error_skip(self):
         """Test _parse_multiline_rule with error and skip_errors=True."""
-        parser = RuleParser(strict=True)  # Use strict mode to trigger exception
+        parser = LarkRuleParser(strict=True)  # Use strict mode to trigger exception
 
         lines = [
             (1, "invalid syntax here"),
@@ -604,7 +581,7 @@ class TestFileParsing:
 
     def test_parse_multiline_rule_with_error_no_skip(self):
         """Test _parse_multiline_rule with error and skip_errors=False."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         lines = [
             (1, "invalid syntax"),
@@ -622,7 +599,7 @@ class TestSourceMetadata:
 
     def test_attach_source_metadata(self):
         """Test _attach_source_metadata method."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:123;)')
 
         updated_rule = parser._attach_source_metadata(
@@ -639,7 +616,7 @@ class TestSourceMetadata:
 
     def test_attach_source_metadata_no_sid(self):
         """Test source metadata attachment without SID."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Parse a minimal rule
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
@@ -665,7 +642,7 @@ class TestConvenienceFunctions:
         """Test parse_rule convenience function."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
-        rule = parse_rule(rule_text)
+        rule = LarkRuleParser().parse(rule_text)
 
         assert isinstance(rule, Rule)
         assert rule.action == Action.ALERT
@@ -674,7 +651,7 @@ class TestConvenienceFunctions:
         """Test parse_rule with custom dialect."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
-        rule = parse_rule(rule_text, dialect=Dialect.SNORT2)
+        rule = LarkRuleParser(dialect=Dialect.SNORT2).parse(rule_text)
 
         assert isinstance(rule, Rule)
         assert rule.dialect == Dialect.SNORT2
@@ -684,7 +661,7 @@ class TestConvenienceFunctions:
         rule_text = "invalid syntax"
 
         with pytest.raises(ParseError):
-            parse_rule(rule_text, strict=True)
+            LarkRuleParser(strict=True).parse(rule_text)
 
     def test_parse_rules_file_function(self):
         """Test parse_rules_file convenience function."""
@@ -694,7 +671,7 @@ class TestConvenienceFunctions:
             temp_path = f.name
 
         try:
-            rules = parse_rules_file(temp_path)
+            rules = LarkRuleParser().parse_file(temp_path)
 
             assert len(rules) == 2
             assert all(isinstance(r, Rule) for r in rules)
@@ -708,7 +685,7 @@ class TestConvenienceFunctions:
             temp_path = f.name
 
         try:
-            rules = parse_rules_file(temp_path, dialect=Dialect.SNORT3)
+            rules = LarkRuleParser(dialect=Dialect.SNORT3).parse_file(temp_path)
 
             assert len(rules) == 1
             assert rules[0].dialect == Dialect.SNORT3
@@ -724,7 +701,7 @@ class TestConvenienceFunctions:
             temp_path = f.name
 
         try:
-            rules = parse_rules_file(temp_path, skip_errors=True)
+            rules = LarkRuleParser().parse_file(temp_path, skip_errors=True)
 
             assert len(rules) >= 1
             assert any(isinstance(r, Rule) for r in rules)
@@ -737,7 +714,7 @@ class TestErrorNodeCreation:
 
     def test_create_error_rule(self):
         """Test _create_error_rule method."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         error_node = ErrorNode(
             error_type="TestError",
@@ -755,7 +732,7 @@ class TestErrorNodeCreation:
 
     def test_handle_parse_error_non_strict(self):
         """Test _handle_parse_error in non-strict mode."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Create a mock error
         error = ValueError("Test parse error")
@@ -767,7 +744,7 @@ class TestErrorNodeCreation:
 
     def test_handle_parse_error_strict(self):
         """Test _handle_parse_error in strict mode raises."""
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         error = ValueError("Test parse error")
 
@@ -780,7 +757,7 @@ class TestDiagnosticMerging:
 
     def test_parse_merges_transformer_diagnostics(self):
         """Parse merges diagnostics from transformer into rule."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Parse a rule that might generate warnings
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
@@ -797,7 +774,7 @@ class TestMultipleDialects:
 
     def test_parse_suricata_dialect(self):
         """Parse rule with Suricata dialect."""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
         assert isinstance(rule, Rule)
@@ -805,7 +782,7 @@ class TestMultipleDialects:
 
     def test_parse_snort2_dialect(self):
         """Parse rule with Snort2 dialect."""
-        parser = RuleParser(dialect=Dialect.SNORT2)
+        parser = LarkRuleParser(dialect=Dialect.SNORT2)
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
         assert isinstance(rule, Rule)
@@ -813,7 +790,7 @@ class TestMultipleDialects:
 
     def test_parse_snort3_dialect(self):
         """Parse rule with Snort3 dialect."""
-        parser = RuleParser(dialect=Dialect.SNORT3)
+        parser = LarkRuleParser(dialect=Dialect.SNORT3)
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
         assert isinstance(rule, Rule)
@@ -825,7 +802,7 @@ class TestEdgeCases:
 
     def test_parse_very_long_rule(self):
         """Parse very long rule with many options."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Build a long rule with many content options
         contents = " ".join([f'content:"pattern{i}";' for i in range(50)])
@@ -839,7 +816,7 @@ class TestEdgeCases:
 
     def test_parse_rule_with_special_characters(self):
         """Parse rule with special characters in strings."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         rule_text = r'alert tcp any any -> any 80 (msg:"Test \x00\x01\x02"; sid:1;)'
 
         rule = parser.parse(rule_text)
@@ -848,7 +825,7 @@ class TestEdgeCases:
 
     def test_parse_rule_unicode_content(self):
         """Parse rule with unicode content."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         rule_text = 'alert tcp any any -> any 80 (msg:"Test 日本語"; sid:1;)'
 
         rule = parser.parse(rule_text)
@@ -857,7 +834,7 @@ class TestEdgeCases:
 
     def test_extract_sid_no_sid_option(self):
         """Extract SID from rule without SID option returns None."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Create a minimal rule
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
@@ -876,7 +853,7 @@ class TestSpecificErrorPaths:
         from pathlib import Path
 
         # Create a parser that will fail to find grammar
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Mock the Path to return non-existent file
         def mock_exists(self):
@@ -894,7 +871,7 @@ class TestSpecificErrorPaths:
 
     def test_parse_empty_result_from_transformer(self):
         """Test handling of empty result list from transformer."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # This is hard to trigger without mocking, but we test error recovery
         # by parsing various edge cases
@@ -903,7 +880,7 @@ class TestSpecificErrorPaths:
 
     def test_lark_error_handling(self):
         """Test LarkError exception handling path."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Trigger a LarkError by providing malformed input
         rule = parser.parse('alert tcp any any @@ any 80 (msg:"Test"; sid:1;)')
@@ -913,7 +890,7 @@ class TestSpecificErrorPaths:
 
     def test_unexpected_error_strict_mode(self):
         """Test unexpected error in strict mode raises ParseError."""
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         # Try to trigger an unexpected error path
         with pytest.raises(ParseError):
@@ -921,7 +898,7 @@ class TestSpecificErrorPaths:
 
     def test_file_parse_multiline_accumulation(self):
         """Test multi-line rule accumulation in parse_file."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             # Write multi-line rule that ends with semicolon
@@ -939,7 +916,7 @@ class TestSpecificErrorPaths:
 
     def test_file_parse_rule_ending_with_paren(self):
         """Test rule detection ending with closing parenthesis."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
@@ -955,7 +932,7 @@ class TestSpecificErrorPaths:
 
     def test_file_parse_blank_line_triggers_parse(self):
         """Test blank line triggers parsing of accumulated rule."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
@@ -972,7 +949,7 @@ class TestSpecificErrorPaths:
 
     def test_multiline_rule_origin_update(self):
         """Test origin update in _parse_multiline_rule."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         lines = [
             (5, 'alert tcp any any -> any 80 (msg:"Test"; sid:123;)'),
@@ -987,7 +964,7 @@ class TestSpecificErrorPaths:
 
     def test_multiline_rule_exception_handling(self):
         """Test exception handling in _parse_multiline_rule."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         lines = [
             (10, "completely invalid"),
@@ -1001,7 +978,7 @@ class TestSpecificErrorPaths:
 
     def test_handle_parse_error_with_location(self):
         """Test _handle_parse_error extracts location from error."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Parse invalid syntax to trigger error with location
         rule = parser.parse(
@@ -1012,7 +989,7 @@ class TestSpecificErrorPaths:
 
     def test_handle_parse_error_unexpected_token_details(self):
         """Test error handling extracts expected tokens."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Trigger UnexpectedToken error
         rule = parser.parse('alert tcp any any => any 80 (msg:"Test"; sid:1;)')
@@ -1022,7 +999,7 @@ class TestSpecificErrorPaths:
 
     def test_attach_source_metadata_with_location(self):
         """Test source metadata attachment with location info."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         rule = parser.parse(
             'alert tcp any any -> any 80 (msg:"Test"; sid:456;)',
@@ -1036,7 +1013,7 @@ class TestSpecificErrorPaths:
 
     def test_file_parse_exception_in_multiline_no_skip(self):
         """Test exception handling when skip_errors=False."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
@@ -1067,7 +1044,7 @@ class TestSpecificErrorPaths:
 
     def test_parse_non_rule_result_type(self):
         """Test handling of non-Rule result from transformer."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Normal parsing should always return Rule
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
@@ -1075,7 +1052,7 @@ class TestSpecificErrorPaths:
 
     def test_file_parse_with_path_object(self):
         """Test parse_file accepts Path object."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
@@ -1092,7 +1069,7 @@ class TestSpecificErrorPaths:
 
     def test_parse_with_transformer_diagnostics(self):
         """Test merging of transformer diagnostics into rule."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Parse a rule that might generate transformer diagnostics
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:99999999;)')
@@ -1104,7 +1081,7 @@ class TestSpecificErrorPaths:
 
     def test_error_recovery_with_file_path_in_error(self):
         """Test error recovery preserves file path in error location."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         rule = parser.parse("invalid syntax", file_path="/test/error.rules")
 
@@ -1116,7 +1093,7 @@ class TestSpecificErrorPaths:
 
     def test_multiline_rule_ending_detection(self):
         """Test detection of rule endings with parenthesis check."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             # Rule ending with ) that has matching (
@@ -1133,7 +1110,7 @@ class TestSpecificErrorPaths:
 
     def test_file_parse_multiline_with_blank_line_in_middle(self):
         """Test parsing multi-line rule interrupted by blank line."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write("alert tcp any any -> any 80 (\n")
@@ -1151,7 +1128,7 @@ class TestSpecificErrorPaths:
 
     def test_file_parse_rule_ending_with_semicolon(self):
         """Test rule ending detection with semicolon."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
@@ -1166,7 +1143,7 @@ class TestSpecificErrorPaths:
 
     def test_file_parse_incomplete_rule_no_semicolon_or_paren(self):
         """Test incomplete rule at EOF without proper ending."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"Test"')
@@ -1182,7 +1159,7 @@ class TestSpecificErrorPaths:
 
     def test_source_metadata_with_location_line_number(self):
         """Test line number calculation in source metadata."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         rule = parser.parse(
             'alert tcp any any -> any 80 (msg:"Test"; sid:789;)',
@@ -1198,7 +1175,7 @@ class TestSpecificErrorPaths:
     def test_parse_empty_result_list_strict_mode(self, monkeypatch):
         """Test empty result list from transformer in strict mode."""
 
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         # Mock transformer to return empty list
         def mock_transform(tree):
@@ -1213,33 +1190,30 @@ class TestSpecificErrorPaths:
         """Test non-Rule result from transformer in strict mode."""
         # Normal transformer always returns Rule
         # This tests that validation catches non-Rule results
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
         assert isinstance(rule, Rule)
 
     def test_lark_error_strict_mode(self):
         """Test LarkError in strict mode raises ParseError."""
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         with pytest.raises(ParseError):
             parser.parse('alert tcp any any @@ any 80 (msg:"Test"; sid:1;)')
 
     def test_unexpected_exception_in_parse(self, monkeypatch):
         """Test unexpected exception handling in parse method."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Normal parsing should not raise unexpected exceptions
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
         assert isinstance(rule, Rule)
 
-    # DEPRECATED: This test is for legacy RuleParser class
-    # TODO: Remove in v2.0.0 when RuleParser is removed
-    @pytest.mark.skip(reason="Deprecated RuleParser - will be removed in v2.0.0")
     def test_unexpected_exception_strict_mode(self, monkeypatch):
         """Test unexpected exception in strict mode."""
 
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         # Mock _get_parser to raise unexpected exception
         def mock_get_parser():
@@ -1252,7 +1226,7 @@ class TestSpecificErrorPaths:
 
     def test_multiline_parse_exception_with_skip_errors(self):
         """Test exception handling in _parse_multiline_rule with skip_errors."""
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         lines = [
             (42, "invalid rule here"),
@@ -1265,7 +1239,7 @@ class TestSpecificErrorPaths:
 
     def test_multiline_parse_exception_no_skip_errors(self):
         """Test exception handling in _parse_multiline_rule without skip_errors."""
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         lines = [
             (42, "invalid rule here"),
@@ -1282,7 +1256,7 @@ class TestSpecificErrorPaths:
     def test_parse_with_diagnostics_from_transformer(self, monkeypatch):
         """Test merging diagnostics from transformer."""
 
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Parse a normal rule
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
@@ -1294,7 +1268,7 @@ class TestSpecificErrorPaths:
 
     def test_handle_parse_error_with_expected_tokens(self):
         """Test error handling extracts expected tokens from error."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Parse invalid to trigger error with expected tokens
         rule = parser.parse('alert tcp any any <=> any 80 (msg:"Test"; sid:1;)')
@@ -1304,7 +1278,7 @@ class TestSpecificErrorPaths:
 
     def test_attach_source_metadata_no_location(self):
         """Test source metadata attachment when rule has no location."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
@@ -1317,7 +1291,7 @@ class TestSpecificErrorPaths:
         """Test handling when transformer returns empty list."""
         from surinort_ast.parsing.transformer import RuleTransformer
 
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Mock transformer to return empty list
 
@@ -1338,7 +1312,7 @@ class TestSpecificErrorPaths:
         """Test handling when transformer returns non-Rule type."""
         from surinort_ast.parsing.transformer import RuleTransformer
 
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Mock transformer to return wrong type
         def mock_transform(self, tree):
@@ -1359,7 +1333,7 @@ class TestSpecificErrorPaths:
         from surinort_ast.core.diagnostics import Diagnostic, DiagnosticLevel
         from surinort_ast.parsing.transformer import RuleTransformer
 
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Mock transformer to add diagnostics
         original_transform = RuleTransformer.transform
@@ -1385,7 +1359,7 @@ class TestSpecificErrorPaths:
     def test_lark_error_branch(self):
         """Test LarkError exception branch (different from UnexpectedInput)."""
 
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Parse something that triggers a generic LarkError
         # Most parse errors are UnexpectedInput, but we test the fallback
@@ -1398,7 +1372,7 @@ class TestSpecificErrorPaths:
         """Test catch-all exception handler in parse()."""
         from surinort_ast.parsing.transformer import RuleTransformer
 
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Mock transformer to raise unexpected exception
         def mock_transform(self, tree):
@@ -1417,7 +1391,7 @@ class TestSpecificErrorPaths:
         """Test catch-all exception in strict mode raises ParseError."""
         from surinort_ast.parsing.transformer import RuleTransformer
 
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         # Mock transformer to raise unexpected exception
         def mock_transform(self, tree):
@@ -1431,7 +1405,7 @@ class TestSpecificErrorPaths:
 
     def test_extract_sid_with_none_location(self):
         """Test SID extraction when rule has no location."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:999;)')
 

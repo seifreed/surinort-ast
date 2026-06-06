@@ -269,47 +269,38 @@ class TestDependencyInjection:
         assert rule.action == Action.ALERT
 
 
-class TestBackwardCompatibility:
-    """Test backward compatibility with existing RuleParser."""
+class TestParsingEntryPoints:
+    """Test the public parsing entry points."""
 
-    def test_rule_parser_still_works(self):
-        """Test that old RuleParser API still works."""
-        from surinort_ast.parsing import RuleParser
-
-        parser = RuleParser()
+    def test_lark_rule_parser_parses_single_rule(self):
+        """LarkRuleParser parses a single rule."""
+        parser = LarkRuleParser()
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
         assert rule.action == Action.ALERT
         assert rule.header.protocol == Protocol.TCP
 
-    def test_rule_parser_delegates_to_lark_parser(self):
-        """Test that RuleParser delegates to LarkRuleParser."""
-        from surinort_ast.parsing import RuleParser
+    def test_lark_rule_parser_honors_dialect(self):
+        """LarkRuleParser applies the configured dialect."""
+        parser = LarkRuleParser(dialect=Dialect.SNORT3)
+        assert parser.dialect == Dialect.SNORT3
 
-        parser = RuleParser(dialect=Dialect.SNORT3)
-        # Access internal parser (implementation detail)
-        assert hasattr(parser, "_parser")
-        assert isinstance(parser._parser, LarkRuleParser)
-        assert parser._parser.dialect == Dialect.SNORT3
-
-    def test_convenience_functions_still_work(self):
-        """Test that convenience functions still work."""
-        from surinort_ast.parsing import parse_rule
+    def test_parse_rule_convenience_function(self):
+        """The api parse_rule convenience function parses a rule."""
+        from surinort_ast import parse_rule
 
         rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
         assert rule.action == Action.ALERT
 
-    def test_parse_file_still_works(self, tmp_path):
-        """Test that parse_file still works."""
-        from surinort_ast.parsing import RuleParser
-
+    def test_parse_file(self, tmp_path):
+        """LarkRuleParser.parse_file parses a multi-rule file."""
         rules_file = tmp_path / "test.rules"
         rules_file.write_text(
             'alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)\n'
             'alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)\n'
         )
 
-        parser = RuleParser()
+        parser = LarkRuleParser()
         rules = parser.parse_file(rules_file)
 
         assert len(rules) == 2

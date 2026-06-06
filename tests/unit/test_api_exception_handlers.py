@@ -19,7 +19,7 @@ from surinort_ast.api import parse_file, parse_rule
 from surinort_ast.core.location import Location, Position, Span
 from surinort_ast.core.nodes import Rule
 from surinort_ast.exceptions import ParseError
-from surinort_ast.parsing.parser import RuleParser
+from surinort_ast.parsing.lark_parser import LarkRuleParser
 
 
 class TestApiParsingExceptionHandlers:
@@ -248,7 +248,7 @@ class TestParserExceptionHandlers:
         but not UnexpectedInput.
         """
 
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Create a tree that will cause VisitError during transformation
         # by passing invalid arguments to a transformer method
@@ -284,7 +284,7 @@ class TestParserExceptionHandlers:
 
         This ensures line 237 handler works correctly in strict mode.
         """
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         with pytest.raises(ParseError):
             parser.parse("completely invalid {{{}} syntax")
@@ -303,7 +303,7 @@ class TestParserExceptionHandlers:
 
         This test verifies the calculation is correct.
         """
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Parse a valid rule
         rule = parser.parse('alert tcp any any -> any 80 (msg:"test"; sid:1;)')
@@ -342,7 +342,7 @@ class TestParserExceptionHandlers:
         Even when starting with a rule with no location,
         we can manually attach location and verify line number calculation.
         """
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         rule = parser.parse('alert tcp any any -> any 80 (msg:"test"; sid:1;)')
 
@@ -377,7 +377,7 @@ class TestParserExceptionHandlers:
 
         This tests another path where the condition at line 525 is False.
         """
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Create a rule with no location
         rule = parser.parse('alert tcp any any -> any 80 (msg:"test"; sid:1;)')
@@ -404,7 +404,7 @@ class TestParserExceptionHandlers:
 
         This exercises the _attach_source_metadata method which contains line 526.
         """
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Parse with file_path and line_offset
         rule = parser.parse(
@@ -432,7 +432,7 @@ alert tcp any any -> any 22 (msg:"test3"; sid:3;)
             temp_path = f.name
 
         try:
-            parser = RuleParser()
+            parser = LarkRuleParser()
             rules = parser.parse_file(temp_path)
 
             # Should have 3 valid rules
@@ -457,7 +457,7 @@ alert tcp any any -> any 22 (msg:"test3"; sid:3;)
         When error_recovery is True and strict is False, parser should
         return Rule with ErrorNode instead of raising.
         """
-        parser = RuleParser(error_recovery=True, strict=False)
+        parser = LarkRuleParser(error_recovery=True, strict=False)
 
         # Invalid rule should be recovered
         result = parser.parse("completely invalid {{{}}} rule")
@@ -469,7 +469,7 @@ alert tcp any any -> any 22 (msg:"test3"; sid:3;)
         """
         Test that strict mode raises ParseError on invalid input.
         """
-        parser = RuleParser(strict=True)
+        parser = LarkRuleParser(strict=True)
 
         with pytest.raises(ParseError):
             parser.parse("invalid rule syntax ]]}")
@@ -507,7 +507,7 @@ invalid syntax here
             temp_path = f.name
 
         try:
-            parser = RuleParser()
+            parser = LarkRuleParser()
             # skip_errors=True means incomplete rule is silently skipped
             rules = parser.parse_file(temp_path, skip_errors=True)
             # Should have at least 1 valid rule
@@ -552,7 +552,7 @@ invalid syntax here
             Rule,
         )
 
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Create a rule without SID option
         header = Header(

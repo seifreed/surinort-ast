@@ -251,7 +251,7 @@ def analyze_command(
     """
     import json
 
-    from surinort_ast.parsing import parse_rules_file
+    from surinort_ast.parsing.lark_parser import LarkRuleParser
     from surinort_ast.plugins import get_registry
 
     try:
@@ -272,7 +272,7 @@ def analyze_command(
 
         # Parse rules
         console.print(f"[bold cyan]Parsing rules from:[/bold cyan] {input_file}")
-        rules = parse_rules_file(input_file)
+        rules = LarkRuleParser().parse_file(input_file)
         console.print(f"[bold green]Parsed {len(rules)} rules[/bold green]\n")
 
         # Analyze each rule

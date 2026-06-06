@@ -30,7 +30,7 @@ from surinort_ast.core.nodes import (
     RevOption,
     SidOption,
 )
-from surinort_ast.parsing.parser import RuleParser
+from surinort_ast.parsing.lark_parser import LarkRuleParser
 from surinort_ast.parsing.parser_config import ParserConfig
 
 
@@ -332,7 +332,7 @@ class TestNestingDepthValidation:
     def test_deep_address_nesting(self):
         """Test deeply nested address lists."""
         config = ParserConfig(max_nesting_depth=50)
-        parser = RuleParser(config=config, strict=False)
+        parser = LarkRuleParser(config=config, strict=False)
 
         # Create deeply nested address list
         nested = "[" * 60 + "1.1.1.1" + "]" * 60
@@ -345,7 +345,7 @@ class TestNestingDepthValidation:
     def test_deep_port_nesting(self):
         """Test deeply nested port lists."""
         config = ParserConfig(max_nesting_depth=50)
-        parser = RuleParser(config=config, strict=False)
+        parser = LarkRuleParser(config=config, strict=False)
 
         # Create deeply nested port list
         nested = "[" * 60 + "80" + "]" * 60
@@ -357,7 +357,7 @@ class TestNestingDepthValidation:
 
     def test_reasonable_nesting_allowed(self):
         """Test reasonable nesting depth is allowed."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Reasonable nesting (3 levels)
         rule_text = (
@@ -408,7 +408,7 @@ class TestSIDValidation:
 
     def test_sid_minimum_value(self):
         """Test SID minimum value (should be >= 1)."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
         rule_text = 'alert tcp any any -> any any (msg:"Test"; sid:1;)'
         rule = parser.parse(rule_text)
 
@@ -528,7 +528,7 @@ class TestDiagnosticGeneration:
 
     def test_priority_range_warning(self):
         """Test warning for out-of-range priority values."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
         rule_text = 'alert tcp any any -> any any (msg:"Test"; priority:10; sid:1;)'
         rule = parser.parse(rule_text)
 
@@ -539,7 +539,7 @@ class TestDiagnosticGeneration:
 
     def test_uricontent_deprecated_warning(self):
         """Test warning for deprecated uricontent option."""
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
         rule_text = 'alert tcp any any -> any any (uricontent:"admin"; sid:1;)'
         rule = parser.parse(rule_text)
 

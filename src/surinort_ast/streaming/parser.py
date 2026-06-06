@@ -21,7 +21,7 @@ from typing import Any
 from ..core.enums import Dialect
 from ..core.nodes import Rule, SidOption, SourceOrigin
 from ..exceptions import ParseError
-from ..parsing.parser import RuleParser
+from ..parsing.lark_parser import LarkRuleParser
 from ..parsing.parser_config import ParserConfig
 
 logger = logging.getLogger(__name__)
@@ -169,7 +169,7 @@ class StreamParser:
         self.include_raw_text = include_raw_text
         self.config = config or ParserConfig.default()
         self.chunk_size = chunk_size
-        self._parser = RuleParser(
+        self._parser = LarkRuleParser(
             dialect=dialect,
             strict=False,
             error_recovery=True,
@@ -582,7 +582,7 @@ def _parse_chunk_worker(
     """
     lines, dialect, _track_locations, include_raw_text, file_path = args
 
-    parser = RuleParser(dialect=dialect, strict=False, error_recovery=True)
+    parser = LarkRuleParser(dialect=dialect, strict=False, error_recovery=True)
     results: list[tuple[int, Rule | None, str | None]] = []
 
     for line_num, text in lines:

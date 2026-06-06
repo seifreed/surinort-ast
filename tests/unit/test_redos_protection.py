@@ -17,7 +17,7 @@ import time
 import pytest
 
 from surinort_ast.core.nodes import Rule
-from surinort_ast.parsing.parser import RuleParser
+from surinort_ast.parsing.lark_parser import LarkRuleParser
 from surinort_ast.parsing.parser_config import ParserConfig
 
 
@@ -26,7 +26,7 @@ class TestRegexLengthBounds:
 
     def test_reference_id_within_bounds(self):
         """Test REFERENCE_ID pattern accepts normal URLs under 500 chars."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         # Normal URL-like reference (well within 500 char limit)
         rule_text = (
             "alert tcp any any -> any 80 "
@@ -37,7 +37,7 @@ class TestRegexLengthBounds:
 
     def test_reference_id_max_length_boundary(self):
         """Test REFERENCE_ID pattern with reference near 500 char limit."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         # Create a reference ID near the 500 character boundary
         # Format: "a" + 490 chars + "/"  (requires separator at end per new pattern)
         long_ref = "a" * 490 + "/"
@@ -49,7 +49,7 @@ class TestRegexLengthBounds:
 
     def test_reference_tail_within_bounds(self):
         """Test REFERENCE_TAIL pattern accepts values under 500 chars."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         # REFERENCE_TAIL catches remaining characters until delimiter
         value = "a" * 400
         rule_text = f'alert tcp any any -> any 80 (msg:"Test"; reference:type,{value}; sid:1;)'
@@ -58,7 +58,7 @@ class TestRegexLengthBounds:
 
     def test_generic_tail_within_bounds(self):
         """Test GENERIC_TAIL pattern accepts values under 1000 chars."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         # Generic option with long value
         value = "a" * 900
         rule_text = f'alert tcp any any -> any 80 (msg:"Test"; unknown_option:{value}; sid:1;)'
@@ -67,7 +67,7 @@ class TestRegexLengthBounds:
 
     def test_generic_value_within_bounds(self):
         """Test GENERIC_VALUE pattern accepts values under 200 chars."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         # flags option uses GENERIC_VALUE
         value = "A" * 150
         rule_text = f'alert tcp any any -> any 80 (msg:"Test"; flags:{value}; sid:1;)'
@@ -76,7 +76,7 @@ class TestRegexLengthBounds:
 
     def test_quoted_string_within_bounds(self):
         """Test QUOTED_STRING pattern accepts strings under 10000 chars."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         # Very long message content (but within limit)
         content = "A" * 9000
         rule_text = f'alert tcp any any -> any 80 (msg:"{content}"; sid:1;)'
@@ -85,7 +85,7 @@ class TestRegexLengthBounds:
 
     def test_pcre_pattern_within_bounds(self):
         """Test PCRE_PATTERN accepts patterns under 5000 chars."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         # Long PCRE pattern (but within limit)
         pattern = "a" * 4000
         rule_text = f'alert tcp any any -> any 80 (msg:"Test"; pcre:"/{pattern}/i"; sid:1;)'
@@ -94,7 +94,7 @@ class TestRegexLengthBounds:
 
     def test_hex_string_within_bounds(self):
         """Test HEX_STRING accepts hex values under 5000 pairs."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
         # Hex string with many pairs (but within limit)
         # 1000 pairs = 2000 hex chars
         hex_pairs = " ".join(["FF"] * 1000)
@@ -108,7 +108,7 @@ class TestReDoSPatternPrevention:
 
     def test_reference_id_no_catastrophic_backtracking(self):
         """Test REFERENCE_ID doesn't cause exponential backtracking."""
-        parser = RuleParser(config=ParserConfig.default())
+        parser = LarkRuleParser(config=ParserConfig.default())
 
         # This pattern would cause catastrophic backtracking with old regex:
         # /(?![A-Za-z0-9_]+$)[A-Za-z0-9][A-Za-z0-9_.\/:\-?&=%#~@!+*()]+/
@@ -128,7 +128,7 @@ class TestReDoSPatternPrevention:
 
     def test_pcre_pattern_no_nested_quantifier_explosion(self):
         """Test PCRE_PATTERN doesn't cause nested quantifier explosion."""
-        parser = RuleParser(config=ParserConfig.default())
+        parser = LarkRuleParser(config=ParserConfig.default())
 
         # Pattern with backslash escapes that could trigger backtracking
         # Old pattern: /\/(?:[^\/\\]|\\.)*\/[a-zA-Z]*/
@@ -146,7 +146,7 @@ class TestReDoSPatternPrevention:
 
     def test_generic_tail_bounded_matching(self):
         """Test GENERIC_TAIL has bounded matching behavior."""
-        parser = RuleParser(config=ParserConfig.default())
+        parser = LarkRuleParser(config=ParserConfig.default())
 
         # Long value but under limit - should parse fine
         value = "x" * 500
@@ -181,7 +181,7 @@ class TestTimeoutMechanism:
     def test_normal_rule_parses_within_timeout(self):
         """Test that normal rules parse well within timeout."""
         config = ParserConfig.strict()  # 10 second timeout
-        parser = RuleParser(config=config)
+        parser = LarkRuleParser(config=config)
 
         start_time = time.perf_counter()
         rule_text = 'alert tcp any any -> any 80 (msg:"Normal rule"; sid:1;)'
@@ -195,7 +195,7 @@ class TestTimeoutMechanism:
     def test_complex_rule_parses_within_timeout(self):
         """Test that complex but legitimate rules parse within timeout."""
         config = ParserConfig.default()  # 30 second timeout
-        parser = RuleParser(config=config)
+        parser = LarkRuleParser(config=config)
 
         # Complex rule with many options
         rule_text = (
@@ -222,7 +222,7 @@ class TestTimeoutMechanism:
         import signal
 
         config = ParserConfig.default()
-        parser = RuleParser(config=config)
+        parser = LarkRuleParser(config=config)
 
         # Verify signal module is available
         assert hasattr(signal, "SIGALRM")
@@ -238,7 +238,7 @@ class TestTimeoutMechanism:
             pytest.skip("Windows-specific test")
 
         config = ParserConfig.default()
-        parser = RuleParser(config=config)
+        parser = LarkRuleParser(config=config)
 
         # Normal parse should work
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
@@ -252,7 +252,7 @@ class TestInputValidation:
     def test_rule_length_validation_accepts_normal(self):
         """Test that normal rule lengths are accepted."""
         config = ParserConfig.default()  # max_rule_length = 100_000
-        parser = RuleParser(config=config)
+        parser = LarkRuleParser(config=config)
 
         # Normal length rule
         rule_text = 'alert tcp any any -> any 80 (msg:"Normal"; sid:1;)'
@@ -262,7 +262,9 @@ class TestInputValidation:
     def test_rule_length_validation_rejects_excessive(self):
         """Test that excessively long rules are rejected."""
         config = ParserConfig.strict()  # max_rule_length = 10_000
-        parser = RuleParser(config=config, strict=True)  # Enable strict mode to raise exceptions
+        parser = LarkRuleParser(
+            config=config, strict=True
+        )  # Enable strict mode to raise exceptions
 
         # Create rule exceeding limit
         massive_content = "A" * 15000
@@ -277,7 +279,7 @@ class TestInputValidation:
     def test_option_count_validation_accepts_normal(self):
         """Test that normal option counts are accepted."""
         config = ParserConfig.default()  # max_options = 1000
-        parser = RuleParser(config=config)
+        parser = LarkRuleParser(config=config)
 
         # Rule with reasonable number of options
         rule_text = (
@@ -294,7 +296,7 @@ class TestInputValidation:
         from pathlib import Path
 
         config = ParserConfig.strict()  # max_input_size = 10_000_000 (10 MB)
-        parser = RuleParser(config=config)
+        parser = LarkRuleParser(config=config)
 
         # Create a temporary file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
@@ -352,7 +354,7 @@ class TestConfigurationModes:
             timeout_seconds=5.0,
             max_input_size=5_000_000,
         )
-        parser = RuleParser(config=config, strict=True)  # Enable strict mode
+        parser = LarkRuleParser(config=config, strict=True)  # Enable strict mode
 
         # Should reject rule exceeding custom limit
         from surinort_ast.exceptions import ParseError
@@ -367,7 +369,7 @@ class TestRegressionPrevention:
 
     def test_normal_reference_urls_still_parse(self):
         """Test that legitimate reference URLs still parse correctly."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         test_cases = [
             "https://example.com/path",
@@ -383,7 +385,7 @@ class TestRegressionPrevention:
 
     def test_normal_pcre_patterns_still_parse(self):
         """Test that legitimate PCRE patterns still parse correctly."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         test_cases = [
             "/test/i",
@@ -400,7 +402,7 @@ class TestRegressionPrevention:
 
     def test_complex_real_world_rules_still_parse(self):
         """Test that complex real-world rules still parse after ReDoS fixes."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Real-world Suricata rule example
         rule_text = (
@@ -420,7 +422,7 @@ class TestRegressionPrevention:
 
     def test_hex_content_patterns_still_parse(self):
         """Test that hex content patterns still parse correctly."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         rule_text = (
             "alert tcp any any -> any any "
@@ -432,7 +434,7 @@ class TestRegressionPrevention:
 
     def test_generic_unknown_options_still_parse(self):
         """Test that generic/unknown options still parse correctly."""
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Unknown options that should be caught by generic_option
         rule_text = (

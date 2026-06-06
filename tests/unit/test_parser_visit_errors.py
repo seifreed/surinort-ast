@@ -13,7 +13,7 @@ from lark import Token, Tree
 from lark.exceptions import VisitError
 
 from surinort_ast.core.enums import Dialect
-from surinort_ast.parsing.parser import RuleParser
+from surinort_ast.parsing.lark_parser import LarkRuleParser
 from surinort_ast.parsing.transformer import RuleTransformer
 
 
@@ -25,7 +25,7 @@ def test_parser_visit_error_in_transform():
     When the transformer encounters an error, it raises VisitError.
     This should be caught by the generic LarkError handler at line 236-237.
     """
-    parser = RuleParser(strict=False)
+    parser = LarkRuleParser(strict=False)
 
     # Get the underlying Lark parser
     parser._get_parser()
@@ -62,7 +62,7 @@ def test_parser_handles_all_errors_gracefully():
 
     This ensures the error recovery mechanisms work correctly.
     """
-    parser = RuleParser(strict=False)
+    parser = LarkRuleParser(strict=False)
 
     # Test various invalid inputs
     test_cases = [

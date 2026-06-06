@@ -2,10 +2,8 @@
 Lark-based parser implementation.
 
 This module provides the default IDS rule parser implementation using the Lark
-parsing library. It implements the IParser protocol for dependency inversion.
-
-This implementation is extracted from the original RuleParser to separate
-concerns and enable parser library swapping without breaking existing code.
+parsing library. It implements the IParser protocol for dependency inversion,
+which keeps parsing concerns separate and enables swapping the parser library.
 
 Licensed under GNU General Public License v3.0
 Author: Marc Rivero | @seifreed | mriverolopez@gmail.com

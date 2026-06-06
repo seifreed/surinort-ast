@@ -47,7 +47,7 @@ class TestSerializerPlugin(SerializerPlugin):
 
     def deserialize(self, data: str) -> Rule:
         # Minimal implementation for testing
-        from surinort_ast.parsing import parse_rule
+        from surinort_ast import parse_rule
 
         return parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
@@ -318,7 +318,7 @@ class TestPlugin(SerializerPlugin):
         return "test"
 
     def deserialize(self, data):
-        from surinort_ast.parsing import parse_rule
+        from surinort_ast import parse_rule
         return parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
     def register(self, registry):
@@ -385,7 +385,7 @@ class TestPluginInterfaces:
 
     def test_serializer_roundtrip(self) -> None:
         """Test serializer roundtrip functionality."""
-        from surinort_ast.parsing import parse_rule
+        from surinort_ast import parse_rule
 
         plugin = TestSerializerPlugin()
         rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
@@ -401,7 +401,7 @@ class TestPluginInterfaces:
 
     def test_analyzer_functionality(self) -> None:
         """Test analyzer functionality."""
-        from surinort_ast.parsing import parse_rule
+        from surinort_ast import parse_rule
 
         plugin = TestAnalyzerPlugin()
         rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
@@ -427,7 +427,7 @@ class TestPluginIntegration:
 
     def test_end_to_end_workflow(self) -> None:
         """Test complete plugin workflow."""
-        from surinort_ast.parsing import parse_rule
+        from surinort_ast import parse_rule
 
         # Create and register plugin
         plugin = TestSerializerPlugin()

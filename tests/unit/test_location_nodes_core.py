@@ -22,7 +22,7 @@ from surinort_ast.core.location import Location, Position, Span
 from surinort_ast.core.nodes import ContentOption, IPCIDRRange
 from surinort_ast.core.visitor import ASTWalker
 from surinort_ast.exceptions import ParseError
-from surinort_ast.parsing.parser import RuleParser
+from surinort_ast.parsing.lark_parser import LarkRuleParser
 
 runner = CliRunner()
 
@@ -197,7 +197,7 @@ class TestParserLarkErrorCoverage:
         This tests the generic LarkError exception handler at line 237 which handles
         Lark errors that don't fall into the more specific categories.
         """
-        parser = RuleParser(strict=False)
+        parser = LarkRuleParser(strict=False)
 
         # Create a malformed grammar-level error by breaking parser state
         # Use text that causes internal Lark parsing errors
@@ -217,7 +217,7 @@ class TestParserLarkErrorCoverage:
         Tests the branch where rule.location is None when attaching source metadata.
         Line 525: if rule.location and rule.location.span.start.line:
         """
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         # Parse a valid rule
         rule = parser.parse('alert tcp any any -> any 80 (msg:"test"; sid:1;)')
@@ -465,7 +465,7 @@ class TestRealFileProcessing:
 
         Ensures that incomplete rules at end of file are handled correctly.
         """
-        parser = RuleParser()
+        parser = LarkRuleParser()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
             f.write('alert tcp any any -> any 80 (msg:"complete"; sid:1;)\n')

@@ -11,7 +11,7 @@ Tests must use real IDS rules that trigger specific transformer code paths.
 import pytest
 
 from surinort_ast.core.enums import Dialect
-from surinort_ast.parsing.parser import RuleParser
+from surinort_ast.parsing.lark_parser import LarkRuleParser
 
 
 class TestRealisticTransformerCoverage:
@@ -19,7 +19,7 @@ class TestRealisticTransformerCoverage:
 
     def test_flowint_option_real(self):
         """Test flowint option through real parsing"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         # Use simpler flowint syntax
         rule_text = 'alert tcp any any -> any any (flow:to_server; flowint:http_errors,isset; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
@@ -32,7 +32,7 @@ class TestRealisticTransformerCoverage:
 
     def test_tag_option_real(self):
         """Test tag option through real parsing"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (tag:session,10,seconds; msg:"test"; sid:1; rev:1;)'
         )
@@ -48,7 +48,7 @@ class TestRealisticTransformerCoverage:
         """Test detection_filter with real parsing"""
         from surinort_ast.core.nodes import DetectionFilterOption
 
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (detection_filter:track by_src, count 1, seconds 60; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -63,7 +63,7 @@ class TestRealisticTransformerCoverage:
 
     def test_byte_jump_complex_real(self):
         """Test byte_jump with multiple flags"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (byte_jump:2,0,little,relative,post_offset 10; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -82,7 +82,7 @@ class TestRealisticTransformerCoverage:
 
     def test_byte_test_with_bitmask_real(self):
         """Test byte_test with bitmask option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (byte_test:2,>,100,0,little,bitmask 0x8000; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -100,7 +100,7 @@ class TestRealisticTransformerCoverage:
 
     def test_metadata_multiple_values_real(self):
         """Test metadata with multiple values per key"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (msg:"test"; metadata:key value1 value2 value3; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -111,7 +111,7 @@ class TestRealisticTransformerCoverage:
 
     def test_filestore_with_params_real(self):
         """Test filestore with direction and scope"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert http any any -> any any (filestore:request,file; msg:"test"; sid:1; rev:1;)'
         )
@@ -122,7 +122,7 @@ class TestRealisticTransformerCoverage:
 
     def test_open_ended_port_range_real(self):
         """Test open-ended port range (e.g., 1024:)"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any 1024: (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -131,7 +131,7 @@ class TestRealisticTransformerCoverage:
 
     def test_fast_pattern_with_params_real(self):
         """Test fast_pattern with offset and length"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (content:"test"; fast_pattern:10,20; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -143,7 +143,7 @@ class TestRealisticTransformerCoverage:
 
     def test_urilen_real(self):
         """Test urilen option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert http any any -> any any (urilen:<100; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -155,7 +155,7 @@ class TestRealisticTransformerCoverage:
 
     def test_isdataat_real(self):
         """Test isdataat option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (content:"test"; isdataat:10,relative; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -171,7 +171,7 @@ class TestRealisticTransformerCoverage:
 
     def test_byte_extract_real(self):
         """Test byte_extract option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (byte_extract:2,0,extracted_val,little; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -189,7 +189,7 @@ class TestRealisticTransformerCoverage:
         """Test threshold option"""
         from surinort_ast.core.nodes import ThresholdOption
 
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (threshold:type limit, track by_src, count 1, seconds 60; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -205,7 +205,7 @@ class TestRealisticTransformerCoverage:
 
     def test_flowbits_real(self):
         """Test flowbits option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (flowbits:set,suspicious; msg:"test"; sid:1; rev:1;)'
         )
@@ -218,7 +218,7 @@ class TestRealisticTransformerCoverage:
 
     def test_flowbits_isset_real(self):
         """Test flowbits isset"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (flowbits:isset,suspicious; msg:"test"; sid:1; rev:1;)'
         )
@@ -230,7 +230,7 @@ class TestRealisticTransformerCoverage:
 
     def test_flow_option_real(self):
         """Test flow option with multiple values"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (flow:established,to_server; msg:"test"; sid:1; rev:1;)'
         )
@@ -241,7 +241,7 @@ class TestRealisticTransformerCoverage:
 
     def test_pcre_option_real(self):
         """Test pcre option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (pcre:"/pattern/imsxRU"; msg:"test"; sid:1; rev:1;)'
         )
@@ -257,7 +257,7 @@ class TestRealisticTransformerCoverage:
 
     def test_content_modifiers_real(self):
         """Test content with multiple modifiers"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (content:"test"; depth:100; offset:10; distance:5; within:20; nocase; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -267,7 +267,7 @@ class TestRealisticTransformerCoverage:
 
     def test_buffer_selection_real(self):
         """Test sticky buffer selection"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert http any any -> any any (http.uri; content:"/admin"; msg:"test"; sid:1; rev:1;)'
         )
@@ -279,7 +279,7 @@ class TestRealisticTransformerCoverage:
 
     def test_reference_option_real(self):
         """Test reference option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (reference:cve,2021-12345; msg:"test"; sid:1; rev:1;)'
         )
@@ -308,13 +308,13 @@ class TestRealisticTransformerCoverage:
     )
     def test_snort3_issue_45_rules_parse(self, rule_text: str):
         """Regression for issue #45: valid Snort3 rules must parse."""
-        parser = RuleParser(dialect=Dialect.SNORT3)
+        parser = LarkRuleParser(dialect=Dialect.SNORT3)
         result = parser.parse(rule_text)
         assert result is not None
 
     def test_classtype_option_real(self):
         """Test classtype option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (classtype:trojan-activity; msg:"test"; sid:1; rev:1;)'
         )
@@ -332,7 +332,7 @@ class TestRealisticTransformerCoverage:
 
     def test_gid_option_real(self):
         """Test gid option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (gid:1; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -348,7 +348,7 @@ class TestRealisticTransformerCoverage:
 
     def test_priority_option_real(self):
         """Test priority option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (priority:1; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -360,7 +360,7 @@ class TestRealisticTransformerCoverage:
 
     def test_startswith_option_real(self):
         """Test startswith content modifier"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (content:"GET"; startswith; msg:"test"; sid:1; rev:1;)'
         )
@@ -373,7 +373,7 @@ class TestRealisticTransformerCoverage:
 
     def test_endswith_option_real(self):
         """Test endswith content modifier"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any -> any any (content:"\\r\\n\\r\\n"; endswith; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -384,7 +384,7 @@ class TestRealisticTransformerCoverage:
 
     def test_rawbytes_option_real(self):
         """Test rawbytes content modifier"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (content:"test"; rawbytes; msg:"test"; sid:1; rev:1;)'
         )
@@ -397,7 +397,7 @@ class TestRealisticTransformerCoverage:
 
     def test_hex_content_real(self):
         """Test content with hex pattern"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (content:"|48 65 6c 6c 6f|"; msg:"test"; sid:1; rev:1;)'
         )
@@ -413,7 +413,7 @@ class TestRealisticTransformerCoverage:
 
     def test_ip_range_real(self):
         """Test IP range in address"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp [192.168.1.1-192.168.1.254] any -> any any (msg:"test"; sid:1; rev:1;)'
         )
@@ -424,7 +424,7 @@ class TestRealisticTransformerCoverage:
 
     def test_port_list_real(self):
         """Test port list"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any [80,443,8080] -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -433,7 +433,7 @@ class TestRealisticTransformerCoverage:
 
     def test_address_negation_real(self):
         """Test address negation"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp !192.168.1.1 any -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -442,7 +442,7 @@ class TestRealisticTransformerCoverage:
 
     def test_port_negation_real(self):
         """Test port negation"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any !80 -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -451,7 +451,7 @@ class TestRealisticTransformerCoverage:
 
     def test_ipv6_address_real(self):
         """Test IPv6 address"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp 2001:db8::1 any -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -460,7 +460,7 @@ class TestRealisticTransformerCoverage:
 
     def test_ipv6_cidr_real(self):
         """Test IPv6 CIDR notation"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp 2001:db8::/32 any -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -469,7 +469,7 @@ class TestRealisticTransformerCoverage:
 
     def test_http_protocol_real(self):
         """Test HTTP protocol"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert http any any -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -479,7 +479,7 @@ class TestRealisticTransformerCoverage:
 
     def test_dns_protocol_real(self):
         """Test DNS protocol"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert dns any any -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -489,7 +489,7 @@ class TestRealisticTransformerCoverage:
 
     def test_tls_protocol_real(self):
         """Test TLS protocol"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tls any any -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -499,7 +499,7 @@ class TestRealisticTransformerCoverage:
 
     def test_drop_action_real(self):
         """Test drop action"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'drop tcp any any -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -509,7 +509,7 @@ class TestRealisticTransformerCoverage:
 
     def test_reject_action_real(self):
         """Test reject action"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'reject tcp any any -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -519,7 +519,7 @@ class TestRealisticTransformerCoverage:
 
     def test_pass_action_real(self):
         """Test pass action"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'pass tcp any any -> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -529,7 +529,7 @@ class TestRealisticTransformerCoverage:
 
     def test_bidirectional_real(self):
         """Test bidirectional direction"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any <> any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -539,7 +539,7 @@ class TestRealisticTransformerCoverage:
 
     def test_from_direction_real(self):
         """Test from direction"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = 'alert tcp any any <- any any (msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
         assert result is not None
@@ -549,7 +549,7 @@ class TestRealisticTransformerCoverage:
 
     def test_byte_math_real(self):
         """Test byte_math option"""
-        parser = RuleParser(dialect=Dialect.SURICATA)
+        parser = LarkRuleParser(dialect=Dialect.SURICATA)
         # Use simpler byte_math syntax
         rule_text = 'alert tcp any any -> any any (byte_math:bytes 2,offset 0,oper +,rvalue 10,result var; msg:"test"; sid:1; rev:1;)'
         result = parser.parse(rule_text)
