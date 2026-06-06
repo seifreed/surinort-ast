@@ -11,7 +11,7 @@ Author: Marc Rivero López | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 
 # Import only what's needed at module level to avoid circular dependency
 # Combinator enum and other selector classes imported locally where used
@@ -411,55 +411,105 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
 
 
 # ============================================================================
-# Optimized Executors (Phase 3)
+# Optimized Executors
 # ============================================================================
 
 
 class IndexedQueryExecutor(QueryExecutor):
     """
-    Query executor with pre-computed indices for fast lookups.
+    Query executor with a pre-computed node-type index for fast lookups.
 
-    Builds type and attribute indices during initialization for
-    O(1) lookups instead of O(n) traversals. Useful for repeated
-    queries on large corpora.
-
-    Attributes:
-        type_index: Dict mapping node types to lists of nodes
-        attribute_indices: Dict of attribute-specific indices
+    Builds a ``node_type -> [nodes]`` index over the root once, so that a query
+    consisting of a single exact :class:`TypeSelector` is answered by an index
+    lookup instead of a full traversal. Repeated queries against the same root
+    reuse the index. All other queries (attributes, combinators, subclass
+    matching, unions) delegate to the base traversal so results are identical.
 
     Example:
-        >>> # Build indices for 30K rules
-        >>> executor = IndexedQueryExecutor.build(rules)
-        >>>
-        >>> # Fast type lookup
-        >>> results = executor.execute(chain)  # Uses index, not traversal
-
-    Implementation:
-        Phase 3 (optional): For performance-critical use cases
-        Trade-off: Memory usage vs. query speed
+        >>> executor = IndexedQueryExecutor(chain).index(rules)
+        >>> results = executor.execute(rules)
     """
 
-    # TODO: Implement in Phase 3 (post-MVP)
+    def __init__(self, selector_chain: Any) -> None:
+        super().__init__(selector_chain)
+        self._indexed_root_id: int | None = None
+        self._type_index: dict[str, list[ASTNode]] = {}
+
+    def index(self, root: ASTNode | Sequence[ASTNode]) -> IndexedQueryExecutor:
+        """Pre-build the index for ``root`` and return self for chaining."""
+        self._build_index(root)
+        return self
+
+    def _build_index(self, root: ASTNode | Sequence[ASTNode]) -> None:
+        self._type_index = {}
+        nodes = root if isinstance(root, Sequence) else [root]
+        for node in nodes:
+            self._index_node(node)
+        self._indexed_root_id = id(root)
+
+    def _index_node(self, node: ASTNode) -> None:
+        # Pre-order, mirroring the base traversal so result order is identical.
+        self._type_index.setdefault(node.node_type, []).append(node)
+        for child in self._get_children(node):
+            self._index_node(child)
+
+    def execute(self, root: ASTNode | Sequence[ASTNode]) -> list[ASTNode]:
+        type_name = self._indexable_type()
+        if type_name is None:
+            return super().execute(root)
+        if self._indexed_root_id != id(root):
+            self._build_index(root)
+        return list(self._type_index.get(type_name, []))
+
+    def _indexable_type(self) -> str | None:
+        """Return the type name if this query is a single exact TypeSelector."""
+        from .selectors import TypeSelector
+
+        if self.is_union:
+            return None
+        selectors = self.selector_chain.selectors
+        if len(selectors) != 1:
+            return None
+        selector = selectors[0]
+        if not isinstance(selector, TypeSelector) or selector.match_subclasses:
+            return None
+        return selector.type_name
 
 
 class StreamingQueryExecutor(QueryExecutor):
     """
-    Query executor for streaming/incremental results.
+    Query executor that yields results incrementally.
 
-    Yields results as they are found instead of accumulating them.
-    Useful for large result sets or when processing can start before
-    query completes.
+    For a single, non-pseudo selector the matching nodes are yielded as they are
+    encountered during traversal, so a consumer can start processing before the
+    whole tree is walked. Combinator chains, unions, and pseudo-selectors need
+    full execution context and fall back to eager evaluation, yielding from the
+    completed result list.
 
     Example:
         >>> executor = StreamingQueryExecutor(chain)
-        >>> for node in executor.execute_stream(rules):
+        >>> for node in executor.execute_stream(rule):
         ...     process(node)  # Process incrementally
-
-    Implementation:
-        Phase 3 (optional): For memory-constrained environments
     """
 
-    # TODO: Implement in Phase 3 (post-MVP)
+    def execute_stream(self, root: ASTNode | Sequence[ASTNode]) -> Iterator[ASTNode]:
+        """Yield matching nodes, incrementally where possible."""
+        from .selectors import PseudoSelector
+
+        selectors = None if self.is_union else self.selector_chain.selectors
+        if selectors and len(selectors) == 1 and not isinstance(selectors[0], PseudoSelector):
+            selector = selectors[0]
+            nodes = root if isinstance(root, Sequence) else [root]
+            for node in nodes:
+                yield from self._stream_node(node, selector)
+        else:
+            yield from self.execute(root)
+
+    def _stream_node(self, node: ASTNode, selector: Any) -> Iterator[ASTNode]:
+        if selector.matches(node):
+            yield node
+        for child in self._get_children(node):
+            yield from self._stream_node(child, selector)
 
 
 # ============================================================================
@@ -606,47 +656,140 @@ class ExecutionContext:
 
 
 # ============================================================================
-# Performance Utilities (Phase 3)
+# Performance Utilities
 # ============================================================================
 
 
-def estimate_query_cost(selector_chain: Any) -> int:  # SelectorChain type
-    """
-    Estimate computational cost of query.
+# Relative cost weights used by estimate_query_cost (higher = more expensive).
+_COMPARISON_OPERATORS = frozenset({">", "<", ">=", "<="})
+_STRING_OPERATORS = frozenset({"*=", "^=", "$="})
+_COMBINATOR_WEIGHTS = {" ": 3, ">": 1, "+": 1, "~": 2}
+# Selectivity rank for fail-fast ordering (lower = more selective, evaluated first).
+_SELECTIVITY_RANK = {"type": 0, "attribute_eq": 1, "attribute_cmp": 2, "pseudo": 3, "universal": 4}
 
-    Returns cost estimate for query execution, useful for
-    optimization decisions.
+
+def _selector_cost(selector: Any) -> int:
+    from .selectors import (
+        AttributeSelector,
+        CompoundSelector,
+        PseudoSelector,
+        TypeSelector,
+        UniversalSelector,
+    )
+
+    if isinstance(selector, TypeSelector):
+        return 2 if selector.match_subclasses else 1
+    if isinstance(selector, UniversalSelector):
+        return 5
+    if isinstance(selector, AttributeSelector):
+        if selector.operator in _STRING_OPERATORS:
+            return 4
+        if selector.operator in _COMPARISON_OPERATORS:
+            return 3
+        return 2
+    if isinstance(selector, PseudoSelector):
+        return 5
+    if isinstance(selector, CompoundSelector):
+        return sum(_selector_cost(inner) for inner in selector.selectors)
+    return 1
+
+
+def estimate_query_cost(selector_chain: Any) -> int:
+    """
+    Estimate the relative computational cost of executing a query.
+
+    The estimate is a heuristic: each selector contributes a base cost (cheap
+    exact type matches up to expensive string/pseudo matches), scaled by the
+    weight of the combinator that follows it (a descendant combinator walks the
+    whole subtree and so costs more than a child/adjacent combinator). Higher
+    means more expensive. Useful for comparing alternative formulations of the
+    same query.
 
     Args:
-        selector_chain: Selector chain to estimate
+        selector_chain: A SelectorChain or UnionSelector.
 
     Returns:
-        Cost estimate (higher = more expensive)
-
-    Implementation:
-        Phase 3: Heuristic-based cost model
+        A non-negative cost estimate.
     """
-    # TODO: Implement in Phase 3
-    return 0
+    from .parser import SelectorChain
+    from .selectors import UnionSelector
+
+    if isinstance(selector_chain, UnionSelector):
+        return sum(estimate_query_cost(sub) for sub in selector_chain.selectors)
+    if not isinstance(selector_chain, SelectorChain):
+        return 0
+
+    total = 0
+    combinators = selector_chain.combinators
+    for index, selector in enumerate(selector_chain.selectors):
+        cost = _selector_cost(selector)
+        if index < len(combinators):
+            cost *= _COMBINATOR_WEIGHTS.get(_combinator_symbol(combinators[index]), 1)
+        total += cost
+    return total
 
 
-def optimize_selector_chain(selector_chain: Any) -> Any:  # SelectorChain type
+def _combinator_symbol(combinator: Any) -> str:
+    return getattr(combinator, "value", str(combinator))
+
+
+def _selectivity_key(selector: Any) -> int:
+    from .selectors import (
+        AttributeSelector,
+        PseudoSelector,
+        TypeSelector,
+        UniversalSelector,
+    )
+
+    if isinstance(selector, TypeSelector):
+        return _SELECTIVITY_RANK["type"]
+    if isinstance(selector, AttributeSelector):
+        if selector.operator == "=":
+            return _SELECTIVITY_RANK["attribute_eq"]
+        return _SELECTIVITY_RANK["attribute_cmp"]
+    if isinstance(selector, PseudoSelector):
+        return _SELECTIVITY_RANK["pseudo"]
+    if isinstance(selector, UniversalSelector):
+        return _SELECTIVITY_RANK["universal"]
+    return _SELECTIVITY_RANK["attribute_cmp"]
+
+
+def _optimize_compound(selector: Any) -> Any:
+    """Reorder a compound selector fail-fast first and drop duplicates (AND commutes)."""
+    from .selectors import CompoundSelector
+
+    if not isinstance(selector, CompoundSelector):
+        return selector
+    unique: list[Any] = []
+    for inner in selector.selectors:
+        if inner not in unique:
+            unique.append(inner)
+    unique.sort(key=_selectivity_key)
+    return CompoundSelector(unique)
+
+
+def optimize_selector_chain(selector_chain: Any) -> Any:
     """
-    Optimize selector chain for faster execution.
+    Rewrite a selector chain for cheaper execution, preserving its result set.
 
-    Applies optimizations like:
-        - Reordering compound selectors (fail-fast first)
-        - Combining adjacent type selectors
-        - Simplifying redundant conditions
+    Only semantics-preserving transformations are applied: within each compound
+    selector (a logical AND, which commutes) the most selective sub-selectors
+    are evaluated first and exact duplicates are removed. The order of selectors
+    across combinators is never changed.
 
     Args:
-        selector_chain: Original selector chain
+        selector_chain: A SelectorChain or UnionSelector.
 
     Returns:
-        Optimized selector chain
-
-    Implementation:
-        Phase 3: Query optimization pass
+        An equivalent, optimized selector chain.
     """
-    # TODO: Implement in Phase 3
-    return selector_chain
+    from .parser import SelectorChain
+    from .selectors import UnionSelector
+
+    if isinstance(selector_chain, UnionSelector):
+        return UnionSelector([optimize_selector_chain(sub) for sub in selector_chain.selectors])
+    if not isinstance(selector_chain, SelectorChain):
+        return selector_chain
+
+    optimized = [_optimize_compound(selector) for selector in selector_chain.selectors]
+    return SelectorChain(optimized, list(selector_chain.combinators))
