@@ -15,7 +15,17 @@ from typing import Any
 
 from pydantic import TypeAdapter
 
-from surinort_ast.core.nodes import Rule
+from surinort_ast.core.enums import Action, Dialect, Direction, Protocol
+from surinort_ast.core.nodes import (
+    AnyAddress,
+    AnyPort,
+    Header,
+    MsgOption,
+    Port,
+    RevOption,
+    Rule,
+    SidOption,
+)
 from surinort_ast.version import __ast_version__, __version__
 
 
@@ -206,30 +216,34 @@ class SchemaGenerator:
 
     def _generate_examples(self) -> list[dict[str, Any]]:
         """
-        Generate example rule objects for schema.
+        Generate example rule objects for the schema.
+
+        The example is built from a real Rule and serialized the same way as the
+        JSON serializer, so it always matches the current model (the ``type``
+        discriminator, the discriminated address/port unions, ...) and validates
+        against the generated schema rather than drifting out of sync with it.
 
         Returns:
             List of example rule dictionaries
         """
-        return [
-            {
-                "action": "alert",
-                "header": {
-                    "protocol": "tcp",
-                    "src_addr": {"value": "any"},
-                    "src_port": {"value": "any"},
-                    "direction": "->",
-                    "dst_addr": {"value": "any"},
-                    "dst_port": {"value": 80},
-                },
-                "options": [
-                    {"text": "HTTP Traffic", "node_type": "MsgOption"},
-                    {"value": 1000001, "node_type": "SidOption"},
-                    {"value": 1, "node_type": "RevOption"},
-                ],
-                "dialect": "suricata",
-            }
-        ]
+        example = Rule(
+            action=Action.ALERT,
+            header=Header(
+                protocol=Protocol.TCP,
+                src_addr=AnyAddress(),
+                src_port=AnyPort(),
+                direction=Direction.TO,
+                dst_addr=AnyAddress(),
+                dst_port=Port(value=80),
+            ),
+            options=[
+                MsgOption(text="HTTP Traffic"),
+                SidOption(value=1000001),
+                RevOption(value=1),
+            ],
+            dialect=Dialect.SURICATA,
+        )
+        return [example.model_dump(mode="json", exclude_none=False)]
 
 
 # Convenience functions

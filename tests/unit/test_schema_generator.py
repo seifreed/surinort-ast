@@ -74,6 +74,23 @@ class TestSchemaGenerator:
         assert "header" in example
         assert "options" in example
 
+    def test_schema_examples_validate_against_model(self):
+        """Embedded examples must be valid Rules (use the 'type' discriminator).
+
+        Regression: the example was hardcoded with the wrong discriminator
+        ('node_type') and pre-discriminated-union address/port shapes, so it
+        failed validation against the very schema/model it illustrated.
+        """
+        from pydantic import TypeAdapter
+
+        from surinort_ast.core.nodes import Rule
+
+        schema = SchemaGenerator(include_examples=True).generate_schema()
+        adapter = TypeAdapter(Rule)
+        for example in schema["examples"]:
+            # Raises if the example does not match the Rule model.
+            adapter.validate_python(example)
+
     def test_generate_schema_without_examples(self):
         """Test schema generation without examples."""
         generator = SchemaGenerator(include_examples=False)
