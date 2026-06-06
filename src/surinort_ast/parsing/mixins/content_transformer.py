@@ -42,6 +42,7 @@ from ...core.nodes import (
     StartswithOption,
     WithinOption,
 )
+from ..helpers import token_to_str
 from .options._helpers import parse_quoted_string
 
 logger = logging.getLogger(__name__)
@@ -275,6 +276,10 @@ class ContentTransformerMixin:
         Snort3 Syntax:
             content:("pattern", depth 10, nocase)
         """
+        return self._build_content_option(items)
+
+    def _build_content_option(self, items: Sequence[Any]) -> ContentOption:
+        """Assemble a ContentOption from a content/uricontent item list."""
         negated, rest = self._split_content_negation(items)
         content_value = rest[0]
         modifiers = self._merge_fast_pattern_modifiers(list(rest[1:]))
@@ -299,10 +304,7 @@ class ContentTransformerMixin:
             DiagnosticLevel.WARNING,
             "uricontent is deprecated, use content with http_uri buffer",
         )
-        negated, rest = self._split_content_negation(items)
-        content_value = rest[0]
-        modifiers = self._merge_fast_pattern_modifiers(list(rest[1:]))
-        return ContentOption(pattern=content_value, modifiers=modifiers, negated=negated)
+        return self._build_content_option(items)
 
     @v_args(inline=True)
     def content_value(self, value_token: Token) -> bytes:
@@ -573,12 +575,7 @@ class ContentTransformerMixin:
         Usage:
             depth:N - Search only first N bytes of payload
         """
-        value: int | str
-        try:
-            value = int(depth_token.value)
-        except ValueError:
-            value = str(depth_token.value)
-        return DepthOption(value=value)
+        return DepthOption(value=_token_to_int_or_str(depth_token))
 
     @v_args(inline=True)
     def offset_option(self, offset_token: Token) -> OffsetOption:
@@ -594,12 +591,7 @@ class ContentTransformerMixin:
         Usage:
             offset:N - Skip first N bytes before searching
         """
-        value: int | str
-        try:
-            value = int(offset_token.value)
-        except ValueError:
-            value = str(offset_token.value)
-        return OffsetOption(value=value)
+        return OffsetOption(value=_token_to_int_or_str(offset_token))
 
     def distance_option(self, items: list[Any]) -> DistanceOption:
         """
@@ -615,15 +607,9 @@ class ContentTransformerMixin:
             distance:N - Relative offset from previous match (can be negative)
         """
         negative = len(items) == 2
-        token = items[-1]
-        value: int | str
-        try:
-            value = int(token.value)
-            if negative:
-                value = -value
-        except ValueError:
-            text = str(token.value)
-            value = f"-{text}" if negative else text
+        value = _token_to_int_or_str(items[-1])
+        if negative:
+            value = -value if isinstance(value, int) else f"-{value}"
         return DistanceOption(value=value)
 
     @v_args(inline=True)
@@ -640,12 +626,7 @@ class ContentTransformerMixin:
         Usage:
             within:N - Limit search to N bytes after previous match
         """
-        value: int | str
-        try:
-            value = int(within_token.value)
-        except ValueError:
-            value = str(within_token.value)
-        return WithinOption(value=value)
+        return WithinOption(value=_token_to_int_or_str(within_token))
 
     def startswith_option(self, _: Any) -> StartswithOption:
         """
@@ -761,24 +742,22 @@ class ContentTransformerMixin:
         """Pass through byte_test value (number or variable name)."""
         return items[0] if items else Token("INT", "0")
 
-    def byte_test_offset(self, items: Sequence[Token]) -> str:
-        """
-        Handle byte_test offset with optional negative sign.
+    @staticmethod
+    def _signed_offset(items: Sequence[Any]) -> str:
+        """Format an offset token list that may carry a leading negative sign.
 
-        Args:
-            items: ["-", number] or [number]
-
-        Returns:
-            Offset string with sign
+        ``[neg_sign, value]`` -> ``"-value"``, ``[value]`` -> ``"value"`` and an
+        empty list -> ``"0"``. Shared by byte_test/byte_jump/byte_extract.
         """
         if len(items) == 2:
-            # Negative offset: "-" followed by number
-            value = items[1].value if isinstance(items[1], Token) else items[1]
-            return f"-{value}"
+            return f"-{token_to_str(items[1])}"
         if len(items) == 1:
-            # Positive offset
-            return str(items[0].value if isinstance(items[0], Token) else items[0])
+            return token_to_str(items[0])
         return "0"
+
+    def byte_test_offset(self, items: Sequence[Token]) -> str:
+        """Handle byte_test offset with optional negative sign."""
+        return self._signed_offset(items)
 
     def byte_test_flag(self, items: Sequence[Token]) -> str:
         """
@@ -877,21 +856,8 @@ class ContentTransformerMixin:
         return items
 
     def byte_jump_offset(self, items: Sequence[Any]) -> str:
-        """
-        Handle byte_jump offset with optional negative sign or variable name.
-
-        Args:
-            items: ["-", value] or [value]
-
-        Returns:
-            Offset string preserving sign
-        """
-        if len(items) == 2:
-            value = items[1].value if isinstance(items[1], Token) else items[1]
-            return f"-{value}"
-        if len(items) == 1:
-            return str(items[0].value if isinstance(items[0], Token) else items[0])
-        return "0"
+        """Handle byte_jump offset with optional negative sign or variable name."""
+        return self._signed_offset(items)
 
     def byte_jump_flag(self, items: Sequence[Any]) -> Sequence[Any]:
         """Resolve a byte_jump flag and its optional (possibly negative) argument.
@@ -934,20 +900,8 @@ class ContentTransformerMixin:
         return items
 
     def byte_extract_offset(self, items: Sequence[Token]) -> str:
-        """
-        Handle byte_extract offset with optional negative sign.
-
-        Args:
-            items: ["-", INT] or [INT]
-
-        Returns:
-            Offset string preserving sign.
-        """
-        if len(items) == 2:
-            return f"-{items[1].value}"
-        if len(items) == 1:
-            return str(items[0].value)
-        return "0"
+        """Handle byte_extract offset with optional negative sign."""
+        return self._signed_offset(items)
 
     def byte_math_option(self, items: Sequence[Any]) -> GenericOption:
         """
