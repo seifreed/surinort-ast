@@ -92,11 +92,13 @@ class Header(ASTNode):
     """
 
     protocol: Protocol
-    src_addr: AddressExpr
-    src_port: PortExpr
+    # Discriminated unions (resolved after the subclasses are defined) so the
+    # concrete address/port subtype survives JSON serialization and round-trips.
+    src_addr: DiscriminatedAddress
+    src_port: DiscriminatedPort
     direction: Direction
-    dst_addr: AddressExpr
-    dst_port: PortExpr
+    dst_addr: DiscriminatedAddress
+    dst_port: DiscriminatedPort
 
 
 class Rule(ASTNode):
@@ -132,6 +134,7 @@ class AddressExpr(ASTNode):
 class IPAddress(AddressExpr):
     """Single IP: 192.168.1.1 or 2001:db8::1"""
 
+    type: Literal["IPAddress"] = "IPAddress"
     value: str
     version: Literal[4, 6]
 
@@ -139,6 +142,7 @@ class IPAddress(AddressExpr):
 class IPCIDRRange(AddressExpr):
     """CIDR range: 10.0.0.0/8"""
 
+    type: Literal["IPCIDRRange"] = "IPCIDRRange"
     network: str
     prefix_len: int = Field(ge=0, le=128)
 
@@ -146,6 +150,7 @@ class IPCIDRRange(AddressExpr):
 class IPRange(AddressExpr):
     """Explicit range: [10.0.0.1-10.0.0.255]"""
 
+    type: Literal["IPRange"] = "IPRange"
     start: str
     end: str
 
@@ -153,23 +158,28 @@ class IPRange(AddressExpr):
 class AddressVariable(AddressExpr):
     """Variable reference: $HOME_NET"""
 
+    type: Literal["AddressVariable"] = "AddressVariable"
     name: str
 
 
 class AddressNegation(AddressExpr):
     """Negation: !192.168.1.1"""
 
-    expr: AddressExpr
+    type: Literal["AddressNegation"] = "AddressNegation"
+    expr: DiscriminatedAddress
 
 
 class AddressList(AddressExpr):
     """List: [192.168.1.0/24,10.0.0.0/8]"""
 
-    elements: Sequence[AddressExpr]
+    type: Literal["AddressList"] = "AddressList"
+    elements: Sequence[DiscriminatedAddress]
 
 
 class AnyAddress(AddressExpr):
     """Wildcard: any"""
+
+    type: Literal["AnyAddress"] = "AnyAddress"
 
 
 # ============================================================================
@@ -184,12 +194,14 @@ class PortExpr(ASTNode):
 class Port(PortExpr):
     """Single port: 80"""
 
+    type: Literal["Port"] = "Port"
     value: int = Field(ge=0, le=65535)
 
 
 class PortRange(PortExpr):
     """Port range: 1024:65535"""
 
+    type: Literal["PortRange"] = "PortRange"
     start: int = Field(ge=0, le=65535)
     end: int = Field(ge=0, le=65535)
 
@@ -205,23 +217,28 @@ class PortRange(PortExpr):
 class PortVariable(PortExpr):
     """Variable: $HTTP_PORTS"""
 
+    type: Literal["PortVariable"] = "PortVariable"
     name: str
 
 
 class PortNegation(PortExpr):
     """Negation: !80"""
 
-    expr: PortExpr
+    type: Literal["PortNegation"] = "PortNegation"
+    expr: DiscriminatedPort
 
 
 class PortList(PortExpr):
     """List: [80,443,8080:8090]"""
 
-    elements: Sequence[PortExpr]
+    type: Literal["PortList"] = "PortList"
+    elements: Sequence[DiscriminatedPort]
 
 
 class AnyPort(PortExpr):
     """Wildcard: any"""
+
+    type: Literal["AnyPort"] = "AnyPort"
 
 
 # ============================================================================
@@ -730,10 +747,18 @@ RuleOption = Union[
     GenericOption,
 ]
 
-# Discriminated union for proper JSON serialization/deserialization
-# This is used in the Rule.options field via forward reference
+# Discriminated unions for proper JSON serialization/deserialization.
+# Used via forward references in Header, the recursive address/port nodes,
+# and Rule.options.
+DiscriminatedAddress = Annotated[AddressExpression, Field(discriminator="type")]
+DiscriminatedPort = Annotated[PortExpression, Field(discriminator="type")]
 DiscriminatedOption = Annotated[RuleOption, Field(discriminator="type")]
 
-# Now that DiscriminatedOption is defined, rebuild the Rule model
-# This resolves the forward reference "Sequence[DiscriminatedOption]"
+# Now that the discriminated unions are defined, rebuild the models that
+# reference them through forward references.
+AddressNegation.model_rebuild()
+AddressList.model_rebuild()
+PortNegation.model_rebuild()
+PortList.model_rebuild()
+Header.model_rebuild()
 Rule.model_rebuild()

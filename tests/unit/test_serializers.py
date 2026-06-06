@@ -318,3 +318,28 @@ class TestDeterministicJSON:
 
         # All outputs should be identical
         assert all(output == json_outputs[0] for output in json_outputs)
+
+
+class TestHeaderRoundtrip:
+    """Regression tests for header address/port serialization fidelity."""
+
+    def test_header_addresses_and_ports_survive_roundtrip(
+        self, lark_parser: Lark, transformer: RuleTransformer
+    ):
+        """to_json/from_json must preserve concrete address/port subtypes.
+
+        Regression: Header fields were typed as the abstract AddressExpr/PortExpr
+        bases, so Pydantic serialized only the base fields and dropped every IP,
+        port, list and negation; the round-trip lost the whole header structure.
+        """
+        rule_text = (
+            'alert tcp 192.168.1.1 1234 -> [10.0.0.1,10.0.0.2] !80 (msg:"Test"; sid:1; rev:1;)'
+        )
+        original = transformer.transform(lark_parser.parse(rule_text))[0]
+
+        restored = from_json(to_json(original))
+
+        assert restored == original
+        assert restored.header.src_addr.value == "192.168.1.1"
+        assert [e.value for e in restored.header.dst_addr.elements] == ["10.0.0.1", "10.0.0.2"]
+        assert restored.header.dst_port.expr.value == 80
