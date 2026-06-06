@@ -267,8 +267,9 @@ byte_test_option: "byte_test" ":" byte_test_params
 byte_test_params: number "," byte_test_operator "," byte_test_value "," byte_test_offset ("," byte_test_flag)*
 byte_test_value: number | WORD | REFERENCE_ID  // Support variables from byte_extract
 byte_test_offset: neg_sign? (number | WORD | REFERENCE_ID)  // Support negative offsets and variables
-byte_test_flag: "bitmask" (number | WORD)  // bitmask 0x8000 (space-separated)
+byte_test_flag: BITMASK_KW (number | WORD)  // bitmask 0x8000 (space-separated)
               | WORD  // Regular flags like "relative", "little", etc.
+BITMASK_KW: "bitmask"
 byte_test_operator: BYTE_TEST_OP | WORD
 
 // Byte test operators - must come before other terminals to match correctly

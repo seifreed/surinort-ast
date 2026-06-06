@@ -131,3 +131,15 @@ class TestByteOperationOffsetSigns:
             'alert tcp any any -> any any (content:"x"; byte_extract:4,-2,var,relative; sid:1;)'
         )
         assert self._generic(rule, "byte_extract") == "4,-2,var,relative"
+
+    def test_byte_test_bitmask_keyword_preserved(self):
+        """The 'bitmask' keyword must not be dropped from a byte_test flag.
+
+        Regression: the grammar's anonymous "bitmask" literal was filtered by
+        Lark, so byte_test:...,bitmask 0x8000 serialized as '...,0x8000'.
+        """
+        rule = parse_rule(
+            "alert tcp any any -> any any "
+            '(content:"x"; byte_test:2,&,1,0,relative,bitmask 0x8000; sid:1;)'
+        )
+        assert self._generic(rule, "byte_test") == "2,&,1,0,relative,bitmask 0x8000"
