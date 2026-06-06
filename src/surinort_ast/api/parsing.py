@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Sequence
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -401,7 +401,10 @@ def _parse_file_parallel(
             for batch in batches
         ]
 
-        for fut in as_completed(futures):
+        # Collect in submission order so the returned rules preserve file order
+        # regardless of the order in which worker batches finish. Rule order is
+        # semantically significant (e.g. shadowing/conflict detection).
+        for fut in futures:
             batch_results = fut.result()
             for ln, parsed_rule, err in batch_results:
                 if parsed_rule is not None:

@@ -168,6 +168,27 @@ class TestParseFile:
         finally:
             temp_path.unlink()
 
+    def test_parse_file_parallel_preserves_file_order(self):
+        """Parallel parsing must return rules in file order, not batch-completion
+        order. Worker batches finish out of order, so collecting them as they
+        complete used to scramble rule order (significant for shadowing/conflict
+        detection)."""
+        from surinort_ast.core.nodes import extract_sid
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".rules", delete=False, encoding="utf-8"
+        ) as f:
+            for i in range(1, 501):
+                f.write(f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)\n')
+            temp_path = Path(f.name)
+
+        try:
+            # Many small batches across several workers maximizes reordering risk.
+            rules = parse_file(temp_path, workers=4, batch_size=25)
+            assert [extract_sid(r) for r in rules] == list(range(1, 501))
+        finally:
+            temp_path.unlink()
+
     def test_parse_file_with_errors_partial_success(self):
         """Test file parsing with some malformed rules."""
         with tempfile.NamedTemporaryFile(
