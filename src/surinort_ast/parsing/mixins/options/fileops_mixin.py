@@ -15,9 +15,23 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from lark import Token
+from lark import Token, Tree
 
 from ....core.nodes import FilestoreOption, GenericOption
+
+
+def _atom_text(item: Any) -> str:
+    """Extract the textual value of a tag/flags atom.
+
+    Atoms may arrive as already-transformed strings, raw ``Token``s, or — if a
+    sub-rule is left untransformed — as a ``Tree`` whose single child carries
+    the token; all three are reduced to their text.
+    """
+    if isinstance(item, Token):
+        return str(item.value).strip()
+    if isinstance(item, Tree):
+        return "".join(_atom_text(child) for child in item.children).strip()
+    return str(item).strip()
 
 
 class FileOperationsOptionsMixin:
@@ -112,12 +126,12 @@ class FileOperationsOptionsMixin:
         Use Case:
             Capture related packets after alert triggers for forensic analysis.
         """
-        value_str = ""
-        if items:
-            tok = items[0]
-            value_str = str(tok.value) if isinstance(tok, Token) else str(tok)
-            value_str = value_str.strip()
+        value_str = ",".join(_atom_text(item) for item in items)
         return GenericOption(keyword="tag", value=value_str, raw=f"tag:{value_str}")
+
+    def tag_atom(self, items: Sequence[Any]) -> str:
+        """Collapse a tag_atom sub-tree to its token text."""
+        return _atom_text(items[0]) if items else ""
 
     # ========================================================================
     # TCP Flags Options
@@ -159,9 +173,9 @@ class FileOperationsOptionsMixin:
         Use Case:
             Detect specific TCP handshake patterns, port scans, or anomalies.
         """
-        value = ""
-        if items:
-            tok = items[0]
-            value = str(tok.value) if isinstance(tok, Token) else str(tok)
-            value = value.strip()
+        value = ",".join(_atom_text(item) for item in items)
         return GenericOption(keyword="flags", value=value, raw=f"flags:{value}")
+
+    def flags_atom(self, items: Sequence[Any]) -> str:
+        """Collapse a flags_atom sub-tree to its token text."""
+        return _atom_text(items[0]) if items else ""

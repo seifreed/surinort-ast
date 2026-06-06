@@ -286,7 +286,7 @@ class TestEmptyAndCommentHandling:
 
         assert isinstance(rule, Rule)
         # Comment lines should be skipped/handled
-        assert len(rule.diagnostics) > 0 or rule.options == []
+        assert len(rule.diagnostics) > 0 or rule.options == ()
 
     def test_parse_comment_line_with_file_path(self):
         """Parse comment with file path tracking."""
@@ -777,7 +777,7 @@ class TestDiagnosticMerging:
         # Rule should be valid
         assert isinstance(rule, Rule)
         # Diagnostics might be empty or contain warnings
-        assert isinstance(rule.diagnostics, list)
+        assert isinstance(rule.diagnostics, tuple)
 
 
 class TestMultipleDialects:
@@ -1088,7 +1088,7 @@ class TestSpecificErrorPaths:
         # Rule should be valid
         assert isinstance(rule, Rule)
         # Diagnostics is a list (may be empty or have warnings)
-        assert isinstance(rule.diagnostics, list)
+        assert isinstance(rule.diagnostics, tuple)
 
     def test_error_recovery_with_file_path_in_error(self):
         """Test error recovery preserves file path in error location."""
@@ -1275,7 +1275,7 @@ class TestSpecificErrorPaths:
         # Rule should be valid
         assert isinstance(rule, Rule)
         # Diagnostics should be a list
-        assert isinstance(rule.diagnostics, list)
+        assert isinstance(rule.diagnostics, tuple)
 
     def test_handle_parse_error_with_expected_tokens(self):
         """Test error handling extracts expected tokens from error."""

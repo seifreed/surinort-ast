@@ -583,3 +583,42 @@ class TestComplexRules:
         has_content = any(isinstance(opt, ContentOption) for opt in rule.options)
         has_pcre = any(isinstance(opt, PcreOption) for opt in rule.options)
         assert has_content or has_pcre  # At least one should be present
+
+
+class TestFlagsAndTagAtoms:
+    """flags:/tag: must keep all atoms and re-serialize cleanly (no Tree leaks)."""
+
+    def _option(self, rule_text: str, keyword: str):
+        rule = parse_rule(rule_text)
+        return next(o for o in rule.options if getattr(o, "keyword", None) == keyword)
+
+    @pytest.mark.parametrize(
+        ("rule_text", "keyword", "expected"),
+        [
+            ("alert tcp any any -> any any (flags:S; sid:1;)", "flags", "S"),
+            ("alert tcp any any -> any any (flags:SA,12; sid:1;)", "flags", "SA,12"),
+            ("alert tcp any any -> any any (flags:!A; sid:1;)", "flags", "!A"),
+            (
+                "alert tcp any any -> any any (tag:session,10,packets; sid:1;)",
+                "tag",
+                "session,10,packets",
+            ),
+            (
+                "alert tcp any any -> any any (tag:host,60,seconds,src; sid:1;)",
+                "tag",
+                "host,60,seconds,src",
+            ),
+        ],
+    )
+    def test_atoms_preserved(self, rule_text, keyword, expected):
+        option = self._option(rule_text, keyword)
+        assert "Tree(" not in option.value
+        assert option.value == expected
+
+    def test_flags_round_trips(self):
+        from surinort_ast.printer import print_rule
+
+        text = "alert tcp any any -> any any (flags:SA,12; sid:1;)"
+        printed = print_rule(parse_rule(text))
+        assert "Tree(" not in printed
+        assert print_rule(parse_rule(printed)) == printed

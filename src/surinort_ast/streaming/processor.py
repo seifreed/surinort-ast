@@ -337,7 +337,7 @@ class ValidateProcessor(StreamProcessor):
                 logger.error(f"Custom validator error: {e}")
 
         # Update rule with diagnostics
-        if diagnostics != rule.diagnostics:
+        if diagnostics != list(rule.diagnostics):
             rule = rule.model_copy(update={"diagnostics": diagnostics})
 
         # Filter if strict and has errors

@@ -413,3 +413,40 @@ class TestStrictValidation:
         """Wrong field types should be rejected."""
         with pytest.raises(ValidationError):
             Port(value="not_a_number")  # type: ignore
+
+
+class TestNodeImmutabilityAndHashing:
+    """Frozen AST nodes must be hashable and reject in-place sequence mutation."""
+
+    def _rule(self):
+        from surinort_ast import parse_rule
+
+        return parse_rule(
+            "alert tcp [1.1.1.1,2.2.2.2] any -> any 80 "
+            '(content:"x"; nocase; flowbits:set,a; sid:1;)'
+        )
+
+    def test_leaf_node_hashable(self):
+        from surinort_ast.core.nodes import SidOption
+
+        assert len({SidOption(value=1), SidOption(value=1)}) == 1
+
+    def test_full_rule_hashable_and_equal_rules_share_hash(self):
+        a = self._rule()
+        b = self._rule()
+        assert a == b
+        assert hash(a) == hash(b)
+        assert len({a, b}) == 1
+
+    def test_sequence_fields_are_tuples(self):
+        rule = self._rule()
+        assert isinstance(rule.options, tuple)
+        assert isinstance(rule.diagnostics, tuple)
+        assert isinstance(rule.header.src_addr.elements, tuple)
+
+    def test_sequence_fields_reject_in_place_mutation(self):
+        from surinort_ast.core.nodes import AnyAddress
+
+        node = AnyAddress()
+        with pytest.raises(AttributeError):
+            node.comments.append("x")

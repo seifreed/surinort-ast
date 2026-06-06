@@ -8,7 +8,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from .enums import DiagnosticLevel
 from .location import Location
@@ -25,6 +25,8 @@ class Diagnostic(BaseModel):
         code: Optional error code (e.g., E001, W003)
         hint: Optional suggestion for fixing
     """
+
+    model_config = ConfigDict(frozen=True)
 
     level: DiagnosticLevel
     message: str

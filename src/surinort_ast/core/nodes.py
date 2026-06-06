@@ -11,7 +11,6 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import base64
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
@@ -56,7 +55,7 @@ class ASTNode(BaseModel):
     )
 
     location: Location | None = None
-    comments: Sequence[str] = Field(default_factory=list)
+    comments: tuple[str, ...] = Field(default_factory=tuple)
 
     @property
     def node_type(self) -> str:
@@ -114,12 +113,12 @@ class Rule(ASTNode):
     header: Header
     # Note: options type will be updated after all Option subclasses are defined
     # See DiscriminatedOption type alias at the end of this file
-    options: Sequence[DiscriminatedOption]  # Forward reference
+    options: tuple[DiscriminatedOption, ...]  # Forward reference
     dialect: Dialect = Dialect.SURICATA
 
     # Metadata
     origin: SourceOrigin | None = None
-    diagnostics: Sequence[Diagnostic] = Field(default_factory=list)
+    diagnostics: tuple[Diagnostic, ...] = Field(default_factory=tuple)
     raw_text: str | None = None  # Original rule text
 
 
@@ -174,7 +173,7 @@ class AddressList(AddressExpr):
     """List: [192.168.1.0/24,10.0.0.0/8]"""
 
     type: Literal["AddressList"] = "AddressList"
-    elements: Sequence[DiscriminatedAddress]
+    elements: tuple[DiscriminatedAddress, ...]
 
 
 class AnyAddress(AddressExpr):
@@ -233,7 +232,7 @@ class PortList(PortExpr):
     """List: [80,443,8080:8090]"""
 
     type: Literal["PortList"] = "PortList"
-    elements: Sequence[DiscriminatedPort]
+    elements: tuple[DiscriminatedPort, ...]
 
 
 class AnyPort(PortExpr):
@@ -256,6 +255,8 @@ class ContentModifier(BaseModel):
         - offset:10 (int value)
         - fast_pattern:10,20 (string value)
     """
+
+    model_config = ConfigDict(frozen=True)
 
     name: ContentModifierType
     value: int | str | None = None
@@ -335,7 +336,7 @@ class MetadataOption(Option):
     """
 
     type: Literal["MetadataOption"] = "MetadataOption"
-    entries: Sequence[tuple[str, str]]
+    entries: tuple[tuple[str, str], ...]
 
 
 # JSON key used to tag base64-encoded binary content patterns that are not
@@ -362,7 +363,7 @@ class ContentOption(Option):
 
     type: Literal["ContentOption"] = "ContentOption"
     pattern: bytes
-    modifiers: Sequence[ContentModifier] = Field(default_factory=list)
+    modifiers: tuple[ContentModifier, ...] = Field(default_factory=tuple)
     negated: bool = False
 
     @field_validator("pattern", mode="before")
@@ -410,8 +411,8 @@ class FlowOption(Option):
     """
 
     type: Literal["FlowOption"] = "FlowOption"
-    directions: Sequence[FlowDirection] = Field(default_factory=list)
-    states: Sequence[FlowState] = Field(default_factory=list)
+    directions: tuple[FlowDirection, ...] = Field(default_factory=tuple)
+    states: tuple[FlowState, ...] = Field(default_factory=tuple)
 
 
 class FlowbitsOption(Option):
@@ -492,7 +493,7 @@ class ByteTestOption(Option):
     operator: str
     value: int
     offset: int
-    flags: Sequence[str] = Field(default_factory=list)
+    flags: tuple[str, ...] = Field(default_factory=tuple)
 
 
 class ByteJumpOption(Option):
@@ -508,7 +509,7 @@ class ByteJumpOption(Option):
     type: Literal["ByteJumpOption"] = "ByteJumpOption"
     bytes_to_extract: int = Field(ge=1, le=10)
     offset: int
-    flags: Sequence[str] = Field(default_factory=list)
+    flags: tuple[str, ...] = Field(default_factory=tuple)
 
 
 class ByteExtractOption(Option):
@@ -526,7 +527,7 @@ class ByteExtractOption(Option):
     bytes_to_extract: int = Field(ge=1, le=10)
     offset: int
     var_name: str
-    flags: Sequence[str] = Field(default_factory=list)
+    flags: tuple[str, ...] = Field(default_factory=tuple)
 
 
 class FastPatternOption(Option):
@@ -715,7 +716,7 @@ class ErrorNode(ASTNode):
     error_type: str
     message: str
     recovered_text: str | None = None
-    expected: Sequence[str] | None = None
+    expected: tuple[str, ...] | None = None
     actual: str | None = None
 
 
