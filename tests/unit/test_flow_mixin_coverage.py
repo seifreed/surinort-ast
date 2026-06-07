@@ -19,6 +19,8 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import pytest
+
 from surinort_ast import parse_rule
 from surinort_ast.core.diagnostics import DiagnosticLevel
 from surinort_ast.core.enums import FlowDirection, FlowState
@@ -412,6 +414,38 @@ class TestFlowintOption:
         )
         assert flowint_opt is not None
         assert "my_complex_counter_123" in flowint_opt.value
+
+    @pytest.mark.parametrize(
+        "spec",
+        [
+            "counter,+,1",
+            "counter,-,2",
+            "counter,=,5",
+            "counter,==,5",
+            "counter,!=,0",
+            "counter,<,9",
+            "counter,<=,3",
+            "counter,>,10",
+            "counter,>=,7",
+            "a,+,b",
+        ],
+    )
+    def test_flowint_symbolic_operators_round_trip(self, spec):
+        """Suricata flowint accepts symbolic operators (+, -, =, ==, !=, <, <=,
+        >, >=), not just word forms. They must parse and round-trip verbatim."""
+        from surinort_ast import print_rule
+
+        rule_text = f'alert tcp any any -> any any (msg:"Test"; flowint:{spec}; sid:1;)'
+        rule = parse_rule(rule_text)
+
+        flowint_opt = next(
+            opt
+            for opt in rule.options
+            if isinstance(opt, GenericOption) and opt.keyword == "flowint"
+        )
+        assert flowint_opt.value == spec
+        printed = print_rule(rule)
+        assert print_rule(parse_rule(printed)) == printed
 
 
 class TestFlowMixinIntegration:

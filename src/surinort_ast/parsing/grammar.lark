@@ -229,7 +229,12 @@ flowbits_option: "flowbits" ":" flowbits_action
 flowbits_action: WORD ("," flowbits_name)?
 flowbits_name: WORD (("&" | "|") WORD)*
 
-flowint_option: "flowint" ":" WORD "," WORD ("," INT)?
+flowint_option: "flowint" ":" WORD "," flowint_modifier ("," flowint_rvalue)?
+?flowint_modifier: WORD | FLOWINT_OP
+?flowint_rvalue: INT | WORD
+// flowint set/compare operators. A single dedicated terminal (priority above the
+// greedy REFERENCE_TAIL) so two-char operators win longest-match over one-char.
+FLOWINT_OP.3: "==" | "!=" | "<=" | ">=" | "+" | "-" | "=" | "<" | ">"
 
 // Threshold and detection filter
 threshold_option: "threshold" ":" threshold_params
