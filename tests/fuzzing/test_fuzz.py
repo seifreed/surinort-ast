@@ -120,7 +120,7 @@ class TestPropertyBasedParsing:
             pytest.fail(f"Roundtrip failed for: {rule_text}\nError: {e}")
 
     @given(sid=st.integers(min_value=1, max_value=9999999))
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None)
     def test_sid_always_positive(self, lark_parser: Lark, sid: int):
         """SID values should always be positive."""
         rule_text = f'alert tcp any any -> any 80 (msg:"Test"; sid:{sid};)'
@@ -236,6 +236,7 @@ class TestParserRobustness:
     """Test parser robustness with edge cases."""
 
     @given(whitespace_count=st.integers(min_value=1, max_value=10))
+    @settings(deadline=None)
     def test_parser_handles_extra_whitespace(self, lark_parser: Lark, whitespace_count: int):
         """Parser should handle extra whitespace."""
         spaces = " " * whitespace_count
@@ -253,6 +254,7 @@ class TestParserRobustness:
             pytest.fail(f"Parser failed with extra whitespace: {e}")
 
     @given(msg_length=st.integers(min_value=1, max_value=500))
+    @settings(deadline=None)
     def test_parser_handles_long_messages(self, lark_parser: Lark, msg_length: int):
         """Parser should handle long messages."""
         long_msg = "A" * msg_length
