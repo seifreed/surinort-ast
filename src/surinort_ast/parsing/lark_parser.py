@@ -416,7 +416,10 @@ class LarkRuleParser:
                 continue
 
             # Honor explicit backslash line continuation (canonical IDS syntax).
-            continuation = line.endswith("\\")
+            # A trailing backslash only counts as a continuation when it is not
+            # part of an escape sequence (e.g., `\)` is a literal close paren,
+            # not a continuation marker).
+            continuation = line.endswith("\\") and not line.endswith("\\\\")
             if continuation:
                 line = line[:-1].rstrip()
 
@@ -674,8 +677,9 @@ class LarkRuleParser:
 
         # Calculate line number
         line_num = None
-        if rule.location and rule.location.span.start.line:
-            line_num = rule.location.span.start.line + line_offset
+        start_line = rule.location.span.start.line if rule.location else None
+        if start_line is not None:
+            line_num = start_line + line_offset
 
         origin = SourceOrigin(
             file_path=file_path,

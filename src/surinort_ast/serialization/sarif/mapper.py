@@ -60,11 +60,15 @@ def _to_location(finding: Finding) -> list[SarifLocation]:
         )
 
     # A SARIF physicalLocation must carry at least an artifactLocation (uri) or
-    # a region; emitting an empty object is invalid per the 2.1.0 schema.
+    # a region; emitting an empty object is invalid per the 2.1.0 schema. When
+    # the file path is unknown but we still have a region, fall back to a
+    # synthetic URI so the location round-trips through SARIF 2.1.0 validators
+    # (a null artifactLocation.uri is rejected by spec).
     if loc.file_path is None and region is None:
         return []
 
-    physical = SarifPhysicalLocation(uri=loc.file_path, region=region)
+    uri = loc.file_path if loc.file_path is not None else "<unknown>"
+    physical = SarifPhysicalLocation(uri=uri, region=region)
     return [SarifLocation(physical_location=physical)]
 
 

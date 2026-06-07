@@ -294,7 +294,7 @@ class MinHashSignature:
             normalized = normalized[1:last_slash]
         return normalized.lower()
 
-    def create_signature(self, rule: Rule) -> list[int]:
+    def create_signature(self, rule: Rule) -> list[int] | None:
         """
         Create MinHash signature for a rule.
 
@@ -318,8 +318,10 @@ class MinHashSignature:
         features = self._extract_features(rule)
 
         if not features:
-            # Empty rule: return all zeros
-            return [0] * self.num_perm
+            # Empty rule: return None to signal "no signature" so the
+            # similarity estimator can return 0.0 instead of a spurious 1.0
+            # (matching two all-zero signatures trivially).
+            return None
 
         # Initialize signature with maximum values
         prime = (1 << 31) - 1
@@ -337,7 +339,7 @@ class MinHashSignature:
 
         return signature
 
-    def estimate_similarity(self, sig1: list[int], sig2: list[int]) -> float:
+    def estimate_similarity(self, sig1: list[int] | None, sig2: list[int] | None) -> float:
         """
         Estimate Jaccard similarity from two MinHash signatures.
 
@@ -360,6 +362,11 @@ class MinHashSignature:
             >>> 0.0 <= sim <= 1.0
             True
         """
+        # Empty rules produce no signature; their Jaccard similarity is
+        # undefined and we report 0.0 to avoid spurious "duplicate" candidates.
+        if sig1 is None or sig2 is None:
+            return 0.0
+
         if len(sig1) != len(sig2):
             raise ValueError(f"Signature length mismatch: {len(sig1)} vs {len(sig2)}")
 

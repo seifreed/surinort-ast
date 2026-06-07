@@ -333,7 +333,7 @@ class CoverageAnalyzer:
     def __init__(self) -> None:
         """Initialize the coverage analyzer."""
         self.protocol_coverage: Counter[Protocol] = Counter()
-        self.port_coverage: dict[int, list[Rule]] = defaultdict(list)
+        self._port_rules: dict[int, list[Rule]] = defaultdict(list)
         # Covered port ranges (start, end), so coverage of a port inside a range
         # is detected by interval membership rather than discrete enumeration.
         self.covered_port_ranges: list[tuple[int, int]] = []
@@ -359,7 +359,7 @@ class CoverageAnalyzer:
         """
         # Reset state
         self.protocol_coverage = Counter()
-        self.port_coverage = defaultdict(list)
+        self._port_rules = defaultdict(list)
         self.covered_port_ranges = []
         self.direction_coverage = Counter()
         self.action_coverage = Counter()
@@ -374,7 +374,7 @@ class CoverageAnalyzer:
 
         # Build report
         port_count: dict[int, int] = {
-            port: len(rule_list) for port, rule_list in self.port_coverage.items()
+            port: len(rule_list) for port, rule_list in self._port_rules.items()
         }
 
         common_ports_uncovered = [
@@ -408,7 +408,7 @@ class CoverageAnalyzer:
         dst_ports = self._extract_ports(rule.header.dst_port)
 
         for port in src_ports | dst_ports:
-            self.port_coverage[port].append(rule)
+            self._port_rules[port].append(rule)
 
         # Record covered ranges so ports inside a range count as covered.
         self.covered_port_ranges.extend(self._extract_port_intervals(rule.header.src_port))
@@ -476,7 +476,7 @@ class CoverageAnalyzer:
 
     def _is_port_covered(self, port: int) -> bool:
         """True if ``port`` is covered by a discrete rule port or a covered range."""
-        if port in self.port_coverage:
+        if port in self._port_rules:
             return True
         return any(start <= port <= end for start, end in self.covered_port_ranges)
 

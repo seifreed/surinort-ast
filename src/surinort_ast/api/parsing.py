@@ -96,11 +96,13 @@ def parse_rule(
         # Custom parser provided - use it directly
         rule: Rule = parser.parse(text.strip())
 
-        # Apply include_raw_text preference
+        # Apply include_raw_text preference. Store the normalized form so the
+        # stored value matches what the parser actually consumed; round-tripping
+        # a rule through print_rule + parse_rule must yield the same raw_text.
         if not include_raw_text and rule.raw_text is not None:
             rule = rule.model_copy(update={"raw_text": None})
         elif include_raw_text and rule.raw_text is None:
-            rule = rule.model_copy(update={"raw_text": text})
+            rule = rule.model_copy(update={"raw_text": normalize_rule_text(text.strip())})
 
         return rule
 
@@ -112,10 +114,12 @@ def parse_rule(
         transformer = RuleTransformer(dialect=dialect)
         result: Rule = transformer.transform(tree)
 
-        # Add raw text only if requested (memory optimization)
+        # Add raw text only if requested (memory optimization). The stored
+        # value is the normalized text so it matches what was parsed and
+        # round-trips cleanly.
         update_dict: dict[str, Any] = {}
         if include_raw_text:
-            update_dict["raw_text"] = text
+            update_dict["raw_text"] = normalized_text
         else:
             update_dict["raw_text"] = None
 

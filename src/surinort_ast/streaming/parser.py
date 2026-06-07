@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import os
 from collections.abc import Callable, Generator, Iterable, Iterator
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -669,8 +669,11 @@ def stream_parse_file_parallel(
             for chunk in chunks
         ]
 
-        # Yield results as they complete
-        for future in as_completed(futures):
+        # Yield results in submission order so the output stream preserves the
+        # original rule order from the file (matters for shadowing/conflict
+        # detection and SARIF reporting). Iterating `as_completed(futures)` here
+        # would emit rules in completion order, which is non-deterministic.
+        for future in futures:
             chunk_results = future.result()
 
             for line_num, rule, error in chunk_results:

@@ -149,7 +149,7 @@ class TestCoverageAnalyzer:
         analyzer = CoverageAnalyzer()
 
         assert analyzer.protocol_coverage is not None
-        assert analyzer.port_coverage is not None
+        assert analyzer._port_rules is not None
         assert analyzer.direction_coverage is not None
         assert analyzer.action_coverage is not None
         assert analyzer.content_types is not None

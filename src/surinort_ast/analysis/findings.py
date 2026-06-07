@@ -53,7 +53,10 @@ class Finding:
 
 
 def _normalize_rule_id(raw: str) -> str:
-    normalized = "".join(ch if ch.isalnum() else "_" for ch in raw.upper())
+    # SARIF 2.1.0 requires rule IDs to be ASCII; using str.isalnum() depends on
+    # the current locale (e.g. Turkish 'İ' is alnum), so we explicitly restrict
+    # to ASCII alphanumerics here.
+    normalized = "".join(ch if (ch.isascii() and ch.isalnum()) else "_" for ch in raw.upper())
     normalized = "_".join(part for part in normalized.split("_") if part)
     return normalized or "SURINORT_GENERIC"
 
