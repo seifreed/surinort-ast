@@ -256,10 +256,33 @@ class RuleTransformer(
         return [r for r in rules if r is not None]
 
     # ========================================================================
-    # Address and Port List Overrides (Nesting Depth Validation)
+    # Address List and Negation Overrides (Nesting Depth Validation)
     # ========================================================================
-    # These methods override the base implementations from mixins to add
-    # nesting depth validation for DoS prevention
+    # These methods override the base implementations from the address
+    # transformer mixin to add nesting depth validation for DoS prevention.
+    # Depth is measured against the *real* depth of the constructed AST
+    # (each child already carries its own nesting), not against the
+    # bottom-up call counter, because the bottom-up counter only ever
+    # observes depth=1 for this method.
+
+    @staticmethod
+    def _address_expr_depth(node: Any) -> int:
+        """Return the real nesting depth of an address expression.
+
+        ``AddressList`` and ``AddressNegation`` each contribute one level,
+        plus the maximum depth of their children. All other address
+        expressions are leaves and contribute zero.
+        """
+        from ..core.nodes import AddressList, AddressNegation
+
+        if isinstance(node, AddressNegation):
+            return 1 + RuleTransformer._address_expr_depth(node.expr)
+        if isinstance(node, AddressList):
+            return 1 + max(
+                (RuleTransformer._address_expr_depth(el) for el in node.elements),
+                default=0,
+            )
+        return 0
 
     def address_list(self, items: Any) -> Any:
         """
@@ -272,19 +295,20 @@ class RuleTransformer(
             AddressList node
 
         DoS Prevention:
-            Validates nesting depth to prevent stack overflow from deeply
-            nested structures like [[[[[...]]]]].
+            Validates the real nesting depth to prevent stack overflow
+            from deeply nested structures like ``[[[[[...]]]]]``.
         """
-        self._nesting_depth += 1
-        try:
-            self.config.validate_nesting_depth(self._nesting_depth)
-            # Filter to AddressExpr types
-            from ..core.nodes import AddressExpr, AddressList
+        from ..core.nodes import AddressExpr, AddressList
 
-            elements = [item for item in items if isinstance(item, AddressExpr)]
-            return AddressList(elements=elements)
-        finally:
-            self._nesting_depth -= 1
+        elements = [item for item in items if isinstance(item, AddressExpr)]
+        # Measure the depth of the constructed node, which includes the
+        # depth already contributed by each child element.
+        depth = 1 + max(
+            (self._address_expr_depth(el) for el in elements),
+            default=0,
+        )
+        self.config.validate_nesting_depth(depth)
+        return AddressList(elements=elements)
 
     @v_args(inline=True)
     def address_negation(self, addr: Any) -> Any:
@@ -298,14 +322,11 @@ class RuleTransformer(
             AddressNegation node
 
         DoS Prevention:
-            Validates nesting depth to prevent stack overflow from deeply
-            nested negations like !!!!!!!!addr.
+            Validates the real nesting depth to prevent stack overflow
+            from deeply nested negations like ``!!!!!!!!addr``.
         """
-        self._nesting_depth += 1
-        try:
-            self.config.validate_nesting_depth(self._nesting_depth)
-            from ..core.nodes import AddressNegation
+        from ..core.nodes import AddressNegation
 
-            return AddressNegation(expr=addr)
-        finally:
-            self._nesting_depth -= 1
+        depth = 1 + self._address_expr_depth(addr)
+        self.config.validate_nesting_depth(depth)
+        return AddressNegation(expr=addr)

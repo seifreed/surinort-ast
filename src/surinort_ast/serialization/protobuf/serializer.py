@@ -1503,6 +1503,12 @@ def from_protobuf(data: bytes) -> Rule | Sequence[Rule]:
     """
     Deserialize rule(s) from native protobuf binary format.
 
+    The on-wire shape is auto-detected: a payload produced with
+    ``include_metadata=True`` (a ``RuleBatch`` envelope) is unpacked as
+    such, while a single ``Rule`` payload is unpacked directly. This
+    mirrors the round-trip of ``to_protobuf`` regardless of the
+    ``include_metadata`` flag used on the producer side.
+
     Args:
         data: Binary protobuf data
 
@@ -1513,8 +1519,26 @@ def from_protobuf(data: bytes) -> Rule | Sequence[Rule]:
         >>> from surinort_ast.serialization.protobuf import from_protobuf
         >>> rule = from_protobuf(binary_data)
     """
-    serializer = ProtobufSerializer()
-    return serializer.from_protobuf(data)
+    try:
+        # Try the metadata-envelope (RuleBatch) shape first. If the bytes
+        # were produced without a batch, the protobuf parser will accept
+        # them but leave ``rules`` empty, so we fall back to a single
+        # Rule. We can't simply check the wire type of the first byte
+        # because both RuleBatch and Rule use length-delimited fields.
+        pb_batch = pb.RuleBatch()
+        pb_batch.ParseFromString(data)
+        if pb_batch.rules or pb_batch.is_collection or pb_batch.count:
+            rules = [_deserialize_rule(r) for r in pb_batch.rules]
+            if pb_batch.is_collection or pb_batch.count != 1:
+                return rules
+            return rules[0]
+
+        # Fall back to a single Rule payload
+        pb_rule = pb.Rule()
+        pb_rule.ParseFromString(data)
+        return _deserialize_rule(pb_rule)
+    except Exception as e:
+        raise ProtobufError(f"Failed to parse protobuf data: {e}") from e
 
 
 __all__ = [

@@ -931,20 +931,43 @@ class RuleBuilder:
             elements = [self._parse_port(e.strip()) for e in elements_str]
             return PortList(elements=elements)
 
-        # Handle ranges (1024:65535)
+        # Handle ranges (1024:65535, 1024:, :1024)
         if ":" in port_str:
-            parts = port_str.split(":")
-            if len(parts) != 2:
-                raise BuilderError(f"Invalid port range format: {port_str}")
-            try:
-                start = int(parts[0])
-                end = int(parts[1])
-                return PortRange(start=start, end=end)
-            except ValueError as e:
-                raise BuilderError(f"Invalid port range values: {port_str}") from e
+            return self._parse_port_range(port_str)
 
         # Handle single port
         try:
             return Port(value=int(port_str))
         except ValueError as e:
             raise BuilderError(f"Invalid port format: {port_str}") from e
+
+    def _parse_port_range(self, port_str: str) -> PortRange:
+        """
+        Build a ``PortRange`` from a string like ``"1024:65535"``,
+        ``"1024:"`` (open-ended, end defaults to 65535), or ``":1024"``
+        (upper-bounded, start is 0). Reversed ranges (e.g. ``"5000:1000"``)
+        are auto-swapped, matching the parser's behavior.
+
+        Args:
+            port_str: Range expression with exactly one or two colons.
+
+        Returns:
+            A ``PortRange`` node.
+
+        Raises:
+            BuilderError: If the range syntax is invalid.
+        """
+        head, _, tail = port_str.partition(":")
+        if ":" in tail:
+            raise BuilderError(f"Invalid port range format: {port_str}")
+        try:
+            if head == "":
+                return PortRange(start=0, end=int(tail))
+            if tail == "":
+                return PortRange(start=int(head), end=65535)
+            start, end = int(head), int(tail)
+        except ValueError as e:
+            raise BuilderError(f"Invalid port range values: {port_str}") from e
+        if start > end:
+            start, end = end, start
+        return PortRange(start=start, end=end)

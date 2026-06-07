@@ -318,11 +318,6 @@ disable_error_code = ["union-attr", "arg-type"]
 module = "surinort_ast.streaming.processor"
 disable_error_code = ["union-attr", "arg-type", "unused-ignore"]
 
-# Parsing module: untyped decorators from Lark library (unfixable without library changes)
-[[tool.mypy.overrides]]
-module = "surinort_ast.parsing.parser"
-disable_error_code = ["name-defined", "unused-ignore"]
-
 # Query system: union-attr false positives with selector type narrowing
 [[tool.mypy.overrides]]
 module = "surinort_ast.query.executor"

@@ -387,7 +387,12 @@ class TextPrinter:
         # Add comments if present
         if self.options.preserve_comments and rule.comments:
             for comment in rule.comments:
-                parts.append(f"# {comment}")
+                # Split multi-line comments so every physical line is
+                # prefixed with '#'; otherwise an embedded newline would
+                # leave a bare continuation that could be mistaken for a
+                # new rule by downstream consumers.
+                for line in comment.split("\n"):
+                    parts.append(f"# {line}")
 
         # Build rule line: action header (options)
         rule_line = f"{rule.action.value} {self._print_header(rule.header)}"

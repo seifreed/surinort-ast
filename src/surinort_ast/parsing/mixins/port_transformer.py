@@ -171,6 +171,8 @@ class PortTransformerMixin:
 
         Note:
             Open-ended ranges (e.g., "1024:") default the end port to 65535.
+            Out-of-range endpoints are reported as ERROR diagnostics and
+            clamped to the valid range so the surrounding rule still parses.
         """
         start_token = args[0]
         start = int(start_token.value)
@@ -192,6 +194,7 @@ class PortTransformerMixin:
                 f"Port range start {start} out of range (0-65535)",
                 token_to_location(start_token, self.file_path),
             )
+            start = max(0, min(start, 65535))
 
         if (end < 0 or end > 65535) and end_token:
             self.add_diagnostic(
@@ -199,6 +202,7 @@ class PortTransformerMixin:
                 f"Port range end {end} out of range (0-65535)",
                 token_to_location(end_token, self.file_path),
             )
+            end = max(0, min(end, 65535))
 
         if start > end:
             self.add_diagnostic(
@@ -219,13 +223,24 @@ class PortTransformerMixin:
             end_token: Token containing the inclusive upper bound
 
         Returns:
-            PortRange from 0 to the specified upper bound
+            PortRange from 0 to the specified upper bound. If the upper
+            bound is out of range, an ERROR diagnostic is emitted and the
+            range is clamped to the maximum valid value so the surrounding
+            rule still parses.
         """
         end = int(end_token.value)
-        return PortRange(start=0, end=end)
+        location = token_to_location(end_token, self.file_path)
+        if end < 0 or end > 65535:
+            self.add_diagnostic(
+                DiagnosticLevel.ERROR,
+                f"Port range end {end} out of range (0-65535)",
+                location,
+            )
+            end = max(0, min(end, 65535))
+        return PortRange(start=0, end=end, location=location)
 
     @v_args(inline=True)
-    def port_single(self, port_token: Token) -> Port:
+    def port_single(self, port_token: Token) -> Port | AnyPort:
         """
         Transform single port number (e.g., 80).
 
@@ -233,7 +248,10 @@ class PortTransformerMixin:
             port_token: Token containing the port number
 
         Returns:
-            Port node representing the single port
+            Port node representing the single port, or AnyPort if the value
+            is outside the valid 0-65535 range. Out-of-range ports are
+            reported as ERROR diagnostics and degraded to a wildcard so the
+            surrounding rule still parses.
 
         Defensive Validation:
             The grammar ensures valid integers, but we validate the port range
@@ -241,6 +259,7 @@ class PortTransformerMixin:
             malformed input.
         """
         port_num = int(port_token.value)
+        location = token_to_location(port_token, self.file_path)
 
         # Grammar ensures port is 0-65535, but validate for safety and clear error messages
         # This validation provides better diagnostics even though grammar enforces constraints
@@ -248,10 +267,12 @@ class PortTransformerMixin:
             self.add_diagnostic(
                 DiagnosticLevel.ERROR,
                 f"Port {port_num} out of range (0-65535)",
-                token_to_location(port_token, self.file_path),
+                location,
             )
+            # Degrade to a wildcard so the surrounding rule still parses
+            return AnyPort(location=location)
 
-        return Port(value=port_num, location=token_to_location(port_token, self.file_path))
+        return Port(value=port_num, location=location)
 
     def port_elem(self, items: Sequence[Any]) -> Any:
         """
