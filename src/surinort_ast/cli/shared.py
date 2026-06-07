@@ -168,7 +168,16 @@ def read_input(file_path: Path | None) -> str:
     if sys.stdin.isatty():
         err_console.print("Error: No input provided. Use a file or pipe input.")
         raise typer.Exit(1) from None
-    return sys.stdin.read()
+    # Read raw bytes and decode as UTF-8 to match the file-input behavior.
+    # Using ``sys.stdin.read()`` directly would rely on the system locale
+    # encoding (e.g. cp1252 on Windows) and would corrupt any non-ASCII
+    # rule piped in.
+    data = sys.stdin.buffer.read()
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        err_console.print("Error: Stdin is not valid UTF-8 text")
+        raise typer.Exit(1) from None
 
 
 def write_output(content: str, output: Path | None) -> None:

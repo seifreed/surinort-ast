@@ -35,8 +35,13 @@ from ..shared import (
 def _parse_stdin_rules(content: str, dialect: Dialect, verbose: bool) -> list[Any]:
     """Parse rules from stdin content, warning per failed line when verbose."""
 
-    def _warn(line: str, _exc: Exception) -> None:
-        err_console.print(f"[yellow]Warning:[/yellow] Failed to parse: {line[:50]}...")
+    def _warn(line: str, exc: Exception) -> None:
+        # Surface the structured exception name and message so users can
+        # diagnose the failure instead of seeing a 50-char truncation.
+        snippet = line if len(line) <= 50 else f"{line[:50]}..."
+        err_console.print(
+            f"[yellow]Warning:[/yellow] Failed to parse {snippet} ({type(exc).__name__}: {exc})"
+        )
 
     return parse_rules_from_content(content, dialect, on_error=_warn if verbose else None)
 
