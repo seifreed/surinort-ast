@@ -215,6 +215,31 @@ def test_address_ip_ipv4_edge_cases(transformer):
     assert result2.value == "255.255.255.255"
     assert result2.version == 4
 
+    # Boundary values must not emit any diagnostic
+    assert transformer.diagnostics == []
+
+
+def test_address_ip_ipv4_octet_out_of_range(transformer):
+    """Test IPv4 address with an octet > 255 emits a WARNING diagnostic."""
+    result = transformer.address_ip(create_token("999.999.999.999"))
+
+    assert isinstance(result, IPAddress)
+    assert result.value == "999.999.999.999"
+    assert result.version == 4
+    assert len(transformer.diagnostics) == 1
+    assert transformer.diagnostics[0][0] == DiagnosticLevel.WARNING
+    assert "0-255" in transformer.diagnostics[0][1]
+
+
+def test_address_ip_ipv4_single_octet_out_of_range(transformer):
+    """Test that only the offending octet triggers a single WARNING."""
+    result = transformer.address_ip(create_token("192.168.1.256"))
+
+    assert result.value == "192.168.1.256"
+    assert len(transformer.diagnostics) == 1
+    assert transformer.diagnostics[0][0] == DiagnosticLevel.WARNING
+    assert "256" in transformer.diagnostics[0][1]
+
 
 # ============================================================================
 # Test: IPv6 Addresses
@@ -313,6 +338,17 @@ def test_ipv4_cidr_invalid_prefix_too_large(transformer):
     assert len(transformer.diagnostics) == 1
     assert transformer.diagnostics[0][0] == DiagnosticLevel.WARNING
     assert "0-32" in transformer.diagnostics[0][1]
+
+
+def test_ipv4_cidr_octet_out_of_range(transformer):
+    """Test IPv4 CIDR with an out-of-range network octet emits a WARNING."""
+    result = transformer.ipv4_cidr(create_token("256.0.0.0"), create_token("24"))
+
+    assert isinstance(result, IPCIDRRange)
+    assert result.network == "256.0.0.0"
+    assert len(transformer.diagnostics) == 1
+    assert transformer.diagnostics[0][0] == DiagnosticLevel.WARNING
+    assert "0-255" in transformer.diagnostics[0][1]
 
 
 # ============================================================================

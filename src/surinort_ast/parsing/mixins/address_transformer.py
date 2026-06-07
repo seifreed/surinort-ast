@@ -23,6 +23,7 @@ from lark import Token
 from lark.visitors import v_args
 
 if TYPE_CHECKING:
+    from ...core.location import Location
     from . import DiagnosticReporter
 
 from ...core.diagnostics import DiagnosticLevel
@@ -132,6 +133,25 @@ class AddressTransformerMixin:
         """
         return AddressList(elements=list(items))
 
+    def _check_ipv4_octets(self, ip_str: str, location: Location | None) -> None:
+        """
+        Emit a WARNING for any IPv4 octet outside the valid 0-255 range.
+
+        The grammar guarantees dotted-decimal syntax (four 1-3 digit groups) but
+        not octet magnitude, so addresses like 999.999.999.999 reach this point
+        structurally valid yet semantically impossible. This mirrors the CIDR
+        prefix-range check, keeping address validation consistent.
+        """
+        for octet in ip_str.split("."):
+            value = int(octet)
+            if value > 255:
+                self.add_diagnostic(
+                    DiagnosticLevel.WARNING,
+                    f"IPv4 octet {value} out of range (0-255) in address {ip_str}",
+                    location,
+                )
+                return
+
     @v_args(inline=True)
     def ipv4_cidr(self, ip_token: Token, prefix_token: Token) -> IPCIDRRange:
         """
@@ -152,6 +172,8 @@ class AddressTransformerMixin:
         """
         network = str(ip_token.value)
         prefix_len = int(prefix_token.value)
+
+        self._check_ipv4_octets(network, token_to_location(ip_token, self.file_path))
 
         # Defensive validation: Grammar enforces integer, we enforce IPv4 range (0-32)
         # This provides clear diagnostics and documents expected range
@@ -249,6 +271,9 @@ class AddressTransformerMixin:
         # Detect IP version: IPv6 contains colons, IPv4 does not
         # This heuristic is reliable because the grammar ensures valid IP syntax
         version: int = 6 if ":" in ip_str else 4
+
+        if version == 4:
+            self._check_ipv4_octets(ip_str, token_to_location(ip_token, self.file_path))
 
         return IPAddress(
             value=ip_str,
