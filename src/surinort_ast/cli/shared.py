@@ -155,7 +155,15 @@ def read_input(file_path: Path | None) -> str:
         if not file_path.exists():
             err_console.print(f"Error: File not found: {file_path}")
             raise typer.Exit(1) from None
-        return file_path.read_text(encoding="utf-8")
+        try:
+            return file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            err_console.print(f"Error: File is not valid UTF-8 text: {file_path}")
+            raise typer.Exit(1) from None
+        except OSError as exc:
+            detail = exc.strerror or str(exc)
+            err_console.print(f"Error: Cannot read file {file_path}: {detail}")
+            raise typer.Exit(1) from None
     # Read from stdin
     if sys.stdin.isatty():
         err_console.print("Error: No input provided. Use a file or pipe input.")

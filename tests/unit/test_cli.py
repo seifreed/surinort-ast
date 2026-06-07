@@ -351,6 +351,23 @@ class TestCLIHelpers:
         with pytest.raises(Exit):
             read_input(Path("/nonexistent/file.txt"))
 
+    def test_read_input_non_utf8(self, tmp_path):
+        """read_input() should exit cleanly on a non-UTF-8 (binary) file"""
+        from typer import Exit
+
+        file = tmp_path / "binary.rules"
+        file.write_bytes(b"\xd4\xff\x00\xfe")
+
+        with pytest.raises(Exit):
+            read_input(file)
+
+    def test_read_input_directory(self, tmp_path):
+        """read_input() should exit cleanly when the path is a directory"""
+        from typer import Exit
+
+        with pytest.raises(Exit):
+            read_input(tmp_path)
+
     def test_write_output_to_file(self, tmp_path):
         """Test write_output() to file"""
         output_file = tmp_path / "output.txt"
