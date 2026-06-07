@@ -568,7 +568,13 @@ def _parse_chunk_worker(
     Returns:
         List of (line_number, parsed_rule or None, error_string or None)
     """
-    lines, dialect, _track_locations, include_raw_text, file_path = args
+    lines, dialect, track_locations, include_raw_text, file_path = args
+
+    # ``LarkRuleParser`` doesn't expose ``track_locations`` directly; it
+    # currently always tracks. Keep the parameter for forward compatibility
+    # and log if a caller asks to opt out so the divergence is visible.
+    if not track_locations:
+        logger.debug("LarkRuleParser always tracks locations; ignoring opt-out")
 
     parser = LarkRuleParser(dialect=dialect, strict=False, error_recovery=True)
     results: list[tuple[int, Rule | None, str | None]] = []

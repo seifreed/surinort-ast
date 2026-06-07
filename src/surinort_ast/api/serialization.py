@@ -14,6 +14,8 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
+from pydantic import TypeAdapter
+
 from ..analysis.coverage import CoverageReport
 from ..analysis.findings import (
     Finding,
@@ -54,15 +56,20 @@ def to_json(rule: Rule, indent: int | None = 2) -> str:
         raise SerializationError(f"Failed to serialize to JSON: {e}") from e
 
 
-def from_json(data: str | dict[str, Any]) -> Rule:
+def from_json(data: str | dict[str, Any]) -> Rule | Sequence[Rule]:
     """
     Deserialize Rule AST from JSON.
+
+    Accepts both bare rule dicts (as produced by ``to_json``) and the
+    metadata envelope format used by ``JSONSerializer`` (single-rule envelope
+    with a top-level ``data`` key, multi-rule envelope with a ``data.rules``
+    list, or a bare ``{"rules": [...]}`` payload).
 
     Args:
         data: JSON string or dict
 
     Returns:
-        Deserialized Rule AST
+        Deserialized Rule, or a sequence of Rules for multi-rule payloads
 
     Raises:
         SerializationError: If deserialization fails
@@ -75,7 +82,26 @@ def from_json(data: str | dict[str, Any]) -> Rule:
         # Type-narrowing: data will be dict after this check
         data_dict: dict[str, Any] = json.loads(data) if isinstance(data, str) else data
 
-        # Pydantic v2 model_validate
+        # Strip the metadata envelope produced by JSONSerializer when present.
+        # A top-level "data" key is a structural marker of the envelope, so we
+        # always honor it regardless of any caller preference.
+        if (
+            isinstance(data_dict, dict)
+            and "data" in data_dict
+            and isinstance(data_dict["data"], dict)
+        ):
+            data_dict = data_dict["data"]
+
+        # Multi-rule payload: {"rules": [...]} (possibly inside an envelope).
+        if (
+            isinstance(data_dict, dict)
+            and "rules" in data_dict
+            and isinstance(data_dict["rules"], list)
+        ):
+            adapter: TypeAdapter[Sequence[Rule]] = TypeAdapter(Sequence[Rule])
+            return adapter.validate_python(data_dict["rules"])
+
+        # Pydantic v2 model_validate (single rule)
         return Rule.model_validate(data_dict)
     except json.JSONDecodeError as e:
         raise SerializationError(f"Invalid JSON: {e}") from e

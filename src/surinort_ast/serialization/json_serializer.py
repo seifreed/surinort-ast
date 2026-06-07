@@ -103,13 +103,17 @@ class JSONSerializer:
         # Parse JSON if string
         parsed = json.loads(data) if isinstance(data, str) else data
 
-        # Check if it's a metadata envelope
-        if self.include_metadata and "data" in parsed:
-            self._validate_metadata(parsed)
+        # The "data" key is a structural marker of the metadata envelope
+        # produced by ``to_json``. Strip it whenever it is present (with a
+        # dict payload) so ``from_json`` accepts metadata-wrapped payloads
+        # regardless of how the serializer was constructed.
+        if isinstance(parsed, dict) and "data" in parsed and isinstance(parsed["data"], dict):
+            if self.include_metadata:
+                self._validate_metadata(parsed)
             parsed = parsed["data"]
 
         # Determine if single or multiple rules
-        if "rules" in parsed:
+        if isinstance(parsed, dict) and "rules" in parsed and isinstance(parsed["rules"], list):
             # Multiple rules
             rules_data = parsed["rules"]
             adapter: TypeAdapter[Sequence[Rule]] = TypeAdapter(Sequence[Rule])

@@ -11,13 +11,21 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 
 from ...api import from_json, print_rule
 from ...exceptions import SerializationError
 from ..shared import err_console, read_input, status_console, write_output
+
+
+def _flatten_loaded(items: Any) -> Any:
+    for item in items:
+        if isinstance(item, list):
+            yield from item
+        else:
+            yield item
 
 
 def from_json_command(
@@ -62,9 +70,7 @@ def from_json_command(
             rules_data = [data]
 
         # Convert from JSON
-        rules = []
-        for rule_data in rules_data:
-            rules.append(from_json(rule_data))
+        rules: list[Any] = list(_flatten_loaded(from_json(rule_data) for rule_data in rules_data))
 
         if not rules:
             err_console.print("Error: No valid rules found in JSON")
