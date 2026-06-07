@@ -237,6 +237,14 @@ def analyze_command(
             help="Analyzer plugin to use",
         ),
     ] = "security_auditor",
+    plugin_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--plugin-dir",
+            "-p",
+            help="Directory to load analyzer plugins from before analysis",
+        ),
+    ] = None,
     output: Annotated[
         Path | None,
         typer.Option(
@@ -250,20 +258,30 @@ def analyze_command(
     Analyze rules using an analyzer plugin.
 
     Runs the specified analyzer plugin on rules and displays results.
+    Plugins registered via entry points are available automatically; use
+    --plugin-dir to load directory-based plugins for this run, since plugin
+    registration does not persist across separate CLI invocations.
 
     Example:
         surinort plugins analyze rules.rules --analyzer security_auditor
+        surinort plugins analyze rules.rules -p ./plugins -a security_auditor
         surinort plugins analyze rules.rules -a security_auditor -o results.json
     """
     import json
 
     from surinort_ast.parsing.lark_parser import LarkRuleParser
-    from surinort_ast.plugins import get_registry
+    from surinort_ast.plugins import PluginLoader, get_registry
 
     try:
         if not input_file.exists():
             console.print(f"[bold red]Error:[/bold red] File not found: {input_file}")
             raise typer.Exit(1)
+
+        if plugin_dir is not None:
+            if not plugin_dir.is_dir():
+                console.print(f"[bold red]Error:[/bold red] Directory not found: {plugin_dir}")
+                raise typer.Exit(1)
+            PluginLoader(auto_load=False).load_directory(plugin_dir)
 
         # Get analyzer plugin
         registry = get_registry()

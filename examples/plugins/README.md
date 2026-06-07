@@ -21,8 +21,8 @@ pip install pyyaml
 ```python
 from pathlib import Path
 
+from surinort_ast import parse_rule
 from surinort_ast.plugins import PluginLoader, get_registry
-from surinort_ast.parsing import parse_rule
 
 # Load plugins from this directory (the loader registers them)
 PluginLoader(auto_load=False).load_directory(Path("examples/plugins"))
@@ -69,8 +69,8 @@ surinort plugins info yaml --type serializer
 ```python
 from pathlib import Path
 
+from surinort_ast import parse_rule
 from surinort_ast.plugins import PluginLoader, get_registry
-from surinort_ast.parsing import parse_rule
 
 # Load plugins from this directory (the loader registers them)
 PluginLoader(auto_load=False).load_directory(Path("examples/plugins"))
@@ -90,15 +90,16 @@ for issue in results['issues']:
 
 **CLI Usage**:
 ```bash
-# Load plugin
-surinort plugins load examples/plugins
-
-# Analyze rules
-surinort plugins analyze rules.rules --analyzer security_auditor
+# Analyze rules, loading the analyzer from this directory for the run
+surinort plugins analyze rules.rules --plugin-dir examples/plugins --analyzer security_auditor
 
 # Save results to JSON
-surinort plugins analyze rules.rules -a security_auditor -o results.json
+surinort plugins analyze rules.rules -p examples/plugins -a security_auditor -o results.json
 ```
+
+> Plugin registration does not persist across separate CLI invocations, so
+> pass `--plugin-dir` on the `analyze` command itself rather than running a
+> separate `plugins load` first.
 
 ## Creating Your Own Plugin
 
@@ -142,7 +143,6 @@ Test your plugins with pytest:
 
 ```python
 import pytest
-from surinort_ast.parsing import parse_rule
 from your_plugin import YourPlugin
 
 def test_plugin():

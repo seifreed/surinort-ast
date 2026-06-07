@@ -700,6 +700,54 @@ class TestSchemaCommand:
         assert "$defs" in schema or "definitions" in schema
 
 
+class TestPluginsAnalyzeCommand:
+    """Test the ``plugins analyze`` command and its --plugin-dir option"""
+
+    def setup_method(self):
+        self.runner = CliRunner()
+
+    def test_analyze_with_plugin_dir(self, tmp_path, project_root):
+        """analyze should load a directory-based analyzer and report results"""
+        plugin_dir = project_root / "examples" / "plugins"
+        rules_file = tmp_path / "rules.txt"
+        rules_file.write_text('alert tcp any any -> any any (msg:"t"; sid:1;)\n')
+
+        result = self.runner.invoke(
+            app,
+            ["plugins", "analyze", str(rules_file), "--plugin-dir", str(plugin_dir)],
+        )
+
+        assert result.exit_code == 0
+        assert "security_auditor" in result.output
+        assert "Score" in result.output
+
+    def test_analyze_plugin_dir_not_found(self, tmp_path):
+        """analyze should exit cleanly when --plugin-dir does not exist"""
+        rules_file = tmp_path / "rules.txt"
+        rules_file.write_text('alert tcp any any -> any any (msg:"t"; sid:1;)\n')
+
+        result = self.runner.invoke(
+            app,
+            ["plugins", "analyze", str(rules_file), "-p", str(tmp_path / "missing")],
+        )
+
+        assert result.exit_code == 1
+        assert "Directory not found" in result.output
+
+    def test_analyze_unknown_analyzer(self, tmp_path):
+        """analyze should report when the requested analyzer is unavailable"""
+        rules_file = tmp_path / "rules.txt"
+        rules_file.write_text('alert tcp any any -> any any (msg:"t"; sid:1;)\n')
+
+        result = self.runner.invoke(
+            app,
+            ["plugins", "analyze", str(rules_file), "-a", "does_not_exist"],
+        )
+
+        assert result.exit_code == 1
+        assert "not found" in result.output
+
+
 class TestMainCallback:
     """Test the main callback"""
 
