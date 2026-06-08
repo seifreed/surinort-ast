@@ -19,6 +19,8 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero López | @seifreed | mriverolopez@gmail.com
 """
 
+import pytest
+
 from surinort_ast import parse_rule
 
 
@@ -138,6 +140,14 @@ class TestByteOperationOffsetSigns:
         )
         assert self._generic(rule, "byte_test") == "4,>,1000,4,relative"
 
+    @pytest.mark.parametrize("op", ["!<", "!>", "!^", "!<=", "!>=", "!=", "!&"])
+    def test_byte_test_negated_operators(self, op):
+        """Any byte_test comparison operator may be negated with a leading '!'."""
+        rule = parse_rule(
+            f'alert tcp any any -> any any (content:"x"; byte_test:4,{op},1234,0; sid:1;)'
+        )
+        assert self._generic(rule, "byte_test") == f"4,{op},1234,0"
+
     def test_byte_jump_negative_offset(self):
         rule = parse_rule(
             'alert tcp any any -> any any (content:"x"; byte_jump:4,-8,relative; sid:1;)'
@@ -249,6 +259,17 @@ class TestScriptAndIsdataatNegation:
     def test_lua_non_negated(self):
         rule = parse_rule("alert tcp any any -> any any (lua:script.lua; sid:1;)")
         assert _option(rule, "LuaOption").negated is False
+
+    def test_lua_script_name_without_extension(self):
+        """A Lua script name is just a filename; an extension is not required."""
+        rule = parse_rule("alert tcp any any -> any any (lua:check; sid:1;)")
+        lua = _option(rule, "LuaOption")
+        assert lua.script_name == "check"
+        assert lua.negated is False
+
+    def test_lua_multi_dot_script_name(self):
+        rule = parse_rule("alert tcp any any -> any any (lua:my.deep.name.lua; sid:1;)")
+        assert _option(rule, "LuaOption").script_name == "my.deep.name.lua"
 
     def test_luajit_negated(self):
         rule = parse_rule("alert tcp any any -> any any (luajit:!s.lua; sid:1;)")

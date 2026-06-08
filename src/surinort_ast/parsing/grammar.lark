@@ -281,8 +281,10 @@ byte_test_flag: BITMASK_KW (number | WORD)  // bitmask 0x8000 (space-separated)
 BITMASK_KW: "bitmask"
 byte_test_operator: BYTE_TEST_OP | WORD
 
-// Byte test operators - must come before other terminals to match correctly
-BYTE_TEST_OP.2: "!&" | "!=" | "^" | "&" | "<=" | ">=" | "<" | ">" | "="
+// Byte test operators - must come before other terminals to match correctly.
+// Any operator may be negated with a leading "!"; longest alternatives first so
+// multi-character operators win over their prefixes.
+BYTE_TEST_OP.2: "!<=" | "!>=" | "<=" | ">=" | "!&" | "!=" | "!<" | "!>" | "!^" | "<" | ">" | "=" | "&" | "^"
 
 byte_jump_option: "byte_jump" ":" byte_jump_params
 byte_jump_params: INT "," byte_jump_offset ("," byte_jump_flag)*
@@ -337,8 +339,8 @@ flags_atom: WORD | INT | GENERIC_VALUE
 // lua:filename.lua; or lua:!filename.lua; (negation)
 lua_option: "lua" ":" neg_bang? lua_script_name
 luajit_option: "luajit" ":" neg_bang? lua_script_name
-lua_script_name: WORD "." WORD  // filename.lua
-               | REFERENCE_ID    // Complex filenames with paths
+lua_script_name: WORD ("." WORD)*  // filename, filename.lua, a.b.lua
+               | REFERENCE_ID       // Complex filenames with paths
 
 // Generic fallback for unknown options
 // Support flexible values like "A+", ">0", "M+", etc.
