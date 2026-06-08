@@ -559,6 +559,7 @@ def _(opt: FastPatternOption) -> Any:
         pb_opt.fast_pattern.offset = opt.offset
     if opt.length is not None:
         pb_opt.fast_pattern.length = opt.length
+    pb_opt.fast_pattern.only = opt.only
     return pb_opt
 
 
@@ -1094,6 +1095,7 @@ def _deserialize_fast_pattern(
     return FastPatternOption(
         offset=pb_opt.fast_pattern.offset if pb_opt.fast_pattern.HasField("offset") else None,
         length=pb_opt.fast_pattern.length if pb_opt.fast_pattern.HasField("length") else None,
+        only=pb_opt.fast_pattern.only,
         location=location,
         comments=comments,
     )

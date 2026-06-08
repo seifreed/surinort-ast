@@ -102,6 +102,21 @@ class TestFastPatternParameters:
         assert fp.offset is None
         assert fp.length is None
 
+    def test_only_flag_preserved_and_roundtrips(self):
+        """``fast_pattern:only`` must keep its 'only' flag and re-print as such.
+
+        Regression: 'only' was discarded, so the rule round-tripped to a plain
+        'fast_pattern;' which has different matching semantics.
+        """
+        from surinort_ast.printer.text_printer import print_rule
+
+        rule = parse_rule('alert tcp any any -> any any (content:"x"; fast_pattern:only; sid:1;)')
+        fp = _option(rule, "FastPatternOption")
+        assert fp.only is True
+        printed = print_rule(rule)
+        assert "fast_pattern:only;" in printed
+        assert _option(parse_rule(printed), "FastPatternOption").only is True
+
 
 class TestByteOperationOffsetSigns:
     """Negative offsets in byte_test / byte_jump / byte_extract must keep their sign."""

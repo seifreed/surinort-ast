@@ -400,6 +400,7 @@ message ByteExtractOption {
 message FastPatternOption {
   optional int32 offset = 1;
   optional int32 length = 2;
+  bool only = 3;
 }
 
 message TagOption {

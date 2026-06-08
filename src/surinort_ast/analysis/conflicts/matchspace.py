@@ -393,7 +393,14 @@ def build_content_constraint(rule: Rule) -> ContentConstraint:
     opaque = False
     for option in rule.options:
         if isinstance(option, ContentOption):
-            literals.add(option.pattern)
+            # A negated content ("content:!...") constrains the payload to the
+            # complement of the literal; that set is not expressible here, so
+            # treat it as opaque rather than as a required literal (which would
+            # invert the match-space and produce false shadows/conflicts).
+            if option.negated:
+                opaque = True
+            else:
+                literals.add(option.pattern)
         elif isinstance(option, PcreOption):
             opaque = True
     return ContentConstraint(literals=frozenset(literals), opaque=opaque)

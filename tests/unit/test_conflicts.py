@@ -84,6 +84,19 @@ class TestMatchspace:
         assert ms.proto_subset(Protocol.TCP, Protocol.HTTP, hierarchy=True) is True
         assert ms.proto_subset(Protocol.IP, Protocol.TCP, hierarchy=True) is True
 
+    def test_negated_content_is_opaque(self):
+        """Negated content matches the complement of the literal, so it must be
+        opaque, not a required literal (which would invert the match-space)."""
+        positive = ms.build_content_constraint(
+            parse_rule('alert tcp any any -> any 80 (content:"foo"; sid:1;)')
+        )
+        negated = ms.build_content_constraint(
+            parse_rule('alert tcp any any -> any 80 (content:!"foo"; sid:2;)')
+        )
+        assert positive.literals == frozenset({b"foo"})
+        assert negated.opaque is True
+        assert negated.literals == frozenset()
+
 
 # ---------------------------------------------------------------------------
 # Detectors
@@ -123,6 +136,21 @@ class TestDetectors:
             )
         )
         assert ConflictType.CONFLICTING_ACTION not in _types(report)
+
+    def test_negated_vs_positive_content_not_shadowing(self):
+        """Rules whose payloads are disjoint (contains X vs does not contain X)
+        must not be reported as shadowing or conflicting.
+
+        Regression: negated content was treated as a required literal, so the two
+        disjoint rules looked identical and produced a false shadow/conflict.
+        """
+        report = detect_conflicts(
+            _rules(
+                'alert tcp any any -> any 80 (msg:"a"; content:"foo"; sid:1000010; rev:1;)',
+                'drop tcp any any -> any 80 (msg:"b"; content:!"foo"; sid:1000011; rev:1;)',
+            )
+        )
+        assert ConflictType.SHADOWING not in _types(report)
 
     def test_shadowing_general_pass_first(self):
         report = detect_conflicts(

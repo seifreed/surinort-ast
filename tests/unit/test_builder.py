@@ -489,6 +489,28 @@ class TestAddressParsing:
         assert rule.header.src_addr.start == "10.0.0.1"
         assert rule.header.src_addr.end == "10.0.0.255"
 
+    def test_unbracketed_ip_range(self) -> None:
+        """An unbracketed IP range must parse to IPRange, not a bogus IPAddress.
+
+        Regression: only bracketed ranges were detected; a bare start-end string
+        fell through to IPAddress(value="10.0.0.1-10.0.0.255"), an invalid node.
+        """
+        rule = (
+            RuleBuilder()
+            .alert()
+            .tcp()
+            .source_ip("10.0.0.1-10.0.0.255")
+            .source_port("any")
+            .dest_ip("any")
+            .dest_port(80)
+            .msg("Test")
+            .sid(1)
+            .build()
+        )
+        assert isinstance(rule.header.src_addr, IPRange)
+        assert rule.header.src_addr.start == "10.0.0.1"
+        assert rule.header.src_addr.end == "10.0.0.255"
+
 
 class TestPortParsing:
     """Test port expression parsing."""

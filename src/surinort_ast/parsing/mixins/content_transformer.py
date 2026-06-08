@@ -684,14 +684,17 @@ class ContentTransformerMixin:
         """
         offset = None
         length = None
+        only = False
 
         if items:
             spec = items[0]
             if isinstance(spec, tuple) and spec[0] == "offset":
                 offset = spec[1]
                 length = spec[2]
+            elif isinstance(spec, tuple) and spec[0] == "only":
+                only = True
 
-        return FastPatternOption(offset=offset, length=length)
+        return FastPatternOption(offset=offset, length=length, only=only)
 
     # ========================================================================
     # Byte Operations

@@ -267,6 +267,8 @@ def _(option: ByteExtractOption, fmt_opts: FormatterOptions, printer: _TextPrint
 
 @_print_option_dispatch.register
 def _(option: FastPatternOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
+    if option.only:
+        return "fast_pattern:only;"
     if option.offset is not None and option.length is not None:
         return f"fast_pattern:{option.offset},{option.length};"
     return "fast_pattern;"

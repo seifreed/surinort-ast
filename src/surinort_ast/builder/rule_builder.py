@@ -858,19 +858,9 @@ class RuleBuilder:
             inner = self._parse_address(addr_str[1:])
             return AddressNegation(expr=inner)
 
-        # Handle ranges [10.0.0.1-10.0.0.255] - check before lists
+        # Handle bracketed range or list ([10.0.0.1-10.0.0.255] / [a,b,c])
         if addr_str.startswith("[") and addr_str.endswith("]"):
-            inner = addr_str[1:-1]
-            # Check if it's a range (contains dash but not comma)
-            if "-" in inner and "," not in inner:
-                parts = inner.split("-")
-                if len(parts) != 2:
-                    raise BuilderError(f"Invalid IP range format: {addr_str}")
-                return IPRange(start=parts[0].strip(), end=parts[1].strip())
-            # Otherwise it's a list
-            elements_str = inner.split(",")
-            elements = [self._parse_address(e.strip()) for e in elements_str]
-            return AddressList(elements=elements)
+            return self._parse_bracketed_address(addr_str)
 
         # Handle CIDR (10.0.0.0/8)
         if "/" in addr_str:
@@ -883,12 +873,35 @@ class RuleBuilder:
             except ValueError as e:
                 raise BuilderError(f"Invalid CIDR prefix length: {parts[1]}") from e
 
+        # Handle a bare range (10.0.0.1-10.0.0.255). Lists are always bracketed
+        # and a single IP never contains a dash, so an unbracketed dash denotes a
+        # start-end range — without this it would fall through to IPAddress and
+        # store a structurally invalid value.
+        if "-" in addr_str:
+            return self._parse_ip_range(addr_str)
+
         # Handle single IP (assume IPv4/IPv6)
         if ":" in addr_str:
             # IPv6
             return IPAddress(value=addr_str, version=6)
         # IPv4
         return IPAddress(value=addr_str, version=4)
+
+    @staticmethod
+    def _parse_ip_range(range_str: str) -> IPRange:
+        """Parse a ``start-end`` IP range string into an IPRange node."""
+        parts = range_str.split("-")
+        if len(parts) != 2:
+            raise BuilderError(f"Invalid IP range format: {range_str}")
+        return IPRange(start=parts[0].strip(), end=parts[1].strip())
+
+    def _parse_bracketed_address(self, addr_str: str) -> AddressExpr:
+        """Parse a bracketed address: a range ``[a-b]`` or a list ``[a,b,c]``."""
+        inner = addr_str[1:-1]
+        if "-" in inner and "," not in inner:
+            return self._parse_ip_range(inner)
+        elements = [self._parse_address(e.strip()) for e in inner.split(",")]
+        return AddressList(elements=elements)
 
     def _parse_port(self, port: int | str | PortExpr) -> PortExpr:
         """

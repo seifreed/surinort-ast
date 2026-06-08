@@ -536,16 +536,19 @@ class ByteExtractOption(Option):
 
 class FastPatternOption(Option):
     """
-    fast_pattern; fast_pattern:10,20;
+    fast_pattern; fast_pattern:10,20; fast_pattern:only;
 
     Attributes:
         offset: Optional offset
         length: Optional length
+        only: True for ``fast_pattern:only`` (content used only for fast-pattern
+            matching, not re-evaluated). Mutually exclusive with offset/length.
     """
 
     type: Literal["FastPatternOption"] = "FastPatternOption"
     offset: int | None = None
     length: int | None = None
+    only: bool = False
 
 
 class TagOption(Option):
