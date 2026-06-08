@@ -118,7 +118,9 @@ class PerformanceEstimator:
         for option in rule.options:
             option_type = option.node_type
 
-            # Position modifiers and fast_pattern apply to the previous content option
+            # Standalone content modifiers apply their multiplier to the
+            # preceding content option. This set must match the chain-preserving
+            # set below so every recognized modifier also adjusts the cost.
             if (
                 option_type
                 in [
@@ -126,6 +128,10 @@ class PerformanceEstimator:
                     "OffsetOption",
                     "DistanceOption",
                     "WithinOption",
+                    "NocaseOption",
+                    "RawbytesOption",
+                    "StartswithOption",
+                    "EndswithOption",
                     "FastPatternOption",
                 ]
                 and prev_content is not None

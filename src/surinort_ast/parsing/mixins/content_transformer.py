@@ -149,9 +149,14 @@ def _parse_mixed_content(s: str) -> bytes:
 
             i = j + 1
         else:
-            # ASCII character
-            result.append(ord(s[i]))
-            i += 1
+            # Accumulate the text run up to the next pipe and UTF-8 encode it,
+            # so multi-byte characters survive (a per-character bytearray.append
+            # would raise ValueError for any code point above 255).
+            j = s.find("|", i)
+            if j == -1:
+                j = len(s)
+            result.extend(s[i:j].encode("utf-8", errors="replace"))
+            i = j
 
     return bytes(result)
 

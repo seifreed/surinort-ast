@@ -549,6 +549,21 @@ def validate_selector_chain(chain: SelectorChain | UnionSelector) -> None:
             f"(expected {expected_combinators})"
         )
 
+    # Result-set pseudo-selectors (:first/:last/:even/:odd/:nth/:within) narrow
+    # the final ordered match set; they have no per-node meaning mid-chain. The
+    # single-pass executor only narrows the final selector, so reject them on any
+    # earlier selector rather than silently ignoring them.
+    from .selectors import split_result_set_pseudos
+
+    for selector in chain.selectors[:-1]:
+        _, pseudos = split_result_set_pseudos(selector)
+        if pseudos:
+            names = ", ".join(f":{pseudo.pseudo_type}" for pseudo in pseudos)
+            raise InvalidSelectorError(
+                f"Result-set pseudo-selector ({names}) is only valid on the final "
+                "selector of a chain, not before a combinator"
+            )
+
 
 def normalize_selector(selector: str) -> str:
     """

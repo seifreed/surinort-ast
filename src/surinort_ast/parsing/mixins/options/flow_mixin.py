@@ -197,19 +197,20 @@ class FlowTrackingOptionsMixin:
 
     def flowbits_name(self, items: Sequence[Token]) -> Token:
         """
-        Join multiple flowbit names with & separator.
+        Reassemble a composite flowbit name, preserving its operators.
 
         Args:
-            items: Sequence of WORD tokens
+            items: Interleaved WORD and FLOWBITS_SEP tokens
 
         Returns:
-            Single Token with & separated names
+            Single Token with the original name (operators preserved)
 
         Composite Names:
-            Multiple flowbit names can be combined with &:
+            Flowbit names can be combined with ``&`` (AND) or ``|`` (OR):
             flowbits:isset,name1&name2; (both must be set)
+            flowbits:isset,name1|name2; (either must be set)
         """
-        name = "&".join(str(token.value) for token in items)
+        name = "".join(str(token.value) for token in items)
         return Token("WORD", name)
 
     # ========================================================================

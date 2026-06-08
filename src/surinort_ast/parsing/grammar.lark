@@ -227,7 +227,8 @@ flow_value: WORD
 
 flowbits_option: "flowbits" ":" flowbits_action
 flowbits_action: WORD ("," flowbits_name)?
-flowbits_name: WORD (("&" | "|") WORD)*
+flowbits_name: WORD (FLOWBITS_SEP WORD)*
+FLOWBITS_SEP: "&" | "|"
 
 flowint_option: "flowint" ":" WORD "," flowint_modifier ("," flowint_rvalue)?
 ?flowint_modifier: WORD | FLOWINT_OP

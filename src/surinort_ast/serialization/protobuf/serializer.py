@@ -1520,20 +1520,28 @@ def from_protobuf(data: bytes) -> Rule | Sequence[Rule]:
         >>> rule = from_protobuf(binary_data)
     """
     try:
-        # Try the metadata-envelope (RuleBatch) shape first. If the bytes
-        # were produced without a batch, the protobuf parser will accept
-        # them but leave ``rules`` empty, so we fall back to a single
-        # Rule. We can't simply check the wire type of the first byte
-        # because both RuleBatch and Rule use length-delimited fields.
+        # A metadata envelope (RuleBatch) and a bare Rule share field numbers
+        # with conflicting wire types: Rule.header (field 2, message) lands in
+        # RuleBatch.ast_version (field 2, string), so parsing a bare Rule as a
+        # RuleBatch typically raises (bad UTF-8) and, when it doesn't, leaves
+        # ``rules`` empty (field 1 wire-type mismatch). Treat a failed or
+        # non-batch-shaped parse as a bare Rule. ``count`` alone is not a
+        # reliable batch marker because it aliases Rule.dialect (both field 4,
+        # varint), so it is excluded from the shape check.
         pb_batch = pb.RuleBatch()
-        pb_batch.ParseFromString(data)
-        if pb_batch.rules or pb_batch.is_collection or pb_batch.count:
+        try:
+            pb_batch.ParseFromString(data)
+            is_batch_shape = bool(pb_batch.rules or pb_batch.is_collection)
+        except Exception:
+            is_batch_shape = False
+
+        if is_batch_shape:
             rules = [_deserialize_rule(r) for r in pb_batch.rules]
             if pb_batch.is_collection or pb_batch.count != 1:
                 return rules
             return rules[0]
 
-        # Fall back to a single Rule payload
+        # Bare Rule payload (produced with include_metadata=False)
         pb_rule = pb.Rule()
         pb_rule.ParseFromString(data)
         return _deserialize_rule(pb_rule)
