@@ -60,6 +60,14 @@ class TestInlineContentModifiers:
         rule = parse_rule('alert tcp any any -> any any (content:"x",distance -3; sid:1;)')
         assert _modifier(rule, "distance") == -3
 
+    def test_unknown_inline_modifier_preserves_name_not_nocase(self):
+        """An unrecognized inline content modifier must keep its literal name and
+        emit a diagnostic, not be silently coerced to ``nocase``."""
+        rule = parse_rule('alert tcp any any -> any any (content:"abc",wibble; sid:1;)')
+        modifier = _content(rule).modifiers[0]
+        assert modifier.name == "wibble"
+        assert any("wibble" in d.message for d in rule.diagnostics)
+
 
 class TestStandaloneDistanceSign:
     """Standalone ``distance:N`` must preserve a negative sign."""

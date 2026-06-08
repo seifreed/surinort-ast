@@ -477,6 +477,22 @@ class TestRoundtripRegressions:
         sids = [opt.value for opt in restored.options if isinstance(opt, SidOption)]
         assert sids == [4000000000]
 
+    def test_codeless_diagnostic_roundtrip(self):
+        """A rule carrying a diagnostic with no code must serialize.
+
+        Regression: pb_diag.code = diag.code crashed when code was None (the
+        default for parser diagnostics), since the proto field is a plain
+        string.
+        """
+        # An out-of-range CIDR prefix attaches a code-less WARNING diagnostic.
+        rule = parse_rule("alert tcp 10.0.0.0/33 any -> any any (sid:1;)")
+        assert rule.diagnostics
+
+        restored = from_protobuf(to_protobuf(rule))
+
+        assert [d.message for d in restored.diagnostics] == [d.message for d in rule.diagnostics]
+        assert all(d.code is None for d in restored.diagnostics)
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

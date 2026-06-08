@@ -258,7 +258,9 @@ class ContentModifier(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    name: ContentModifierType
+    # A known modifier maps to the enum; an unrecognized inline modifier keeps
+    # its literal name as a string rather than being coerced to a wrong member.
+    name: ContentModifierType | str
     value: int | str | None = None
 
 

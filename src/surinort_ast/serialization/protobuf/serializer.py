@@ -340,12 +340,19 @@ def _serialize_port_expr(port: PortExpr) -> Any:
 def _serialize_content_modifier(mod: ContentModifier) -> Any:
     """Serialize ContentModifier to protobuf message."""
     pb_mod = pb.ContentModifier()
-    pb_mod.name = _CONTENT_MODIFIER_TO_PB[mod.name]
 
-    if isinstance(mod.value, int):
-        pb_mod.int_value = mod.value
-    elif isinstance(mod.value, str):
-        pb_mod.string_value = mod.value
+    if isinstance(mod.name, ContentModifierType):
+        pb_mod.name = _CONTENT_MODIFIER_TO_PB[mod.name]
+        if isinstance(mod.value, int):
+            pb_mod.int_value = mod.value
+        elif isinstance(mod.value, str):
+            pb_mod.string_value = mod.value
+    else:
+        # An unrecognized modifier name has no enum/proto equivalent; carry the
+        # literal name in string_value with the UNSPECIFIED enum so it survives
+        # the round-trip instead of being lost or mis-encoded.
+        pb_mod.name = pb.CONTENT_MODIFIER_UNSPECIFIED
+        pb_mod.string_value = mod.name
 
     return pb_mod
 
@@ -709,7 +716,10 @@ def _serialize_diagnostic(diag: Diagnostic) -> Any:
 
     pb_diag.level = _DIAGNOSTIC_LEVEL_TO_PB[diag.level]
     pb_diag.message = diag.message
-    pb_diag.code = diag.code
+    # ``code`` is optional in the model but a plain proto3 string; assigning
+    # None raises, so only set it when present (unset reads back as "").
+    if diag.code is not None:
+        pb_diag.code = diag.code
 
     if diag.location:
         _serialize_location(diag.location, pb_diag.location)
@@ -875,6 +885,10 @@ def _deserialize_port_expr(pb_port: Any) -> PortExpr:
 
 def _deserialize_content_modifier(pb_mod: Any) -> ContentModifier:
     """Deserialize ContentModifier from protobuf message."""
+    if pb_mod.name == pb.CONTENT_MODIFIER_UNSPECIFIED:
+        # An unrecognized modifier name was carried verbatim in string_value.
+        return ContentModifier(name=pb_mod.string_value, value=None)
+
     name = _PB_TO_CONTENT_MODIFIER[pb_mod.name]
     value: int | str | None = None
 
@@ -1288,7 +1302,8 @@ def _deserialize_diagnostic(pb_diag: Any) -> Diagnostic:
     return Diagnostic(
         level=_PB_TO_DIAGNOSTIC_LEVEL[pb_diag.level],
         message=pb_diag.message,
-        code=pb_diag.code,
+        # Empty string means the optional code was unset on the wire.
+        code=pb_diag.code or None,
         location=_deserialize_location(pb_diag.location) if pb_diag.HasField("location") else None,
     )
 

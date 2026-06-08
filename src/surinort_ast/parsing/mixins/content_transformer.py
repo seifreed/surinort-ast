@@ -521,21 +521,28 @@ class ContentTransformerMixin:
             ContentModifier with the actual modifier name mapped to ContentModifierType
 
         Note:
-            This is a fallback for unrecognized inline modifiers.
-            Maps known names to their enum, falls back to NOCASE for truly unknown modifiers.
+            This is a fallback for unrecognized inline modifiers. Known names map
+            to their enum; a truly unknown name is preserved verbatim (with a
+            diagnostic) rather than being coerced to a wrong modifier.
         """
         # Extract the modifier name
         modifier_name = ""
         if args:
             modifier_name = str(args[0].value) if isinstance(args[0], Token) else str(args[0])
 
-        # Try to map the modifier name to a ContentModifierType
-        modifier_type = ContentModifierType.NOCASE  # Default fallback
+        # Map the modifier name to a ContentModifierType, or keep the literal
+        # name for an unrecognized modifier so its meaning is not invented.
         name_lower = modifier_name.lower()
-        for member in ContentModifierType:
-            if member.value == name_lower:
-                modifier_type = member
-                break
+        matched = next((m for m in ContentModifierType if m.value == name_lower), None)
+        modifier_type: ContentModifierType | str
+        if matched is not None:
+            modifier_type = matched
+        else:
+            modifier_type = modifier_name
+            self.add_diagnostic(
+                DiagnosticLevel.WARNING,
+                f"Unknown content modifier '{modifier_name}'",
+            )
 
         if len(args) == 1:
             return ContentModifier(name=modifier_type, value=None)

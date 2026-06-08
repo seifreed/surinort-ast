@@ -14,6 +14,7 @@ import hashlib
 import struct
 from typing import Any
 
+from ..core.enums import ContentModifierType
 from ..core.nodes import (
     AnyAddress,
     AnyPort,
@@ -236,7 +237,12 @@ class MinHashSignature:
                 if hasattr(option, "modifiers") and option.modifiers:
                     for mod in option.modifiers:
                         if hasattr(mod, "name"):
-                            features.add(f"content_mod:{mod.name.value}")
+                            mod_name = (
+                                mod.name.value
+                                if isinstance(mod.name, ContentModifierType)
+                                else mod.name
+                            )
+                            features.add(f"content_mod:{mod_name}")
 
         # PCRE option: extract normalized pattern
         elif isinstance(option, PcreOption):

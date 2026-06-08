@@ -14,6 +14,7 @@ from collections.abc import Sequence
 from functools import singledispatch
 from typing import Protocol
 
+from surinort_ast.core.enums import ContentModifierType
 from surinort_ast.core.nodes import (
     AddressExpr,
     AddressList,
@@ -605,9 +606,12 @@ class TextPrinter:
         Returns:
             Formatted modifier text
         """
+        name = (
+            modifier.name.value if isinstance(modifier.name, ContentModifierType) else modifier.name
+        )
         if modifier.value is None:
-            return f"{modifier.name.value};"
-        return f"{modifier.name.value}:{modifier.value};"
+            return f"{name};"
+        return f"{name}:{modifier.value};"
 
 
 def print_rule(rule: Rule, options: FormatterOptions | None = None) -> str:
