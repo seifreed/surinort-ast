@@ -113,6 +113,35 @@ alert tcp any any -> any 443 (msg:"Test2"; sid:2;)
 
         assert len(rules) == 2
 
+    def test_parse_file_multiline_rule(self, tmp_path):
+        """A rule spanning multiple physical lines must be parsed, not dropped.
+
+        Regression: the non-streaming path parsed each physical line as its own
+        rule, so multi-line rules failed silently and only single-line rules
+        survived. It must now agree with stream=True.
+        """
+        file = tmp_path / "test.rules"
+        file.write_text(
+            'alert tcp any any -> any 80 (msg:"multi";\n'
+            'content:"abc";\n'
+            "sid:1;)\n"
+            'alert tcp any any -> any 81 (msg:"single"; sid:2;)\n'
+        )
+
+        rules = parse_file(file)
+        assert len(rules) == 2
+        assert len(rules) == len(list(parse_file(file, stream=True)))
+
+    def test_parse_file_option_prefixing_action_keyword(self, tmp_path):
+        """A continuation line beginning with an option that merely shares a
+        prefix with an action keyword (e.g. ``logto`` vs ``log``) must not be
+        treated as the start of a new rule."""
+        file = tmp_path / "test.rules"
+        file.write_text('alert tcp any any -> any 80 (msg:"x";\nlogto:"alerts.log"; sid:1;)\n')
+
+        rules = parse_file(file)
+        assert len(rules) == 1
+
     def test_parse_file_not_found(self):
         """Parse non-existent file raises FileNotFoundError."""
         with pytest.raises(FileNotFoundError):

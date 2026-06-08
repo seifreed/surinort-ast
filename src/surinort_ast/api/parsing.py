@@ -327,7 +327,13 @@ def _parse_file_streaming(
 
 
 def _read_rule_lines(file_path: Path) -> list[tuple[int, str]]:
-    """Read file and extract non-empty, non-comment lines with line numbers."""
+    """Read a file and group its physical lines into complete rule blocks.
+
+    Returns ``(first_line_number, rule_text)`` per rule, reassembling rules that
+    span multiple physical lines. Using the shared block iterator keeps the
+    non-streaming path consistent with streaming, which previously diverged: one
+    task per physical line silently dropped every multi-line rule.
+    """
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {_sanitize_path_for_error(file_path)}")
 
@@ -339,12 +345,9 @@ def _read_rule_lines(file_path: Path) -> list[tuple[int, str]]:
     except OSError as e:
         raise ParseError(f"Failed to read file {_sanitize_path_for_error(file_path)}: {e}") from e
 
-    tasks: list[tuple[int, str]] = []
-    for line_num, raw_line in enumerate(lines, start=1):
-        line = raw_line.strip()
-        if line and not line.startswith("#"):
-            tasks.append((line_num, line))
-    return tasks
+    from ..streaming.parser import _iter_rule_blocks
+
+    return list(_iter_rule_blocks(enumerate(lines, start=1)))
 
 
 def _parse_file_sequential(

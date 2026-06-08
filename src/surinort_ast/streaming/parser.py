@@ -73,8 +73,14 @@ _ACTION_KEYWORDS: tuple[str, ...] = ("alert", "drop", "pass", "reject", "log", "
 
 
 def _line_starts_rule(line: str) -> bool:
-    """True if ``line`` begins a new rule (starts with an action keyword)."""
-    return line.startswith(_ACTION_KEYWORDS)
+    """True if ``line`` begins a new rule (its first token is an action keyword).
+
+    Matching the whole first token, not a prefix, avoids misclassifying option
+    keywords that merely share a prefix with an action — e.g. ``logto:`` (a real
+    Snort option) must not be mistaken for the ``log`` action and split a rule.
+    """
+    token = line.split(maxsplit=1)[0] if line else ""
+    return token in _ACTION_KEYWORDS
 
 
 def _iter_rule_blocks(lines: Iterable[tuple[int, str]]) -> Iterator[tuple[int, str]]:
