@@ -275,6 +275,20 @@ class TestOptionReorderStrategy:
         assert optimized is None
         assert opts == []
 
+    def test_reorder_preserves_relative_pcre(self):
+        """A relative PCRE (R flag) matches relative to the preceding content, so
+        the reorder must not move it across content options and change detection.
+        """
+        rule = parse_rule(
+            'alert tcp any any -> any any (content:"A"; pcre:"/x/R"; content:"B"; sid:1;)'
+        )
+
+        optimized, opts = OptionReorderStrategy().apply(rule)
+
+        assert optimized is None
+        assert opts == []
+        assert OptionReorderStrategy().estimate_gain(rule) == 0.0
+
 
 class TestFastPatternStrategy:
     """Test FastPatternStrategy."""

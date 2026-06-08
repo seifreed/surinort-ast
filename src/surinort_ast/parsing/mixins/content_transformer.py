@@ -816,40 +816,39 @@ class ContentTransformerMixin:
             - Special: post_offset with value (e.g., post_offset 10)
         """
         params = items[0] if items else []
+        return generic_kv("byte_jump", self._format_byte_flag_params(params))
 
-        # Process each param to extract proper values from Tree/Token/list objects
-        processed_params = []
+    @staticmethod
+    def _format_byte_flag_params(params: Sequence[Any]) -> str:
+        """Format byte_jump/byte_extract params, joining ``flag value`` pairs.
+
+        Flags carrying a value (e.g. ``post_offset 10``, ``multiplier 2``) arrive
+        as a Tree or a ``[name, value]`` list and are rendered as ``name value``;
+        plain tokens and offset strings pass through. Result is comma-joined.
+        """
+        processed_params: list[str] = []
         for p in params:
             if isinstance(p, Tree):
-                # For Tree objects (like byte_jump_flag), extract the actual value
                 if p.children:
-                    flag = p.children[0]
-                    flag_value = token_to_str(flag)
-                    # If there's a second child (INT for flags like "post_offset 10")
+                    flag_value = token_to_str(p.children[0])
                     if len(p.children) > 1:
-                        flag_arg_value = token_to_str(p.children[1])
-                        processed_params.append(f"{flag_value} {flag_arg_value}")
+                        processed_params.append(f"{flag_value} {token_to_str(p.children[1])}")
                     else:
                         processed_params.append(flag_value)
                 else:
                     processed_params.append(str(p))
             elif isinstance(p, (list, tuple)):
-                # For list/tuple (from byte_jump_flag returning items)
                 if len(p) == 1:
                     processed_params.append(token_to_str(p[0]))
                 elif len(p) == 2:
-                    flag_name = token_to_str(p[0])
-                    flag_arg = token_to_str(p[1])
-                    processed_params.append(f"{flag_name} {flag_arg}")
+                    processed_params.append(f"{token_to_str(p[0])} {token_to_str(p[1])}")
                 else:
                     processed_params.append(" ".join(token_to_str(item) for item in p))
             elif isinstance(p, Token):
                 processed_params.append(str(p.value))
             else:
                 processed_params.append(str(p))
-
-        value_str = ",".join(processed_params)
-        return generic_kv("byte_jump", value_str)
+        return ",".join(processed_params)
 
     def byte_jump_params(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through byte_jump params."""
@@ -859,11 +858,13 @@ class ContentTransformerMixin:
         """Handle byte_jump offset with optional negative sign or variable name."""
         return self._signed_offset(items)
 
-    def byte_jump_flag(self, items: Sequence[Any]) -> Sequence[Any]:
-        """Resolve a byte_jump flag and its optional (possibly negative) argument.
+    @staticmethod
+    def _resolve_byte_flag(items: Sequence[Any]) -> Sequence[Any]:
+        """Resolve a byte_jump/byte_extract flag and its optional (possibly
+        negative) argument.
 
-        Handles ``relative`` (no arg), ``post_offset 10`` and ``post_offset -10``;
-        the leading minus arrives as a ``neg_sign`` marker rule.
+        Handles ``relative`` (no arg), ``post_offset 10`` / ``multiplier 2`` and
+        ``post_offset -10``; the leading minus arrives as a ``neg_sign`` marker.
         """
         if not items:
             return []
@@ -873,6 +874,10 @@ class ContentTransformerMixin:
         negative = any(is_marker(item, "neg_sign") for item in items[1:])
         int_value = token_to_str(items[-1])
         return [name, f"-{int_value}" if negative else int_value]
+
+    def byte_jump_flag(self, items: Sequence[Any]) -> Sequence[Any]:
+        """Resolve a byte_jump flag and its optional (possibly negative) argument."""
+        return self._resolve_byte_flag(items)
 
     def byte_extract_option(self, items: Sequence[Any]) -> GenericOption:
         """
@@ -887,10 +892,10 @@ class ContentTransformerMixin:
         Usage:
             byte_extract:bytes,offset,name[,flags]
             byte_extract:4,0,extracted_value,relative
+            byte_extract:4,0,var,multiplier 2,relative
         """
         params = items[0] if items else []
-        value_str = ",".join(token_to_str(p) for p in params)
-        return generic_kv("byte_extract", value_str)
+        return generic_kv("byte_extract", self._format_byte_flag_params(params))
 
     def byte_extract_params(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through byte_extract params."""
@@ -899,6 +904,10 @@ class ContentTransformerMixin:
     def byte_extract_offset(self, items: Sequence[Token]) -> str:
         """Handle byte_extract offset with optional negative sign."""
         return self._signed_offset(items)
+
+    def byte_extract_flag(self, items: Sequence[Any]) -> Sequence[Any]:
+        """Resolve a byte_extract flag and its optional value (``multiplier 2``)."""
+        return self._resolve_byte_flag(items)
 
     def byte_math_option(self, items: Sequence[Any]) -> GenericOption:
         """

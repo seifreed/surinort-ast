@@ -134,6 +134,22 @@ class TestByteOperationOffsetSigns:
         )
         assert self._generic(rule, "byte_extract") == "4,-2,var,relative"
 
+    def test_byte_extract_multiplier_value_flag(self):
+        """byte_extract value-flags like 'multiplier 2' / 'align 4' (space-separated
+        value) are valid Suricata syntax and must parse and round-trip."""
+        rule = parse_rule(
+            "alert tcp any any -> any any "
+            '(content:"x"; byte_extract:4,0,var,multiplier 2,relative; sid:1;)'
+        )
+        assert self._generic(rule, "byte_extract") == "4,0,var,multiplier 2,relative"
+
+    def test_byte_extract_align_value_flag(self):
+        rule = parse_rule(
+            "alert tcp any any -> any any "
+            '(content:"x"; byte_extract:4,0,var,relative,align 4; sid:1;)'
+        )
+        assert self._generic(rule, "byte_extract") == "4,0,var,relative,align 4"
+
     def test_byte_test_bitmask_keyword_preserved(self):
         """The 'bitmask' keyword must not be dropped from a byte_test flag.
 

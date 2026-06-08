@@ -290,7 +290,8 @@ byte_jump_offset: neg_sign? (INT | WORD | REFERENCE_ID)
 byte_jump_flag: WORD (neg_sign? INT)?  // Support "post_offset 10" style flags
 
 byte_extract_option: "byte_extract" ":" byte_extract_params
-byte_extract_params: INT "," byte_extract_offset "," (WORD | REFERENCE_ID) ("," (WORD | REFERENCE_ID))*
+byte_extract_params: INT "," byte_extract_offset "," (WORD | REFERENCE_ID) ("," byte_extract_flag)*
+byte_extract_flag: WORD (neg_sign? INT)?  // Support "multiplier 2" / "align 4" style flags
 byte_extract_offset: neg_sign? INT
 
 // byte_math has a rich, comma-separated "<keyword> <value>" parameter syntax

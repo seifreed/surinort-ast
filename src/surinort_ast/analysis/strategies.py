@@ -47,6 +47,18 @@ POSITIONAL_OPTIONS: frozenset[str] = frozenset(
 )
 
 
+def _is_order_significant(opt: Option) -> bool:
+    """True if reordering or removing ``opt`` would change detection semantics.
+
+    Besides the fixed POSITIONAL_OPTIONS set, a PCRE carrying the ``R`` flag
+    matches relative to the buffer position of the preceding content match, so it
+    is position-dependent exactly like distance/within and must not be moved.
+    """
+    if opt.node_type in POSITIONAL_OPTIONS:
+        return True
+    return opt.node_type == "PcreOption" and "R" in (getattr(opt, "flags", "") or "")
+
+
 class OptimizationStrategy(ABC):
     """
     Base class for optimization strategies.
@@ -172,10 +184,11 @@ class OptionReorderStrategy(OptimizationStrategy):
             # Nothing to reorder
             return None, []
 
-        if any(opt.node_type in POSITIONAL_OPTIONS for opt in rule.options):
+        if any(_is_order_significant(opt) for opt in rule.options):
             # A positional option (sticky modifier, relative offset, sticky
-            # buffer, or byte_* variable) is present; reordering would detach it
-            # from the content it qualifies and change detection. Leave as-is.
+            # buffer, byte_* variable, or relative PCRE) is present; reordering
+            # would detach it from the content it qualifies and change
+            # detection. Leave as-is.
             return None, []
 
         # Sort options by priority (stable sort)
@@ -223,7 +236,7 @@ class OptionReorderStrategy(OptimizationStrategy):
         """
         from .estimator import PerformanceEstimator
 
-        if any(opt.node_type in POSITIONAL_OPTIONS for opt in rule.options):
+        if any(_is_order_significant(opt) for opt in rule.options):
             # Reordering is unsafe for these rules (see apply), so no gain.
             return 0.0
 

@@ -315,26 +315,22 @@ def test_ipv4_cidr_edge_cases(transformer):
 
 
 def test_ipv4_cidr_invalid_prefix_negative(transformer):
-    """Test IPv4 CIDR with negative prefix raises Pydantic validation error."""
-    from pydantic_core import ValidationError
+    """A negative IPv4 prefix is clamped to 0 with a WARNING, not rejected."""
+    result = transformer.ipv4_cidr(create_token("192.168.1.0"), create_token("-1"))
 
-    ip_token = create_token("192.168.1.0")
-    prefix_token = create_token("-1")
-
-    # Pydantic enforces prefix_len >= 0, so this should raise ValidationError
-    with pytest.raises(ValidationError):
-        transformer.ipv4_cidr(ip_token, prefix_token)
+    assert isinstance(result, IPCIDRRange)
+    assert result.prefix_len == 0
+    assert len(transformer.diagnostics) == 1
+    assert transformer.diagnostics[0][0] == DiagnosticLevel.WARNING
+    assert "0-32" in transformer.diagnostics[0][1]
 
 
 def test_ipv4_cidr_invalid_prefix_too_large(transformer):
-    """Test IPv4 CIDR with prefix > 32 (defensive validation with diagnostic)."""
-    ip_token = create_token("192.168.1.0")
-    prefix_token = create_token("33")
-    result = transformer.ipv4_cidr(ip_token, prefix_token)
+    """An IPv4 prefix > 32 is clamped to 32 with a WARNING (never stored invalid)."""
+    result = transformer.ipv4_cidr(create_token("192.168.1.0"), create_token("33"))
 
-    # Pydantic allows 0-128, but we add diagnostic for IPv4-specific range
     assert isinstance(result, IPCIDRRange)
-    assert result.prefix_len == 33
+    assert result.prefix_len == 32
     assert len(transformer.diagnostics) == 1
     assert transformer.diagnostics[0][0] == DiagnosticLevel.WARNING
     assert "0-32" in transformer.diagnostics[0][1]
@@ -382,27 +378,25 @@ def test_ipv6_cidr_edge_cases(transformer):
 
 
 def test_ipv6_cidr_invalid_prefix_negative(transformer):
-    """Test IPv6 CIDR with negative prefix raises Pydantic validation error."""
-    from pydantic_core import ValidationError
+    """A negative IPv6 prefix is clamped to 0 with a WARNING, not rejected."""
+    result = transformer.ipv6_cidr(create_token("2001:db8::"), create_token("-1"))
 
-    ip_token = create_token("2001:db8::")
-    prefix_token = create_token("-1")
-
-    # Pydantic enforces prefix_len >= 0, so this should raise ValidationError
-    with pytest.raises(ValidationError):
-        transformer.ipv6_cidr(ip_token, prefix_token)
+    assert isinstance(result, IPCIDRRange)
+    assert result.prefix_len == 0
+    assert len(transformer.diagnostics) == 1
+    assert transformer.diagnostics[0][0] == DiagnosticLevel.WARNING
+    assert "0-128" in transformer.diagnostics[0][1]
 
 
 def test_ipv6_cidr_invalid_prefix_too_large(transformer):
-    """Test IPv6 CIDR with prefix > 128 raises Pydantic validation error."""
-    from pydantic_core import ValidationError
+    """An IPv6 prefix > 128 is clamped to 128 with a WARNING instead of crashing."""
+    result = transformer.ipv6_cidr(create_token("2001:db8::"), create_token("129"))
 
-    ip_token = create_token("2001:db8::")
-    prefix_token = create_token("129")
-
-    # Pydantic enforces prefix_len <= 128, so this should raise ValidationError
-    with pytest.raises(ValidationError):
-        transformer.ipv6_cidr(ip_token, prefix_token)
+    assert isinstance(result, IPCIDRRange)
+    assert result.prefix_len == 128
+    assert len(transformer.diagnostics) == 1
+    assert transformer.diagnostics[0][0] == DiagnosticLevel.WARNING
+    assert "0-128" in transformer.diagnostics[0][1]
 
 
 # ============================================================================

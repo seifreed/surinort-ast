@@ -183,6 +183,9 @@ class AddressTransformerMixin:
                 f"IPv4 CIDR prefix length {prefix_len} out of range (0-32)",
                 token_to_location(prefix_token, self.file_path),
             )
+            # Clamp to the valid range so the AST never carries a structurally
+            # invalid prefix (the shared model permits up to 128 for IPv6).
+            prefix_len = max(0, min(prefix_len, 32))
 
         return IPCIDRRange(
             network=network,
@@ -219,6 +222,9 @@ class AddressTransformerMixin:
                 f"IPv6 CIDR prefix length {prefix_len} out of range (0-128)",
                 token_to_location(prefix_token, self.file_path),
             )
+            # Clamp to the valid range so a malformed prefix yields a diagnostic
+            # plus a usable node instead of crashing the whole rule parse.
+            prefix_len = max(0, min(prefix_len, 128))
 
         return IPCIDRRange(
             network=network,
