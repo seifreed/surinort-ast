@@ -171,7 +171,11 @@ def read_input(file_path: Path | None) -> str:
     # Read raw bytes and decode as UTF-8 to match the file-input behavior.
     # Using ``sys.stdin.read()`` directly would rely on the system locale
     # encoding (e.g. cp1252 on Windows) and would corrupt any non-ASCII
-    # rule piped in.
+    # rule piped in. Fall back to the text stream when no binary buffer is
+    # available (e.g. an embedded or wrapped stdin replacement).
+    if not hasattr(sys.stdin, "buffer"):
+        text: str = sys.stdin.read()
+        return text
     data = sys.stdin.buffer.read()
     try:
         return data.decode("utf-8")
