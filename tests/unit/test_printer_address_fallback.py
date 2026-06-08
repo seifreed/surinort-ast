@@ -1076,18 +1076,18 @@ class TestEdgeCases:
         from surinort_ast.core.nodes import ContentModifier, ContentModifierType
 
         modifier = ContentModifier(name=ContentModifierType.NOCASE, value=None)
-        result = text_printer._print_content_modifier(modifier)
+        result = text_printer._print_inline_content_modifier(modifier)
 
-        assert result == "nocase;"
+        assert result == ",nocase"
 
     def test_content_modifier_with_value(self, text_printer: TextPrinter):
         """Test printing content modifier with value (line 471)."""
         from surinort_ast.core.nodes import ContentModifier, ContentModifierType
 
         modifier = ContentModifier(name=ContentModifierType.DEPTH, value=100)
-        result = text_printer._print_content_modifier(modifier)
+        result = text_printer._print_inline_content_modifier(modifier)
 
-        assert result == "depth:100;"
+        assert result == ",depth 100"
 
     def test_print_content_with_inline_modifiers(self, text_printer: TextPrinter):
         """Test printing content with inline modifiers (lines 412-414)."""
@@ -1136,10 +1136,12 @@ class TestEdgeCases:
 
         printed = text_printer.print_rule(rule)
 
+        # Modifiers are comma-attached inside the content option so they
+        # re-parse as the content's modifiers rather than detaching.
         assert "content:" in printed
         assert "test" in printed
-        assert "nocase;" in printed
-        assert "depth:50" in printed
+        assert ",nocase" in printed
+        assert ",depth 50" in printed
 
     def test_print_content_with_special_chars(self, text_printer: TextPrinter):
         """Test printing content with special characters needing hex (lines 453-455)."""

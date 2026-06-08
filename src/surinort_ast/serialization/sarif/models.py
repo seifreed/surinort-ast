@@ -46,12 +46,17 @@ class SarifRegion:
     end_column: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
+        # SARIF 2.1.0 defines every region line/column property with minimum 1;
+        # a value below 1 is schema-invalid and must be omitted, not emitted.
+        def _positive(value: int | None) -> int | None:
+            return value if value is not None and value >= 1 else None
+
         return _compact_dict(
             {
-                "startLine": self.start_line,
-                "startColumn": self.start_column,
-                "endLine": self.end_line,
-                "endColumn": self.end_column,
+                "startLine": _positive(self.start_line),
+                "startColumn": _positive(self.start_column),
+                "endLine": _positive(self.end_line),
+                "endColumn": _positive(self.end_column),
             }
         )
 

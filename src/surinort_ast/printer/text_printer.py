@@ -547,17 +547,15 @@ class TextPrinter:
         # Format the pattern
         pattern_str = self._format_content_pattern(content.pattern)
 
-        # Build content string
+        # Inline modifiers must stay comma-attached to the content option so they
+        # re-parse as the content's modifiers. Emitting them as separate
+        # ``;``-terminated options instead detaches them into standalone options,
+        # changing the AST on round-trip.
         negation = "!" if content.negated else ""
-        result = f"content:{negation}{quote}{pattern_str}{quote};"
-
-        # Add modifiers
-        if content.modifiers:
-            sep = self.options.option_separator
-            modifier_strs = [self._print_content_modifier(m) for m in content.modifiers]
-            result += sep + sep.join(modifier_strs)
-
-        return result
+        result = f"content:{negation}{quote}{pattern_str}{quote}"
+        for modifier in content.modifiers:
+            result += self._print_inline_content_modifier(modifier)
+        return result + ";"
 
     def _format_content_pattern(self, pattern: bytes) -> str:
         """
@@ -598,22 +596,30 @@ class TextPrinter:
 
         return "".join(parts)
 
-    def _print_content_modifier(self, modifier: ContentModifier) -> str:
+    def _print_inline_content_modifier(self, modifier: ContentModifier) -> str:
         """
-        Print content modifier.
+        Print one content modifier comma-attached to its content option.
 
-        Args:
-            modifier: Content modifier to print
+        Inline modifiers use the space-separated ``name value`` form (e.g.
+        ``depth 9``), not the colon form, and bare modifiers carry no value. The
+        result is prefixed with ``,`` so it stays inside the content option.
 
-        Returns:
-            Formatted modifier text
+        ``fast_pattern`` is special: its inline keyword takes no value, so an
+        offset/length pair (stored as ``"off,len"``) is emitted as the separate
+        ``fast_pattern_offset``/``fast_pattern_length`` inline keywords, which the
+        transformer merges back into a single ``fast_pattern`` modifier.
         """
         name = (
             modifier.name.value if isinstance(modifier.name, ContentModifierType) else modifier.name
         )
         if modifier.value is None:
-            return f"{name};"
-        return f"{name}:{modifier.value};"
+            return f",{name}"
+        if name == ContentModifierType.FAST_PATTERN.value:
+            offset, _, length = str(modifier.value).partition(",")
+            if length:
+                return f",fast_pattern_offset {offset},fast_pattern_length {length}"
+            return f",fast_pattern_offset {offset}"
+        return f",{name} {modifier.value}"
 
 
 def print_rule(rule: Rule, options: FormatterOptions | None = None) -> str:

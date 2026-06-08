@@ -129,3 +129,56 @@ def test_finding_with_line_only_keeps_region() -> None:
     result = to_sarif_log([finding])["runs"][0]["results"][0]
     physical = result["locations"][0]["physicalLocation"]
     assert physical["region"]["startLine"] == 5
+
+
+def test_finding_unknown_path_emits_valid_uri() -> None:
+    """A region without a file path must use a URI free of invalid characters."""
+    from surinort_ast.analysis.findings import Finding, FindingLevel, FindingLocation
+    from surinort_ast.serialization.sarif import to_sarif_log
+
+    finding = Finding(
+        rule_id="R3",
+        level=FindingLevel.WARNING,
+        message="m",
+        category="c",
+        location=FindingLocation(start_line=1),
+    )
+    result = to_sarif_log([finding])["runs"][0]["results"][0]
+    uri = result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+    assert "<" not in uri and ">" not in uri
+    assert uri == "unknown"
+
+
+def test_finding_path_with_spaces_is_percent_encoded() -> None:
+    """Raw paths with spaces/backslashes must be normalized to a valid URI."""
+    from surinort_ast.analysis.findings import Finding, FindingLevel, FindingLocation
+    from surinort_ast.serialization.sarif import to_sarif_log
+
+    finding = Finding(
+        rule_id="R4",
+        level=FindingLevel.NOTE,
+        message="m",
+        category="c",
+        location=FindingLocation(file_path="rules/my rules.rules", start_line=1),
+    )
+    result = to_sarif_log([finding])["runs"][0]["results"][0]
+    uri = result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+    assert " " not in uri
+    assert uri == "rules/my%20rules.rules"
+
+
+def test_finding_non_positive_region_components_omitted() -> None:
+    """SARIF requires region line/column >= 1; zero/negative must be dropped."""
+    from surinort_ast.analysis.findings import Finding, FindingLevel, FindingLocation
+    from surinort_ast.serialization.sarif import to_sarif_log
+
+    finding = Finding(
+        rule_id="R5",
+        level=FindingLevel.ERROR,
+        message="m",
+        category="c",
+        location=FindingLocation(file_path="a.rules", start_line=1, start_column=0),
+    )
+    result = to_sarif_log([finding])["runs"][0]["results"][0]
+    region = result["locations"][0]["physicalLocation"]["region"]
+    assert region == {"startLine": 1}

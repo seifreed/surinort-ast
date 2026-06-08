@@ -619,9 +619,9 @@ class TestContentWithModifiers:
 
         assert "content:" in printed
         assert "test" in printed
-        assert "nocase;" in printed
-        assert "depth:100" in printed
-        assert "offset:10" in printed
+        assert ",nocase" in printed
+        assert ",depth 100" in printed
+        assert ",offset 10" in printed
 
     def test_content_with_distance_within(self) -> None:
         """Test printing content with distance and within modifiers."""
@@ -673,8 +673,8 @@ class TestContentWithModifiers:
         assert "content:" in printed
         assert "first" in printed
         assert "second" in printed
-        assert "distance:5" in printed
-        assert "within:20" in printed
+        assert ",distance 5" in printed
+        assert ",within 20" in printed
 
 
 class TestContentModifierNoValue:
@@ -690,11 +690,11 @@ class TestContentModifierNoValue:
             value=None,
         )
 
-        # Call _print_content_modifier directly to test line 469-470
-        result = text_printer._print_content_modifier(modifier)
+        # Call _print_inline_content_modifier directly (comma-attached inline form)
+        result = text_printer._print_inline_content_modifier(modifier)
 
         # Lines 469-470: modifier without value
-        assert "nocase;" in result
+        assert result == ",nocase"
 
     def test_content_modifier_rawbytes(self) -> None:
         """Test printing content modifier without value (rawbytes)."""
@@ -706,9 +706,9 @@ class TestContentModifierNoValue:
             value=None,
         )
 
-        result = text_printer._print_content_modifier(modifier)
+        result = text_printer._print_inline_content_modifier(modifier)
 
-        assert "rawbytes;" in result
+        assert result == ",rawbytes"
 
     def test_content_modifier_startswith(self) -> None:
         """Test printing content modifier without value (startswith)."""
@@ -720,9 +720,9 @@ class TestContentModifierNoValue:
             value=None,
         )
 
-        result = text_printer._print_content_modifier(modifier)
+        result = text_printer._print_inline_content_modifier(modifier)
 
-        assert "startswith;" in result
+        assert result == ",startswith"
 
     def test_content_modifier_endswith(self) -> None:
         """Test printing content modifier without value (endswith)."""
@@ -734,9 +734,9 @@ class TestContentModifierNoValue:
             value=None,
         )
 
-        result = text_printer._print_content_modifier(modifier)
+        result = text_printer._print_inline_content_modifier(modifier)
 
-        assert "endswith;" in result
+        assert result == ",endswith"
 
     def test_content_modifier_with_value(self) -> None:
         """Test printing content modifier with value (line 471)."""
@@ -748,11 +748,10 @@ class TestContentModifierNoValue:
             value=100,
         )
 
-        # Call _print_content_modifier to test line 471
-        result = text_printer._print_content_modifier(modifier)
+        # Inline modifier with value uses the space-separated form
+        result = text_printer._print_inline_content_modifier(modifier)
 
-        # Lines 471: modifier with value
-        assert "depth:100;" in result
+        assert result == ",depth 100"
 
     def test_content_modifier_offset(self) -> None:
         """Test printing content modifier offset with value."""
@@ -764,9 +763,9 @@ class TestContentModifierNoValue:
             value=50,
         )
 
-        result = text_printer._print_content_modifier(modifier)
+        result = text_printer._print_inline_content_modifier(modifier)
 
-        assert "offset:50;" in result
+        assert result == ",offset 50"
 
 
 class TestMissingOptionTypes:

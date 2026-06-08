@@ -167,7 +167,6 @@ class ConflictDetectorConfig:
     enabled_detectors: set[ConflictType] | None = None
     protocol_hierarchy: bool = False
     external_flowbits: set[str] = field(default_factory=set)
-    max_pairwise_bucket: int = 2000
 
     def is_enabled(self, conflict_type: ConflictType) -> bool:
         return self.enabled_detectors is None or conflict_type in self.enabled_detectors

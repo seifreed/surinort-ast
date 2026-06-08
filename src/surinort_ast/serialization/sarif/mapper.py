@@ -8,6 +8,8 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
+from urllib.parse import quote
 
 from ...analysis.findings import Finding
 from ...version import __version__
@@ -67,9 +69,23 @@ def _to_location(finding: Finding) -> list[SarifLocation]:
     if loc.file_path is None and region is None:
         return []
 
-    uri = loc.file_path if loc.file_path is not None else "<unknown>"
+    uri = _path_to_uri(loc.file_path) if loc.file_path is not None else "unknown"
     physical = SarifPhysicalLocation(uri=uri, region=region)
     return [SarifLocation(physical_location=physical)]
+
+
+def _path_to_uri(path: str) -> str:
+    """Convert a filesystem path to a SARIF-valid URI reference.
+
+    SARIF ``artifactLocation.uri`` is a URI reference, so backslashes, spaces and
+    other reserved characters in raw OS paths must be normalized/percent-encoded.
+    Absolute paths become ``file://`` URIs; relative paths stay relative with
+    forward slashes and percent-encoding.
+    """
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return candidate.as_uri()
+    return quote(candidate.as_posix())
 
 
 def _to_result(finding: Finding) -> SarifResult:
