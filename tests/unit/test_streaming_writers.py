@@ -14,6 +14,7 @@ import pytest
 
 from surinort_ast.api import parse_rule
 from surinort_ast.core.nodes import Rule
+from surinort_ast.exceptions import SerializationError
 from surinort_ast.streaming import StreamParser, StreamWriter, StreamWriterJSON, StreamWriterText
 
 # ============================================================================
@@ -447,3 +448,31 @@ def test_header_failure_closes_file():
         assert writer._file is None
     finally:
         temp_path.unlink()
+
+
+def test_json_writer_stays_valid_when_a_rule_fails_mid_stream():
+    """If serializing a rule raises mid-stream, the array written so far must
+    remain valid JSON (no dangling separator).
+
+    Regression: the separator comma was emitted before serialization, so a
+    failure left a trailing comma that broke json.loads.
+    """
+
+    class _BoomRule:
+        def model_dump_json(self, **_kwargs):
+            raise ValueError("serialize boom")
+
+    good = parse_rule("alert tcp any any -> any 80 (sid:1;)")
+    for indent in (2, None):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = Path(f.name)
+        try:
+            with StreamWriterJSON(temp_path, indent=indent) as writer:
+                writer.write(good)
+                with pytest.raises(SerializationError):
+                    writer.write(_BoomRule())
+            data = json.loads(temp_path.read_text())
+            assert isinstance(data, list)
+            assert len(data) == 1
+        finally:
+            temp_path.unlink()

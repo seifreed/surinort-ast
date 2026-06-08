@@ -336,6 +336,50 @@ class TestPlugin(SerializerPlugin):
         plugin = registry.get_serializer("test")
         assert plugin is not None
 
+    def test_one_failing_plugin_does_not_drop_others_in_module(self, tmp_path: Path) -> None:
+        """A plugin that raises during register must not abort the other valid
+        plugins defined in the same module.
+
+        Regression: the registration loop had no per-plugin isolation, so one
+        failure jumped to the file-level handler and silently dropped the rest.
+        """
+        plugin_file = tmp_path / "multi_plugin.py"
+        plugin_file.write_text(
+            "from surinort_ast.plugins import AnalysisPlugin\n"
+            "\n"
+            "class AaaGood(AnalysisPlugin):\n"
+            "    name = 'aaa_good'\n"
+            "    version = '1.0'\n"
+            "    def analyze(self, rule):\n"
+            "        return {}\n"
+            "    def register(self, registry):\n"
+            "        registry.register_analyzer('aaa_good', self)\n"
+            "\n"
+            "class BadOne(AnalysisPlugin):\n"
+            "    name = 'bad_one'\n"
+            "    version = '1.0'\n"
+            "    def analyze(self, rule):\n"
+            "        return {}\n"
+            "    def register(self, registry):\n"
+            "        raise RuntimeError('refuse')\n"
+            "\n"
+            "class MmmGood(AnalysisPlugin):\n"
+            "    name = 'mmm_good'\n"
+            "    version = '1.0'\n"
+            "    def analyze(self, rule):\n"
+            "        return {}\n"
+            "    def register(self, registry):\n"
+            "        registry.register_analyzer('mmm_good', self)\n"
+        )
+
+        loader = PluginLoader(auto_load=False)
+        count = loader.load_directory(tmp_path, pattern="*_plugin.py", ignore_errors=True)
+
+        registry = get_registry()
+        assert count == 2
+        assert set(registry.list_analyzers()) >= {"aaa_good", "mmm_good"}
+        assert "bad_one" in loader._failed_plugins
+
     def test_broken_plugin_is_removed_from_sys_modules(self, tmp_path: Path) -> None:
         """A plugin file that fails to import must not linger in sys.modules."""
         import sys

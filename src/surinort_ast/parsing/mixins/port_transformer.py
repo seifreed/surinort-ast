@@ -65,14 +65,12 @@ class PortTransformerMixin:
         - file_path: str | None - Source file path for location tracking
         - add_diagnostic(level, message, location) - Diagnostic reporting method
         - config: ParserConfig - Parser configuration with resource limits
-        - _nesting_depth: int - Current nesting depth for DoS prevention
     """
 
     # Declare expected attributes for type checking
     file_path: str | None
     add_diagnostic: DiagnosticReporter
     config: Any  # ParserConfig instance
-    _nesting_depth: int
 
     def port_any(self, _: Any) -> AnyPort:
         """
@@ -118,16 +116,11 @@ class PortTransformerMixin:
         Returns:
             PortNegation node wrapping the port expression
 
-        DoS Prevention:
-            Tracks nesting depth to prevent deeply nested structures that
-            could cause stack overflow or excessive memory usage.
+        Note:
+            Nesting-depth validation (DoS prevention) is applied by the concrete
+            ``RuleTransformer`` override, which measures the real AST depth.
         """
-        self._nesting_depth += 1
-        try:
-            self.config.validate_nesting_depth(self._nesting_depth)
-            return PortNegation(expr=port)
-        finally:
-            self._nesting_depth -= 1
+        return PortNegation(expr=port)
 
     def port_list(self, items: Sequence[Any]) -> PortList:
         """
@@ -139,19 +132,12 @@ class PortTransformerMixin:
         Returns:
             PortList node containing all port expressions
 
-        DoS Prevention:
-            Tracks nesting depth to prevent deeply nested structures that
-            could cause stack overflow or excessive memory usage.
-
         Note:
             Empty lists are allowed by the grammar and represent no ports.
+            Nesting-depth validation (DoS prevention) is applied by the concrete
+            ``RuleTransformer`` override, which measures the real AST depth.
         """
-        self._nesting_depth += 1
-        try:
-            self.config.validate_nesting_depth(self._nesting_depth)
-            return PortList(elements=list(items))
-        finally:
-            self._nesting_depth -= 1
+        return PortList(elements=list(items))
 
     def port_range(self, args: list[Any]) -> PortRange:
         """

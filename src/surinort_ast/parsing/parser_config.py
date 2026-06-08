@@ -176,10 +176,10 @@ class ParserConfig:
         Raises:
             ValueError: If nesting exceeds maximum depth
         """
-        if depth >= self.max_nesting_depth:
+        if depth > self.max_nesting_depth:
             raise ValueError(
                 f"Nesting depth exceeds maximum "
-                f"({depth} >= {self.max_nesting_depth}). "
+                f"({depth} > {self.max_nesting_depth}). "
                 f"This may indicate a malformed rule or DoS attempt."
             )
 

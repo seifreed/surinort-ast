@@ -444,3 +444,51 @@ class TestRegressionPrevention:
 
         rule = parser.parse(rule_text)
         assert isinstance(rule, Rule)
+
+
+class TestNestingDepthEnforcement:
+    """Nesting-depth limit must be enforced for ports (not only addresses), with
+    a boundary consistent with the other validators, and per-rule state must not
+    leak across rules sharing a transformer."""
+
+    def test_port_nesting_limit_enforced(self):
+        """Deeply nested port negation must hit the nesting limit, not be ignored.
+
+        Regression: ports used a bottom-up counter that always read depth=1, so
+        the limit never fired and deep nesting fell through to a RecursionError.
+        """
+        config = ParserConfig(max_nesting_depth=10)
+        parser = LarkRuleParser(error_recovery=True, config=config)
+        rule = parser.parse("alert tcp any any -> any " + "!" * 30 + "80 (sid:1;)")
+        assert any("Nesting depth" in d.message for d in rule.diagnostics)
+
+    def test_port_nesting_within_limit_parses(self):
+        config = ParserConfig(max_nesting_depth=10)
+        parser = LarkRuleParser(error_recovery=True, config=config)
+        rule = parser.parse("alert tcp any any -> any " + "!" * 3 + "80 (sid:1;)")
+        assert not any("Nesting depth" in d.message for d in rule.diagnostics)
+
+    def test_nesting_depth_boundary_consistent_with_other_validators(self):
+        """A depth equal to the configured max is allowed (uses '>' like the
+        option-count/length/size validators), not rejected at '>='."""
+        config = ParserConfig(max_nesting_depth=3, max_options=3)
+        config.validate_option_count(3)  # allowed
+        config.validate_nesting_depth(3)  # must also be allowed
+        with pytest.raises(ValueError):
+            config.validate_nesting_depth(4)
+
+    def test_diagnostics_do_not_leak_across_rules(self):
+        """A transformer reused after a rule that raises mid-transform must not
+        carry that rule's diagnostics into the next rule."""
+        from surinort_ast.api._internal import _parse_batch_worker
+        from surinort_ast.core.enums import Dialect
+
+        nested = "[" * 60 + "1.2.3.4" + "]" * 60
+        rule_a = f'alert tcp any 70000 -> {nested} any (msg:"A"; sid:1;)'
+        rule_b = 'alert tcp any any -> any any (msg:"B"; sid:2;)'
+        results = _parse_batch_worker(
+            ([(1, rule_a), (2, rule_b)], Dialect.SURICATA, True, "t.rules", True)
+        )
+        clean = [r for _, r, err in results if err is None]
+        assert clean, "rule B should have parsed"
+        assert clean[-1].diagnostics == ()

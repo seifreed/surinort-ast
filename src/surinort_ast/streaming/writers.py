@@ -340,23 +340,19 @@ class StreamWriterJSON(StreamWriter):
         if not self._file:
             return
 
-        # Add comma separator (except for first rule)
+        # Serialize first so a serialization failure cannot leave a dangling
+        # separator (which would corrupt the JSON array) — only write once the
+        # content is in hand.
+        rule_json = rule.model_dump_json(indent=self.indent, exclude_none=True)
+        if self.indent:
+            indent_str = " " * self.indent
+            rule_json = "\n".join(indent_str + line for line in rule_json.splitlines())
+
+        # Add comma separator (except for first rule), then the content.
         if not self._first_rule:
             self._file.write(",\n" if self.indent else ",")
-        else:
-            self._first_rule = False
-
-        # Serialize rule to JSON
-        rule_json = rule.model_dump_json(indent=self.indent, exclude_none=True)
-
-        # Write to file
-        if self.indent:
-            # Indent each line
-            indent_str = " " * self.indent
-            indented = "\n".join(indent_str + line for line in rule_json.splitlines())
-            self._file.write(indented)
-        else:
-            self._file.write(rule_json)
+        self._file.write(rule_json)
+        self._first_rule = False
 
         # Flush periodically
         if self._count % 100 == 0:

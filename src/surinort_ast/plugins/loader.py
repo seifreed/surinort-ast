@@ -255,15 +255,29 @@ class PluginLoader:
                     sys.modules.pop(spec.name, None)
                     continue
 
-                # Register plugins
+                # Register plugins. Isolate each one so a single failing plugin
+                # does not abort the remaining (valid) plugins in the same module
+                # — mirroring the per-entry-point isolation in load_entry_points.
                 for plugin in plugins_found:
-                    self._validate_plugin(plugin)
-                    plugin.register(registry)
-
                     plugin_name = getattr(plugin, "name", module_name)
+                    try:
+                        self._validate_plugin(plugin)
+                        plugin.register(registry)
+                    except Exception as e:
+                        self._failed_plugins[plugin_name] = str(e)
+                        if ignore_errors:
+                            logger.error(
+                                f"Failed to register plugin '{plugin_name}': {e}",
+                                exc_info=True,
+                            )
+                            continue
+                        raise PluginLoadError(
+                            f"Failed to register plugin '{plugin_name}': {e}"
+                        ) from e
+
                     self._loaded_plugins.add(plugin_name)
                     loaded_count += 1
-                    logger.info(f"Loaded plugin from file: {plugin_file.name}")
+                    logger.info(f"Loaded plugin '{plugin_name}' from file: {plugin_file.name}")
 
             except Exception as e:
                 error_msg = f"Failed to load plugin from {plugin_file.name}: {e}"

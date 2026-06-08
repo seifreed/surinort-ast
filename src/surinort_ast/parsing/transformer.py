@@ -19,9 +19,10 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from typing import Any
 
-from lark import Token
+from lark import Token, Tree
 from lark.visitors import Transformer, v_args
 
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
@@ -111,7 +112,7 @@ class RuleTransformer(
     """
 
     # Use __slots__ for memory efficiency
-    __slots__ = ("_nesting_depth", "config", "diagnostics", "dialect", "file_path")
+    __slots__ = ("config", "diagnostics", "dialect", "file_path")
 
     def __init__(
         self,
@@ -135,7 +136,18 @@ class RuleTransformer(
         self.dialect = dialect
         self.config = config or ParserConfig.default()
         self.diagnostics: list[Diagnostic] = []
-        self._nesting_depth = 0  # Track nesting depth for DoS prevention
+
+    def transform(self, tree: Tree[Token]) -> Any:
+        """Transform a parse tree, resetting per-rule state first.
+
+        ``diagnostics`` accumulates during the bottom-up pass and is normally
+        attached and cleared in :meth:`rule`. If a sibling subtree raises before
+        ``rule`` runs (e.g. a nesting-depth limit), that cleanup never happens
+        and stale diagnostics would leak into the next rule transformed by the
+        same instance. Resetting here makes each transform start clean.
+        """
+        self.diagnostics = []
+        return super().transform(tree)
 
     def add_diagnostic(
         self,
@@ -217,7 +229,7 @@ class RuleTransformer(
 
         # Create rule with accumulated diagnostics
         location = header.location
-        rule_obj = Rule(
+        return Rule(
             action=action,
             header=header,
             options=options,
@@ -225,11 +237,6 @@ class RuleTransformer(
             location=location,
             diagnostics=self.diagnostics.copy(),
         )
-
-        # Clear diagnostics for next rule
-        self.diagnostics = []
-
-        return rule_obj
 
     @v_args(inline=True)
     def rule_file(self, *rules: Rule | None) -> list[Rule]:
@@ -330,3 +337,50 @@ class RuleTransformer(
         depth = 1 + self._address_expr_depth(addr)
         self.config.validate_nesting_depth(depth)
         return AddressNegation(expr=addr)
+
+    # ========================================================================
+    # Port List and Negation Overrides (Nesting Depth Validation)
+    # ========================================================================
+    # As with addresses, validate against the *real* depth of the constructed
+    # AST. The bottom-up call counter only ever observes depth=1 here, so a
+    # deeply nested port (e.g. ``!!!!...80``) would otherwise outrun the limit
+    # and hit Python's recursion ceiling instead of a clean diagnostic.
+
+    @staticmethod
+    def _port_expr_depth(node: Any) -> int:
+        """Return the real nesting depth of a port expression.
+
+        ``PortList`` and ``PortNegation`` each contribute one level plus the
+        maximum depth of their children; all other port expressions are leaves.
+        """
+        from ..core.nodes import PortList, PortNegation
+
+        if isinstance(node, PortNegation):
+            return 1 + RuleTransformer._port_expr_depth(node.expr)
+        if isinstance(node, PortList):
+            return 1 + max(
+                (RuleTransformer._port_expr_depth(el) for el in node.elements),
+                default=0,
+            )
+        return 0
+
+    @v_args(inline=True)
+    def port_negation(self, port: Any) -> Any:
+        """Transform a negated port with real-depth nesting validation."""
+        from ..core.nodes import PortNegation
+
+        depth = 1 + self._port_expr_depth(port)
+        self.config.validate_nesting_depth(depth)
+        return PortNegation(expr=port)
+
+    def port_list(self, items: Sequence[Any]) -> Any:
+        """Transform a port list with real-depth nesting validation."""
+        from ..core.nodes import PortList
+
+        elements = list(items)
+        depth = 1 + max(
+            (self._port_expr_depth(el) for el in elements),
+            default=0,
+        )
+        self.config.validate_nesting_depth(depth)
+        return PortList(elements=elements)
