@@ -646,3 +646,75 @@ class TestPracticalOptimizationScenarios:
         assert "max_improvement" in stats
         assert "total_optimizations" in stats
         assert "strategy_counts" in stats
+
+
+class TestSemanticPreservingOptimization:
+    """Regression: optimizations must not change a rule's detection semantics.
+
+    byte_test / byte_jump / byte_extract / isdataat parse to keyword-tagged
+    GenericOptions, so the optimizer's positional guards must recognize them by
+    keyword (and any "relative" value) rather than by a dedicated node type that
+    is never produced.
+    """
+
+    def _optimize(self, rule_str):
+        rule = parse_rule(rule_str)
+        return RuleOptimizer().optimize(rule).optimized
+
+    def test_fast_pattern_not_added_to_negated_content(self):
+        """Suricata rejects fast_pattern on negated content; never select it."""
+        optimized = self._optimize(
+            'alert tcp any any -> any any (content:"GET"; content:!"admin_panel"; sid:1;)'
+        )
+        contents = [o for o in optimized.options if o.node_type == "ContentOption"]
+        for content in contents:
+            has_fp = any(
+                (m.name.value if hasattr(m.name, "value") else str(m.name)) == "fast_pattern"
+                for m in content.modifiers
+            )
+            if content.negated:
+                assert not has_fp, "fast_pattern must not be placed on negated content"
+
+    def test_relative_byte_test_not_reordered(self):
+        """A relative byte_test stays anchored to its preceding content."""
+        optimized = self._optimize(
+            "alert tcp any any -> any any "
+            '(content:"A"; byte_test:1,&,0x80,0,relative; content:"B"; '
+            "threshold:type limit,track by_src,count 1,seconds 60; sid:1;)"
+        )
+        kinds = [
+            o.node_type if o.node_type != "GenericOption" else o.keyword for o in optimized.options
+        ]
+        # byte_test must remain immediately after the first content (index of A).
+        assert kinds.index("byte_test") == kinds.index("ContentOption") + 1
+
+    def test_lua_script_not_reordered(self):
+        """A lua script keeps its position (it observes prior match state)."""
+        optimized = self._optimize(
+            'alert tcp any any -> any any (lua:a.lua; content:"X"; content:"Y"; sid:1;)'
+        )
+        assert optimized.options[0].node_type == "LuaOption"
+
+    def test_distinct_relative_isdataat_not_deduplicated(self):
+        """Two identical relative isdataat anchored to different contents are
+        semantically distinct and must both survive."""
+        optimized = self._optimize(
+            'alert tcp any any -> any any (content:"A"; isdataat:5,relative; '
+            'content:"B"; isdataat:5,relative; sid:1;)'
+        )
+        isdataats = [
+            o
+            for o in optimized.options
+            if o.node_type == "GenericOption" and o.keyword == "isdataat"
+        ]
+        assert len(isdataats) == 2
+
+    def test_true_duplicate_still_removed(self):
+        """Non-positional exact duplicates are still deduplicated."""
+        optimized = self._optimize(
+            'alert tcp any any -> any any (content:"X"; dsize:>100; dsize:>100; sid:1;)'
+        )
+        dsizes = [
+            o for o in optimized.options if o.node_type == "GenericOption" and o.keyword == "dsize"
+        ]
+        assert len(dsizes) == 1

@@ -40,23 +40,42 @@ POSITIONAL_OPTIONS: frozenset[str] = frozenset(
         "EndswithOption",
         "FastPatternOption",
         "BufferSelectOption",
-        "ByteTestOption",
-        "ByteJumpOption",
-        "ByteExtractOption",
+        "LuaOption",
+        "LuajitOption",
     }
+)
+
+# byte_test/byte_jump/byte_extract/byte_math and isdataat parse to a keyword-
+# tagged GenericOption rather than a dedicated node. They inspect bytes at a
+# position (often relative to the preceding match) and can define or reference
+# byte_extract variables, so moving or deduplicating them changes what the rule
+# matches.
+_STATEFUL_GENERIC_KEYWORDS: frozenset[str] = frozenset(
+    {"byte_test", "byte_jump", "byte_extract", "byte_math", "isdataat"}
 )
 
 
 def _is_order_significant(opt: Option) -> bool:
     """True if reordering or removing ``opt`` would change detection semantics.
 
-    Besides the fixed POSITIONAL_OPTIONS set, a PCRE carrying the ``R`` flag
-    matches relative to the buffer position of the preceding content match, so it
-    is position-dependent exactly like distance/within and must not be moved.
+    Besides the fixed POSITIONAL_OPTIONS set:
+    - a PCRE carrying the ``R`` flag matches relative to the buffer position of
+      the preceding content match, so it is position-dependent like distance/
+      within and must not be moved;
+    - a byte_* / isdataat GenericOption is position- and variable-stateful, and
+      any GenericOption carrying a ``relative`` modifier is anchored to the
+      preceding match.
     """
     if opt.node_type in POSITIONAL_OPTIONS:
         return True
-    return opt.node_type == "PcreOption" and "R" in (getattr(opt, "flags", "") or "")
+    if opt.node_type == "PcreOption" and "R" in (getattr(opt, "flags", "") or ""):
+        return True
+    if opt.node_type == "GenericOption":
+        if (getattr(opt, "keyword", "") or "") in _STATEFUL_GENERIC_KEYWORDS:
+            return True
+        if "relative" in (getattr(opt, "value", "") or ""):
+            return True
+    return False
 
 
 class OptimizationStrategy(ABC):
@@ -322,8 +341,17 @@ class FastPatternStrategy(OptimizationStrategy):
             # Already has fast_pattern - could optimize which one, but skip for now
             return None, []
 
-        # Score each content and find best
-        scored_contents = [(content, self._score_distinctiveness(content)) for content in contents]
+        # Score each content and find best. Negated content is excluded: Suricata
+        # rejects fast_pattern on a negated content match, so adding it there
+        # would produce a rule that fails to load.
+        scored_contents = [
+            (content, self._score_distinctiveness(content))
+            for content in contents
+            if not content.negated
+        ]
+        if not scored_contents:
+            return None, []
+
         best_content, best_score = max(scored_contents, key=lambda x: x[1])
 
         if best_score <= 0:
@@ -493,8 +521,10 @@ class RedundancyRemovalStrategy(OptimizationStrategy):
         for option in rule.options:
             option_type = option.node_type
 
-            # Always preserve certain option types
-            if option_type in self.PRESERVE_DUPLICATES:
+            # Always preserve certain option types, plus any position-/state-
+            # significant option (e.g. a relative byte_test/isdataat) whose
+            # textual duplicate belongs to a different match anchor.
+            if option_type in self.PRESERVE_DUPLICATES or _is_order_significant(option):
                 unique_options.append(option)
                 continue
 
@@ -552,7 +582,7 @@ class RedundancyRemovalStrategy(OptimizationStrategy):
         duplicate_cost = 0.0
 
         for option in rule.options:
-            if option.node_type in self.PRESERVE_DUPLICATES:
+            if option.node_type in self.PRESERVE_DUPLICATES or _is_order_significant(option):
                 continue
 
             key = self._create_option_key(option)
