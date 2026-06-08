@@ -234,6 +234,12 @@ class TestEnvelopeSchema:
         )
         assert list(validator.iter_errors(multi)) == []
 
+        # Regression: an empty rule list yields count=0, which must satisfy the
+        # envelope schema rather than be rejected by a minimum-1 floor.
+        empty = json.loads(JSONSerializer(include_metadata=True).to_json([]))
+        assert empty["count"] == 0
+        assert list(validator.iter_errors(empty)) == []
+
     def test_envelope_ast_version_property(self):
         """Test ast_version property in envelope schema."""
         generator = SchemaGenerator()
@@ -269,9 +275,9 @@ class TestEnvelopeSchema:
 
         count_prop = envelope["properties"]["count"]
 
-        # Should be integer with minimum
+        # Should be integer; minimum is 0 so an empty rule list (count=0) validates.
         assert count_prop["type"] == "integer"
-        assert count_prop["minimum"] == 1
+        assert count_prop["minimum"] == 0
 
     def test_envelope_data_property(self):
         """Test data property has oneOf for single/multiple rules."""

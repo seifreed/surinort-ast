@@ -195,7 +195,7 @@ class SchemaGenerator:
                 },
                 "count": {
                     "type": "integer",
-                    "minimum": 1,
+                    "minimum": 0,
                     "description": "Number of rules in data payload",
                 },
                 "data": {

@@ -74,17 +74,24 @@ def parse_quoted_string(s: str) -> str:
     if "\\" not in s:
         return s
 
-    # Handle escape sequences - chained replace is fastest for small strings
-    # Process in order: backslash first to avoid double-processing
-    s = s.replace("\\\\", "\x00")  # Temporary marker for literal backslash
-    s = s.replace('\\"', '"')
-    s = s.replace("\\'", "'")
+    # Single left-to-right scan so each backslash is consumed exactly once.
+    # A chained-replace approach needs an in-band sentinel for literal
+    # backslashes, which corrupts values that legitimately contain that byte.
     # Suricata/Snort escape the option separator inside quoted values as "\;".
-    s = s.replace("\\;", ";")
-    s = s.replace("\\n", "\n")
-    s = s.replace("\\r", "\r")
-    s = s.replace("\\t", "\t")
-    return s.replace("\x00", "\\")  # Restore literal backslash
+    escapes = {'"': '"', "'": "'", ";": ";", "n": "\n", "r": "\r", "t": "\t", "\\": "\\"}
+    out: list[str] = []
+    i = 0
+    length = len(s)
+    while i < length:
+        char = s[i]
+        if char == "\\" and i + 1 < length:
+            nxt = s[i + 1]
+            out.append(escapes.get(nxt, "\\" + nxt))
+            i += 2
+        else:
+            out.append(char)
+            i += 1
+    return "".join(out)
 
 
 # ============================================================================

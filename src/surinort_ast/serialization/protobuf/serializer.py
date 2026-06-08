@@ -273,7 +273,7 @@ def _serialize_location(loc: Location | None, pb_loc: Any) -> None:
     pb_loc.span.end.line = loc.span.end.line
     pb_loc.span.end.column = loc.span.end.column
     pb_loc.span.end.offset = loc.span.end.offset
-    if loc.file_path:
+    if loc.file_path is not None:
         pb_loc.file_path = loc.file_path
 
 
@@ -737,11 +737,11 @@ def _serialize_source_origin(origin: SourceOrigin | None) -> Any | None:
         return None
 
     pb_origin = pb.SourceOrigin()
-    if origin.file_path:
+    if origin.file_path is not None:
         pb_origin.file_path = origin.file_path
     if origin.line_number:
         pb_origin.line_number = origin.line_number
-    if origin.rule_id:
+    if origin.rule_id is not None:
         pb_origin.rule_id = origin.rule_id
 
     return pb_origin
@@ -764,7 +764,7 @@ def _serialize_rule(rule: Rule) -> Any:
     if rule.diagnostics:
         for diag in rule.diagnostics:
             pb_rule.diagnostics.append(_serialize_diagnostic(diag))
-    if rule.raw_text:
+    if rule.raw_text is not None:
         pb_rule.raw_text = rule.raw_text
     if rule.location:
         _serialize_location(rule.location, pb_rule.location)

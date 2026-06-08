@@ -112,7 +112,7 @@ class GenericOptionsMixin:
             else:
                 value = str(value_item)
 
-        raw = f"{keyword}:{value}" if value else keyword
+        raw = f"{keyword}:{value}" if value is not None else keyword
 
         return GenericOption(keyword=keyword, value=value, raw=raw)
 

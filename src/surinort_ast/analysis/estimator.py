@@ -299,7 +299,6 @@ class PerformanceEstimator:
             Penalty score (0.0 = optimal, higher = worse)
         """
         penalty = 0.0
-        cumulative_cost = 0.0
 
         for i, option in enumerate(options):
             option_cost = self._estimate_option_cost(option)
@@ -310,7 +309,6 @@ class PerformanceEstimator:
             position_weight = 1.0 / (i + 1)
 
             # High cost early = high penalty
-            cumulative_cost += option_cost
             penalty += option_cost * position_weight
 
         return penalty
