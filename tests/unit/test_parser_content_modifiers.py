@@ -183,6 +183,20 @@ class TestByteOperationOffsetSigns:
         )
         assert self._generic(rule, "byte_extract") == "4,0,var,relative,align 4"
 
+    def test_byte_jump_hex_values(self):
+        """byte_jump must accept hex (0x..) values like byte_test, incl. bitmask."""
+        rule = parse_rule(
+            "alert tcp any any -> any any (byte_jump:0x2,0x10,bitmask 0x03FF; sid:1;)"
+        )
+        assert self._generic(rule, "byte_jump") == "0x2,0x10,bitmask 0x03FF"
+
+    def test_byte_extract_hex_values(self):
+        """byte_extract must accept hex (0x..) values, including a bitmask flag."""
+        rule = parse_rule(
+            "alert tcp any any -> any any (byte_extract:0x2,0x10,var,bitmask 0x03FF; sid:1;)"
+        )
+        assert self._generic(rule, "byte_extract") == "0x2,0x10,var,bitmask 0x03FF"
+
     def test_byte_test_bitmask_keyword_preserved(self):
         """The 'bitmask' keyword must not be dropped from a byte_test flag.
 

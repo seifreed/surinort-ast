@@ -287,14 +287,14 @@ byte_test_operator: BYTE_TEST_OP | WORD
 BYTE_TEST_OP.2: "!<=" | "!>=" | "<=" | ">=" | "!&" | "!=" | "!<" | "!>" | "!^" | "<" | ">" | "=" | "&" | "^"
 
 byte_jump_option: "byte_jump" ":" byte_jump_params
-byte_jump_params: INT "," byte_jump_offset ("," byte_jump_flag)*
-byte_jump_offset: neg_sign? (INT | WORD | REFERENCE_ID)
-byte_jump_flag: WORD (neg_sign? INT)?  // Support "post_offset 10" style flags
+byte_jump_params: number "," byte_jump_offset ("," byte_jump_flag)*
+byte_jump_offset: neg_sign? (number | WORD | REFERENCE_ID)
+byte_jump_flag: WORD (neg_sign? number)?  // Support "post_offset 10" / "bitmask 0x8000" flags
 
 byte_extract_option: "byte_extract" ":" byte_extract_params
-byte_extract_params: INT "," byte_extract_offset "," (WORD | REFERENCE_ID) ("," byte_extract_flag)*
-byte_extract_flag: WORD (neg_sign? INT)?  // Support "multiplier 2" / "align 4" style flags
-byte_extract_offset: neg_sign? INT
+byte_extract_params: number "," byte_extract_offset "," (WORD | REFERENCE_ID) ("," byte_extract_flag)*
+byte_extract_flag: WORD (neg_sign? number)?  // Support "multiplier 2" / "bitmask 0x8000" flags
+byte_extract_offset: neg_sign? number
 
 // byte_math has a rich, comma-separated "<keyword> <value>" parameter syntax
 // (bytes N, offset N, oper +, rvalue N, result name, relative, endian big, ...).
