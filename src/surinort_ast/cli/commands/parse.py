@@ -21,13 +21,13 @@ from ...api import parse_file, print_rule, to_json, to_sarif
 from ...core.enums import Dialect
 from ...exceptions import ParseError
 from ..shared import (
-    console,
     emit_sarif,
     err_console,
     parse_rules_from_content,
     parsing_progress,
     read_input,
     resolve_output_format,
+    status_console,
     write_output,
 )
 
@@ -178,7 +178,7 @@ def parse_command(
         write_output(result, output)
 
         if fmt == "text":
-            console.print(f"[green]Success:[/green] Parsed {len(rules)} rule(s)")
+            status_console.print(f"[green]Success:[/green] Parsed {len(rules)} rule(s)")
 
     except ParseError as e:
         err_console.print(f"Parse error: {e}")

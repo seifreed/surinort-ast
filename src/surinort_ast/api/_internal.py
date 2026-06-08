@@ -19,6 +19,7 @@ from lark import Lark
 from ..core.enums import Dialect
 from ..core.nodes import Rule, SourceOrigin
 from ..exceptions import ParseError
+from ..parsing.helpers import normalize_rule_text
 from ..parsing.transformer import RuleTransformer
 
 # ============================================================================
@@ -259,7 +260,11 @@ def _parse_batch_worker(
 
     for line_num, text in batch_tasks:
         try:
-            tree = parser.parse(text)
+            # Normalize before parsing so the parallel path accepts the same
+            # rules as the sequential path (see parse_rule) and stores the same
+            # normalized raw_text for consistent round-tripping.
+            normalized = normalize_rule_text(text.strip())
+            tree = parser.parse(normalized)
             result: Rule = transformer.transform(tree)
 
             # Conditionally include raw_text based on mode
@@ -267,7 +272,7 @@ def _parse_batch_worker(
                 "origin": SourceOrigin(file_path=file_path, line_number=line_num),
             }
             if include_raw_text:
-                update_dict["raw_text"] = text
+                update_dict["raw_text"] = normalized
 
             result = result.model_copy(update=update_dict)
             results.append((line_num, result, None))

@@ -189,6 +189,29 @@ class TestParseFile:
         finally:
             temp_path.unlink()
 
+    def test_parse_file_parallel_normalizes_like_sequential(self):
+        """Parallel workers must normalize rule text the same way the sequential
+        path does. A content value ending in an escaped quote right before the
+        semicolon is repaired by normalize_rule_text; the worker previously
+        parsed the raw line and rejected (dropped) such rules, so the same file
+        parsed differently depending on the worker count."""
+        from surinort_ast.core.nodes import extract_sid
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".rules", delete=False, encoding="utf-8"
+        ) as f:
+            f.write('alert tcp any any -> any any (msg:"x"; content:"abc\\"; sid:1;)\n')
+            temp_path = Path(f.name)
+
+        try:
+            seq = parse_file(temp_path, workers=1)
+            par = parse_file(temp_path, workers=2)
+            assert [extract_sid(r) for r in seq] == [1]
+            assert [extract_sid(r) for r in par] == [1]
+            assert seq[0].raw_text == par[0].raw_text
+        finally:
+            temp_path.unlink()
+
     def test_parse_file_with_errors_partial_success(self):
         """Test file parsing with some malformed rules."""
         with tempfile.NamedTemporaryFile(

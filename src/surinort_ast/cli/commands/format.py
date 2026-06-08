@@ -23,6 +23,7 @@ from ..shared import (
     parse_rules_from_content,
     parsing_progress,
     read_input,
+    status_console,
     write_output,
 )
 
@@ -120,7 +121,7 @@ def fmt_command(
         write_output(result, output)
 
         if not check:
-            console.print(f"[green]Success:[/green] Formatted {len(rules)} rule(s)")
+            status_console.print(f"[green]Success:[/green] Formatted {len(rules)} rule(s)")
 
     except ParseError as e:
         err_console.print(f"Parse error: {e}")

@@ -300,7 +300,9 @@ class TestCliCompleteCoverage:
         try:
             result = runner.invoke(app, ["parse", temp_path])
             assert result.exit_code == 0
-            assert "Parsed 2 rule(s)" in result.stdout
+            # The success status message goes to stderr; stdout carries the
+            # parse result body.
+            assert "Parsed 2 rule(s)" in result.stderr
         finally:
             Path(temp_path).unlink()
 
@@ -370,8 +372,9 @@ class TestCliCompleteCoverage:
         try:
             result = runner.invoke(app, ["fmt", temp_path])
             assert result.exit_code == 0
-            # Line 291 should print success message
-            assert "Formatted 1 rule(s)" in result.stdout
+            # The success status message goes to stderr so stdout stays clean
+            # for piped/redirected formatted output.
+            assert "Formatted 1 rule(s)" in result.stderr
         finally:
             Path(temp_path).unlink()
 
