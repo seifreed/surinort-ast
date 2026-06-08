@@ -388,20 +388,52 @@ class ContentConstraint:
         return not self.literals and not self.opaque
 
 
+_POSITIONAL_MODIFIER_NAMES = frozenset({"offset", "depth", "distance", "within"})
+_POSITIONAL_MODIFIER_TYPES = frozenset(
+    {"OffsetOption", "DepthOption", "DistanceOption", "WithinOption"}
+)
+_PAYLOAD_BYTE_KEYWORDS = frozenset(
+    {"byte_test", "byte_jump", "byte_extract", "byte_math", "isdataat"}
+)
+
+
+def _content_is_positioned(content: ContentOption) -> bool:
+    """True if an inline offset/depth/distance/within modifier anchors where the
+    content must appear, so its literal alone no longer describes the match."""
+    for modifier in content.modifiers:
+        name = modifier.name.value if hasattr(modifier.name, "value") else str(modifier.name)
+        if name in _POSITIONAL_MODIFIER_NAMES:
+            return True
+    return False
+
+
 def build_content_constraint(rule: Rule) -> ContentConstraint:
     literals: set[bytes] = set()
     opaque = False
     for option in rule.options:
         if isinstance(option, ContentOption):
             # A negated content ("content:!...") constrains the payload to the
-            # complement of the literal; that set is not expressible here, so
-            # treat it as opaque rather than as a required literal (which would
-            # invert the match-space and produce false shadows/conflicts).
-            if option.negated:
+            # complement of the literal; an inline offset/depth/distance/within
+            # modifier anchors *where* the literal must appear. Neither is
+            # expressible as a bare required literal, so treat them as opaque
+            # rather than inverting or over-broadening the match-space (which
+            # produced false shadows/subsumption between rules that actually
+            # match different traffic).
+            if option.negated or _content_is_positioned(option):
                 opaque = True
             else:
                 literals.add(option.pattern)
         elif isinstance(option, PcreOption):
+            opaque = True
+        elif option.node_type in _POSITIONAL_MODIFIER_TYPES:
+            # Standalone offset/depth/distance/within options position the
+            # preceding content match.
+            opaque = True
+        elif option.node_type == "GenericOption" and (
+            getattr(option, "keyword", "") in _PAYLOAD_BYTE_KEYWORDS
+        ):
+            # byte_test/byte_jump/byte_extract/byte_math/isdataat impose payload
+            # constraints beyond the content literals.
             opaque = True
     return ContentConstraint(literals=frozenset(literals), opaque=opaque)
 

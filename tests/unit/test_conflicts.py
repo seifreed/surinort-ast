@@ -152,6 +152,40 @@ class TestDetectors:
         )
         assert ConflictType.SHADOWING not in _types(report)
 
+    def test_positional_constraint_is_not_shadowed_by_broader_rule(self):
+        """A rule narrowed by byte_test/offset/depth matches a subset of a
+        bare-content rule, so it must not be reported as shadowing it.
+
+        Regression: positional modifiers and byte_* GenericOptions were dropped
+        from the content match-space, so the narrower rule's literals looked
+        identical to the broad rule's and produced a false SHADOWING verdict.
+        """
+        byte_test = detect_conflicts(
+            _rules(
+                'drop tcp any any -> any 443 (content:"hello"; byte_test:2,=,10,0; sid:1; rev:1;)',
+                'drop tcp any any -> any 443 (content:"hello"; sid:2; rev:1;)',
+            )
+        )
+        assert ConflictType.SHADOWING not in _types(byte_test)
+
+        positioned = detect_conflicts(
+            _rules(
+                'alert tcp any any -> any 80 (content:"AAAA"; offset:0; depth:4; sid:1; rev:1;)',
+                'alert tcp any any -> any 80 (content:"AAAA"; offset:10; depth:4; sid:2; rev:1;)',
+            )
+        )
+        assert ConflictType.SHADOWING not in _types(positioned)
+
+    def test_true_duplicate_content_still_shadows(self):
+        """The fix must not suppress genuine shadowing of identical bare rules."""
+        report = detect_conflicts(
+            _rules(
+                'alert tcp any any -> any 80 (msg:"a"; content:"hello"; sid:1; rev:1;)',
+                'alert tcp any any -> any 80 (msg:"b"; content:"hello"; sid:2; rev:1;)',
+            )
+        )
+        assert ConflictType.SHADOWING in _types(report)
+
     def test_shadowing_general_pass_first(self):
         report = detect_conflicts(
             _rules(
