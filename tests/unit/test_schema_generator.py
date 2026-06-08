@@ -200,6 +200,40 @@ class TestEnvelopeSchema:
         assert "count" in props
         assert "data" in props
 
+    def test_envelope_schema_validates_serializer_output(self):
+        """The envelope schema must resolve its #/$defs/Rule refs and validate
+        the real default (metadata-wrapped) serializer output.
+
+        Regression: Rule was the root of the generated schema and never placed in
+        $defs, so #/$defs/Rule dangled and any validation raised PointerToNowhere.
+        """
+        import pytest
+
+        jsonschema = pytest.importorskip("jsonschema")
+
+        from surinort_ast.api import parse_rule
+        from surinort_ast.serialization.json_serializer import JSONSerializer
+
+        envelope = generate_envelope_schema()
+        validator = jsonschema.Draft202012Validator(envelope)
+
+        single = json.loads(
+            JSONSerializer(include_metadata=True).to_json(
+                parse_rule('alert tcp any any -> any 80 (content:"|ff fe 00|"; sid:1; rev:1;)')
+            )
+        )
+        assert list(validator.iter_errors(single)) == []
+
+        multi = json.loads(
+            JSONSerializer(include_metadata=True).to_json(
+                [
+                    parse_rule("alert tcp any any -> any 80 (sid:1;)"),
+                    parse_rule("alert udp any any -> any 53 (sid:2;)"),
+                ]
+            )
+        )
+        assert list(validator.iter_errors(multi)) == []
+
     def test_envelope_ast_version_property(self):
         """Test ast_version property in envelope schema."""
         generator = SchemaGenerator()

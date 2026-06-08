@@ -477,6 +477,44 @@ class TestRoundtripRegressions:
         sids = [opt.value for opt in restored.options if isinstance(opt, SidOption)]
         assert sids == [4000000000]
 
+    def test_large_threshold_count_roundtrip(self):
+        """threshold/detection_filter count/seconds above the signed 32-bit range
+        must serialize without crashing.
+
+        Regression: these used proto int32, so a value above 2**31-1 (which the
+        model permits and the parser accepts) raised ValueError on serialize.
+        """
+        rule = parse_rule(
+            "alert tcp any any -> any any "
+            '(msg:"x"; threshold:type limit,track by_src,count 5000000000,seconds 60; '
+            "sid:1; rev:1;)"
+        )
+
+        restored = from_protobuf(to_protobuf(rule))
+
+        thresholds = [opt for opt in restored.options if opt.node_type == "ThresholdOption"]
+        assert thresholds[0].count == 5000000000
+
+    def test_diagnostic_hint_roundtrip(self):
+        """A diagnostic's hint must survive the protobuf round-trip.
+
+        Regression: the proto Diagnostic had no hint field, so it was dropped.
+        """
+        from surinort_ast.core.diagnostics import Diagnostic, DiagnosticLevel
+
+        rule = parse_rule("alert tcp any any -> any 80 (sid:1;)")
+        rule = rule.model_copy(
+            update={
+                "diagnostics": (
+                    Diagnostic(level=DiagnosticLevel.WARNING, message="m", hint="try this"),
+                )
+            }
+        )
+
+        restored = from_protobuf(to_protobuf(rule))
+
+        assert restored.diagnostics[0].hint == "try this"
+
     def test_codeless_diagnostic_roundtrip(self):
         """A rule carrying a diagnostic with no code must serialize.
 

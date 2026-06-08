@@ -716,10 +716,13 @@ def _serialize_diagnostic(diag: Diagnostic) -> Any:
 
     pb_diag.level = _DIAGNOSTIC_LEVEL_TO_PB[diag.level]
     pb_diag.message = diag.message
-    # ``code`` is optional in the model but a plain proto3 string; assigning
-    # None raises, so only set it when present (unset reads back as "").
+    # ``code`` and ``hint`` are optional in the model but plain proto3 strings;
+    # assigning None raises, so only set them when present (unset reads back
+    # as "").
     if diag.code is not None:
         pb_diag.code = diag.code
+    if diag.hint is not None:
+        pb_diag.hint = diag.hint
 
     if diag.location:
         _serialize_location(diag.location, pb_diag.location)
@@ -1302,8 +1305,9 @@ def _deserialize_diagnostic(pb_diag: Any) -> Diagnostic:
     return Diagnostic(
         level=_PB_TO_DIAGNOSTIC_LEVEL[pb_diag.level],
         message=pb_diag.message,
-        # Empty string means the optional code was unset on the wire.
+        # Empty string means the optional field was unset on the wire.
         code=pb_diag.code or None,
+        hint=pb_diag.hint or None,
         location=_deserialize_location(pb_diag.location) if pb_diag.HasField("location") else None,
     )
 
