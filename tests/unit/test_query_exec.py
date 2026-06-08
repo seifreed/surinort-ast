@@ -231,3 +231,33 @@ class TestBooleanAttributeMatching:
 
     def test_boolean_inequality(self):
         assert len(self._query("ContentOption[negated!=true]")) == 1
+
+
+class TestCombinatorChainBacktracking:
+    """Combinator-chain validation must backtrack, not greedily commit to the
+    nearest predecessor.
+
+    Regression: with nested AddressLists, ``Header > AddressList IPAddress``
+    greedily picked the inner AddressList for the descendant step, failed the
+    ``Header >`` step on its parent, and never tried the outer AddressList, so
+    nested IPs were silently dropped.
+    """
+
+    def test_descendant_then_child_finds_nested_matches(self):
+        from surinort_ast.query import query_all
+
+        rule = parse_rule("alert tcp [1.2.3.4,[5.6.7.8,9.9.9.9]] any -> any 80 (sid:1;)")
+        matched = sorted(
+            getattr(o, "value", "") for o in query_all([rule], "Header > AddressList IPAddress")
+        )
+        assert matched == ["1.2.3.4", "5.6.7.8", "9.9.9.9"]
+
+    def test_deep_three_step_chain(self):
+        from surinort_ast.query import query_all
+
+        rule = parse_rule("alert tcp [1.1.1.1,[2.2.2.2,[3.3.3.3,4.4.4.4]]] any -> any 80 (sid:1;)")
+        matched = sorted(
+            getattr(o, "value", "")
+            for o in query_all([rule], "Header > AddressList AddressList IPAddress")
+        )
+        assert matched == ["2.2.2.2", "3.3.3.3", "4.4.4.4"]

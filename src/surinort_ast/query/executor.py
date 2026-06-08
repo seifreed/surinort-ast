@@ -360,21 +360,32 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
         if not last_selector.matches(node, self.execution_context):
             return False
 
-        # Node matches final selector - now validate the chain
-        # Walk backwards through the chain
-        current_node = node
-        for i in range(len(self.selector_chain.selectors) - 1, 0, -1):
-            combinator = self.selector_chain.combinators[i - 1]
-            required_selector = self.selector_chain.selectors[i - 1]
+        # Node matches the final selector - validate the rest of the chain with
+        # backtracking: an earlier combinator may have several candidate
+        # ancestors/siblings, and committing to the nearest one greedily can
+        # fail a chain that a different choice would satisfy.
+        return self._chain_holds(
+            list(self.execution_context.ancestors),
+            len(self.selector_chain.selectors) - 1,
+        )
 
-            # Find a matching ancestor/sibling based on combinator
-            candidate = self._find_related_node(current_node, combinator, required_selector)
-            if candidate is None:
-                return False
+    def _chain_holds(self, path: list[ASTNode], index: int) -> bool:
+        """True if the selector prefix ``[0:index]`` matches along ``path``.
 
-            current_node = candidate
+        ``path`` is the root-to-node ancestor path of the node that already
+        matched selector ``index``. Each combinator may produce several
+        candidate predecessors; the chain holds if any candidate lets the
+        remaining prefix match (depth-first backtracking).
+        """
+        if index == 0:
+            return True
 
-        return True
+        combinator = self.selector_chain.combinators[index - 1]
+        required_selector = self.selector_chain.selectors[index - 1]
+        for candidate_path in self._related_paths(path, combinator, required_selector):
+            if self._chain_holds(candidate_path, index - 1):
+                return True
+        return False
 
     @staticmethod
     def _context_for(candidate: ASTNode, parent: ASTNode | None) -> ExecutionContext:
@@ -392,71 +403,53 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
             context.ancestors = [candidate]
         return context
 
-    def _find_related_node(self, node: ASTNode, combinator: Any, selector: Any) -> ASTNode | None:
-        """
-        Find a node related to the given node by the combinator that matches the selector.
+    def _related_paths(
+        self, path: list[ASTNode], combinator: Any, selector: Any
+    ) -> Iterator[list[ASTNode]]:
+        """Yield ancestor paths of every predecessor of ``path[-1]`` that
+        satisfies ``combinator`` and matches ``selector``.
 
-        Args:
-            node: Starting node
-            combinator: Relationship type
-            selector: Selector the related node must match
-
-        Returns:
-            Matching related node or None
+        Each yielded value is the root-to-candidate path, so the caller can keep
+        validating earlier links of the chain from the candidate's position.
         """
         from .selectors import Combinator
 
-        ancestors = self.execution_context.ancestors
+        if len(path) < 2:
+            return
+        node = path[-1]
 
         if combinator == Combinator.DESCENDANT:
-            # Find any ancestor that matches selector
-            for idx in range(len(ancestors) - 1, -1, -1):
-                ancestor = ancestors[idx]
-                if ancestor is node:
-                    continue
-                parent = ancestors[idx - 1] if idx > 0 else None
+            # Every ancestor strictly above the node is a candidate.
+            for idx in range(len(path) - 2, -1, -1):
+                ancestor = path[idx]
+                parent = path[idx - 1] if idx > 0 else None
                 if selector.matches(ancestor, self._context_for(ancestor, parent)):
-                    return ancestor
-            return None
+                    yield path[: idx + 1]
+            return
 
         if combinator == Combinator.CHILD:
-            # Find immediate parent that matches selector.
-            # Search backwards through ancestors to find this node, then check its parent.
-            for idx in range(len(ancestors) - 1, -1, -1):
-                if ancestors[idx] is node and idx > 0:
-                    parent = ancestors[idx - 1]
-                    grandparent = ancestors[idx - 2] if idx >= 2 else None
-                    if selector.matches(parent, self._context_for(parent, grandparent)):
-                        return parent
-                    break
-            return None
+            parent = path[-2]
+            grandparent = path[-3] if len(path) >= 3 else None
+            if selector.matches(parent, self._context_for(parent, grandparent)):
+                yield path[:-1]
+            return
 
         if combinator in (Combinator.ADJACENT, Combinator.GENERAL):
-            parent = None
-            for idx in range(len(ancestors) - 1, -1, -1):
-                if ancestors[idx] is node and idx > 0:
-                    parent = ancestors[idx - 1]
-                    break
-            if parent is None:
-                return None
-
+            parent = path[-2]
             siblings = query_children(parent)
             sibling_index = _sibling_index(siblings, node)
             if sibling_index is None:
-                return None
+                return
 
             if combinator == Combinator.ADJACENT:
-                candidates = [sibling_index - 1] if sibling_index > 0 else []
+                indices = [sibling_index - 1] if sibling_index > 0 else []
             else:
-                candidates = list(range(sibling_index - 1, -1, -1))
+                indices = list(range(sibling_index - 1, -1, -1))
 
-            for i in candidates:
+            for i in indices:
                 sibling = siblings[i]
                 if selector.matches(sibling, self._context_for(sibling, parent)):
-                    return sibling
-            return None
-
-        return None
+                    yield [*path[:-1], sibling]
 
     def default_return(self) -> list[ASTNode]:
         """

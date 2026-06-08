@@ -202,13 +202,18 @@ class ASTTransformer(ASTVisitor[ASTNode]):
                     updates[field_name] = new_value
                     changed = True
             elif isinstance(field_value, (list, tuple)):
-                new_list: list[Any] = [
+                new_items: list[Any] = [
                     self._visit_child(item) if isinstance(item, ASTNode) else item
                     for item in field_value
                 ]
-                if new_list != list(field_value):
-                    # Safe: Pydantic validates field types at runtime
-                    updates[field_name] = new_list
+                if new_items != list(field_value):
+                    # Preserve the original container type. The AST declares
+                    # sequence fields as tuples; model_copy() does not re-validate,
+                    # so a list would be stored verbatim and break serialization
+                    # and equality.
+                    updates[field_name] = (
+                        tuple(new_items) if isinstance(field_value, tuple) else new_items
+                    )
                     changed = True
 
         if changed:
@@ -224,7 +229,7 @@ class ASTTransformer(ASTVisitor[ASTNode]):
             return node.model_copy(
                 update={
                     "header": new_header,
-                    "options": new_options,
+                    "options": tuple(new_options),
                 }
             )
         return node
@@ -256,7 +261,7 @@ class ASTTransformer(ASTVisitor[ASTNode]):
         """Transform AddressList node."""
         new_elements = [self._visit_child(addr) for addr in node.elements]
         if new_elements != list(node.elements):
-            return node.model_copy(update={"elements": new_elements})
+            return node.model_copy(update={"elements": tuple(new_elements)})
         return node
 
     def visit_AddressNegation(self, node: AddressNegation) -> AddressNegation:  # noqa: N802
@@ -270,7 +275,7 @@ class ASTTransformer(ASTVisitor[ASTNode]):
         """Transform PortList node."""
         new_elements = [self._visit_child(port) for port in node.elements]
         if new_elements != list(node.elements):
-            return node.model_copy(update={"elements": new_elements})
+            return node.model_copy(update={"elements": tuple(new_elements)})
         return node
 
     def visit_PortNegation(self, node: PortNegation) -> PortNegation:  # noqa: N802

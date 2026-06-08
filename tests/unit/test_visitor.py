@@ -203,6 +203,30 @@ class TestTransformerPattern:
         assert original_sid == 1
         assert new_sid == 5000001
 
+    def test_transform_preserves_tuple_sequence_fields(
+        self, lark_parser: Lark, transformer: RuleTransformer
+    ):
+        """Transforming a node inside a tuple sequence field must keep the field
+        a tuple, not a list.
+
+        Regression: ASTTransformer rebuilt sequence fields as lists, and
+        model_copy does not re-validate, so the invalid list was stored verbatim
+        and broke serialization and equality (tuple != list).
+        """
+        from surinort_ast.api import from_json, to_json
+        from surinort_ast.core.nodes import AddressList
+
+        rule_text = 'alert tcp [10.0.0.1,10.0.0.2] any -> any 80 (msg:"x"; sid:1; rev:1;)'
+        original = transformer.transform(lark_parser.parse(rule_text))[0]
+
+        new_rule = IPReplacer(old_ip="10.0.0.1", new_ip="9.9.9.9").visit(original)
+
+        assert isinstance(new_rule.header.src_addr, AddressList)
+        assert isinstance(new_rule.header.src_addr.elements, tuple)
+        assert isinstance(new_rule.options, tuple)
+        # The structurally valid tree must round-trip through JSON.
+        assert from_json(to_json(new_rule)) == new_rule
+
 
 class NodeCounter(ASTWalker):
     """Test walker that counts nodes."""
