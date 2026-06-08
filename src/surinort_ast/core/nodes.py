@@ -310,7 +310,9 @@ class PriorityOption(Option):
     """priority:1;"""
 
     type: Literal["PriorityOption"] = "PriorityOption"
-    value: int = Field(ge=1, le=4)
+    # Snort documents priority 1-255; Suricata imposes no documented upper
+    # bound. Only the lower bound (>= 1) is enforced so valid rules parse.
+    value: int = Field(ge=1)
 
 
 class ReferenceOption(Option):

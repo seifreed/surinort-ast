@@ -46,3 +46,23 @@ def test_issue_62_wrapper_parser_handles_escaped_content_terminator():
     parser = LarkRuleParser(dialect=DIALECT_BY_ENGINE[case["engine"]])
     rule = parser.parse(case["raw_text"])
     assert rule is not None
+
+
+def test_normalize_does_not_corrupt_midpayload_escaped_quote():
+    """The content-closer repair must only fire when ``\\";`` is the actual
+    terminator. A properly closed content whose payload contains ``\\";`` in the
+    middle (e.g. content:"GET \\"; HTTP") must be left intact, not split."""
+    rule = parse_rule('alert tcp any any -> any any (content:"GET \\"; HTTP"; sid:1;)')
+    contents = [opt for opt in rule.options if opt.node_type == "ContentOption"]
+    assert len(contents) == 1
+    assert contents[0].pattern == b'GET "; HTTP'
+
+
+def test_normalize_still_repairs_missing_content_closer():
+    """The quirk form (content closed only by ``\\";``) is still repaired."""
+    rule = parse_rule('alert tcp any any -> any any (content:"abc\\"; sid:1;)')
+    contents = [opt for opt in rule.options if opt.node_type == "ContentOption"]
+    assert len(contents) == 1
+    # The repair appends a closing quote, so the escaped quote stays a literal
+    # ``"`` in the payload rather than dropping the content.
+    assert contents[0].pattern == b'abc"'

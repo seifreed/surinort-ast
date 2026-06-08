@@ -48,7 +48,7 @@ class MetadataOptionsMixin:
     - rev: Rule revision number
     - gid: Generator ID (rule source identifier)
     - classtype: Rule classification category
-    - priority: Alert priority level (1-4)
+    - priority: Alert priority level (>= 1; lower means higher priority)
     - reference: External references (CVE, URLs, etc.)
     - metadata: Key-value metadata pairs
 
@@ -203,13 +203,11 @@ class MetadataOptionsMixin:
             priority:1;
 
         Priority Levels:
-            - 1: High priority (critical alerts)
-            - 2: Medium-high priority
-            - 3: Medium-low priority
-            - 4: Low priority (informational)
+            Lower numbers mean higher priority. Snort documents 1-255;
+            Suricata imposes no upper bound.
 
         Note:
-            Pydantic Field validators ensure priority range 1-4 per IDS best practices.
+            The Pydantic Field validator enforces only the lower bound (>= 1).
         """
         priority = int(priority_token.value)
         return PriorityOption(

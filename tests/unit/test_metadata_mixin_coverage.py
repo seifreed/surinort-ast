@@ -10,7 +10,7 @@ This test suite targets lines in metadata_mixin.py with the following notes:
 UNREACHABLE LINES (Dead Code):
 - Line 112: if sid < 1 - Pydantic Field(ge=1) validates before this code executes
 - Line 144: if rev < 1 - Pydantic Field(ge=1) validates before this code executes
-- Line 230: if priority < 1 or priority > 4 - Pydantic Field(ge=1, le=4) validates first
+- Line 230: if priority < 1 - Pydantic Field(ge=1) validates first
 
 These defensive validations are unreachable in normal execution because Pydantic's
 validator raises ValidationError before the transformer's add_diagnostic code runs.
@@ -509,22 +509,21 @@ class TestPydanticValidationBehavior:
 
         assert "greater_than_equal" in str(exc_info.value)
 
-    def test_priority_pydantic_validation_prevents_out_of_range(self):
+    def test_priority_pydantic_validation_enforces_lower_bound(self):
         """
-        Demonstrate that Pydantic Field(ge=1, le=4) prevents Priority out of range.
-
-        This test shows that line 230 in metadata_mixin.py is UNREACHABLE.
+        Priority enforces a lower bound (>= 1) but no upper bound: Snort allows
+        1-255 and Suricata imposes no documented ceiling, so values above 4 are
+        valid and must be accepted.
         """
         from pydantic_core import ValidationError
 
         from surinort_ast.core.nodes import PriorityOption
 
-        # Test value < 1
+        # Below the lower bound is rejected.
         with pytest.raises(ValidationError) as exc_info:
             PriorityOption(value=0)
         assert "greater_than_equal" in str(exc_info.value)
 
-        # Test value > 4
-        with pytest.raises(ValidationError) as exc_info:
-            PriorityOption(value=5)
-        assert "less_than_equal" in str(exc_info.value)
+        # Values above the old 1-4 cap are valid and accepted.
+        assert PriorityOption(value=5).value == 5
+        assert PriorityOption(value=255).value == 255

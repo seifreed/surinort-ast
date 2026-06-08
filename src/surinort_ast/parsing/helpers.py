@@ -17,8 +17,14 @@ from lark import Token, Tree
 
 from ..core.location import Location, Position, Span
 
+# Match a content value whose only closing delimiter is an escaped quote right
+# before ';' (a real-world quirk). The lookahead requires a genuine option
+# boundary after the ``\";`` — the next option keyword, a closing ``)`` or end
+# of input — so a ``\";`` appearing mid-payload of a properly closed content
+# value (e.g. content:"GET \"; HTTP") is left untouched.
 _MISSING_CONTENT_CLOSER_RE = re.compile(
-    r'(?P<prefix>\b(?:uri)?content:")(?P<body>(?:[^"\\]|\\.)*?)\\\"(?=;)'
+    r'(?P<prefix>\b(?:uri)?content:")(?P<body>(?:[^"\\]|\\.)*?)'
+    r'\\"(?=;\s*(?:[A-Za-z_][\w.]*\s*[:;)]|\)|$))'
 )
 
 
