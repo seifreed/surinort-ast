@@ -309,9 +309,19 @@ class StreamParser:
 
         processed_count = 0
 
-        # Stream file rule by rule, reassembling multi-line rules.
+        # Stream file rule by rule, reassembling multi-line rules. Decoding is
+        # lazy (per line), so a non-UTF-8 byte surfaces while advancing the
+        # iterator; wrap it in ParseError to honor the documented read-failure
+        # contract without materializing the whole file.
         with file_path.open(encoding=encoding) as f:
-            for first_line_num, rule_text in _iter_rule_blocks(enumerate(f, start=1)):
+            blocks = _iter_rule_blocks(enumerate(f, start=1))
+            while True:
+                try:
+                    first_line_num, rule_text = next(blocks)
+                except StopIteration:
+                    break
+                except UnicodeDecodeError as e:
+                    raise ParseError(f"Failed to read file {file_path}: {e}") from e
                 rule = self._parse_lines([(first_line_num, rule_text)], str(file_path), skip_errors)
                 if rule is not None:
                     yield rule
@@ -659,7 +669,10 @@ def stream_parse_file_parallel(
     # Reassemble complete rules (including multi-line rules) before chunking, so
     # each worker parse unit is a whole rule rather than a single physical line.
     with file_path.open(encoding=encoding) as f:
-        rule_blocks = list(_iter_rule_blocks(enumerate(f, start=1)))
+        try:
+            rule_blocks = list(_iter_rule_blocks(enumerate(f, start=1)))
+        except UnicodeDecodeError as e:
+            raise ParseError(f"Failed to read file {file_path}: {e}") from e
 
     if not rule_blocks:
         logger.warning(f"No parseable rules found in {file_path}")

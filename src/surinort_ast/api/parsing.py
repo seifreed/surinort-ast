@@ -342,7 +342,9 @@ def _read_rule_lines(file_path: Path) -> list[tuple[int, str]]:
 
     try:
         lines = file_path.read_text(encoding="utf-8").splitlines()
-    except OSError as e:
+    except (OSError, UnicodeDecodeError) as e:
+        # UnicodeDecodeError is a ValueError, not an OSError, so it would
+        # otherwise escape the documented ParseError contract.
         raise ParseError(f"Failed to read file {_sanitize_path_for_error(file_path)}: {e}") from e
 
     from ..streaming.parser import _iter_rule_blocks

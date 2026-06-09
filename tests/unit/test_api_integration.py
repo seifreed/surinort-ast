@@ -591,3 +591,35 @@ class TestDialectSupport:
         rule = parse_rule(rule_text, dialect=Dialect.SNORT3)
 
         assert rule.action.value == "alert"
+
+
+def test_parse_file_non_utf8_raises_parse_error(tmp_path):
+    """A non-UTF-8 byte must surface as ParseError, not a raw UnicodeDecodeError
+    (the documented read-failure contract)."""
+    import pytest
+
+    from surinort_ast.api import parse_file
+    from surinort_ast.exceptions import ParseError
+
+    f = tmp_path / "latin1.rules"
+    f.write_bytes(b'alert tcp any any -> any 80 (msg:"caf\xe9"; sid:1;)\n')
+
+    with pytest.raises(ParseError):
+        parse_file(f)
+    with pytest.raises(ParseError):
+        list(parse_file(f, stream=True))
+
+
+def test_to_protobuf_out_of_range_raises_protobuf_error():
+    """A numeric option exceeding the protobuf int range must surface as
+    ProtobufError, not a raw ValueError (mirrors from_protobuf)."""
+    import pytest
+
+    from surinort_ast import parse_rule
+    from surinort_ast.serialization.protobuf import ProtobufError, to_protobuf
+
+    rule = parse_rule(
+        'alert tcp any any -> any 80 (content:"a"; depth:99999999999999999999; sid:1;)'
+    )
+    with pytest.raises(ProtobufError):
+        to_protobuf(rule)

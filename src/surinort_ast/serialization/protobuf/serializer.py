@@ -1399,12 +1399,20 @@ class ProtobufSerializer:
             >>> serializer = ProtobufSerializer()
             >>> binary_data = serializer.to_protobuf(rule)
         """
-        if isinstance(rule, Rule):
-            pb_msg = self._serialize_single_rule(rule)
-        else:
-            pb_msg = self._serialize_multiple_rules(rule)
+        try:
+            if isinstance(rule, Rule):
+                pb_msg = self._serialize_single_rule(rule)
+            else:
+                pb_msg = self._serialize_multiple_rules(rule)
 
-        return pb_msg.SerializeToString()
+            return pb_msg.SerializeToString()
+        except ProtobufError:
+            raise
+        except Exception as e:
+            # Mirror from_protobuf: surface any serialization failure (e.g. a
+            # numeric option exceeding the protobuf int range) as ProtobufError
+            # rather than leaking a raw library ValueError to callers.
+            raise ProtobufError(f"Failed to serialize to protobuf: {e}") from e
 
     def from_protobuf(self, data: bytes) -> Rule | Sequence[Rule]:
         """
