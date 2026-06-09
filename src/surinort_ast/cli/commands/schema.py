@@ -41,8 +41,6 @@ def schema_command(
 
         status_console.print("[green]Success:[/green] Generated JSON Schema")
 
-    except typer.Exit:
-        raise
     except Exception as e:
         err_console.print(f"Error: {e}")
         raise typer.Exit(1) from None

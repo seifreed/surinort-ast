@@ -75,24 +75,22 @@ class LSHIndex:
 
         self.threshold = threshold
 
-        # Auto-calculate optimal bands and rows if not provided
-        if num_bands is None and rows_per_band is None:
-            # Default: use 128 permutations with 16 bands
-            self.num_bands = 16
-            self.rows_per_band = 8
-        elif num_bands is not None and rows_per_band is not None:
+        # Auto-calculate optimal bands and rows if not provided.
+        if num_bands is not None and rows_per_band is not None:
             self.num_bands = num_bands
             self.rows_per_band = rows_per_band
         elif num_bands is not None:
             # Calculate rows_per_band for 128 permutations
             self.num_bands = num_bands
             self.rows_per_band = 128 // num_bands
-        else:
+        elif rows_per_band is not None:
             # Calculate num_bands for 128 permutations
-            if rows_per_band is None:
-                raise ValueError("rows_per_band must be provided when num_bands is omitted")
             self.rows_per_band = rows_per_band
-            self.num_bands = 128 // self.rows_per_band
+            self.num_bands = 128 // rows_per_band
+        else:
+            # Default: use 128 permutations with 16 bands
+            self.num_bands = 16
+            self.rows_per_band = 8
 
         # Validate configuration
         total_perms = self.num_bands * self.rows_per_band

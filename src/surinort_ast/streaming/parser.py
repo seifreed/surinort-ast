@@ -396,10 +396,10 @@ class StreamParser:
                     error_msg = "; ".join(d.message for d in rule.diagnostics)
                     batch_errors.append((line_num, error_msg))
 
-                    if skip_errors:
-                        continue
-
-                    # Only include erroring rules that still look like rules (start with action keyword).
+                    # ``stream_file`` (via ``_parse_lines``) drops error rules when
+                    # ``skip_errors`` is set, so any error rule reaching here means
+                    # ``skip_errors`` is False. Only keep ones that still look like
+                    # rules (start with an action keyword).
                     raw_text = (rule.raw_text or "").lstrip()
                     if not _line_starts_rule(raw_text):
                         continue
@@ -625,6 +625,17 @@ def _parse_chunk_worker(
     return results
 
 
+def _iter_chunk_results(
+    chunk_results: list[tuple[int, Rule | None, str | None]],
+) -> Iterator[Rule]:
+    """Yield parsed rules from a worker chunk result, logging any errors."""
+    for line_num, rule, error in chunk_results:
+        if rule is not None:
+            yield rule
+        elif error:
+            logger.debug(f"Line {line_num}: {error}")
+
+
 def stream_parse_file_parallel(
     path: Path | str,
     dialect: Dialect = Dialect.SURICATA,
@@ -706,13 +717,7 @@ def stream_parse_file_parallel(
         # detection and SARIF reporting). Iterating `as_completed(futures)` here
         # would emit rules in completion order, which is non-deterministic.
         for future in futures:
-            chunk_results = future.result()
-
-            for line_num, rule, error in chunk_results:
-                if rule is not None:
-                    yield rule
-                elif error:
-                    logger.debug(f"Line {line_num}: {error}")
+            yield from _iter_chunk_results(future.result())
 
 
 # ============================================================================

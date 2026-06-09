@@ -17,10 +17,14 @@ from __future__ import annotations
 from ..core.nodes import ASTNode
 
 
-def _build_registry() -> dict[str, type[ASTNode]]:
-    """Walk the ASTNode subclass tree and map class name -> class."""
+def _build_registry(root: type[ASTNode] = ASTNode) -> dict[str, type[ASTNode]]:
+    """Walk the ``root`` subclass tree and map class name -> class.
+
+    ``seen`` guards against visiting a class twice, which happens when the
+    hierarchy uses multiple inheritance (a class reachable via two bases).
+    """
     registry: dict[str, type[ASTNode]] = {}
-    stack: list[type[ASTNode]] = [ASTNode]
+    stack: list[type[ASTNode]] = [root]
     seen: set[type[ASTNode]] = set()
     while stack:
         cls = stack.pop()

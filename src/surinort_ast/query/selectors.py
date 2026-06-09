@@ -357,8 +357,8 @@ class AttributeSelector(Selector):
                     return node_num < value_num
                 if self.operator == ">=":
                     return node_num >= value_num
-                if self.operator == "<=":
-                    return node_num <= value_num
+                # operator is guaranteed to be "<=" here (set membership above)
+                return node_num <= value_num
             except (ValueError, TypeError):
                 # If conversion fails, comparison is false
                 return False
@@ -374,9 +374,8 @@ class AttributeSelector(Selector):
             if self.operator == "^=":
                 # Starts with
                 return node_str.startswith(value_str)
-            if self.operator == "$=":
-                # Ends with
-                return node_str.endswith(value_str)
+            # operator is guaranteed to be "$=" here (set membership above)
+            return node_str.endswith(value_str)
 
         # Unknown operator
         return False
@@ -710,9 +709,7 @@ class PseudoSelector(Selector):
 
     def _has_children(self, node: ASTNode) -> bool:
         """Check if node has any children."""
-        for attr_name, attr_value in node.__dict__.items():
-            if attr_name.startswith("_"):
-                continue
+        for attr_value in node.__dict__.values():
             if isinstance(attr_value, list | tuple) and attr_value:
                 if any(hasattr(item, "node_type") for item in attr_value):
                     return True
@@ -735,9 +732,8 @@ class PseudoSelector(Selector):
         index, count = position
         if self.pseudo_type == "first-child":
             return index == 0
-        if self.pseudo_type == "last-child":
-            return index == count - 1
-        return False
+        # _matches_position is only dispatched for first-child / last-child
+        return index == count - 1
 
     def _has_descendant(self, node: ASTNode, selector: Any) -> bool:
         """Check if node has any descendant matching selector."""

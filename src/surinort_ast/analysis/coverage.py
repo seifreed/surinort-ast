@@ -19,13 +19,11 @@ from typing import Any, ClassVar
 
 from ..core.enums import Action, Direction, Protocol
 from ..core.nodes import (
-    AnyPort,
     Port,
     PortExpr,
     PortList,
     PortNegation,
     PortRange,
-    PortVariable,
     Rule,
 )
 
@@ -434,9 +432,7 @@ class CoverageAnalyzer:
         elif isinstance(port_expr, PortNegation):
             # For negations, we can't determine specific ports
             pass
-        elif isinstance(port_expr, (AnyPort, PortVariable)):
-            # Can't extract specific ports from 'any' or variables
-            pass
+        # AnyPort / PortVariable fall through: no specific ports can be extracted.
 
         return ports
 

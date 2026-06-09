@@ -30,15 +30,6 @@ from datetime import UTC, datetime
 from functools import singledispatch
 from typing import Any
 
-try:
-    # Import generated protobuf classes
-    from . import ast_pb2 as pb
-
-    PROTOBUF_AVAILABLE = True
-except ImportError:
-    PROTOBUF_AVAILABLE = False
-    pb = Any  # type: ignore[misc,assignment]
-
 from surinort_ast.core.diagnostics import Diagnostic, DiagnosticLevel
 from surinort_ast.core.enums import (
     Action,
@@ -106,18 +97,11 @@ from surinort_ast.core.nodes import (
 )
 from surinort_ast.version import __ast_version__
 
+from . import ast_pb2 as pb
+
 
 class ProtobufError(Exception):
     """Base exception for protobuf serialization errors."""
-
-
-def _check_protobuf_available() -> None:
-    """Check if protobuf library is available."""
-    if not PROTOBUF_AVAILABLE:
-        raise ProtobufError(
-            "protobuf library not installed. "
-            "Install with: pip install 'surinort-ast[serialization]'"
-        )
 
 
 # ============================================================================
@@ -141,120 +125,119 @@ _PB_TO_FLOW_DIRECTION: dict[int, FlowDirection] = {}
 _FLOW_STATE_TO_PB: dict[FlowState, int] = {}
 _PB_TO_FLOW_STATE: dict[int, FlowState] = {}
 
-if PROTOBUF_AVAILABLE:
-    _ACTION_TO_PB.update(
-        {
-            Action.ALERT: pb.ALERT,
-            Action.LOG: pb.LOG,
-            Action.PASS: pb.PASS,
-            Action.DROP: pb.DROP,
-            Action.REJECT: pb.REJECT,
-            Action.SDROP: pb.SDROP,
-        }
-    )
-    _PB_TO_ACTION.update({v: k for k, v in _ACTION_TO_PB.items()})
+_ACTION_TO_PB.update(
+    {
+        Action.ALERT: pb.ALERT,
+        Action.LOG: pb.LOG,
+        Action.PASS: pb.PASS,
+        Action.DROP: pb.DROP,
+        Action.REJECT: pb.REJECT,
+        Action.SDROP: pb.SDROP,
+    }
+)
+_PB_TO_ACTION.update({v: k for k, v in _ACTION_TO_PB.items()})
 
-    _PROTOCOL_TO_PB.update(
-        {
-            Protocol.TCP: pb.TCP,
-            Protocol.TCP_PKT: pb.TCP_PKT,
-            Protocol.UDP: pb.UDP,
-            Protocol.ICMP: pb.ICMP,
-            Protocol.IP: pb.IP,
-            Protocol.HTTP: pb.HTTP,
-            Protocol.HTTP1: pb.HTTP1,
-            Protocol.HTTP2: pb.HTTP2,
-            Protocol.BITTORRENT_DHT: pb.BITTORRENT_DHT,
-            Protocol.DNS: pb.DNS,
-            Protocol.TLS: pb.TLS,
-            Protocol.SSH: pb.SSH,
-            Protocol.FTP: pb.FTP,
-            Protocol.FTP_DATA: pb.FTP_DATA,
-            Protocol.SMB: pb.SMB,
-            Protocol.SMTP: pb.SMTP,
-            Protocol.IMAP: pb.IMAP,
-            Protocol.DCERPC: pb.DCERPC,
-            Protocol.DHCP: pb.DHCP,
-            Protocol.NFS: pb.NFS,
-            Protocol.SIP: pb.SIP,
-            Protocol.RDP: pb.RDP,
-            Protocol.MQTT: pb.MQTT,
-            Protocol.MODBUS: pb.MODBUS,
-            Protocol.DNP3: pb.DNP3,
-            Protocol.ENIP: pb.ENIP,
-            Protocol.IKE: pb.IKE,
-            Protocol.KRB5: pb.KRB5,
-            Protocol.NTP: pb.NTP,
-            Protocol.SNMP: pb.SNMP,
-            Protocol.TFTP: pb.TFTP,
-            Protocol.FILE: pb.FILE,
-        }
-    )
-    _PB_TO_PROTOCOL.update({v: k for k, v in _PROTOCOL_TO_PB.items()})
+_PROTOCOL_TO_PB.update(
+    {
+        Protocol.TCP: pb.TCP,
+        Protocol.TCP_PKT: pb.TCP_PKT,
+        Protocol.UDP: pb.UDP,
+        Protocol.ICMP: pb.ICMP,
+        Protocol.IP: pb.IP,
+        Protocol.HTTP: pb.HTTP,
+        Protocol.HTTP1: pb.HTTP1,
+        Protocol.HTTP2: pb.HTTP2,
+        Protocol.BITTORRENT_DHT: pb.BITTORRENT_DHT,
+        Protocol.DNS: pb.DNS,
+        Protocol.TLS: pb.TLS,
+        Protocol.SSH: pb.SSH,
+        Protocol.FTP: pb.FTP,
+        Protocol.FTP_DATA: pb.FTP_DATA,
+        Protocol.SMB: pb.SMB,
+        Protocol.SMTP: pb.SMTP,
+        Protocol.IMAP: pb.IMAP,
+        Protocol.DCERPC: pb.DCERPC,
+        Protocol.DHCP: pb.DHCP,
+        Protocol.NFS: pb.NFS,
+        Protocol.SIP: pb.SIP,
+        Protocol.RDP: pb.RDP,
+        Protocol.MQTT: pb.MQTT,
+        Protocol.MODBUS: pb.MODBUS,
+        Protocol.DNP3: pb.DNP3,
+        Protocol.ENIP: pb.ENIP,
+        Protocol.IKE: pb.IKE,
+        Protocol.KRB5: pb.KRB5,
+        Protocol.NTP: pb.NTP,
+        Protocol.SNMP: pb.SNMP,
+        Protocol.TFTP: pb.TFTP,
+        Protocol.FILE: pb.FILE,
+    }
+)
+_PB_TO_PROTOCOL.update({v: k for k, v in _PROTOCOL_TO_PB.items()})
 
-    _DIRECTION_TO_PB.update(
-        {
-            Direction.TO: pb.TO,
-            Direction.FROM: pb.FROM,
-            Direction.BIDIRECTIONAL: pb.BIDIRECTIONAL,
-        }
-    )
-    _PB_TO_DIRECTION.update({v: k for k, v in _DIRECTION_TO_PB.items()})
+_DIRECTION_TO_PB.update(
+    {
+        Direction.TO: pb.TO,
+        Direction.FROM: pb.FROM,
+        Direction.BIDIRECTIONAL: pb.BIDIRECTIONAL,
+    }
+)
+_PB_TO_DIRECTION.update({v: k for k, v in _DIRECTION_TO_PB.items()})
 
-    _DIALECT_TO_PB.update(
-        {
-            Dialect.SURICATA: pb.SURICATA,
-            Dialect.SNORT2: pb.SNORT2,
-            Dialect.SNORT3: pb.SNORT3,
-        }
-    )
-    _PB_TO_DIALECT.update({v: k for k, v in _DIALECT_TO_PB.items()})
+_DIALECT_TO_PB.update(
+    {
+        Dialect.SURICATA: pb.SURICATA,
+        Dialect.SNORT2: pb.SNORT2,
+        Dialect.SNORT3: pb.SNORT3,
+    }
+)
+_PB_TO_DIALECT.update({v: k for k, v in _DIALECT_TO_PB.items()})
 
-    _DIAGNOSTIC_LEVEL_TO_PB.update(
-        {
-            DiagnosticLevel.ERROR: pb.ERROR,
-            DiagnosticLevel.WARNING: pb.WARNING,
-            DiagnosticLevel.INFO: pb.INFO,
-        }
-    )
-    _PB_TO_DIAGNOSTIC_LEVEL.update({v: k for k, v in _DIAGNOSTIC_LEVEL_TO_PB.items()})
+_DIAGNOSTIC_LEVEL_TO_PB.update(
+    {
+        DiagnosticLevel.ERROR: pb.ERROR,
+        DiagnosticLevel.WARNING: pb.WARNING,
+        DiagnosticLevel.INFO: pb.INFO,
+    }
+)
+_PB_TO_DIAGNOSTIC_LEVEL.update({v: k for k, v in _DIAGNOSTIC_LEVEL_TO_PB.items()})
 
-    _CONTENT_MODIFIER_TO_PB.update(
-        {
-            ContentModifierType.NOCASE: pb.NOCASE,
-            ContentModifierType.OFFSET: pb.OFFSET,
-            ContentModifierType.DEPTH: pb.DEPTH,
-            ContentModifierType.DISTANCE: pb.DISTANCE,
-            ContentModifierType.WITHIN: pb.WITHIN,
-            ContentModifierType.RAWBYTES: pb.RAWBYTES,
-            ContentModifierType.FAST_PATTERN: pb.FAST_PATTERN,
-            ContentModifierType.STARTSWITH: pb.STARTSWITH,
-            ContentModifierType.ENDSWITH: pb.ENDSWITH,
-            ContentModifierType.BSIZE: pb.BSIZE,
-        }
-    )
-    _PB_TO_CONTENT_MODIFIER.update({v: k for k, v in _CONTENT_MODIFIER_TO_PB.items()})
+_CONTENT_MODIFIER_TO_PB.update(
+    {
+        ContentModifierType.NOCASE: pb.NOCASE,
+        ContentModifierType.OFFSET: pb.OFFSET,
+        ContentModifierType.DEPTH: pb.DEPTH,
+        ContentModifierType.DISTANCE: pb.DISTANCE,
+        ContentModifierType.WITHIN: pb.WITHIN,
+        ContentModifierType.RAWBYTES: pb.RAWBYTES,
+        ContentModifierType.FAST_PATTERN: pb.FAST_PATTERN,
+        ContentModifierType.STARTSWITH: pb.STARTSWITH,
+        ContentModifierType.ENDSWITH: pb.ENDSWITH,
+        ContentModifierType.BSIZE: pb.BSIZE,
+    }
+)
+_PB_TO_CONTENT_MODIFIER.update({v: k for k, v in _CONTENT_MODIFIER_TO_PB.items()})
 
-    _FLOW_DIRECTION_TO_PB.update(
-        {
-            FlowDirection.TO_CLIENT: pb.TO_CLIENT,
-            FlowDirection.TO_SERVER: pb.TO_SERVER,
-            FlowDirection.FROM_CLIENT: pb.FROM_CLIENT,
-            FlowDirection.FROM_SERVER: pb.FROM_SERVER,
-        }
-    )
-    _PB_TO_FLOW_DIRECTION.update({v: k for k, v in _FLOW_DIRECTION_TO_PB.items()})
+_FLOW_DIRECTION_TO_PB.update(
+    {
+        FlowDirection.TO_CLIENT: pb.TO_CLIENT,
+        FlowDirection.TO_SERVER: pb.TO_SERVER,
+        FlowDirection.FROM_CLIENT: pb.FROM_CLIENT,
+        FlowDirection.FROM_SERVER: pb.FROM_SERVER,
+    }
+)
+_PB_TO_FLOW_DIRECTION.update({v: k for k, v in _FLOW_DIRECTION_TO_PB.items()})
 
-    _FLOW_STATE_TO_PB.update(
-        {
-            FlowState.ESTABLISHED: pb.ESTABLISHED,
-            FlowState.NOT_ESTABLISHED: pb.NOT_ESTABLISHED,
-            FlowState.STATELESS: pb.STATELESS,
-            FlowState.ONLY_STREAM: pb.ONLY_STREAM,
-            FlowState.NO_STREAM: pb.NO_STREAM,
-        }
-    )
-    _PB_TO_FLOW_STATE.update({v: k for k, v in _FLOW_STATE_TO_PB.items()})
+_FLOW_STATE_TO_PB.update(
+    {
+        FlowState.ESTABLISHED: pb.ESTABLISHED,
+        FlowState.NOT_ESTABLISHED: pb.NOT_ESTABLISHED,
+        FlowState.STATELESS: pb.STATELESS,
+        FlowState.ONLY_STREAM: pb.ONLY_STREAM,
+        FlowState.NO_STREAM: pb.NO_STREAM,
+    }
+)
+_PB_TO_FLOW_STATE.update({v: k for k, v in _FLOW_STATE_TO_PB.items()})
 
 
 # ============================================================================
@@ -1382,7 +1365,6 @@ class ProtobufSerializer:
         Args:
             include_metadata: Include metadata envelope (ast_version, timestamp)
         """
-        _check_protobuf_available()
         self.include_metadata = include_metadata
 
     def to_protobuf(self, rule: Rule | Sequence[Rule]) -> bytes:

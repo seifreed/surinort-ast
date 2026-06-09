@@ -125,7 +125,7 @@ def fmt_command(
         if in_place:
             output = _handle_in_place_mode(file, in_place)
 
+        # Reaching here means check mode was off (--check exits in
+        # _handle_check_mode), so always report success.
         write_output(result, output)
-
-        if not check:
-            status_console.print(f"[green]Success:[/green] Formatted {len(rules)} rule(s)")
+        status_console.print(f"[green]Success:[/green] Formatted {len(rules)} rule(s)")

@@ -434,6 +434,7 @@ omit = [
     "*/tests/*",
     "*/test_*.py",
     "*/__pycache__/*",
+    "*_pb2.py",
 ]
 
 [tool.coverage.report]
@@ -448,6 +449,7 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
     "@abstractmethod",
+    "^\\s*\\.\\.\\.$",
 ]
 
 # Hatchling configuration

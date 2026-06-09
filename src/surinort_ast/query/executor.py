@@ -431,22 +431,23 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
                 yield path[:-1]
             return
 
-        if combinator in (Combinator.ADJACENT, Combinator.GENERAL):
-            parent = path[-2]
-            siblings = query_children(parent)
-            sibling_index = _sibling_index(siblings, node)
-            if sibling_index is None:
-                return
+        # combinator is guaranteed to be ADJACENT or GENERAL here: the
+        # DESCENDANT and CHILD cases above each return before reaching this point.
+        parent = path[-2]
+        siblings = query_children(parent)
+        sibling_index = _sibling_index(siblings, node)
+        if sibling_index is None:
+            return
 
-            if combinator == Combinator.ADJACENT:
-                indices = [sibling_index - 1] if sibling_index > 0 else []
-            else:
-                indices = list(range(sibling_index - 1, -1, -1))
+        if combinator == Combinator.ADJACENT:
+            indices = [sibling_index - 1] if sibling_index > 0 else []
+        else:
+            indices = list(range(sibling_index - 1, -1, -1))
 
-            for i in indices:
-                sibling = siblings[i]
-                if selector.matches(sibling, self._context_for(sibling, parent)):
-                    yield [*path[:-1], sibling]
+        for i in indices:
+            sibling = siblings[i]
+            if selector.matches(sibling, self._context_for(sibling, parent)):
+                yield [*path[:-1], sibling]
 
     def default_return(self) -> list[ASTNode]:
         """
