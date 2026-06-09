@@ -709,6 +709,32 @@ class TestSemanticPreservingOptimization:
         ]
         assert len(isdataats) == 2
 
+    def test_repeated_ber_navigation_not_deduplicated(self):
+        """ber_data/ber_skip advance a BER cursor, so two identical steps descend
+        into different nested elements and must both survive (cf. Snort3 sid
+        300306/300307, the OpenSSL CVE-2022-3602 punycode rules)."""
+        optimized = self._optimize(
+            'alert tls any any -> any any (content:"A"; ber_data:0x30; ber_data:0xa1; '
+            'ber_data:0x30; content:"B",within 2; sid:1;)'
+        )
+        ber = [
+            o
+            for o in optimized.options
+            if o.node_type == "GenericOption" and o.keyword == "ber_data"
+        ]
+        assert len(ber) == 3
+
+    def test_ber_data_not_reordered(self):
+        """A pcre must not be reordered ahead of a ber_data step it follows."""
+        optimized = self._optimize(
+            'alert tls any any -> any any (content:"A"; ber_data:0x30; pcre:"/abc/"; '
+            'ber_data:0xa1; content:"B"; sid:1;)'
+        )
+        kinds = [
+            o.node_type if o.node_type != "GenericOption" else o.keyword for o in optimized.options
+        ]
+        assert kinds.index("PcreOption") > kinds.index("ber_data")
+
     def test_true_duplicate_still_removed(self):
         """Non-positional exact duplicates are still deduplicated."""
         optimized = self._optimize(

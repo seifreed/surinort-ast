@@ -45,13 +45,28 @@ POSITIONAL_OPTIONS: frozenset[str] = frozenset(
     }
 )
 
-# byte_test/byte_jump/byte_extract/byte_math and isdataat parse to a keyword-
-# tagged GenericOption rather than a dedicated node. They inspect bytes at a
-# position (often relative to the preceding match) and can define or reference
-# byte_extract variables, so moving or deduplicating them changes what the rule
-# matches.
+# These keywords parse to a keyword-tagged GenericOption rather than a dedicated
+# node, yet each is position- and state-significant, so moving or deduplicating
+# them changes what the rule matches:
+#   - byte_test/byte_jump/byte_extract/byte_math/isdataat inspect bytes at a
+#     position (often relative to the preceding match) and can define or
+#     reference byte_extract variables;
+#   - ber_data/ber_skip advance a BER/ASN.1 inspection cursor, so two identical
+#     steps descend into different nested elements (they are not duplicates);
+#   - base64_decode/base64_data re-base the inspection buffer for the content
+#     that follows.
 _STATEFUL_GENERIC_KEYWORDS: frozenset[str] = frozenset(
-    {"byte_test", "byte_jump", "byte_extract", "byte_math", "isdataat"}
+    {
+        "byte_test",
+        "byte_jump",
+        "byte_extract",
+        "byte_math",
+        "isdataat",
+        "ber_data",
+        "ber_skip",
+        "base64_decode",
+        "base64_data",
+    }
 )
 
 
