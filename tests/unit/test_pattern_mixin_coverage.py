@@ -288,9 +288,8 @@ class TestPcreOptionDirectTransformerCall:
         assert result.location is not None
         assert result.location.file_path == "/tmp/test.rules"
         assert result.location.span.start.line == 1
-        assert (
-            result.location.span.start.column == 46
-        )  # column is 0-indexed in token, 1-indexed in Position
+        # Lark columns are already 1-indexed and preserved verbatim.
+        assert result.location.span.start.column == 45
 
 
 class TestPcreOptionEdgeCases:

@@ -466,3 +466,19 @@ class TestLocationTracking:
         if rule.header.location:
             assert rule.header.location.span is not None
             assert rule.header.location.span.start.line >= 1
+
+    def test_column_is_one_indexed_not_off_by_one(
+        self, lark_parser: Lark, transformer: RuleTransformer
+    ):
+        """A parsed node's 1-indexed start column must equal offset + 1.
+
+        Regression: token_to_location wrongly added 1 to Lark's already-1-indexed
+        column, making every column (and SARIF startColumn) off by one.
+        """
+        rule_text = 'alert tcp any any -> any any (msg:"hello"; sid:1;)'
+        rule = transformer.transform(lark_parser.parse(rule_text))[0]
+
+        msg = next(o for o in rule.options if o.node_type == "MsgOption")
+        span = msg.location.span
+        assert span.start.column == span.start.offset + 1
+        assert span.end.column == span.end.offset + 1

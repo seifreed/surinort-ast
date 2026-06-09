@@ -49,18 +49,19 @@ def token_to_location(token: Token, file_path: str | None = None) -> Location:
     Returns:
         Location object with span information
     """
-    # Lark tokens have: line (1-indexed), column (0-indexed), end_line, end_column
+    # Lark tokens are already 1-indexed for line and column: column points at the
+    # first character, end_column points one past the last character.
     start = Position(
         line=token.line,
-        column=(token.column or 0) + 1,  # Convert to 1-indexed
+        column=token.column or 1,
         offset=token.start_pos,
     )
 
     # Calculate end position
     end_line = getattr(token, "end_line", token.line)
-    default_end_col = (token.column or 0) + len(token.value)
-    end_column_raw = getattr(token, "end_column", default_end_col)
-    end_column = (end_column_raw if end_column_raw is not None else 0) + 1  # Convert to 1-indexed
+    default_end_col = (token.column or 1) + len(token.value)
+    end_column_raw = getattr(token, "end_column", None)
+    end_column = end_column_raw if end_column_raw is not None else default_end_col
 
     # Calculate end offset, handling None values
     if hasattr(token, "end_pos") and token.end_pos is not None:

@@ -119,7 +119,8 @@ def test_address_var_location_tracking(transformer):
 
     assert result.location is not None
     assert result.location.span.start.line == 5
-    assert result.location.span.start.column == 11  # Column is 1-indexed
+    # Lark columns are already 1-indexed and preserved verbatim.
+    assert result.location.span.start.column == 10
 
 
 # ============================================================================
@@ -481,7 +482,8 @@ def test_location_tracking_preserved(transformer):
 
     assert result.location is not None
     assert result.location.span.start.line == 10
-    assert result.location.span.start.column == 21  # 1-indexed
+    # Lark columns are already 1-indexed and preserved verbatim.
+    assert result.location.span.start.column == 20
     assert result.location.span.start.offset == 500
     assert result.location.file_path == "test.rules"
 
@@ -495,7 +497,8 @@ def test_cidr_location_from_network_token(transformer):
     # Location should come from IP token
     assert result.location is not None
     assert result.location.span.start.line == 5
-    assert result.location.span.start.column == 11  # 1-indexed
+    # Lark columns are already 1-indexed and preserved verbatim.
+    assert result.location.span.start.column == 10
 
 
 # ============================================================================
