@@ -13,7 +13,14 @@ from __future__ import annotations
 import base64
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    WithJsonSchema,
+    field_serializer,
+    field_validator,
+)
 
 if TYPE_CHECKING:
     pass
@@ -354,6 +361,28 @@ class MetadataOption(Option):
 # valid UTF-8, so they survive a JSON round-trip without data loss.
 _BYTES_B64_KEY = "__bytes_b64__"
 
+# A content pattern is raw bytes serialized to JSON either as a UTF-8 string or,
+# for non-UTF-8 bytes, as a {"__bytes_b64__": "<base64>"} object. The default
+# bytes schema only advertises the string form, so JSON emitted for binary
+# patterns failed validation against the generated schema; advertise both forms.
+_PatternBytes = Annotated[
+    bytes,
+    WithJsonSchema(
+        {
+            "title": "Pattern",
+            "oneOf": [
+                {"type": "string"},
+                {
+                    "type": "object",
+                    "properties": {_BYTES_B64_KEY: {"type": "string"}},
+                    "required": [_BYTES_B64_KEY],
+                    "additionalProperties": False,
+                },
+            ],
+        }
+    ),
+]
+
 
 class ContentOption(Option):
     """
@@ -373,7 +402,7 @@ class ContentOption(Option):
     """
 
     type: Literal["ContentOption"] = "ContentOption"
-    pattern: bytes
+    pattern: _PatternBytes
     modifiers: tuple[ContentModifier, ...] = Field(default_factory=tuple)
     negated: bool = False
 

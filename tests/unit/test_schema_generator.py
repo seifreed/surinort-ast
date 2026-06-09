@@ -509,3 +509,22 @@ class TestSchemaVersionInfo:
         # Should contain current versions
         assert __version__ in comment
         assert __ast_version__ in comment
+
+
+def test_binary_content_json_validates_against_generated_schema():
+    """to_json output for a non-UTF-8 content pattern must validate against the
+    library's own to_json_schema (the bytes field is serialized as either a
+    string or a {"__bytes_b64__": ...} object; the schema must advertise both)."""
+    import pytest
+
+    jsonschema = pytest.importorskip("jsonschema")
+
+    from surinort_ast.api import parse_rule, to_json, to_json_schema
+
+    validator = jsonschema.Draft202012Validator(to_json_schema())
+    for rule_text in (
+        'alert tcp any any -> any any (msg:"x"; content:"|B4 B4|"; sid:1;)',  # binary
+        'alert tcp any any -> any any (msg:"x"; content:"GET"; sid:1;)',  # utf-8
+    ):
+        instance = json.loads(to_json(parse_rule(rule_text)))
+        assert list(validator.iter_errors(instance)) == []
