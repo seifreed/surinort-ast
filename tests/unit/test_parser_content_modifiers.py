@@ -120,6 +120,56 @@ class TestFastPatternParameters:
         assert _option(parse_rule(printed), "FastPatternOption").only is True
 
 
+class TestInlineFastPatternModifiers:
+    """Snort3 inline ``fast_pattern_offset`` / ``fast_pattern_length`` must
+    survive parse and re-print, including when only one of the pair is present.
+
+    Regression: a lone ``fast_pattern_offset N`` (or ``fast_pattern_length M``)
+    was collapsed to a bare ``fast_pattern;``, silently dropping the value, because
+    the canonical merge only kept a value when BOTH offset and length were given.
+    """
+
+    def _fast_pattern_value(self, rule):
+        content = _content(rule)
+        return next(m.value for m in content.modifiers if m.name.value == "fast_pattern")
+
+    def test_inline_offset_only_preserved_and_roundtrips(self):
+        from surinort_ast.printer.text_printer import print_rule
+
+        rule = parse_rule(
+            'alert tcp any any -> any any (content:"x",fast_pattern_offset 10; sid:1;)'
+        )
+        assert self._fast_pattern_value(rule) == "10"
+        printed = print_rule(rule)
+        assert "fast_pattern_offset 10" in printed
+        assert "fast_pattern_length" not in printed
+        assert self._fast_pattern_value(parse_rule(printed)) == "10"
+
+    def test_inline_length_only_preserved_and_roundtrips(self):
+        from surinort_ast.printer.text_printer import print_rule
+
+        rule = parse_rule(
+            'alert tcp any any -> any any (content:"x",fast_pattern_length 20; sid:1;)'
+        )
+        assert self._fast_pattern_value(rule) == ",20"
+        printed = print_rule(rule)
+        assert "fast_pattern_length 20" in printed
+        assert "fast_pattern_offset" not in printed
+        assert self._fast_pattern_value(parse_rule(printed)) == ",20"
+
+    def test_inline_offset_and_length_merge_and_roundtrip(self):
+        from surinort_ast.printer.text_printer import print_rule
+
+        rule = parse_rule(
+            "alert tcp any any -> any any "
+            '(content:"x",fast_pattern_offset 10,fast_pattern_length 20; sid:1;)'
+        )
+        assert self._fast_pattern_value(rule) == "10,20"
+        printed = print_rule(rule)
+        assert "fast_pattern_offset 10,fast_pattern_length 20" in printed
+        assert self._fast_pattern_value(parse_rule(printed)) == "10,20"
+
+
 class TestByteOperationOffsetSigns:
     """Negative offsets in byte_test / byte_jump / byte_extract must keep their sign."""
 

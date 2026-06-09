@@ -220,8 +220,10 @@ class ContentTransformerMixin:
     def _canonical_fast_pattern_value(values: list[str | None]) -> str | None:
         """Reduce inline fast_pattern modifier values to a canonical form.
 
-        Values are ``None`` (bare), ``"only"``, ``"offset N"`` or ``"length M"``;
-        the result is ``"only"``, ``"offset,length"`` or ``None``.
+        Values are ``None`` (bare), ``"only"``, ``"offset N"`` or ``"length M"``.
+        The result encodes offset/length as ``"offset,length"``; either may be
+        omitted (``"offset"``, ``",length"``) so a lone modifier is preserved
+        rather than silently dropped. ``"only"`` and ``None`` round-trip as-is.
         """
         offset: str | None = None
         length: str | None = None
@@ -234,6 +236,10 @@ class ContentTransformerMixin:
                 length = value[len("length ") :]
         if offset is not None and length is not None:
             return f"{offset},{length}"
+        if offset is not None:
+            return offset
+        if length is not None:
+            return f",{length}"
         return None
 
     @classmethod

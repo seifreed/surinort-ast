@@ -621,9 +621,12 @@ class TextPrinter:
             return f",{name}"
         if name == ContentModifierType.FAST_PATTERN.value:
             offset, _, length = str(modifier.value).partition(",")
+            parts = []
+            if offset:
+                parts.append(f"fast_pattern_offset {offset}")
             if length:
-                return f",fast_pattern_offset {offset},fast_pattern_length {length}"
-            return f",fast_pattern_offset {offset}"
+                parts.append(f"fast_pattern_length {length}")
+            return "," + ",".join(parts)
         return f",{name} {modifier.value}"
 
 
