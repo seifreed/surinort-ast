@@ -335,7 +335,10 @@ filestore_params: WORD ("," WORD)?
 
 // Snort flags option (e.g., flags:AS,12)
 flags_option: "flags" ":" flags_atom ("," flags_atom)*
-flags_atom: WORD | INT | GENERIC_VALUE
+flags_atom: FLAGS_VALUE | WORD | INT | GENERIC_VALUE
+// TCP flag specs with modifiers: A+, 12FS, FRS*, U+, !S handled via neg in atom text.
+// Letters limited to the 8 TCP flag chars + reserved-bit digits; trailing +, *, ! modifier.
+FLAGS_VALUE.4: /[0-9]*[SAFRPUCE]+[+*!]?|[0-9]+[+*!]?/
 
 // Lua scripting (Suricata/Snort)
 // lua:filename.lua; or lua:!filename.lua; (negation)

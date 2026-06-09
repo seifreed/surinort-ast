@@ -589,10 +589,15 @@ class TextPrinter:
                     i += 1
                 parts.append(pattern[start:i].decode("ascii"))
             else:
-                # Format as hex
-                hex_str = f"{byte:02X}" if self.options.hex_uppercase else f"{byte:02x}"
+                # Accumulate consecutive non-printable bytes into one hex block,
+                # space-separated, matching the canonical Suricata/Snort form
+                # (|00 01 FF|) rather than emitting one |XX| block per byte.
+                start = i
+                while i < len(pattern) and not is_literal(pattern[i]):
+                    i += 1
+                fmt = "{:02X}" if self.options.hex_uppercase else "{:02x}"
+                hex_str = " ".join(fmt.format(b) for b in pattern[start:i])
                 parts.append(f"|{hex_str}|")
-                i += 1
 
         return "".join(parts)
 

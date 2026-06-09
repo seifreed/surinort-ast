@@ -434,3 +434,56 @@ class TestInlineFastPatternOffsetLength:
         assert len(reparsed.options) == len(rule.options)
         mods = _content(reparsed).modifiers
         assert [(m.name.value, m.value) for m in mods] == [("depth", 9), ("nocase", None)]
+
+
+class TestFlagsAndHexGrouping:
+    """flags-spec modifiers and canonical hex-block grouping in the printer."""
+
+    @staticmethod
+    def _flags(rule):
+        from surinort_ast.core.nodes import GenericOption
+
+        return next(
+            o.value for o in rule.options if isinstance(o, GenericOption) and o.keyword == "flags"
+        )
+
+    @pytest.mark.parametrize("spec", ["A+", "12FS", "FRS*", "S,12", "!S", "SA", "U+"])
+    def test_flags_specs_with_modifiers_parse(self, spec):
+        """TCP flag specs with +/*/! modifiers and reserved-bit digits are valid
+        Suricata/Snort and must parse and round-trip."""
+        from surinort_ast.printer import print_rule
+
+        rule = parse_rule(f"alert tcp any any -> any any (flags:{spec}; sid:1;)")
+        assert self._flags(rule) == spec
+        assert self._flags(parse_rule(print_rule(rule))) == spec
+
+    def test_flag_letter_words_not_stolen_elsewhere(self):
+        """The flags terminal must not steal flag-letter words in other contexts."""
+        rule = parse_rule(
+            'alert tcp any any -> any any (flowbits:set,SAFE; content:"FACE"; sid:1;)'
+        )
+        from surinort_ast.core.nodes import ContentOption, FlowbitsOption
+
+        flowbits = next(o for o in rule.options if isinstance(o, FlowbitsOption))
+        content = next(o for o in rule.options if isinstance(o, ContentOption))
+        assert flowbits.name == "SAFE"
+        assert content.pattern == b"FACE"
+
+    @pytest.mark.parametrize(
+        ("rule_text", "expected_block"),
+        [
+            ('content:"|00 01 ff|"', "|00 01 FF|"),
+            ('content:"a|0d 0a|b"', "a|0D 0A|b"),
+            ('content:"|de ad be ef|"', "|DE AD BE EF|"),
+        ],
+    )
+    def test_consecutive_hex_bytes_print_as_one_block(self, rule_text, expected_block):
+        """Consecutive non-printable bytes print as one space-separated hex block
+        (|00 01 FF|), the canonical form, not one |XX| block per byte."""
+        from surinort_ast.printer import print_rule
+
+        rule = parse_rule(f"alert tcp any any -> any any ({rule_text}; sid:1;)")
+        printed = print_rule(rule)
+        assert f'content:"{expected_block}"' in printed
+        # Bytes survive the round-trip.
+        assert _content(parse_rule(printed)).pattern == _content(rule).pattern
