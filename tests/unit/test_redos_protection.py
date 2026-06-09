@@ -245,6 +245,28 @@ class TestTimeoutMechanism:
         rule = parser.parse(rule_text)
         assert isinstance(rule, Rule)
 
+    @pytest.mark.skipif(
+        platform.system() == "Windows",
+        reason="setitimer-based sub-second timeout only applies on Unix",
+    )
+    def test_sub_second_timeout_is_enforced_on_unix(self):
+        """A fractional timeout must fire on Unix.
+
+        Regression: the Unix path used ``signal.alarm(int(timeout_seconds))``,
+        truncating any sub-second value to ``alarm(0)`` and silently disabling
+        the ReDoS protection. ``setitimer`` keeps fractional precision.
+        """
+        config = ParserConfig(timeout_seconds=0.25)
+        parser = LarkRuleParser(config=config)
+
+        start = time.perf_counter()
+        with pytest.raises(TimeoutError), parser._timeout_context():
+            time.sleep(2.0)
+        elapsed = time.perf_counter() - start
+
+        # Must interrupt near the 0.25s deadline, not run for the full sleep.
+        assert elapsed < 1.0
+
 
 class TestInputValidation:
     """Test that parser validates input sizes before parsing."""

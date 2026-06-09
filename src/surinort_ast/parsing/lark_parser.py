@@ -160,7 +160,7 @@ class LarkRuleParser:
         Context manager for parse timeout enforcement.
 
         Uses platform-appropriate timeout mechanism:
-        - Unix/Linux/macOS: signal.alarm() for better interrupt capability
+        - Unix/Linux/macOS: signal.setitimer() for sub-second interrupt capability
         - Windows: Threading timer (less precise but cross-platform)
 
         Only active if timeout_seconds > 0.
@@ -196,17 +196,24 @@ class LarkRuleParser:
             timeout_occurred.set()
 
         on_main_thread = threading.current_thread() is threading.main_thread()
-        if not is_windows and hasattr(signal, "SIGALRM") and on_main_thread:
-            # Unix-like systems on the main thread: use signal.alarm() for better
-            # interrupt capability. signal.signal() only works on the main thread,
-            # so any other thread falls through to the timer-based path below.
+        if (
+            not is_windows
+            and hasattr(signal, "SIGALRM")
+            and hasattr(signal, "setitimer")
+            and on_main_thread
+        ):
+            # Unix-like systems on the main thread: use setitimer(ITIMER_REAL)
+            # for sub-second precision. signal.signal() only works on the main
+            # thread, so any other thread falls through to the timer-based path
+            # below. signal.alarm() truncates to whole seconds, which silently
+            # disables any sub-second timeout (e.g. 0.5s -> alarm(0) = no timeout).
             old_handler = signal.signal(signal.SIGALRM, timeout_handler_signal)
-            signal.alarm(int(self.config.timeout_seconds))
+            signal.setitimer(signal.ITIMER_REAL, self.config.timeout_seconds)
             try:
                 yield
             finally:
-                # Cancel alarm and restore handler
-                signal.alarm(0)
+                # Cancel timer and restore handler
+                signal.setitimer(signal.ITIMER_REAL, 0)
                 signal.signal(signal.SIGALRM, old_handler)
         else:
             # Windows or systems without SIGALRM: use threading timer
