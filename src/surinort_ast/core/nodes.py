@@ -280,25 +280,32 @@ class MsgOption(Option):
     text: str
 
 
+# sid/rev/gid are 32-bit unsigned integers in Suricata/Snort; bounding the model
+# to that range keeps JSON, protobuf (uint32) and the model in agreement and
+# rejects out-of-range values consistently instead of crashing the protobuf
+# serializer.
+_UINT32_MAX = 4294967295
+
+
 class SidOption(Option):
     """sid:1000001;"""
 
     type: Literal["SidOption"] = "SidOption"
-    value: int = Field(ge=1)
+    value: int = Field(ge=1, le=_UINT32_MAX)
 
 
 class RevOption(Option):
     """rev:1;"""
 
     type: Literal["RevOption"] = "RevOption"
-    value: int = Field(ge=1)
+    value: int = Field(ge=1, le=_UINT32_MAX)
 
 
 class GidOption(Option):
     """gid:1;"""
 
     type: Literal["GidOption"] = "GidOption"
-    value: int = Field(ge=1)
+    value: int = Field(ge=1, le=_UINT32_MAX)
 
 
 class ClasstypeOption(Option):
@@ -563,7 +570,8 @@ class TagOption(Option):
 
     type: Literal["TagOption"] = "TagOption"
     tag_type: str
-    count: int
+    # A tag count is a non-negative quantity stored as int32 in protobuf.
+    count: int = Field(ge=0, le=2147483647)
     metric: str
 
 

@@ -91,6 +91,22 @@ class TestNodeCreation:
         with pytest.raises(ValidationError):
             Port(value=99999)
 
+    def test_sid_rev_gid_bounded_to_uint32(self):
+        """sid/rev/gid are uint32 in Suricata; the model rejects out-of-range
+        values so JSON, protobuf and the model agree instead of crashing the
+        protobuf serializer."""
+        from surinort_ast.core.nodes import GidOption, RevOption
+
+        # uint32 boundaries are valid.
+        SidOption(value=4294967295)
+        RevOption(value=4294967295)
+        GidOption(value=4294967295)
+
+        # Above uint32 max is rejected.
+        for cls in (SidOption, RevOption, GidOption):
+            with pytest.raises(ValidationError):
+                cls(value=4294967296)
+
     def test_port_range_validation(self):
         """Port range start must be <= end."""
         # Valid range
