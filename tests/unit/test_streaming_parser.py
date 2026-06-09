@@ -308,6 +308,31 @@ def test_stream_with_progress_callback():
         temp_path.unlink()
 
 
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        ("a\nb\nc\n", 3),  # trailing newline
+        ("a\nb\nc", 3),  # no trailing newline: final line still counts
+        ("x", 1),  # single unterminated line
+        ("", 0),  # empty file
+    ],
+)
+def test_count_lines_handles_missing_trailing_newline(content, expected):
+    """``_count_lines`` must count a final line that lacks a trailing newline.
+
+    Regression: counting only ``\\n`` bytes undercounted a file whose last line
+    was unterminated, so the progress total could undershoot the rules streamed.
+    """
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
+        f.write(content)
+        temp_path = Path(f.name)
+
+    try:
+        assert StreamParser()._count_lines(temp_path) == expected
+    finally:
+        temp_path.unlink()
+
+
 # ============================================================================
 # Source Origin Tests
 # ============================================================================

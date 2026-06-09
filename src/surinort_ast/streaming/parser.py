@@ -557,12 +557,19 @@ class StreamParser:
             Total line count
         """
         count = 0
+        last_byte = b""
         with file_path.open("rb") as f:
             # Use buffered reading for efficiency
             buffer = f.raw.read(self.chunk_size * 100)
             while buffer:
                 count += buffer.count(b"\n")
+                last_byte = buffer[-1:]
                 buffer = f.raw.read(self.chunk_size * 100)
+
+        # A final line without a trailing newline is still a line; count it so the
+        # total never undershoots the number of lines actually streamed.
+        if last_byte and last_byte != b"\n":
+            count += 1
 
         return count
 
