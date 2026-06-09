@@ -267,6 +267,36 @@ class TestSimilarityEstimation:
         similarity = minhash.estimate_similarity(sig1, sig2)
         assert similarity > 0.8
 
+    def test_distinguishing_field_not_flagged_as_duplicate(self):
+        """Rules differing only in a typed-option field (flowbits/flow/threshold
+        track) must not produce identical signatures (similarity 1.0).
+
+        Regression: the feature extractor only read keyword/value, so options
+        whose data lives under other field names contributed nothing and
+        semantically different rules collapsed to an exact-duplicate signature.
+        """
+        minhash = MinHashSignature(num_perm=128)
+        pairs = [
+            (
+                "alert tcp any any -> any any (flowbits:set,evil; sid:1;)",
+                "alert tcp any any -> any any (flowbits:set,good; sid:1;)",
+            ),
+            (
+                "alert tcp any any -> any any (flow:to_server; sid:1;)",
+                "alert tcp any any -> any any (flow:to_client; sid:1;)",
+            ),
+            (
+                "alert tcp any any -> any any "
+                "(threshold:type limit,track by_src,count 5,seconds 60; sid:1;)",
+                "alert tcp any any -> any any "
+                "(threshold:type limit,track by_dst,count 5,seconds 60; sid:1;)",
+            ),
+        ]
+        for text_a, text_b in pairs:
+            sig_a = minhash.create_signature(parse_rule(text_a))
+            sig_b = minhash.create_signature(parse_rule(text_b))
+            assert minhash.estimate_similarity(sig_a, sig_b) < 1.0
+
     def test_estimate_similarity_different(self):
         """Test similarity of completely different rules."""
         rule1 = parse_rule('alert tcp any any -> any 80 (content:"HTTP"; msg:"Web"; sid:1;)')

@@ -993,6 +993,14 @@ class TestAdvancedOptions:
         assert bt_opts[0].value == 1000
         assert bt_opts[0].offset == 0
 
+        # byte_test prints in Suricata-canonical comma-joined form (no spaces)
+        # and is idempotent through a parse cycle.
+        from surinort_ast.api import parse_rule, print_rule
+
+        text = print_rule(rule)
+        assert "byte_test:4,>,1000,0;" in text
+        assert print_rule(parse_rule(text)) == text
+
     def test_byte_jump_option(self) -> None:
         """Test byte_jump() method."""
         rule = (

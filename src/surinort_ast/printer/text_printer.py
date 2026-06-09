@@ -229,9 +229,11 @@ def _(option: BufferSelectOption, fmt_opts: FormatterOptions, printer: _TextPrin
     return f"{option.buffer_name};"
 
 
+# byte_test/byte_jump/byte_extract join their positional arguments with a bare
+# comma (Suricata's canonical form, and what the GenericOption parse path emits);
+# the address/port list separator would add a space and break print idempotency.
 @_print_option_dispatch.register
 def _(option: ByteTestOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
-    sep = fmt_opts.format_list_separator()
     parts = [
         str(option.bytes_to_extract),
         option.operator,
@@ -240,21 +242,19 @@ def _(option: ByteTestOption, fmt_opts: FormatterOptions, printer: _TextPrinter)
     ]
     if option.flags:
         parts.extend(option.flags)
-    return f"byte_test:{sep.join(parts)};"
+    return f"byte_test:{','.join(parts)};"
 
 
 @_print_option_dispatch.register
 def _(option: ByteJumpOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
-    sep = fmt_opts.format_list_separator()
     parts = [str(option.bytes_to_extract), str(option.offset)]
     if option.flags:
         parts.extend(option.flags)
-    return f"byte_jump:{sep.join(parts)};"
+    return f"byte_jump:{','.join(parts)};"
 
 
 @_print_option_dispatch.register
 def _(option: ByteExtractOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
-    sep = fmt_opts.format_list_separator()
     parts = [
         str(option.bytes_to_extract),
         str(option.offset),
@@ -262,7 +262,7 @@ def _(option: ByteExtractOption, fmt_opts: FormatterOptions, printer: _TextPrint
     ]
     if option.flags:
         parts.extend(option.flags)
-    return f"byte_extract:{sep.join(parts)};"
+    return f"byte_extract:{','.join(parts)};"
 
 
 @_print_option_dispatch.register

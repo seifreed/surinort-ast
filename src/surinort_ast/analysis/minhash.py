@@ -250,13 +250,16 @@ class MinHashSignature:
                 normalized = self._normalize_pcre(option.pattern)
                 features.add(f"pcre:{normalized}")
 
-        # Other options: extract key-value pairs
+        # Other options: extract every distinguishing field. Reading only
+        # keyword/value missed options whose data lives under other names
+        # (flowbits action/name, flow directions/states, threshold track/count,
+        # ...), so rules differing only in such a field collapsed to an identical
+        # signature and were flagged as exact duplicates.
         else:
-            # Extract option data
-            if hasattr(option, "keyword"):
-                features.add(f"keyword:{option.keyword}")
-            if hasattr(option, "value") and option.value is not None:
-                features.add(f"value:{str(option.value)[:100]}")  # Limit length
+            dumped = option.model_dump(exclude={"location", "comments", "type"})
+            for field_name, field_value in sorted(dumped.items()):
+                if field_value is not None:
+                    features.add(f"{field_name}:{str(field_value)[:100]}")
 
         return features
 
