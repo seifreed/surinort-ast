@@ -277,6 +277,21 @@ class TestRealisticTransformerCoverage:
         assert buffer_opt is not None
         assert buffer_opt.buffer_name == "http.uri"
 
+    @pytest.mark.parametrize(
+        "keyword",
+        ["http_client_body", "http_raw_cookie", "http_raw_header", "http_raw_host"],
+    )
+    def test_snort2_http_buffer_modifiers_select_buffer(self, keyword):
+        """Snort2 HTTP content modifiers must parse to a BufferSelectOption like
+        their siblings, not fall through to an unprotected GenericOption (which
+        the optimizer would freely reorder/dedup across)."""
+        parser = LarkRuleParser(dialect=Dialect.SNORT2)
+        rule = parser.parse(f'alert tcp any any -> any any (content:"x"; {keyword}; sid:1;)')
+        buffer_opts = [o for o in rule.options if o.node_type == "BufferSelectOption"]
+        assert len(buffer_opts) == 1
+        assert buffer_opts[0].buffer_name == keyword
+        assert not [o for o in rule.options if o.node_type == "GenericOption"]
+
     def test_reference_option_real(self):
         """Test reference option"""
         parser = LarkRuleParser(dialect=Dialect.SURICATA)

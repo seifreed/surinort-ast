@@ -309,9 +309,9 @@ BYTE_MATH_TAIL.1: /[^;)]{1,300}/
 // Snort3 supports selectors like http_uri:path and http_header:field content-type.
 buffer_select_option: BUFFER_NAME (":" BUFFER_SELECTOR)?
 
-BUFFER_NAME.2: "http." ("uri" | "header" | "header_names" | "method" | "cookie" | "user_agent" | "host" | "raw_uri" | "stat_msg" | "stat_code")
+BUFFER_NAME.2: "http." ("uri" | "header" | "header_names" | "method" | "cookie" | "raw_cookie" | "user_agent" | "host" | "raw_host" | "raw_uri" | "raw_header" | "client_body" | "stat_msg" | "stat_code")
              | "http." ("uri.raw" | "request_body")
-             | "http_" ("uri" | "header" | "header_names" | "method" | "cookie" | "user_agent" | "host" | "raw_uri" | "stat_msg" | "stat_code")
+             | "http_" ("uri" | "header" | "header_names" | "method" | "cookie" | "raw_cookie" | "user_agent" | "host" | "raw_host" | "raw_uri" | "raw_header" | "client_body" | "stat_msg" | "stat_code")
              | "http_" ("uri_raw" | "request_body")
              | "file." ("data")
              | "file_" ("data")
