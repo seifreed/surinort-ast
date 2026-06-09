@@ -85,6 +85,13 @@ def fmt_command(
         surinort fmt rules.txt --check
     """
     try:
+        # --in-place rewrites the input file, so an explicit --output target is
+        # contradictory. Reject the combination rather than silently ignoring
+        # --output and writing back to the input file.
+        if in_place and output is not None:
+            err_console.print("Error: --in-place and --output are mutually exclusive")
+            raise typer.Exit(1) from None
+
         # Read input
         if file and str(file) == "-":
             file = None

@@ -318,6 +318,28 @@ class TestFmtCommand:
         assert result.exit_code == 1
         assert "Cannot use --in-place with stdin" in result.output
 
+    def test_fmt_in_place_with_output_is_rejected(self, tmp_path):
+        """--in-place and --output are mutually exclusive.
+
+        Regression: --in-place silently overrode --output, writing back to the
+        input file and never creating the requested output file.
+        """
+        rules_file = tmp_path / "rules.txt"
+        original = 'alert  tcp  any  any  ->  any  80  (msg:"HTTP";  sid:1;)\n'
+        rules_file.write_text(original, encoding="utf-8")
+        out_file = tmp_path / "out.rules"
+
+        result = self.runner.invoke(
+            app,
+            ["fmt", str(rules_file), "--in-place", "--output", str(out_file)],
+        )
+
+        assert result.exit_code == 1
+        assert "mutually exclusive" in result.output
+        # The input file must be left untouched and no output file created.
+        assert rules_file.read_text(encoding="utf-8") == original
+        assert not out_file.exists()
+
     def test_fmt_stdin(self):
         """Fmt command should accept stdin input"""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
