@@ -59,6 +59,12 @@ class TestHelperEdgeCases:
     def test_atom_text_non_token_fallback(self):
         assert _atom_text(123) == "123"
 
+    def test_atom_text_tree_recursion(self):
+        from lark import Tree
+
+        tree = Tree("atom", [_token("WORD", "val")])
+        assert _atom_text(tree) == "val"
+
 
 class TestGenericOptionTransformer:
     def test_options_filters_none(self):
@@ -105,5 +111,12 @@ class TestFlowbits:
 
 class TestFilestore:
     def test_filestore_single_param(self):
-        rule = parse_rule('alert tcp any any -> any 80 (msg:"x"; filestore:to_server; sid:1;)')
-        assert any(o.node_type == "FilestoreOption" for o in rule.options)
+        result = _transformer().filestore_option([[_token("WORD", "request")]])
+        assert result.direction == "request"
+        assert result.scope is None
+
+
+class TestFlowbitsSingleToken:
+    def test_flowbits_action_without_name(self):
+        result = _transformer().flowbits_option([[_token("WORD", "noalert")]])
+        assert result is not None
