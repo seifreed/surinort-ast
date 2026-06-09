@@ -110,10 +110,8 @@ class ThresholdOptionsMixin:
                     )
                 param_dict[key] = value
                 param_strs.append(f"{key} {value}")
-            elif isinstance(item, Token):
-                param_strs.append(str(item.value))
             else:
-                param_strs.append(str(item))
+                param_strs.append(token_to_str(item))
 
         # Build ThresholdOption if all required fields are present
         if all(k in param_dict for k in ("type", "track", "count", "seconds")):
@@ -207,10 +205,8 @@ class ThresholdOptionsMixin:
                 value = token_to_str(item[1])
                 param_dict[key] = value
                 param_strs.append(f"{key} {value}")
-            elif isinstance(item, Token):
-                param_strs.append(str(item.value))
             else:
-                param_strs.append(str(item))
+                param_strs.append(token_to_str(item))
 
         # Build DetectionFilterOption if all required fields are present
         if all(k in param_dict for k in ("track", "count", "seconds")):
