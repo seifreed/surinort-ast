@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter, defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
@@ -104,6 +105,20 @@ class CoverageReport:
             "gaps": [gap.to_dict() for gap in self.gaps],
         }
 
+    def _ranked(
+        self, distribution: Mapping[Any, int], limit: int | None = None
+    ) -> list[tuple[Any, int, float]]:
+        """Distribution entries as ``(key, count, percentage)`` sorted by
+        descending count. ``percentage`` is the share of ``total_rules`` (0 when
+        there are no rules); ``limit`` keeps only the top entries."""
+        items = sorted(distribution.items(), key=lambda kv: kv[1], reverse=True)
+        if limit is not None:
+            items = items[:limit]
+        return [
+            (key, count, (count / self.total_rules) * 100 if self.total_rules > 0 else 0.0)
+            for key, count in items
+        ]
+
     def to_text(self) -> str:
         """Generate plain text report."""
         lines = [
@@ -117,10 +132,7 @@ class CoverageReport:
         ]
 
         # Protocol distribution
-        for protocol, count in sorted(
-            self.protocol_distribution.items(), key=lambda x: x[1], reverse=True
-        ):
-            pct = (count / self.total_rules) * 100 if self.total_rules > 0 else 0
+        for protocol, count, pct in self._ranked(self.protocol_distribution):
             lines.append(f"  {protocol.value:15s} {count:6,d} rules ({pct:5.1f}%)")
 
         # Port coverage summary
@@ -142,28 +154,18 @@ class CoverageReport:
 
         # Direction distribution
         lines.extend(["", "Direction Distribution:", "-" * 80])
-        for direction, count in sorted(
-            self.direction_distribution.items(), key=lambda x: x[1], reverse=True
-        ):
-            pct = (count / self.total_rules) * 100 if self.total_rules > 0 else 0
+        for direction, count, pct in self._ranked(self.direction_distribution):
             lines.append(f"  {direction.value:15s} {count:6,d} rules ({pct:5.1f}%)")
 
         # Action distribution
         lines.extend(["", "Action Distribution:", "-" * 80])
-        for action, count in sorted(
-            self.action_distribution.items(), key=lambda x: x[1], reverse=True
-        ):
-            pct = (count / self.total_rules) * 100 if self.total_rules > 0 else 0
+        for action, count, pct in self._ranked(self.action_distribution):
             lines.append(f"  {action.value:15s} {count:6,d} rules ({pct:5.1f}%)")
 
         # Content types
         if self.content_types:
             lines.extend(["", "Content Type Distribution:", "-" * 80])
-            top_content_types = sorted(
-                self.content_types.items(), key=lambda x: x[1], reverse=True
-            )[:10]
-            for content_type, count in top_content_types:
-                pct = (count / self.total_rules) * 100 if self.total_rules > 0 else 0
+            for content_type, count, pct in self._ranked(self.content_types, limit=10):
                 lines.append(f"  {content_type:20s} {count:6,d} rules ({pct:5.1f}%)")
 
         # Coverage gaps
@@ -190,10 +192,7 @@ class CoverageReport:
         ]
 
         # Protocol distribution
-        for protocol, count in sorted(
-            self.protocol_distribution.items(), key=lambda x: x[1], reverse=True
-        ):
-            pct = (count / self.total_rules) * 100 if self.total_rules > 0 else 0
+        for protocol, count, pct in self._ranked(self.protocol_distribution):
             lines.append(f"| {protocol.value} | {count:,} | {pct:.1f}% |")
 
         # Port coverage
@@ -230,10 +229,7 @@ class CoverageReport:
                 "|-----------|------:|-----------:|",
             ]
         )
-        for direction, count in sorted(
-            self.direction_distribution.items(), key=lambda x: x[1], reverse=True
-        ):
-            pct = (count / self.total_rules) * 100 if self.total_rules > 0 else 0
+        for direction, count, pct in self._ranked(self.direction_distribution):
             lines.append(f"| {direction.value} | {count:,} | {pct:.1f}% |")
 
         # Action distribution
@@ -246,10 +242,7 @@ class CoverageReport:
                 "|--------|------:|-----------:|",
             ]
         )
-        for action, count in sorted(
-            self.action_distribution.items(), key=lambda x: x[1], reverse=True
-        ):
-            pct = (count / self.total_rules) * 100 if self.total_rules > 0 else 0
+        for action, count, pct in self._ranked(self.action_distribution):
             lines.append(f"| {action.value} | {count:,} | {pct:.1f}% |")
 
         # Content types
@@ -265,11 +258,7 @@ class CoverageReport:
                     "|------|------:|-----------:|",
                 ]
             )
-            top_content_types = sorted(
-                self.content_types.items(), key=lambda x: x[1], reverse=True
-            )[:10]
-            for content_type, count in top_content_types:
-                pct = (count / self.total_rules) * 100 if self.total_rules > 0 else 0
+            for content_type, count, pct in self._ranked(self.content_types, limit=10):
                 lines.append(f"| {content_type} | {count:,} | {pct:.1f}% |")
 
         # Coverage gaps
