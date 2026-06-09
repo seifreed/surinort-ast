@@ -80,11 +80,12 @@ class MinHashSignature:
         rng_state = self.seed
 
         for _ in range(self.num_perm):
-            # Generate deterministic pseudo-random numbers
+            # Generate deterministic pseudo-random numbers. Map ``a`` into
+            # [1, prime - 1] so the multiplier is never zero (a zero ``a`` would
+            # collapse the permutation to the constant ``b``) — guaranteed by
+            # construction rather than a separate, practically-unreachable guard.
             rng_state = (rng_state * 1103515245 + 12345) & 0x7FFFFFFF
-            a = rng_state % prime
-            if a == 0:
-                a = 1  # Ensure a is non-zero
+            a = rng_state % (prime - 1) + 1
 
             rng_state = (rng_state * 1103515245 + 12345) & 0x7FFFFFFF
             b = rng_state % prime
@@ -234,15 +235,11 @@ class MinHashSignature:
                 features.add(f"content:{normalized}")
 
                 # Add content modifiers
-                if hasattr(option, "modifiers") and option.modifiers:
-                    for mod in option.modifiers:
-                        if hasattr(mod, "name"):
-                            mod_name = (
-                                mod.name.value
-                                if isinstance(mod.name, ContentModifierType)
-                                else mod.name
-                            )
-                            features.add(f"content_mod:{mod_name}")
+                for mod in option.modifiers:
+                    mod_name = (
+                        mod.name.value if isinstance(mod.name, ContentModifierType) else mod.name
+                    )
+                    features.add(f"content_mod:{mod_name}")
 
         # PCRE option: extract normalized pattern
         elif isinstance(option, PcreOption):
