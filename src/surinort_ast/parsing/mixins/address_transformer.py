@@ -36,7 +36,7 @@ from ...core.nodes import (
     IPCIDRRange,
     IPRange,
 )
-from ..helpers import token_to_location
+from ..helpers import strip_variable_marker, token_to_location
 
 
 class AddressTransformerMixin:
@@ -99,10 +99,7 @@ class AddressTransformerMixin:
             The leading $ is stripped from the variable name as it's a syntax
             marker, not part of the actual variable identifier.
         """
-        name = str(var_token.value)
-        # Remove leading $ - it's a syntax marker, not part of the identifier
-        if name.startswith("$"):
-            name = name[1:]
+        name = strip_variable_marker(var_token)
         return AddressVariable(name=name, location=token_to_location(var_token, self.file_path))
 
     @v_args(inline=True)

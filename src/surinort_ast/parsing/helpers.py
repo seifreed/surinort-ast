@@ -141,3 +141,13 @@ def token_to_str(value: object) -> str:
     if isinstance(value, Token):
         return str(value.value)
     return str(value)
+
+
+def strip_variable_marker(var_token: Token | str) -> str:
+    """Return a ``$VAR`` token's name with the leading ``$`` syntax marker removed.
+
+    The ``$`` is grammar syntax, not part of the variable identifier, so address
+    and port variable transforms strip it the same way.
+    """
+    name = token_to_str(var_token)
+    return name[1:] if name.startswith("$") else name
