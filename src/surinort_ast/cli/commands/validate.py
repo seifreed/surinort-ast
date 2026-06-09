@@ -280,7 +280,12 @@ def validate_command(
         fmt = resolve_output_format(output_format, ("text", "sarif"))
 
         with parsing_progress("Validating rules..."):
-            rules = parse_file(file, dialect=dialect)
+            # Use the streaming path so syntactically invalid rules surface as
+            # error rules carrying a PARSE_ERROR diagnostic. The default
+            # (non-streaming) parse silently drops unparseable lines whenever at
+            # least one rule parses, which would let validation pass a file that
+            # contains a malformed rule.
+            rules = list(parse_file(file, dialect=dialect, stream=True))
 
         # Validate all rules
         all_diagnostics, error_count, warning_count = _collect_diagnostics(rules)

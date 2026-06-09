@@ -432,6 +432,25 @@ class TestValidateCommand:
 
         assert result.exit_code == 1
 
+    def test_validate_fails_on_partially_invalid_file(self, tmp_path):
+        """A file mixing valid and invalid rules must fail validation.
+
+        Regression: the non-streaming parse silently dropped the invalid line
+        whenever any rule parsed, so validation passed (exit 0) on a file that
+        contained a malformed rule.
+        """
+        rules_file = tmp_path / "mixed.rules"
+        rules_file.write_text(
+            'alert tcp any any -> any 80 (msg:"ok"; sid:1; rev:1;)\n'
+            "this is not a valid rule\n"
+            'alert tcp any any -> any 81 (msg:"ok2"; sid:2; rev:1;)\n',
+            encoding="utf-8",
+        )
+
+        result = self.runner.invoke(app, ["validate", str(rules_file)])
+
+        assert result.exit_code == 1
+
 
 class TestToJsonCommand:
     """Test the to-json command"""
