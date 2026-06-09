@@ -12,8 +12,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Generator, Iterable
-from contextlib import contextmanager
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, TextIO
 
@@ -367,60 +366,3 @@ class StreamWriterJSON(StreamWriter):
             else:
                 # Empty array or compact mode
                 self._file.write("]\n" if self.indent else "]")
-
-
-# ============================================================================
-# Convenience Functions
-# ============================================================================
-
-
-@contextmanager
-def stream_write_text(
-    path: Path | str,
-    encoding: str = "utf-8",
-    stable: bool = False,
-) -> Generator[StreamWriterText, None, None]:
-    """
-    Context manager for text stream writing (convenience function).
-
-    Args:
-        path: Output file path
-        encoding: File encoding
-        stable: Use stable formatting
-
-    Yields:
-        StreamWriterText instance
-
-    Examples:
-        >>> with stream_write_text("output.rules") as writer:
-        ...     for rule in input_stream:
-        ...         writer.write(rule)
-    """
-    with StreamWriterText(path, encoding=encoding, stable=stable) as writer:
-        yield writer
-
-
-@contextmanager
-def stream_write_json(
-    path: Path | str,
-    encoding: str = "utf-8",
-    indent: int | None = 2,
-) -> Generator[StreamWriterJSON, None, None]:
-    """
-    Context manager for JSON stream writing (convenience function).
-
-    Args:
-        path: Output file path
-        encoding: File encoding
-        indent: JSON indentation
-
-    Yields:
-        StreamWriterJSON instance
-
-    Examples:
-        >>> with stream_write_json("output.json") as writer:
-        ...     for rule in input_stream:
-        ...         writer.write(rule)
-    """
-    with StreamWriterJSON(path, encoding=encoding, indent=indent) as writer:
-        yield writer
