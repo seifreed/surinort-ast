@@ -97,7 +97,6 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
         selector_chain: Parsed selector chain to execute
         results: List of matching nodes (accumulated during traversal)
         context_stack: Stack of ancestor nodes for hierarchical queries
-        current_selector_index: Current position in selector chain
 
     Example:
         >>> from surinort_ast import parse_rule
@@ -160,7 +159,6 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
 
         self.results: list[ASTNode] = []
         self.context_stack: list[ASTNode] = []
-        self.current_selector_index = 0
         self.execution_context = ExecutionContext()
 
     def execute(self, root: ASTNode | Sequence[ASTNode]) -> list[ASTNode]:
@@ -202,7 +200,6 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
         # Reset state
         self.results = []
         self.context_stack = []
-        self.current_selector_index = 0
         self.execution_context = ExecutionContext()
 
         # Visit root node(s)
@@ -657,27 +654,16 @@ class ExecutionContext:
     """
     Execution context for hierarchical queries.
 
-    Maintains state during query execution including:
-        - Ancestor stack
-        - Sibling information
-        - Previous matches
-        - Current combinator
+    Maintains the ancestor stack during query execution, enabling
+    hierarchical queries (parent/child position, descendant checks).
 
     Attributes:
         ancestors: Stack of ancestor nodes
-        previous_match: Last node that matched
-        combinator: Current combinator to apply
-
-    Implementation:
-        Phase 2: For combinator support
-        Phase 3: Add optimization hints and caching
     """
 
     def __init__(self) -> None:
         """Initialize execution context."""
         self.ancestors: list[ASTNode] = []
-        self.previous_match: ASTNode | None = None
-        self.combinator: Any = None  # Combinator enum, using Any to avoid import
 
     def push_ancestor(self, node: ASTNode) -> None:
         """Add ancestor to stack."""

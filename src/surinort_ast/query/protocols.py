@@ -81,9 +81,6 @@ class ExecutionContextProtocol(Protocol):
     ancestors: list[ASTNode]
     """Stack of ancestor nodes during traversal."""
 
-    previous_match: ASTNode | None
-    """Last node that matched in selector chain."""
-
     def push_ancestor(self, node: ASTNode) -> None:
         """Add ancestor to stack."""
         ...
