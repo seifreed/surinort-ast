@@ -235,6 +235,28 @@ class TestComparisonOperators:
         results = query(rule, "SidOption[value>1000001]")
         assert len(results) == 0
 
+    def test_equality_is_numeric_and_consistent_with_comparisons(self):
+        """`=`/`!=` must compare numbers numerically so they agree with >=/<=.
+
+        Regression: equality used a string compare, so [value=100.0] failed to
+        match sid 100 even though [value>=100.0] and [value<=100.0] both did.
+        """
+        rule = parse_rule("alert tcp any any -> any 80 (sid:100;)")
+        assert len(query(rule, "SidOption[value=100.0]")) == 1
+        assert len(query(rule, "SidOption[value=100]")) == 1
+        assert len(query(rule, "SidOption[value!=100.0]")) == 0
+        assert len(query(rule, "SidOption[value=99]")) == 0
+        # String equality is unaffected.
+        assert len(query(rule, "Rule[action=alert]")) == 1
+        assert len(query(rule, "Rule[action=drop]")) == 0
+
+    def test_dotted_attribute_path_is_resolved(self):
+        """A dotted attribute path (accepted by the grammar) must traverse the
+        node rather than silently matching nothing."""
+        rule = parse_rule('alert tcp any any -> any 80 (msg:"x"; sid:1;)')
+        assert len(query(rule, "MsgOption[location.span.start.line=1]")) == 1
+        assert len(query(rule, "MsgOption[location.span.start.line=9]")) == 0
+
     def test_less_than(self):
         """Test less than operator."""
         rule = parse_rule("alert tcp any any -> any 80 (sid:100;)")

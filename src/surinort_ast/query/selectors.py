@@ -283,7 +283,13 @@ class AttributeSelector(Selector):
         """
         if isinstance(node_value, bool):
             return ("true" if node_value else "false") == str(query_value).lower()
-        return str(node_value) == str(query_value)
+        # Compare numbers numerically so 100 == 100.0, consistent with the
+        # >/</>=/<= operators; otherwise "100" != "100.0" would make = and >=
+        # disagree on equality.
+        try:
+            return float(node_value) == float(query_value)
+        except (ValueError, TypeError):
+            return str(node_value) == str(query_value)
 
     def matches(self, node: ASTNode, context: Any = None) -> bool:
         """
@@ -301,12 +307,14 @@ class AttributeSelector(Selector):
             3. Apply operator-specific comparison
             4. Handle type conversions and special cases
         """
-        # Check if attribute exists on node
-        if not hasattr(node, self.attribute):
-            return False
-
-        # Get attribute value
-        node_value = getattr(node, self.attribute)
+        # Resolve the (possibly dotted) attribute path, e.g.
+        # "location.span.start.line"; a flat getattr would never match a dotted
+        # path the grammar accepts.
+        node_value: Any = node
+        for part in self.attribute.split("."):
+            if not hasattr(node_value, part):
+                return False
+            node_value = getattr(node_value, part)
 
         # Handle existence check
         if self.operator == "exists":
