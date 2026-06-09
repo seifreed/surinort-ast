@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, ClassVar
 if TYPE_CHECKING:
     from ..core.nodes import ContentOption, Option, Rule
 
+from ..printer.text_printer import TextPrinter
 from .optimizer import Optimization
 
 # Options whose meaning depends on their position in the option sequence: sticky
@@ -165,6 +166,12 @@ class OptimizationStrategy(ABC):
     def name(self) -> str:
         """Get strategy name."""
 
+    @staticmethod
+    def _render_before_after(rule: Rule, optimized: Rule) -> tuple[str, str]:
+        """Render a rule's text before and after optimization for the record."""
+        printer = TextPrinter()
+        return printer.print_rule(rule), printer.print_rule(optimized)
+
 
 class OptionReorderStrategy(OptimizationStrategy):
     """
@@ -262,12 +269,7 @@ class OptionReorderStrategy(OptimizationStrategy):
         # Create optimized rule
         optimized = rule.model_copy(update={"options": sorted_options})
 
-        # Import printer for before/after text
-        from ..printer.text_printer import TextPrinter
-
-        printer = TextPrinter()
-        before_text = printer.print_rule(rule)
-        after_text = printer.print_rule(optimized)
+        before_text, after_text = self._render_before_after(rule, optimized)
 
         # Calculate estimated gain
         estimated_gain = self.estimate_gain(rule)
@@ -418,12 +420,7 @@ class FastPatternStrategy(OptimizationStrategy):
 
         optimized = rule.model_copy(update={"options": new_options})
 
-        # Create optimization record
-        from ..printer.text_printer import TextPrinter
-
-        printer = TextPrinter()
-        before_text = printer.print_rule(rule)
-        after_text = printer.print_rule(optimized)
+        before_text, after_text = self._render_before_after(rule, optimized)
 
         estimated_gain = self.estimate_gain(rule)
 
@@ -583,12 +580,7 @@ class RedundancyRemovalStrategy(OptimizationStrategy):
         # Create optimized rule
         optimized = rule.model_copy(update={"options": unique_options})
 
-        # Create optimization record
-        from ..printer.text_printer import TextPrinter
-
-        printer = TextPrinter()
-        before_text = printer.print_rule(rule)
-        after_text = printer.print_rule(optimized)
+        before_text, after_text = self._render_before_after(rule, optimized)
 
         estimated_gain = self.estimate_gain(rule)
 
