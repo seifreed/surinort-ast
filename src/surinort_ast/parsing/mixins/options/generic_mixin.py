@@ -62,9 +62,20 @@ class GenericOptionsMixin:
             Optimized to skip None values efficiently using list comprehension.
 
         Note:
-            None values can appear from comments, newlines, or ignored grammar rules.
+            None values can appear from comments, newlines, or ignored grammar
+            rules. A handler may also return a list of options (e.g. uricontent
+            expands to a content match plus an http_uri buffer select), which is
+            flattened into the surrounding option sequence.
         """
-        return [item for item in items if item is not None]
+        result: list[Any] = []
+        for item in items:
+            if item is None:
+                continue
+            if isinstance(item, list):
+                result.extend(item)
+            else:
+                result.append(item)
+        return result
 
     # ========================================================================
     # Generic Option Fallback

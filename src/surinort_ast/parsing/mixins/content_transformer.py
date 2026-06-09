@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 from ...core.diagnostics import DiagnosticLevel
 from ...core.enums import ContentModifierType
 from ...core.nodes import (
+    BufferSelectOption,
     ContentModifier,
     ContentOption,
     DepthOption,
@@ -290,7 +291,7 @@ class ContentTransformerMixin:
         modifiers = self._merge_fast_pattern_modifiers(list(rest[1:]))
         return ContentOption(pattern=content_value, modifiers=modifiers, negated=negated)
 
-    def uricontent_option(self, items: Sequence[Any]) -> ContentOption:
+    def uricontent_option(self, items: Sequence[Any]) -> list[Any]:
         """
         Transform uricontent option (legacy Snort2).
 
@@ -299,17 +300,24 @@ class ContentTransformerMixin:
                 ``neg_bang`` marker for ``uricontent:!"..."``.
 
         Returns:
-            ContentOption node (same as content)
+            A ``ContentOption`` followed by a ``BufferSelectOption`` for the
+            ``http_uri`` buffer.
 
         Deprecation:
-            uricontent is deprecated in favor of: content + http_uri buffer
-            A diagnostic warning is added when uricontent is used.
+            uricontent is deprecated in favor of: content + http_uri buffer.
+            It matches the normalized HTTP URI buffer, not the raw payload, so it
+            must expand to that buffer rather than a bare content match (which
+            would silently change what the rule matches). A diagnostic warning is
+            added when uricontent is used.
         """
         self.add_diagnostic(
             DiagnosticLevel.WARNING,
             "uricontent is deprecated, use content with http_uri buffer",
         )
-        return self._build_content_option(items)
+        return [
+            self._build_content_option(items),
+            BufferSelectOption(buffer_name="http_uri"),
+        ]
 
     @v_args(inline=True)
     def content_value(self, value_token: Token) -> bytes:

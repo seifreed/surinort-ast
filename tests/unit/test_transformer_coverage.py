@@ -546,6 +546,19 @@ class TestDiagnosticGeneration:
         # Should generate deprecation warning
         assert rule is not None
 
+    def test_uricontent_expands_to_http_uri_buffer(self):
+        """uricontent matches the normalized URI buffer, so it must expand to a
+        content match plus an http_uri buffer select, not a bare content match
+        (which would silently match the raw payload instead)."""
+        parser = LarkRuleParser(strict=False)
+        rule = parser.parse('alert http any any -> any 80 (uricontent:"/admin"; sid:1;)')
+
+        kinds = [o.node_type for o in rule.options]
+        assert kinds[:2] == ["ContentOption", "BufferSelectOption"]
+        content, buffer = rule.options[0], rule.options[1]
+        assert content.pattern == b"/admin"
+        assert buffer.buffer_name == "http_uri"
+
 
 class TestComplexRules:
     """Test complex real-world rule patterns."""
