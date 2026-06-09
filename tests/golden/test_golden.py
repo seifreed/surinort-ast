@@ -23,6 +23,69 @@ from surinort_ast.core.nodes import Rule
 from surinort_ast.parsing.transformer import RuleTransformer
 
 
+def _parse_all_lines(
+    rules_file: Path, lark_parser: Lark, transformer: RuleTransformer
+) -> tuple[int, int, list[tuple[int, str, str]]]:
+    """Parse every non-comment line of a rules file.
+
+    Returns ``(total_rules, parsed_successfully, parse_errors)`` where each error
+    is ``(line_number, truncated_rule_text, message)``.
+    """
+    total_rules = 0
+    parsed_successfully = 0
+    parse_errors: list[tuple[int, str, str]] = []
+    with open(rules_file, encoding="utf-8", errors="replace") as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            total_rules += 1
+            try:
+                result = transformer.transform(lark_parser.parse(line))
+                if isinstance(result, list) and len(result) > 0:
+                    assert isinstance(result[0], Rule)
+                    parsed_successfully += 1
+                else:
+                    parse_errors.append((line_num, line[:100], "No rule returned"))
+            except LarkError as e:
+                parse_errors.append((line_num, line[:100], str(e)[:200]))
+            except Exception as e:
+                parse_errors.append((line_num, line[:100], f"Unexpected: {str(e)[:200]}"))
+    return total_rules, parsed_successfully, parse_errors
+
+
+def _assert_file_parses(
+    label: str,
+    rules_file: Path,
+    lark_parser: Lark,
+    transformer: RuleTransformer,
+    threshold: float = 95.0,
+) -> None:
+    """Parse a whole rules file and assert its success rate meets ``threshold``."""
+    total_rules, parsed_successfully, parse_errors = _parse_all_lines(
+        rules_file, lark_parser, transformer
+    )
+    success_rate = (parsed_successfully / total_rules * 100) if total_rules > 0 else 0
+
+    print(f"\n{'=' * 80}")
+    print(f"{label} Rules Parsing Summary")
+    print(f"{'=' * 80}")
+    print(f"Total rules:        {total_rules}")
+    print(f"Parsed successfully: {parsed_successfully}")
+    print(f"Parse errors:       {len(parse_errors)}")
+    print(f"Success rate:       {success_rate:.2f}%")
+    print(f"{'=' * 80}")
+
+    if parse_errors:
+        print("\nFirst 10 parse errors:")
+        for line_num, rule_text, error in parse_errors[:10]:
+            print(f"  Line {line_num}: {rule_text}")
+            print(f"    Error: {error}")
+
+    message = f"Success rate {success_rate:.2f}% below {threshold:g}% threshold"
+    assert success_rate >= threshold, message
+
+
 @pytest.mark.golden
 @pytest.mark.slow
 class TestSuricataGolden:
@@ -34,65 +97,7 @@ class TestSuricataGolden:
 
         Target: 95%+ success rate.
         """
-        transformer = RuleTransformer()
-
-        total_rules = 0
-        parsed_successfully = 0
-        parse_errors = []
-
-        with open(suricata_rules_file, encoding="utf-8", errors="replace") as f:
-            for line_num, line in enumerate(f, 1):
-                line = line.strip()
-
-                # Skip comments and empty lines
-                if not line or line.startswith("#"):
-                    continue
-
-                total_rules += 1
-
-                try:
-                    # Parse rule
-                    parse_tree = lark_parser.parse(line)
-                    result = transformer.transform(parse_tree)
-
-                    # Verify it's a valid Rule
-                    if isinstance(result, list) and len(result) > 0:
-                        rule = result[0]
-                        assert isinstance(rule, Rule)
-                        parsed_successfully += 1
-                    else:
-                        parse_errors.append((line_num, line[:100], "No rule returned"))
-
-                except LarkError as e:
-                    # Record parse error
-                    parse_errors.append((line_num, line[:100], str(e)[:200]))
-
-                except Exception as e:
-                    # Record other errors
-                    parse_errors.append((line_num, line[:100], f"Unexpected: {str(e)[:200]}"))
-
-        # Calculate success rate
-        success_rate = (parsed_successfully / total_rules * 100) if total_rules > 0 else 0
-
-        # Print summary
-        print(f"\n{'=' * 80}")
-        print("Suricata Rules Parsing Summary")
-        print(f"{'=' * 80}")
-        print(f"Total rules:        {total_rules}")
-        print(f"Parsed successfully: {parsed_successfully}")
-        print(f"Parse errors:       {len(parse_errors)}")
-        print(f"Success rate:       {success_rate:.2f}%")
-        print(f"{'=' * 80}")
-
-        # Print first 10 errors
-        if parse_errors:
-            print("\nFirst 10 parse errors:")
-            for line_num, rule_text, error in parse_errors[:10]:
-                print(f"  Line {line_num}: {rule_text}")
-                print(f"    Error: {error}")
-
-        # Assert 95% success rate
-        assert success_rate >= 95.0, f"Success rate {success_rate:.2f}% below 95% threshold"
+        _assert_file_parses("Suricata", suricata_rules_file, lark_parser, RuleTransformer())
 
     def test_suricata_rules_roundtrip(
         self, lark_parser: Lark, suricata_rules_file: Path, text_printer
@@ -165,57 +170,7 @@ class TestSnortGolden:
 
         Target: 95%+ success rate.
         """
-        transformer = RuleTransformer()
-
-        total_rules = 0
-        parsed_successfully = 0
-        parse_errors = []
-
-        with open(snort29_rules_file, encoding="utf-8", errors="replace") as f:
-            for line_num, line in enumerate(f, 1):
-                line = line.strip()
-
-                # Skip comments and empty lines
-                if not line or line.startswith("#"):
-                    continue
-
-                total_rules += 1
-
-                try:
-                    parse_tree = lark_parser.parse(line)
-                    result = transformer.transform(parse_tree)
-
-                    if isinstance(result, list) and len(result) > 0:
-                        rule = result[0]
-                        assert isinstance(rule, Rule)
-                        parsed_successfully += 1
-                    else:
-                        parse_errors.append((line_num, line[:100], "No rule returned"))
-
-                except LarkError as e:
-                    parse_errors.append((line_num, line[:100], str(e)[:200]))
-
-                except Exception as e:
-                    parse_errors.append((line_num, line[:100], f"Unexpected: {str(e)[:200]}"))
-
-        success_rate = (parsed_successfully / total_rules * 100) if total_rules > 0 else 0
-
-        print(f"\n{'=' * 80}")
-        print("Snort 2.9 Rules Parsing Summary")
-        print(f"{'=' * 80}")
-        print(f"Total rules:        {total_rules}")
-        print(f"Parsed successfully: {parsed_successfully}")
-        print(f"Parse errors:       {len(parse_errors)}")
-        print(f"Success rate:       {success_rate:.2f}%")
-        print(f"{'=' * 80}")
-
-        if parse_errors:
-            print("\nFirst 10 parse errors:")
-            for line_num, rule_text, error in parse_errors[:10]:
-                print(f"  Line {line_num}: {rule_text}")
-                print(f"    Error: {error}")
-
-        assert success_rate >= 95.0, f"Success rate {success_rate:.2f}% below 95% threshold"
+        _assert_file_parses("Snort 2.9", snort29_rules_file, lark_parser, RuleTransformer())
 
     def test_parse_all_snort3_rules(self, lark_parser: Lark, snort3_rules_file: Path):
         """
@@ -223,56 +178,7 @@ class TestSnortGolden:
 
         Target: 95%+ success rate.
         """
-        transformer = RuleTransformer()
-
-        total_rules = 0
-        parsed_successfully = 0
-        parse_errors = []
-
-        with open(snort3_rules_file, encoding="utf-8", errors="replace") as f:
-            for line_num, line in enumerate(f, 1):
-                line = line.strip()
-
-                if not line or line.startswith("#"):
-                    continue
-
-                total_rules += 1
-
-                try:
-                    parse_tree = lark_parser.parse(line)
-                    result = transformer.transform(parse_tree)
-
-                    if isinstance(result, list) and len(result) > 0:
-                        rule = result[0]
-                        assert isinstance(rule, Rule)
-                        parsed_successfully += 1
-                    else:
-                        parse_errors.append((line_num, line[:100], "No rule returned"))
-
-                except LarkError as e:
-                    parse_errors.append((line_num, line[:100], str(e)[:200]))
-
-                except Exception as e:
-                    parse_errors.append((line_num, line[:100], f"Unexpected: {str(e)[:200]}"))
-
-        success_rate = (parsed_successfully / total_rules * 100) if total_rules > 0 else 0
-
-        print(f"\n{'=' * 80}")
-        print("Snort 3 Rules Parsing Summary")
-        print(f"{'=' * 80}")
-        print(f"Total rules:        {total_rules}")
-        print(f"Parsed successfully: {parsed_successfully}")
-        print(f"Parse errors:       {len(parse_errors)}")
-        print(f"Success rate:       {success_rate:.2f}%")
-        print(f"{'=' * 80}")
-
-        if parse_errors:
-            print("\nFirst 10 parse errors:")
-            for line_num, rule_text, error in parse_errors[:10]:
-                print(f"  Line {line_num}: {rule_text}")
-                print(f"    Error: {error}")
-
-        assert success_rate >= 95.0, f"Success rate {success_rate:.2f}% below 95% threshold"
+        _assert_file_parses("Snort 3", snort3_rules_file, lark_parser, RuleTransformer())
 
 
 @pytest.mark.golden
@@ -308,37 +214,16 @@ class TestAllRulesGolden:
         all_errors = []
 
         for source_name, rule_file in rule_files:
-            total_rules = 0
-            parsed_successfully = 0
-            errors = []
-
-            with open(rule_file, encoding="utf-8", errors="replace") as f:
-                for line_num, line in enumerate(f, 1):
-                    line = line.strip()
-
-                    if not line or line.startswith("#"):
-                        continue
-
-                    total_rules += 1
-
-                    try:
-                        parse_tree = lark_parser.parse(line)
-                        result = transformer.transform(parse_tree)
-
-                        if isinstance(result, list) and len(result) > 0:
-                            rule = result[0]
-                            assert isinstance(rule, Rule)
-                            parsed_successfully += 1
-
-                    except Exception as e:
-                        errors.append((source_name, line_num, str(e)[:100]))
-
+            total_rules, parsed_successfully, errors = _parse_all_lines(
+                rule_file, lark_parser, transformer
+            )
             grand_total += total_rules
             grand_success += parsed_successfully
-            all_errors.extend(errors)
+            all_errors.extend((source_name, line_num, msg) for line_num, _text, msg in errors)
 
             print(
-                f"\n{source_name}: {parsed_successfully}/{total_rules} ({parsed_successfully / total_rules * 100:.2f}%)"
+                f"\n{source_name}: {parsed_successfully}/{total_rules} "
+                f"({parsed_successfully / total_rules * 100:.2f}%)"
             )
 
         overall_success_rate = (grand_success / grand_total * 100) if grand_total > 0 else 0
