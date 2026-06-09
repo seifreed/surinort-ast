@@ -95,29 +95,6 @@ def normalize_rule_text(text: str) -> str:
     )
 
 
-def token_to_int(value: Token | int | str) -> int:
-    """
-    Convert Token, int, or string to int.
-
-    Args:
-        value: Token, int, or string to convert
-
-    Returns:
-        Integer value
-
-    Examples:
-        >>> token_to_int(Token("INT", "42"))
-        42
-        >>> token_to_int(42)
-        42
-        >>> token_to_int("42")
-        42
-    """
-    if isinstance(value, Token):
-        return int(value.value)
-    return int(value)
-
-
 def token_to_str(value: object) -> str:
     """
     Convert a Lark Token (or any value) to its string text.
