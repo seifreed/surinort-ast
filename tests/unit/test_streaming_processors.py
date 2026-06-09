@@ -230,6 +230,23 @@ def test_validate_processor_basic():
         temp_path.unlink()
 
 
+def test_validate_processor_does_not_duplicate_codeless_diagnostic():
+    """A parse diagnostic without a code must not be emitted twice.
+
+    Regression: diagnostics were seeded from rule.diagnostics and then merged
+    with validate_rule (which re-includes them), deduped only by code — so a
+    code-less diagnostic slipped past the filter and was duplicated.
+    """
+    from surinort_ast import parse_rule
+
+    rule = parse_rule('alert tcp any any -> any 80 (msg:"x"; sid:1; rev:1;)')
+    codeless = Diagnostic(level=DiagnosticLevel.WARNING, message="parse note", code=None)
+    rule = rule.model_copy(update={"diagnostics": [codeless]})
+
+    out = ValidateProcessor().process(rule)
+    assert sum(1 for d in out.diagnostics if d.message == "parse note") == 1
+
+
 def test_validate_processor_strict_mode():
     """Test strict validation mode."""
     rules_text = [

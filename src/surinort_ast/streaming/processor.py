@@ -314,17 +314,13 @@ class ValidateProcessor(StreamProcessor):
         Returns:
             Rule with diagnostics, or None if strict and has errors
         """
-        diagnostics = list(rule.diagnostics)
-
-        # Run built-in validators (reuse canonical validation from API)
+        # validate_rule already includes the rule's parse diagnostics, so use its
+        # result directly. Re-seeding with rule.diagnostics and then merging
+        # deduplicated only by code, which let a code-less parse diagnostic
+        # (re-included by validate_rule) be appended twice.
         from ..api.validation import validate_rule
 
-        api_diagnostics = validate_rule(rule)
-        # Filter out diagnostics already present from parsing
-        existing_codes = {d.code for d in diagnostics if d.code}
-        for d in api_diagnostics:
-            if d.code not in existing_codes:
-                diagnostics.append(d)
+        diagnostics = list(validate_rule(rule))
 
         diagnostics.extend(self._validate_sid_uniqueness(rule))
 
