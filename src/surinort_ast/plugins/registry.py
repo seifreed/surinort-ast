@@ -12,12 +12,14 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     from .interface import AnalysisPlugin, ParserPlugin, QueryPlugin, SerializerPlugin
 
 logger = logging.getLogger(__name__)
+
+_Plugin = TypeVar("_Plugin")
 
 
 # ============================================================================
@@ -77,6 +79,55 @@ class PluginRegistry:
         logger.debug("Plugin registry initialized")
 
     # ========================================================================
+    # Shared registry operations (one implementation per plugin type below)
+    # ========================================================================
+
+    def _register_plugin(
+        self,
+        registry: dict[str, _Plugin],
+        name: str,
+        plugin: _Plugin,
+        abc: type,
+        label: str,
+        register_method: str,
+        overwrite: bool,
+    ) -> None:
+        """Register ``plugin`` under ``name`` in ``registry`` with shared checks."""
+        with self._lock:
+            if name in registry and not overwrite:
+                raise PluginAlreadyRegisteredError(
+                    f"{label} plugin '{name}' is already registered. Use overwrite=True to replace."
+                )
+            if isinstance(plugin, type):
+                raise TypeError(
+                    f"Plugin must be an instance, not a class. Got {plugin}. "
+                    f"Instantiate it first: {register_method}(name, {plugin.__name__}())"
+                )
+            if not isinstance(plugin, abc):
+                raise TypeError(f"Plugin must implement {abc.__name__}, got {type(plugin)}")
+            registry[name] = plugin
+            logger.info(f"Registered {label.lower()} plugin: {name}")
+
+    def _get_plugin(self, registry: dict[str, _Plugin], name: str) -> _Plugin | None:
+        """Return the plugin registered under ``name``, or ``None``."""
+        with self._lock:
+            return registry.get(name)
+
+    def _list_plugins(self, registry: dict[str, _Plugin]) -> list[str]:
+        """Return the sorted names registered in ``registry``."""
+        with self._lock:
+            return sorted(registry.keys())
+
+    def _unregister_plugin(self, registry: dict[str, _Plugin], name: str, label: str) -> bool:
+        """Remove ``name`` from ``registry``; return whether it was present."""
+        with self._lock:
+            if name in registry:
+                del registry[name]
+                logger.info(f"Unregistered {label.lower()} plugin: {name}")
+                return True
+            return False
+
+    # ========================================================================
     # Parser Plugin Methods
     # ========================================================================
 
@@ -101,25 +152,11 @@ class PluginRegistry:
         Example:
             >>> registry.register_parser("custom", CustomParser())
         """
-        with self._lock:
-            if name in self._parsers and not overwrite:
-                raise PluginAlreadyRegisteredError(
-                    f"Parser plugin '{name}' is already registered. Use overwrite=True to replace."
-                )
+        from .interface import ParserPlugin as ParserPluginABC
 
-            if isinstance(plugin, type):
-                raise TypeError(
-                    f"Plugin must be an instance, not a class. Got {plugin}. "
-                    f"Instantiate it first: register_parser(name, {plugin.__name__}())"
-                )
-
-            from .interface import ParserPlugin as ParserPluginABC
-
-            if not isinstance(plugin, ParserPluginABC):
-                raise TypeError(f"Plugin must implement ParserPlugin, got {type(plugin)}")
-
-            self._parsers[name] = plugin
-            logger.info(f"Registered parser plugin: {name}")
+        self._register_plugin(
+            self._parsers, name, plugin, ParserPluginABC, "Parser", "register_parser", overwrite
+        )
 
     def get_parser(self, name: str) -> ParserPlugin | None:
         """
@@ -136,8 +173,7 @@ class PluginRegistry:
             >>> if parser:
             ...     custom_parser = parser.create_parser(config)
         """
-        with self._lock:
-            return self._parsers.get(name)
+        return self._get_plugin(self._parsers, name)
 
     def list_parsers(self) -> list[str]:
         """
@@ -150,8 +186,7 @@ class PluginRegistry:
             >>> registry.list_parsers()
             ['default', 'custom_dialect', 'fast_parser']
         """
-        with self._lock:
-            return sorted(self._parsers.keys())
+        return self._list_plugins(self._parsers)
 
     # ========================================================================
     # Serializer Plugin Methods
@@ -178,26 +213,17 @@ class PluginRegistry:
         Example:
             >>> registry.register_serializer("yaml", YAMLSerializer())
         """
-        with self._lock:
-            if format_name in self._serializers and not overwrite:
-                raise PluginAlreadyRegisteredError(
-                    f"Serializer plugin '{format_name}' is already registered. "
-                    f"Use overwrite=True to replace."
-                )
+        from .interface import SerializerPlugin as SerializerPluginABC
 
-            if isinstance(plugin, type):
-                raise TypeError(
-                    f"Plugin must be an instance, not a class. Got {plugin}. "
-                    f"Instantiate it first: register_serializer(name, {plugin.__name__}())"
-                )
-
-            from .interface import SerializerPlugin as SerializerPluginABC
-
-            if not isinstance(plugin, SerializerPluginABC):
-                raise TypeError(f"Plugin must implement SerializerPlugin, got {type(plugin)}")
-
-            self._serializers[format_name] = plugin
-            logger.info(f"Registered serializer plugin: {format_name}")
+        self._register_plugin(
+            self._serializers,
+            format_name,
+            plugin,
+            SerializerPluginABC,
+            "Serializer",
+            "register_serializer",
+            overwrite,
+        )
 
     def get_serializer(self, format_name: str) -> SerializerPlugin | None:
         """
@@ -214,8 +240,7 @@ class PluginRegistry:
             >>> if serializer:
             ...     yaml_data = serializer.serialize(rule)
         """
-        with self._lock:
-            return self._serializers.get(format_name)
+        return self._get_plugin(self._serializers, format_name)
 
     def list_serializers(self) -> list[str]:
         """
@@ -228,8 +253,7 @@ class PluginRegistry:
             >>> registry.list_serializers()
             ['json', 'yaml', 'toml', 'msgpack']
         """
-        with self._lock:
-            return sorted(self._serializers.keys())
+        return self._list_plugins(self._serializers)
 
     # ========================================================================
     # Analyzer Plugin Methods
@@ -256,26 +280,17 @@ class PluginRegistry:
         Example:
             >>> registry.register_analyzer("security", SecurityAuditor())
         """
-        with self._lock:
-            if name in self._analyzers and not overwrite:
-                raise PluginAlreadyRegisteredError(
-                    f"Analyzer plugin '{name}' is already registered. "
-                    f"Use overwrite=True to replace."
-                )
+        from .interface import AnalysisPlugin as AnalysisPluginABC
 
-            if isinstance(plugin, type):
-                raise TypeError(
-                    f"Plugin must be an instance, not a class. Got {plugin}. "
-                    f"Instantiate it first: register_analyzer(name, {plugin.__name__}())"
-                )
-
-            from .interface import AnalysisPlugin as AnalysisPluginABC
-
-            if not isinstance(plugin, AnalysisPluginABC):
-                raise TypeError(f"Plugin must implement AnalysisPlugin, got {type(plugin)}")
-
-            self._analyzers[name] = plugin
-            logger.info(f"Registered analyzer plugin: {name}")
+        self._register_plugin(
+            self._analyzers,
+            name,
+            plugin,
+            AnalysisPluginABC,
+            "Analyzer",
+            "register_analyzer",
+            overwrite,
+        )
 
     def get_analyzer(self, name: str) -> AnalysisPlugin | None:
         """
@@ -292,8 +307,7 @@ class PluginRegistry:
             >>> if analyzer:
             ...     results = analyzer.analyze(rule)
         """
-        with self._lock:
-            return self._analyzers.get(name)
+        return self._get_plugin(self._analyzers, name)
 
     def list_analyzers(self) -> list[str]:
         """
@@ -306,8 +320,7 @@ class PluginRegistry:
             >>> registry.list_analyzers()
             ['security', 'performance', 'coverage']
         """
-        with self._lock:
-            return sorted(self._analyzers.keys())
+        return self._list_plugins(self._analyzers)
 
     # ========================================================================
     # Query Plugin Methods
@@ -334,25 +347,11 @@ class PluginRegistry:
         Example:
             >>> registry.register_query("regex", RegexQueryPlugin())
         """
-        with self._lock:
-            if name in self._queries and not overwrite:
-                raise PluginAlreadyRegisteredError(
-                    f"Query plugin '{name}' is already registered. Use overwrite=True to replace."
-                )
+        from .interface import QueryPlugin as QueryPluginABC
 
-            if isinstance(plugin, type):
-                raise TypeError(
-                    f"Plugin must be an instance, not a class. Got {plugin}. "
-                    f"Instantiate it first: register_query(name, {plugin.__name__}())"
-                )
-
-            from .interface import QueryPlugin as QueryPluginABC
-
-            if not isinstance(plugin, QueryPluginABC):
-                raise TypeError(f"Plugin must implement QueryPlugin, got {type(plugin)}")
-
-            self._queries[name] = plugin
-            logger.info(f"Registered query plugin: {name}")
+        self._register_plugin(
+            self._queries, name, plugin, QueryPluginABC, "Query", "register_query", overwrite
+        )
 
     def get_query(self, name: str) -> QueryPlugin | None:
         """
@@ -369,8 +368,7 @@ class PluginRegistry:
             >>> if query_plugin:
             ...     selector = query_plugin.create_selector(pattern)
         """
-        with self._lock:
-            return self._queries.get(name)
+        return self._get_plugin(self._queries, name)
 
     def list_queries(self) -> list[str]:
         """
@@ -383,8 +381,7 @@ class PluginRegistry:
             >>> registry.list_queries()
             ['regex', 'xpath', 'custom']
         """
-        with self._lock:
-            return sorted(self._queries.keys())
+        return self._list_plugins(self._queries)
 
     # ========================================================================
     # General Registry Methods
@@ -447,12 +444,7 @@ class PluginRegistry:
             >>> registry.unregister_parser("custom")
             True
         """
-        with self._lock:
-            if name in self._parsers:
-                del self._parsers[name]
-                logger.info(f"Unregistered parser plugin: {name}")
-                return True
-            return False
+        return self._unregister_plugin(self._parsers, name, "Parser")
 
     def unregister_serializer(self, format_name: str) -> bool:
         """
@@ -468,12 +460,7 @@ class PluginRegistry:
             >>> registry.unregister_serializer("yaml")
             True
         """
-        with self._lock:
-            if format_name in self._serializers:
-                del self._serializers[format_name]
-                logger.info(f"Unregistered serializer plugin: {format_name}")
-                return True
-            return False
+        return self._unregister_plugin(self._serializers, format_name, "Serializer")
 
     def unregister_analyzer(self, name: str) -> bool:
         """
@@ -489,12 +476,7 @@ class PluginRegistry:
             >>> registry.unregister_analyzer("security")
             True
         """
-        with self._lock:
-            if name in self._analyzers:
-                del self._analyzers[name]
-                logger.info(f"Unregistered analyzer plugin: {name}")
-                return True
-            return False
+        return self._unregister_plugin(self._analyzers, name, "Analyzer")
 
     def unregister_query(self, name: str) -> bool:
         """
@@ -510,12 +492,7 @@ class PluginRegistry:
             >>> registry.unregister_query("regex")
             True
         """
-        with self._lock:
-            if name in self._queries:
-                del self._queries[name]
-                logger.info(f"Unregistered query plugin: {name}")
-                return True
-            return False
+        return self._unregister_plugin(self._queries, name, "Query")
 
     def __repr__(self) -> str:
         """String representation of registry."""
