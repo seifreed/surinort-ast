@@ -16,8 +16,8 @@ import typer
 
 from ...api import parse_file, print_rule
 from ...core.enums import Dialect
-from ...exceptions import ParseError
 from ..shared import (
+    cli_error_handler,
     console,
     err_console,
     parse_rules_from_content,
@@ -84,7 +84,7 @@ def fmt_command(
 
         surinort fmt rules.txt --check
     """
-    try:
+    with cli_error_handler():
         # --in-place rewrites the input file, so an explicit --output target is
         # contradictory. Reject the combination rather than silently ignoring
         # --output and writing back to the input file.
@@ -129,13 +129,3 @@ def fmt_command(
 
         if not check:
             status_console.print(f"[green]Success:[/green] Formatted {len(rules)} rule(s)")
-
-    except ParseError as e:
-        err_console.print(f"Parse error: {e}")
-        raise typer.Exit(1) from None
-    except typer.Exit:
-        # Let typer.Exit exceptions pass through unchanged
-        raise
-    except Exception as e:
-        err_console.print(f"Unexpected error: {e}")
-        raise typer.Exit(1) from None

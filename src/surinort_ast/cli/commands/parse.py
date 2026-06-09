@@ -10,7 +10,6 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import json
-import traceback
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -19,8 +18,8 @@ import typer
 from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
 from ...api import parse_file, print_rule, to_json, to_sarif
 from ...core.enums import Dialect
-from ...exceptions import ParseError
 from ..shared import (
+    cli_error_handler,
     emit_sarif,
     err_console,
     parse_rules_from_content,
@@ -148,7 +147,7 @@ def parse_command(
 
         surinort parse rules.txt --json -o output.json
     """
-    try:
+    with cli_error_handler(verbose=verbose):
         fmt = _resolve_output_format(output_format, json_output)
 
         # Read input
@@ -179,14 +178,3 @@ def parse_command(
 
         if fmt == "text":
             status_console.print(f"[green]Success:[/green] Parsed {len(rules)} rule(s)")
-
-    except ParseError as e:
-        err_console.print(f"Parse error: {e}")
-        raise typer.Exit(1) from None
-    except typer.Exit:
-        raise
-    except Exception as e:
-        err_console.print(f"Unexpected error: {e}")
-        if verbose:
-            err_console.print(traceback.format_exc())
-        raise typer.Exit(1) from None

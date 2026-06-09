@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import traceback
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
@@ -21,6 +22,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ..core.nodes import Rule
+from ..exceptions import ParseError
 
 # ============================================================================
 # Console Setup
@@ -95,6 +97,30 @@ def validate_file_path(
             raise ValueError(f"Path outside allowed directory: {path.name}")
 
     return resolved
+
+
+@contextmanager
+def cli_error_handler(verbose: bool = False) -> Iterator[None]:
+    """Translate command failures into a clean CLI exit (code 1).
+
+    Wraps a command body so error reporting and exit codes stay consistent
+    across commands: a :class:`ParseError` reports a parse error, any other
+    exception reports an unexpected error (with a traceback when ``verbose``),
+    and a ``typer.Exit`` raised inside the body propagates unchanged so commands
+    can still set their own exit codes.
+    """
+    try:
+        yield
+    except ParseError as e:
+        err_console.print(f"Parse error: {e}")
+        raise typer.Exit(1) from None
+    except typer.Exit:
+        raise
+    except Exception as e:
+        err_console.print(f"Unexpected error: {e}")
+        if verbose:
+            err_console.print(traceback.format_exc())
+        raise typer.Exit(1) from None
 
 
 @contextmanager

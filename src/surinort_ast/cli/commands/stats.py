@@ -22,8 +22,8 @@ from rich.table import Table
 from ...analysis import CoverageAnalyzer
 from ...api import coverage_report_to_sarif, parse_file
 from ...core.enums import Dialect
-from ...exceptions import ParseError
 from ..shared import (
+    cli_error_handler,
     console,
     emit_sarif,
     err_console,
@@ -125,7 +125,7 @@ def stats_command(
 
         surinort stats rules.txt --dialect snort3
     """
-    try:
+    with cli_error_handler():
         fmt = _resolve_output_format(output_format)
 
         with parsing_progress("Analyzing rules..."):
@@ -138,12 +138,3 @@ def stats_command(
         if _emit_sarif_if_requested(rules, fmt, output, sarif_out):
             return
         _emit_stats_text(file, dialect, rules, output)
-
-    except ParseError as e:
-        err_console.print(f"Parse error: {e}")
-        raise typer.Exit(1) from None
-    except typer.Exit:
-        raise
-    except Exception as e:
-        err_console.print(f"Unexpected error: {e}")
-        raise typer.Exit(1) from None

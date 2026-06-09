@@ -17,8 +17,8 @@ import typer
 
 from ...api import parse_file, to_json
 from ...core.enums import Dialect
-from ...exceptions import ParseError
 from ..shared import (
+    cli_error_handler,
     err_console,
     parse_rules_from_content,
     read_input,
@@ -54,7 +54,7 @@ def to_json_command(
 
         cat rules.txt | surinort to-json - --compact
     """
-    try:
+    with cli_error_handler():
         # Read input
         if file and str(file) == "-":
             file = None
@@ -83,12 +83,3 @@ def to_json_command(
         write_output(result, output)
 
         status_console.print(f"[green]Success:[/green] Converted {len(rules)} rule(s) to JSON")
-
-    except ParseError as e:
-        err_console.print(f"Parse error: {e}")
-        raise typer.Exit(1) from None
-    except typer.Exit:
-        raise
-    except Exception as e:
-        err_console.print(f"Unexpected error: {e}")
-        raise typer.Exit(1) from None

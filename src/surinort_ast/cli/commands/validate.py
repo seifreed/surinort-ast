@@ -21,11 +21,10 @@ from rich.table import Table
 from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
 from ...api import parse_file, to_sarif, validate_rule
 from ...core.enums import DiagnosticLevel, Dialect
-from ...exceptions import ParseError
 from ..shared import (
+    cli_error_handler,
     console,
     emit_sarif,
-    err_console,
     parsing_progress,
     resolve_output_format,
     validate_file_path,
@@ -276,7 +275,7 @@ def validate_command(
 
         surinort validate rules.txt --strict
     """
-    try:
+    with cli_error_handler():
         fmt = resolve_output_format(output_format, ("text", "sarif"))
 
         with parsing_progress("Validating rules..."):
@@ -310,12 +309,3 @@ def validate_command(
             raise typer.Exit(1) from None
         if fmt == "text":
             console.print("\n[green]Validation passed[/green]")
-
-    except ParseError as e:
-        err_console.print(f"Parse error: {e}")
-        raise typer.Exit(1) from None
-    except typer.Exit:
-        raise
-    except Exception as e:
-        err_console.print(f"Unexpected error: {e}")
-        raise typer.Exit(1) from None
