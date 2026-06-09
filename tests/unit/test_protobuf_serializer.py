@@ -86,6 +86,22 @@ class TestProtobufBasics:
 class TestRuleComponents:
     """Test serialization of different rule components."""
 
+    def test_custom_content_modifier_value_roundtrips(self):
+        """A custom (non-enum) content modifier must keep its value through
+        protobuf.
+
+        Regression: the modifier name was encoded in string_value, leaving no
+        slot for the value, so it round-tripped to None.
+        """
+        for text in (
+            'alert tcp any any -> any any (content:"x",customkw 42; sid:1;)',
+            'alert tcp any any -> any any (content:"x",customkw foo; sid:1;)',
+            'alert tcp any any -> any any (content:"x",customkw; sid:1;)',
+        ):
+            rule = parse_rule(text)
+            restored = from_protobuf(to_protobuf(rule))
+            assert restored == rule
+
     def test_actions(self):
         """Test all action types."""
         actions = ["alert", "log", "pass", "drop", "reject"]

@@ -349,10 +349,15 @@ def _serialize_content_modifier(mod: ContentModifier) -> Any:
             pb_mod.string_value = mod.value
     else:
         # An unrecognized modifier name has no enum/proto equivalent; carry the
-        # literal name in string_value with the UNSPECIFIED enum so it survives
-        # the round-trip instead of being lost or mis-encoded.
+        # literal name in its own custom_name field (with the UNSPECIFIED enum)
+        # so the value_type oneof stays free for the modifier's value. Encoding
+        # the name in string_value would drop any value the modifier carries.
         pb_mod.name = pb.CONTENT_MODIFIER_UNSPECIFIED
-        pb_mod.string_value = mod.name
+        pb_mod.custom_name = mod.name
+        if isinstance(mod.value, int):
+            pb_mod.int_value = mod.value
+        elif isinstance(mod.value, str):
+            pb_mod.string_value = mod.value
 
     return pb_mod
 
@@ -889,20 +894,19 @@ def _deserialize_port_expr(pb_port: Any) -> PortExpr:
 
 def _deserialize_content_modifier(pb_mod: Any) -> ContentModifier:
     """Deserialize ContentModifier from protobuf message."""
-    if pb_mod.name == pb.CONTENT_MODIFIER_UNSPECIFIED:
-        # An unrecognized modifier name was carried verbatim in string_value.
-        return ContentModifier(name=pb_mod.string_value, value=None)
-
-    name = _PB_TO_CONTENT_MODIFIER[pb_mod.name]
     value: int | str | None = None
-
     value_type = pb_mod.WhichOneof("value_type")
     if value_type == "int_value":
         value = pb_mod.int_value
     elif value_type == "string_value":
         value = pb_mod.string_value
 
-    return ContentModifier(name=name, value=value)
+    if pb_mod.name == pb.CONTENT_MODIFIER_UNSPECIFIED:
+        # An unrecognized modifier name was carried verbatim in custom_name; its
+        # value (if any) is in the value_type oneof.
+        return ContentModifier(name=pb_mod.custom_name, value=value)
+
+    return ContentModifier(name=_PB_TO_CONTENT_MODIFIER[pb_mod.name], value=value)
 
 
 def _deserialize_msg(pb_opt: Any, location: Location | None, comments: list[str]) -> MsgOption:

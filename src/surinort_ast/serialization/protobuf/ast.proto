@@ -252,6 +252,10 @@ message ContentModifier {
     int64 int_value = 2;
     string string_value = 3;
   }
+  // Literal name for a modifier with no enum equivalent (name = UNSPECIFIED).
+  // Kept separate from value_type so a custom modifier can carry both its name
+  // and its value.
+  string custom_name = 4;
 }
 
 // ============================================================================
