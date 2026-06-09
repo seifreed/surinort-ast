@@ -14,8 +14,6 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from pydantic import TypeAdapter
-
 from ..analysis.coverage import CoverageReport
 from ..analysis.findings import (
     Finding,
@@ -27,6 +25,7 @@ from ..analysis.optimizer import OptimizationResult
 from ..core.diagnostics import Diagnostic
 from ..core.nodes import Rule
 from ..exceptions import SerializationError
+from ..serialization.json_serializer import JSONSerializer
 from ..serialization.sarif import to_sarif_json
 
 
@@ -78,31 +77,14 @@ def from_json(data: str | dict[str, Any]) -> Rule | Sequence[Rule]:
         >>> json_str = '{"action": "alert", "header": {...}, ...}'
         >>> rule = from_json(json_str)
     """
+    # Delegate to the canonical deserializer so the envelope-stripping and
+    # single-vs-multiple dispatch live in one place. ``JSONSerializer`` raises
+    # bare ``ValueError``/JSON errors; wrap them in ``SerializationError`` to
+    # preserve this façade's documented contract.
     try:
-        # Type-narrowing: data will be dict after this check
-        data_dict: dict[str, Any] = json.loads(data) if isinstance(data, str) else data
-
-        # Strip the metadata envelope produced by JSONSerializer when present.
-        # A top-level "data" key is a structural marker of the envelope, so we
-        # always honor it regardless of any caller preference.
-        if (
-            isinstance(data_dict, dict)
-            and "data" in data_dict
-            and isinstance(data_dict["data"], dict)
-        ):
-            data_dict = data_dict["data"]
-
-        # Multi-rule payload: {"rules": [...]} (possibly inside an envelope).
-        if (
-            isinstance(data_dict, dict)
-            and "rules" in data_dict
-            and isinstance(data_dict["rules"], list)
-        ):
-            adapter: TypeAdapter[Sequence[Rule]] = TypeAdapter(Sequence[Rule])
-            return adapter.validate_python(data_dict["rules"])
-
-        # Pydantic v2 model_validate (single rule)
-        return Rule.model_validate(data_dict)
+        return JSONSerializer().from_json(data)
+    except SerializationError:
+        raise
     except json.JSONDecodeError as e:
         raise SerializationError(f"Invalid JSON: {e}") from e
     except Exception as e:

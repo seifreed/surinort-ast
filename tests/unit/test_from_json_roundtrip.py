@@ -11,7 +11,13 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 """
 
+import json
+
+import pytest
+
 from surinort_ast import from_json, parse_rule, print_rule, to_json
+from surinort_ast.exceptions import SerializationError
+from surinort_ast.serialization.json_serializer import JSONSerializer
 
 
 class TestFromJsonRoundtrip:
@@ -167,3 +173,28 @@ class TestFromJsonRoundtrip:
             assert hasattr(opt, "type")
             assert opt.type is not None
             assert opt.type == opt.__class__.__name__
+
+
+class TestPublicFromJsonEnvelopeConsistency:
+    """The public ``from_json`` delegates to ``JSONSerializer``, so it accepts the
+    same payload shapes and applies the same version guard.
+
+    Regression: ``from_json`` previously reimplemented envelope handling and did
+    not validate the envelope version, diverging from ``JSONSerializer``.
+    """
+
+    def test_accepts_metadata_envelope(self) -> None:
+        rule = parse_rule('alert tcp any any -> any 80 (msg:"x"; sid:1;)')
+        envelope = JSONSerializer().to_dict(rule)  # includes ast_version/data
+        assert from_json(envelope) == rule
+
+    def test_rejects_incompatible_version_envelope(self) -> None:
+        rule = parse_rule('alert tcp any any -> any 80 (msg:"x"; sid:1;)')
+        envelope = {
+            "ast_version": "99.99.99",
+            "timestamp": "2025-01-01T00:00:00Z",
+            "count": 1,
+            "data": json.loads(to_json(rule)),
+        }
+        with pytest.raises(SerializationError, match="Incompatible AST version"):
+            from_json(envelope)
