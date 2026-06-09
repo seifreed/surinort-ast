@@ -164,6 +164,13 @@ def parse_quoted_string_cached(s: str) -> str:
     return parse_quoted_string(s)
 
 
+def unquote_if_quoted(value_str: str) -> str:
+    """Unquote a value wrapped in double quotes, else return it unchanged."""
+    if value_str.startswith('"') and value_str.endswith('"'):
+        return parse_quoted_string_cached(value_str)
+    return value_str
+
+
 @functools.lru_cache(maxsize=1024)
 def parse_pcre_pattern_cached(s: str) -> tuple[str, str]:
     """

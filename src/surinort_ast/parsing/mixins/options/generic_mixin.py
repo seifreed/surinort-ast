@@ -20,7 +20,7 @@ from lark import Token
 
 from ....core.nodes import GenericOption
 from ...helpers import token_to_str
-from ._helpers import parse_quoted_string_cached
+from ._helpers import unquote_if_quoted
 
 
 class GenericOptionsMixin:
@@ -114,12 +114,7 @@ class GenericOptionsMixin:
         if len(items) > 1:
             value_item = items[1]
             if isinstance(value_item, Token):
-                value_str = str(value_item.value)
-                # Clean quoted strings (use cached version for performance)
-                if value_str.startswith('"') and value_str.endswith('"'):
-                    value = parse_quoted_string_cached(value_str)
-                else:
-                    value = value_str
+                value = unquote_if_quoted(str(value_item.value))
             else:
                 value = str(value_item)
 
@@ -141,11 +136,7 @@ class GenericOptionsMixin:
             Used by generic_option and other option transformers.
         """
         if items:
-            value_str = str(items[0].value)
-            # Clean quoted strings (use cached version for performance)
-            if value_str.startswith('"') and value_str.endswith('"'):
-                return parse_quoted_string_cached(value_str)
-            return value_str
+            return unquote_if_quoted(str(items[0].value))
         return ""
 
     # ========================================================================

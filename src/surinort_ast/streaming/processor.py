@@ -18,7 +18,7 @@ from typing import Any
 
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
 from ..core.enums import Action, Protocol
-from ..core.nodes import Rule, SidOption
+from ..core.nodes import Rule, SidOption, extract_sid
 
 logger = logging.getLogger(__name__)
 
@@ -358,18 +358,18 @@ class ValidateProcessor(StreamProcessor):
         Returns:
             A single duplicate-SID warning if the SID repeats, else an empty list.
         """
-        for option in rule.options:
-            if isinstance(option, SidOption):
-                if option.value in self._seen_sids:
-                    return [
-                        Diagnostic(
-                            level=DiagnosticLevel.WARNING,
-                            message=f"Duplicate SID {option.value}",
-                            code="duplicate_sid",
-                        )
-                    ]
-                self._seen_sids.add(option.value)
-                break
+        sid = extract_sid(rule)
+        if sid is None:
+            return []
+        if sid in self._seen_sids:
+            return [
+                Diagnostic(
+                    level=DiagnosticLevel.WARNING,
+                    message=f"Duplicate SID {sid}",
+                    code="duplicate_sid",
+                )
+            ]
+        self._seen_sids.add(sid)
         return []
 
     def reset(self) -> None:
