@@ -106,10 +106,13 @@ class JSONSerializer:
         # The "data" key is a structural marker of the metadata envelope
         # produced by ``to_json``. Strip it whenever it is present (with a
         # dict payload) so ``from_json`` accepts metadata-wrapped payloads
-        # regardless of how the serializer was constructed.
+        # regardless of how the serializer was constructed. The version guard is
+        # a property of the incoming payload, not of this serializer's output
+        # settings, so it runs whenever the envelope is present — otherwise an
+        # ``include_metadata=False`` serializer would silently deserialize a
+        # payload from an incompatible (different-major) schema version.
         if isinstance(parsed, dict) and "data" in parsed and isinstance(parsed["data"], dict):
-            if self.include_metadata:
-                self._validate_metadata(parsed)
+            self._validate_metadata(parsed)
             parsed = parsed["data"]
 
         # Determine if single or multiple rules

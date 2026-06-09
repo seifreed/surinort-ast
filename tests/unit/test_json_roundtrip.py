@@ -92,6 +92,28 @@ class TestJSONSerializerValidation:
         with pytest.raises(ValueError, match="Incompatible AST version"):
             serializer._validate_metadata(invalid_data)
 
+    @pytest.mark.parametrize("include_metadata", [True, False])
+    def test_from_json_rejects_incompatible_envelope_regardless_of_flag(self, include_metadata):
+        """A metadata envelope from an incompatible schema version must be rejected
+        on deserialization regardless of the serializer's ``include_metadata``
+        setting.
+
+        Regression: the version guard was gated on ``include_metadata``, so an
+        ``include_metadata=False`` serializer silently stripped and deserialized a
+        payload from an incompatible (different-major) version. The guard is a
+        property of the incoming payload, not of this serializer's output config.
+        """
+        serializer = JSONSerializer(include_metadata=include_metadata)
+        envelope = {
+            "ast_version": "99.99.99",
+            "timestamp": "2025-01-01T00:00:00Z",
+            "count": 0,
+            "data": {"rules": []},
+        }
+
+        with pytest.raises(ValueError, match="Incompatible AST version"):
+            serializer.from_dict(envelope)
+
 
 class TestJSONSerializerRoundtrip:
     """Test full roundtrip with various configurations."""
