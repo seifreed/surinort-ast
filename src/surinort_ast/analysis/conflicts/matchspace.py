@@ -189,20 +189,19 @@ def _union_addr_sets(sets: list[AddrSet]) -> AddrSet:
     return AddrSet(v4=tuple(_merge(v4)), v6=tuple(_merge(v6)), opaque=frozenset(opaque))
 
 
-def addr_intersects(a: AddrSet, b: AddrSet) -> Tri:
+def _opaque_intersection(a: AddrSet | PortSet, b: AddrSet | PortSet) -> Tri | None:
+    """Resolve intersection from the ``any_``/``opaque`` layer shared by address
+    and port sets, or ``None`` when the concrete intervals must decide."""
     if a.any_ or b.any_:
         return Tri.TRUE
     if a.opaque or b.opaque:
-        if a.opaque & b.opaque:
-            return Tri.TRUE
-        return Tri.UNKNOWN
-    if _intervals_overlap(list(a.v4), list(b.v4)) or _intervals_overlap(list(a.v6), list(b.v6)):
-        return Tri.TRUE
-    return Tri.FALSE
+        return Tri.TRUE if a.opaque & b.opaque else Tri.UNKNOWN
+    return None
 
 
-def addr_subset(a: AddrSet, b: AddrSet) -> Tri:
-    """Is ``a`` a subset of ``b``?"""
+def _opaque_subset(a: AddrSet | PortSet, b: AddrSet | PortSet) -> Tri | None:
+    """Resolve subset from the ``any_``/``opaque`` layer shared by address and
+    port sets, or ``None`` when the concrete intervals must decide."""
     if b.any_:
         return Tri.TRUE
     if a.any_:
@@ -211,6 +210,23 @@ def addr_subset(a: AddrSet, b: AddrSet) -> Tri:
         if a.is_pure_token and b.is_pure_token and a.opaque <= b.opaque:
             return Tri.TRUE
         return Tri.UNKNOWN
+    return None
+
+
+def addr_intersects(a: AddrSet, b: AddrSet) -> Tri:
+    decided = _opaque_intersection(a, b)
+    if decided is not None:
+        return decided
+    if _intervals_overlap(list(a.v4), list(b.v4)) or _intervals_overlap(list(a.v6), list(b.v6)):
+        return Tri.TRUE
+    return Tri.FALSE
+
+
+def addr_subset(a: AddrSet, b: AddrSet) -> Tri:
+    """Is ``a`` a subset of ``b``?"""
+    decided = _opaque_subset(a, b)
+    if decided is not None:
+        return decided
     v4_ok = _intervals_cover(list(a.v4), list(b.v4))
     v6_ok = _intervals_cover(list(a.v6), list(b.v6))
     return Tri.TRUE if v4_ok and v6_ok else Tri.FALSE
@@ -272,24 +288,16 @@ def _union_port_sets(sets: list[PortSet]) -> PortSet:
 
 
 def port_intersects(a: PortSet, b: PortSet) -> Tri:
-    if a.any_ or b.any_:
-        return Tri.TRUE
-    if a.opaque or b.opaque:
-        if a.opaque & b.opaque:
-            return Tri.TRUE
-        return Tri.UNKNOWN
+    decided = _opaque_intersection(a, b)
+    if decided is not None:
+        return decided
     return Tri.TRUE if _intervals_overlap(list(a.intervals), list(b.intervals)) else Tri.FALSE
 
 
 def port_subset(a: PortSet, b: PortSet) -> Tri:
-    if b.any_:
-        return Tri.TRUE
-    if a.any_:
-        return Tri.FALSE
-    if a.opaque or b.opaque:
-        if a.is_pure_token and b.is_pure_token and a.opaque <= b.opaque:
-            return Tri.TRUE
-        return Tri.UNKNOWN
+    decided = _opaque_subset(a, b)
+    if decided is not None:
+        return decided
     return Tri.TRUE if _intervals_cover(list(a.intervals), list(b.intervals)) else Tri.FALSE
 
 
