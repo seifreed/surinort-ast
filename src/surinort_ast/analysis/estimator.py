@@ -94,6 +94,24 @@ class PerformanceEstimator:
         "B": 1.3,  # PCRE body inspection
     }
 
+    # Standalone content modifiers that attach to the preceding content option:
+    # they adjust its cost and a non-modifier option between them breaks the
+    # chain. Kept as one set so the cost-adjustment and chain-breaking checks
+    # never drift apart.
+    CONTENT_MODIFIER_OPTIONS: ClassVar[frozenset[str]] = frozenset(
+        {
+            "DepthOption",
+            "OffsetOption",
+            "DistanceOption",
+            "WithinOption",
+            "NocaseOption",
+            "RawbytesOption",
+            "StartswithOption",
+            "EndswithOption",
+            "FastPatternOption",
+        }
+    )
+
     def estimate_cost(self, rule: Rule) -> float:
         """
         Estimate total computational cost for rule evaluation.
@@ -119,23 +137,8 @@ class PerformanceEstimator:
             option_type = option.node_type
 
             # Standalone content modifiers apply their multiplier to the
-            # preceding content option. This set must match the chain-preserving
-            # set below so every recognized modifier also adjusts the cost.
-            if (
-                option_type
-                in [
-                    "DepthOption",
-                    "OffsetOption",
-                    "DistanceOption",
-                    "WithinOption",
-                    "NocaseOption",
-                    "RawbytesOption",
-                    "StartswithOption",
-                    "EndswithOption",
-                    "FastPatternOption",
-                ]
-                and prev_content is not None
-            ):
+            # preceding content option.
+            if option_type in self.CONTENT_MODIFIER_OPTIONS and prev_content is not None:
                 # Apply multiplier to previous content option
                 if option_type == "FastPatternOption":
                     modifier_name = "fast_pattern"
@@ -154,17 +157,7 @@ class PerformanceEstimator:
             if option_type == "ContentOption":
                 prev_content = cast("ContentOption", option)
                 prev_content_cost = self._estimate_option_cost(option)
-            elif option_type not in [
-                "DepthOption",
-                "OffsetOption",
-                "DistanceOption",
-                "WithinOption",
-                "NocaseOption",
-                "RawbytesOption",
-                "StartswithOption",
-                "EndswithOption",
-                "FastPatternOption",
-            ]:
+            elif option_type not in self.CONTENT_MODIFIER_OPTIONS:
                 # Non-modifier option breaks the content chain
                 prev_content = None
 
