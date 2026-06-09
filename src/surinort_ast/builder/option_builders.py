@@ -183,89 +183,40 @@ class ContentBuilder:
         self._pending_modifiers.append(EndswithOption())
         return self
 
-    def http_uri(self) -> ContentBuilder:
-        """
-        Add http_uri sticky buffer (use before pattern).
-
-        Returns:
-            Self for chaining
-        """
+    def _add_buffer(self, buffer_name: str) -> ContentBuilder:
+        """Append a sticky-buffer selection and return self for chaining."""
         from ..core.nodes import BufferSelectOption
 
-        self._parent._options.append(BufferSelectOption(buffer_name="http_uri"))
+        self._parent._options.append(BufferSelectOption(buffer_name=buffer_name))
         return self
+
+    def http_uri(self) -> ContentBuilder:
+        """Add http_uri sticky buffer (use before pattern)."""
+        return self._add_buffer("http_uri")
 
     def http_header(self) -> ContentBuilder:
-        """
-        Add http_header sticky buffer (use before pattern).
-
-        Returns:
-            Self for chaining
-        """
-        from ..core.nodes import BufferSelectOption
-
-        self._parent._options.append(BufferSelectOption(buffer_name="http_header"))
-        return self
+        """Add http_header sticky buffer (use before pattern)."""
+        return self._add_buffer("http_header")
 
     def http_method(self) -> ContentBuilder:
-        """
-        Add http_method sticky buffer (use before pattern).
-
-        Returns:
-            Self for chaining
-        """
-        from ..core.nodes import BufferSelectOption
-
-        self._parent._options.append(BufferSelectOption(buffer_name="http_method"))
-        return self
+        """Add http_method sticky buffer (use before pattern)."""
+        return self._add_buffer("http_method")
 
     def http_cookie(self) -> ContentBuilder:
-        """
-        Add http_cookie sticky buffer (use before pattern).
-
-        Returns:
-            Self for chaining
-        """
-        from ..core.nodes import BufferSelectOption
-
-        self._parent._options.append(BufferSelectOption(buffer_name="http_cookie"))
-        return self
+        """Add http_cookie sticky buffer (use before pattern)."""
+        return self._add_buffer("http_cookie")
 
     def dns_query(self) -> ContentBuilder:
-        """
-        Add dns_query sticky buffer (use before pattern).
-
-        Returns:
-            Self for chaining
-        """
-        from ..core.nodes import BufferSelectOption
-
-        self._parent._options.append(BufferSelectOption(buffer_name="dns_query"))
-        return self
+        """Add dns_query sticky buffer (use before pattern)."""
+        return self._add_buffer("dns_query")
 
     def tls_sni(self) -> ContentBuilder:
-        """
-        Add tls.sni sticky buffer (use before pattern).
-
-        Returns:
-            Self for chaining
-        """
-        from ..core.nodes import BufferSelectOption
-
-        self._parent._options.append(BufferSelectOption(buffer_name="tls.sni"))
-        return self
+        """Add tls.sni sticky buffer (use before pattern)."""
+        return self._add_buffer("tls.sni")
 
     def file_data(self) -> ContentBuilder:
-        """
-        Add file_data sticky buffer (use before pattern).
-
-        Returns:
-            Self for chaining
-        """
-        from ..core.nodes import BufferSelectOption
-
-        self._parent._options.append(BufferSelectOption(buffer_name="file_data"))
-        return self
+        """Add file_data sticky buffer (use before pattern)."""
+        return self._add_buffer("file_data")
 
     def done(self) -> RuleBuilder:
         """
