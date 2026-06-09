@@ -30,6 +30,7 @@ from surinort_ast.core.nodes import (
     MsgOption,
     PcreOption,
     Port,
+    PortList,
     PortRange,
     PortVariable,
     Protocol,
@@ -218,6 +219,21 @@ class TestPortParsing:
 
         assert isinstance(rule.header.dst_port, PortVariable)
         assert rule.header.dst_port.name == "HTTP_PORTS"
+
+    def test_parse_nested_port_list(self, lark_parser: Lark, transformer: RuleTransformer):
+        """A plain nested port list is valid Suricata and must parse (like the
+        address side and like a negated nested port list already do)."""
+        rule_text = 'alert tcp any [80,[443,8443]] -> any any (msg:"Test"; sid:1;)'
+        parse_tree = lark_parser.parse(rule_text)
+        rule = transformer.transform(parse_tree)[0]
+
+        src = rule.header.src_port
+        assert isinstance(src, PortList)
+        assert len(src.elements) == 2
+        assert isinstance(src.elements[0], Port)
+        assert src.elements[0].value == 80
+        assert isinstance(src.elements[1], PortList)
+        assert [e.value for e in src.elements[1].elements] == [443, 8443]
 
 
 class TestOptionParsing:

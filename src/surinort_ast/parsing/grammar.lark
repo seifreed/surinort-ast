@@ -100,7 +100,9 @@ port_any: "any"
 port_var: VARIABLE
 port_negation: "!" port
 port_list: "[" port_elem ("," port_elem)* "]"
-port_elem: port_negation | VARIABLE | port_range | port_single
+// A list element may itself be a nested list (e.g. [80,[443,8443]]), mirroring
+// address_list which recurses through address.
+port_elem: port_negation | port_list | VARIABLE | port_range | port_single
 // Support open-ended ranges: "1024:" (from 1024 to 65535) and ":1024" (0 to 1024)
 port_range: INT ":" INT?
           | ":" INT  -> port_upper_range
