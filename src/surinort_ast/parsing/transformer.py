@@ -367,20 +367,16 @@ class RuleTransformer(
     @v_args(inline=True)
     def port_negation(self, port: Any) -> Any:
         """Transform a negated port with real-depth nesting validation."""
-        from ..core.nodes import PortNegation
-
         depth = 1 + self._port_expr_depth(port)
         self.config.validate_nesting_depth(depth)
-        return PortNegation(expr=port)
+        return super().port_negation(port)
 
     def port_list(self, items: Sequence[Any]) -> Any:
         """Transform a port list with real-depth nesting validation."""
-        from ..core.nodes import PortList
-
         elements = list(items)
         depth = 1 + max(
             (self._port_expr_depth(el) for el in elements),
             default=0,
         )
         self.config.validate_nesting_depth(depth)
-        return PortList(elements=elements)
+        return super().port_list(elements)
