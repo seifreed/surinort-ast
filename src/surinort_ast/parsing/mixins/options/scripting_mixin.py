@@ -17,7 +17,7 @@ from typing import Any
 from lark import Token, Tree
 
 from ....core.nodes import LuajitOption, LuaOption
-from ...helpers import is_marker
+from ...helpers import is_marker, token_to_str
 
 
 def _script_negation(items: Sequence[Any]) -> tuple[bool, str]:
@@ -124,13 +124,6 @@ class ScriptingOptionsMixin:
             - Path: scripts/file.lua
             - Complex: WORD "." WORD format (e.g., "script" "." "lua")
         """
-        if len(items) == 1:
-            # Single token (REFERENCE_ID with path)
-            return str(items[0].value)
-        if len(items) >= 3:
-            # WORD "." WORD format (e.g., "script" "." "lua")
-            return "".join(
-                str(item.value) if isinstance(item, Token) else str(item) for item in items
-            )
-        # Fallback: join all tokens
-        return "".join(str(item.value) if isinstance(item, Token) else str(item) for item in items)
+        # A single REFERENCE_ID token, a ``WORD "." WORD`` sequence and any other
+        # token run all join to the same string, so concatenate uniformly.
+        return "".join(token_to_str(item) for item in items)

@@ -106,7 +106,7 @@ def _is_pure_hex_piped(s: str) -> bool:
 
 def _token_to_int_or_str(value: Any) -> int | str:
     """Convert a token-like value to int when possible, otherwise to str."""
-    raw = str(value.value) if isinstance(value, Token) else str(value)
+    raw = token_to_str(value)
     try:
         return int(raw)
     except ValueError:
@@ -542,7 +542,7 @@ class ContentTransformerMixin:
         # Extract the modifier name
         modifier_name = ""
         if args:
-            modifier_name = str(args[0].value) if isinstance(args[0], Token) else str(args[0])
+            modifier_name = token_to_str(args[0])
 
         # Map the modifier name to a ContentModifierType, or keep the literal
         # name for an unrecognized modifier so its meaning is not invented.
