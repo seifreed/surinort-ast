@@ -1432,24 +1432,37 @@ class ProtobufSerializer:
             >>> rule = serializer.from_protobuf(binary_data)
         """
         try:
-            # Check if serializer expects metadata or not
-            if self.include_metadata:
-                # Parse as RuleBatch (with metadata envelope)
-                pb_batch = pb.RuleBatch()
+            # The on-wire shape (bare ``Rule`` vs ``RuleBatch`` envelope) is
+            # auto-detected rather than inferred from ``include_metadata``: that
+            # flag is a serialize-time choice, and a multi-rule payload is always
+            # a ``RuleBatch`` even when metadata is omitted, so a flag-based branch
+            # would mis-parse it as a single ``Rule``.
+            #
+            # A ``RuleBatch`` and a bare ``Rule`` share field numbers with
+            # conflicting wire types: ``Rule.header`` (field 2, message) lands in
+            # ``RuleBatch.ast_version`` (field 2, string), so parsing a bare Rule
+            # as a RuleBatch typically raises (bad UTF-8) and, when it does not,
+            # leaves ``rules`` empty (field 1 wire-type mismatch). Treat a failed
+            # or non-batch-shaped parse as a bare Rule. ``count`` alone is not a
+            # reliable batch marker because it aliases ``Rule.dialect`` (both
+            # field 4, varint), so it is excluded from the shape check.
+            pb_batch = pb.RuleBatch()
+            try:
                 pb_batch.ParseFromString(data)
+                is_batch_shape = bool(pb_batch.rules or pb_batch.is_collection)
+            except Exception:
+                is_batch_shape = False
 
-                # Check if it's actually a batch (has rules field populated)
-                if pb_batch.rules:
-                    rules = [_deserialize_rule(r) for r in pb_batch.rules]
-                    # Preserve the input shape: a collection (including a
-                    # single-element list) round-trips to a list; a scalar Rule
-                    # (count == 1, not flagged a collection) returns a Rule.
-                    if pb_batch.is_collection or pb_batch.count != 1:
-                        return rules
-                    return rules[0]
-                # Empty batch
-                return []
-            # Parse as single Rule (no metadata)
+            if is_batch_shape:
+                rules = [_deserialize_rule(r) for r in pb_batch.rules]
+                # Preserve the input shape: a collection (including a
+                # single-element list) round-trips to a list; a scalar Rule
+                # (count == 1, not flagged a collection) returns a Rule.
+                if pb_batch.is_collection or pb_batch.count != 1:
+                    return rules
+                return rules[0]
+
+            # Bare Rule payload (produced with include_metadata=False).
             pb_rule = pb.Rule()
             pb_rule.ParseFromString(data)
             return _deserialize_rule(pb_rule)
@@ -1552,34 +1565,7 @@ def from_protobuf(data: bytes) -> Rule | Sequence[Rule]:
         >>> from surinort_ast.serialization.protobuf import from_protobuf
         >>> rule = from_protobuf(binary_data)
     """
-    try:
-        # A metadata envelope (RuleBatch) and a bare Rule share field numbers
-        # with conflicting wire types: Rule.header (field 2, message) lands in
-        # RuleBatch.ast_version (field 2, string), so parsing a bare Rule as a
-        # RuleBatch typically raises (bad UTF-8) and, when it doesn't, leaves
-        # ``rules`` empty (field 1 wire-type mismatch). Treat a failed or
-        # non-batch-shaped parse as a bare Rule. ``count`` alone is not a
-        # reliable batch marker because it aliases Rule.dialect (both field 4,
-        # varint), so it is excluded from the shape check.
-        pb_batch = pb.RuleBatch()
-        try:
-            pb_batch.ParseFromString(data)
-            is_batch_shape = bool(pb_batch.rules or pb_batch.is_collection)
-        except Exception:
-            is_batch_shape = False
-
-        if is_batch_shape:
-            rules = [_deserialize_rule(r) for r in pb_batch.rules]
-            if pb_batch.is_collection or pb_batch.count != 1:
-                return rules
-            return rules[0]
-
-        # Bare Rule payload (produced with include_metadata=False)
-        pb_rule = pb.Rule()
-        pb_rule.ParseFromString(data)
-        return _deserialize_rule(pb_rule)
-    except Exception as e:
-        raise ProtobufError(f"Failed to parse protobuf data: {e}") from e
+    return ProtobufSerializer().from_protobuf(data)
 
 
 __all__ = [

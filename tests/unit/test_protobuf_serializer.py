@@ -70,6 +70,35 @@ class TestProtobufBasics:
 
         assert restored == rule
 
+    @pytest.mark.parametrize("include_metadata", [True, False])
+    def test_multiple_rules_roundtrip_via_method(self, include_metadata):
+        """Multiple rules must round-trip through the serializer method.
+
+        Regression: with ``include_metadata=False`` the method always parsed the
+        payload as a single bare ``Rule``, but a multi-rule payload is always a
+        ``RuleBatch`` regardless of the flag, so deserialization crashed. The
+        on-wire shape must be auto-detected, not inferred from the flag.
+        """
+        rules = [
+            parse_rule('alert tcp any any -> any 80 (msg:"T1"; sid:1;)'),
+            parse_rule('alert tcp any any -> any 81 (msg:"T2"; sid:2;)'),
+        ]
+
+        serializer = ProtobufSerializer(include_metadata=include_metadata)
+        restored = serializer.from_protobuf(serializer.to_protobuf(rules))
+
+        assert restored == rules
+
+    @pytest.mark.parametrize("include_metadata", [True, False])
+    def test_single_element_list_roundtrips_to_list_via_method(self, include_metadata):
+        """A single-element list must round-trip back to a list, not a scalar."""
+        rules = [parse_rule('alert tcp any any -> any 80 (msg:"T1"; sid:1;)')]
+
+        serializer = ProtobufSerializer(include_metadata=include_metadata)
+        restored = serializer.from_protobuf(serializer.to_protobuf(rules))
+
+        assert restored == rules
+
     def test_binary_size_smaller_than_json(self):
         """Test that protobuf is more compact than JSON."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test Rule"; sid:1000; rev:1;)'
