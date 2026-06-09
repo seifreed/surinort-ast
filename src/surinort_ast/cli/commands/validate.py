@@ -10,7 +10,6 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import io
-import logging
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -31,8 +30,6 @@ from ..shared import (
     write_output,
 )
 
-logger = logging.getLogger(__name__)
-
 
 def _check_lua_scripts(rules: list[Any], lua_dir: Path | None) -> list[tuple[int, str]]:
     """Check Lua script paths exist if lua_dir is provided."""
@@ -41,11 +38,7 @@ def _check_lua_scripts(rules: list[Any], lua_dir: Path | None) -> list[tuple[int
     if not lua_dir:
         return lua_warnings
 
-    try:
-        from surinort_ast.core.nodes import LuajitOption, LuaOption
-    except ImportError as exc:
-        logger.debug("Skipping Lua script checks because Lua options are unavailable: %s", exc)
-        return lua_warnings
+    from surinort_ast.core.nodes import LuajitOption, LuaOption
 
     for idx, rule in enumerate(rules, 1):
         for opt in rule.options:
