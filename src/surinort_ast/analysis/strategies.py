@@ -48,13 +48,21 @@ POSITIONAL_OPTIONS: frozenset[str] = frozenset(
 # These keywords parse to a keyword-tagged GenericOption rather than a dedicated
 # node, yet each is position- and state-significant, so moving or deduplicating
 # them changes what the rule matches:
-#   - byte_test/byte_jump/byte_extract/byte_math/isdataat inspect bytes at a
-#     position (often relative to the preceding match) and can define or
-#     reference byte_extract variables;
-#   - ber_data/ber_skip advance a BER/ASN.1 inspection cursor, so two identical
-#     steps descend into different nested elements (they are not duplicates);
-#   - base64_decode/base64_data re-base the inspection buffer for the content
-#     that follows.
+#   - byte inspection (byte_test/byte_jump/byte_extract/byte_math/isdataat)
+#     inspects bytes at a position, often relative to the preceding match, and
+#     can define or reference byte_extract variables;
+#   - cursor navigation (ber_data/ber_skip) advances a BER/ASN.1 cursor, so two
+#     identical steps descend into different nested elements (not duplicates);
+#   - buffer transforms (base64_decode/base64_data/from_base64, the to_* hashes,
+#     url_decode, the *_whitespace ops, dotprefix/dotsuffix, header_lowercase,
+#     strip_pseudo_headers, pcrexform, xor) rewrite or re-base the inspection
+#     buffer for the content that follows, so order and repetition are
+#     meaningful;
+#   - sticky-buffer re-basers that fall through to GenericOption (raw_data,
+#     dce_stub_data, http_param) re-scope which buffer following content binds
+#     to.
+# Stateless predicate keywords (dsize, ttl, flags, itype, urilen, ...) are
+# deliberately excluded so legitimate dedup/reorder still applies.
 _STATEFUL_GENERIC_KEYWORDS: frozenset[str] = frozenset(
     {
         "byte_test",
@@ -66,6 +74,22 @@ _STATEFUL_GENERIC_KEYWORDS: frozenset[str] = frozenset(
         "ber_skip",
         "base64_decode",
         "base64_data",
+        "from_base64",
+        "to_md5",
+        "to_sha1",
+        "to_sha256",
+        "url_decode",
+        "strip_whitespace",
+        "compress_whitespace",
+        "dotprefix",
+        "dotsuffix",
+        "header_lowercase",
+        "strip_pseudo_headers",
+        "pcrexform",
+        "xor",
+        "raw_data",
+        "dce_stub_data",
+        "http_param",
     }
 )
 

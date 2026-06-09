@@ -13,6 +13,8 @@ Tests the RuleOptimizer engine and optimization strategies including:
 All tests use real Rule objects and validate actual optimization logic.
 """
 
+import pytest
+
 from surinort_ast import parse_rule
 from surinort_ast.analysis.optimizer import Optimization, OptimizationResult, RuleOptimizer
 from surinort_ast.analysis.strategies import (
@@ -734,6 +736,31 @@ class TestSemanticPreservingOptimization:
             o.node_type if o.node_type != "GenericOption" else o.keyword for o in optimized.options
         ]
         assert kinds.index("PcreOption") > kinds.index("ber_data")
+
+    @pytest.mark.parametrize(
+        "keyword",
+        [
+            "to_md5",
+            "to_sha256",
+            "url_decode",
+            "from_base64",
+            "dotprefix",
+            "strip_whitespace",
+            "header_lowercase",
+            "raw_data",
+            "dce_stub_data",
+        ],
+    )
+    def test_buffer_transform_keywords_not_deduplicated(self, keyword):
+        """Buffer transforms / re-basers rewrite the inspection buffer, so two
+        occurrences are meaningful and must not be collapsed."""
+        optimized = self._optimize(
+            f'alert tcp any any -> any any (content:"A"; {keyword}; {keyword}; content:"B"; sid:1;)'
+        )
+        matches = [
+            o for o in optimized.options if o.node_type == "GenericOption" and o.keyword == keyword
+        ]
+        assert len(matches) == 2
 
     def test_true_duplicate_still_removed(self):
         """Non-positional exact duplicates are still deduplicated."""
