@@ -43,12 +43,25 @@ def strip_outer_quotes(s: str) -> str:
     if len(s) < 2:
         return s
 
-    if (s[0] == '"' and s[-1] == '"') or (s[0] == "'" and s[-1] == "'"):
+    if s[0] == "'" and s[-1] == "'":
         return s[1:-1]
-    if s[0] == '"' and s.endswith('\\"'):
-        # Tolerate rules that terminate a string as ...\"; without an additional
-        # closing quote. Keep the literal trailing quote in the value.
+
+    if s[0] == '"' and s[-1] == '"':
+        # The trailing quote closes the string only when it is not itself
+        # escaped. Count the backslashes immediately before it: an even number
+        # (including zero) leaves the quote unescaped — the real closing quote —
+        # while an odd number makes it an escaped ``\"``. The grammar tolerates a
+        # string that terminates as ``...\";`` without a separate closing quote,
+        # so in that case the literal quote is kept in the value.
+        i = len(s) - 2
+        backslashes = 0
+        while i >= 1 and s[i] == "\\":
+            backslashes += 1
+            i -= 1
+        if backslashes % 2 == 0:
+            return s[1:-1]
         return s[1:]
+
     return s
 
 

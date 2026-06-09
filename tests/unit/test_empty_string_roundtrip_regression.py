@@ -14,7 +14,10 @@ import pytest
 from surinort_ast import parse_rule
 from surinort_ast.core.location import Location, Position, Span
 from surinort_ast.core.nodes import SourceOrigin
-from surinort_ast.parsing.mixins.options._helpers import parse_quoted_string
+from surinort_ast.parsing.mixins.options._helpers import (
+    parse_quoted_string,
+    strip_outer_quotes,
+)
 from surinort_ast.serialization.protobuf import from_protobuf, to_protobuf
 
 
@@ -31,6 +34,32 @@ def test_parse_quoted_string_escapes_unchanged() -> None:
     assert parse_quoted_string('"back\\\\slash"') == "back\\slash"
     # Unknown escape is preserved verbatim, as before.
     assert parse_quoted_string('"pcre\\d"') == "pcre\\d"
+
+
+def test_strip_outer_quotes_distinguishes_escaped_closing_quote() -> None:
+    """The trailing quote is a real closing quote only when preceded by an even
+    number of backslashes.
+
+    Regression: a string the grammar tolerates as ``"...\\";`` (escaped quote,
+    no separate closing quote) was stripped as if the escaped quote were the
+    closing quote, dropping it to a literal backslash. The escaped-quote branch
+    was also unreachable dead code because the generic ``s[-1] == '"'`` check
+    always fired first.
+    """
+    # Even backslash count before the final quote => real closing quote.
+    assert strip_outer_quotes('"hello"') == "hello"
+    assert strip_outer_quotes('"hello\\""') == 'hello\\"'  # escaped quote + close
+    assert strip_outer_quotes('"foo\\\\"') == "foo\\\\"  # escaped backslash + close
+    # Odd backslash count => the final quote is an escaped ``\"`` kept verbatim.
+    assert strip_outer_quotes('"hello\\"') == 'hello\\"'
+    # Single quotes are unaffected.
+    assert strip_outer_quotes("'hello'") == "hello"
+
+
+def test_parse_quoted_string_tolerated_trailing_escaped_quote() -> None:
+    """A string terminated as ``"...\\"`` unescapes its trailing quote rather
+    than collapsing it to a stray backslash."""
+    assert parse_quoted_string('"hello\\"') == 'hello"'
 
 
 def test_generic_option_empty_value_roundtrips() -> None:
