@@ -15,28 +15,18 @@ import struct
 from collections import defaultdict
 from typing import Any
 
-from ..core.nodes import Rule, SidOption
+from ..core.nodes import Rule
 
 
 def _stable_rule_key(rule: Rule) -> int:
-    """Generate a stable identifier for a rule that survives GC.
+    """Generate a stable identifier for a rule from its full content.
 
-    Uses SID + action + protocol hash when available, falls back to
-    a hash of the rule's model dump for rules without SID.
+    The identifier must distinguish any two rules that differ in a meaningful
+    field. Keying on SID alone collapses distinct rules that share a SID — which
+    is exactly the case a near-duplicate index needs to surface (a rule and its
+    variant), not silently overwrite — so the whole content is hashed.
     """
-    sid = None
-    for opt in rule.options:
-        if isinstance(opt, SidOption):
-            sid = opt.value
-            break
-
-    if sid is not None:
-        # SID is unique per ruleset — combine with action for extra safety
-        seed = f"sid:{sid}:{rule.action.value}"
-    else:
-        # Fallback: hash the full rule content
-        seed = rule.model_dump_json(exclude={"location", "origin", "raw_text", "diagnostics"})
-
+    seed = rule.model_dump_json(exclude={"location", "origin", "raw_text", "diagnostics"})
     return int(hashlib.sha256(seed.encode("utf-8")).digest()[:8].hex(), 16)
 
 
@@ -180,6 +170,10 @@ class LSHIndex:
         """
         # Get stable rule ID (survives GC, deterministic across sessions)
         rule_id = _stable_rule_key(rule)
+
+        # Re-indexing the same rule must not leave duplicate bucket entries.
+        if rule_id in self.rules:
+            self.remove(rule)
 
         # Store rule and signature
         self.rules[rule_id] = (rule, signature)

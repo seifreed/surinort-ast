@@ -94,6 +94,40 @@ class TestLSHAddAndQuery:
 
         assert len(lsh) == 1
 
+    def test_distinct_rules_sharing_a_sid_are_both_indexed(self):
+        """Two different rules with the same SID must not collapse to one entry.
+
+        Regression: the rule key hashed only SID + action, so adding a second
+        distinct rule with the same SID silently overwrote the first — defeating
+        a near-duplicate index whose whole purpose is to surface such rules.
+        """
+        minhash = MinHashSignature(num_perm=128)
+        r1 = parse_rule('alert tcp any any -> any any (msg:"a"; content:"aaaaaaaa"; sid:100;)')
+        r2 = parse_rule(
+            'alert tcp any any -> any any (msg:"b"; content:"bbbbbbbb"; pcre:"/x/"; sid:100;)'
+        )
+
+        lsh = LSHIndex(threshold=0.3)
+        lsh.add(r1, minhash.create_signature(r1))
+        lsh.add(r2, minhash.create_signature(r2))
+
+        assert len(lsh) == 2
+
+    def test_re_adding_same_rule_is_idempotent(self):
+        """Re-indexing an identical rule must not leave duplicate bucket entries."""
+        minhash = MinHashSignature(num_perm=128)
+        rule = parse_rule('alert tcp any any -> any any (content:"test"; sid:1;)')
+        sig = minhash.create_signature(rule)
+
+        lsh = LSHIndex(threshold=0.8)
+        lsh.add(rule, sig)
+        before = sum(len(b) for band in lsh.buckets for b in band.values())
+        lsh.add(rule, sig)
+        after = sum(len(b) for band in lsh.buckets for b in band.values())
+
+        assert len(lsh) == 1
+        assert after == before
+
     def test_add_multiple_rules(self):
         """Test adding multiple rules to index."""
         rules = [
