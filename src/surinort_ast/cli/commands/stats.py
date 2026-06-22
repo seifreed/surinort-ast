@@ -9,7 +9,6 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
-import io
 from collections import Counter
 from pathlib import Path
 from typing import Annotated, Any
@@ -24,12 +23,11 @@ from ...api import coverage_report_to_sarif, parse_file
 from ...core.enums import Dialect
 from ..shared import (
     cli_error_handler,
-    console,
     emit_sarif_report,
     err_console,
     parsing_progress,
+    render_text_output,
     resolve_output_format,
-    write_output,
 )
 
 
@@ -85,13 +83,7 @@ def _display_stats(file: Path, dialect: Dialect, rules: list[Any], target: Conso
 
 def _emit_stats_text(file: Path, dialect: Dialect, rules: list[Any], output: Path | None) -> None:
     """Render the statistics tables to ``output`` when given, else to the console."""
-    if output is None:
-        _display_stats(file, dialect, rules, console)
-        return
-
-    buffer = io.StringIO()
-    _display_stats(file, dialect, rules, Console(file=buffer, width=100))
-    write_output(buffer.getvalue(), output)
+    render_text_output(lambda target: _display_stats(file, dialect, rules, target), output)
 
 
 def stats_command(

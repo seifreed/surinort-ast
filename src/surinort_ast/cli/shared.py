@@ -9,6 +9,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import io
 import logging
 import sys
 import traceback
@@ -243,6 +244,21 @@ def write_output(content: str, output: Path | None) -> None:
         sys.stdout.write(content + "\n")
     else:
         sys.stdout.write(content)
+
+
+def render_text_output(render: Callable[[Console], None], output: Path | None) -> None:
+    """Render Rich output to ``output`` when given, else to the live console.
+
+    ``render`` receives the target console: passing the live ``console`` prints
+    directly, while a file target is captured through a width-100 buffer so the
+    written text matches the on-screen layout.
+    """
+    if output is None:
+        render(console)
+        return
+    buffer = io.StringIO()
+    render(Console(file=buffer, width=100))
+    write_output(buffer.getvalue(), output)
 
 
 def parse_rules_from_content(

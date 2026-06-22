@@ -9,7 +9,6 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -25,9 +24,9 @@ from ..shared import (
     console,
     emit_sarif_report,
     parsing_progress,
+    render_text_output,
     resolve_output_format,
     validate_file_path,
-    write_output,
 )
 
 
@@ -173,22 +172,12 @@ def _emit_validation_text(
     output: Path | None,
 ) -> None:
     """Render the validation summary to ``output`` when given, else to the console."""
-    if output is None:
-        _display_validation_summary(
-            rules, all_diagnostics, lua_warnings, error_count, warning_count, console
-        )
-        return
-
-    buffer = io.StringIO()
-    _display_validation_summary(
-        rules,
-        all_diagnostics,
-        lua_warnings,
-        error_count,
-        warning_count,
-        Console(file=buffer, width=100),
+    render_text_output(
+        lambda target: _display_validation_summary(
+            rules, all_diagnostics, lua_warnings, error_count, warning_count, target
+        ),
+        output,
     )
-    write_output(buffer.getvalue(), output)
 
 
 def _emit_validation_report(
