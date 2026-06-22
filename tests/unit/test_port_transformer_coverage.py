@@ -18,6 +18,7 @@ from surinort_ast import parse_rule
 from surinort_ast.core.enums import DiagnosticLevel, Dialect
 from surinort_ast.core.nodes import PortList, PortNegation, PortRange, PortVariable
 from surinort_ast.parsing.transformer import RuleTransformer
+from tests.unit._token_helpers import create_token as _token
 
 
 def _dst_port(port_expr: str):
@@ -65,19 +66,6 @@ class TestPortRangeDiagnostics:
         assert isinstance(port, PortRange)
         assert port.end == 65535
         assert any("out of range" in d.message for d in _errors(rule))
-
-
-def _token(token_type: str, value: str):
-    from lark import Token
-
-    token = Token(token_type, value)
-    token.line = 1
-    token.column = 1
-    token.start_pos = 0
-    token.end_line = 1
-    token.end_column = len(value)
-    token.end_pos = len(value)
-    return token
 
 
 class TestPortElemGuard:

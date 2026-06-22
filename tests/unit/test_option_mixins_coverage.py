@@ -13,8 +13,6 @@ unknown-action / single-token branches.
 
 from __future__ import annotations
 
-from lark import Token
-
 from surinort_ast import parse_rule
 from surinort_ast.core.diagnostics import DiagnosticLevel
 from surinort_ast.core.enums import Dialect
@@ -26,17 +24,7 @@ from surinort_ast.parsing.mixins.options._helpers import (
 )
 from surinort_ast.parsing.mixins.options.fileops_mixin import _atom_text
 from surinort_ast.parsing.transformer import RuleTransformer
-
-
-def _token(token_type: str, value: str) -> Token:
-    token = Token(token_type, value)
-    token.line = 1
-    token.column = 1
-    token.start_pos = 0
-    token.end_line = 1
-    token.end_column = len(value)
-    token.end_pos = len(value)
-    return token
+from tests.unit._token_helpers import create_token as _token
 
 
 def _transformer() -> RuleTransformer:
