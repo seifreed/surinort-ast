@@ -12,6 +12,7 @@ Author: Marc Rivero López | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 
 # Import only what's needed at module level to avoid circular dependency
 # Combinator enum and other selector classes imported locally where used
@@ -219,6 +220,21 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
             return results
         return apply_result_set_pseudos(results, pseudos)
 
+    @contextmanager
+    def _node_context(self, node: ASTNode) -> Iterator[None]:
+        """Push ``node`` onto the context/ancestor stacks for the wrapped block.
+
+        The pops run in ``finally`` so a raised exception cannot leave the
+        stacks unbalanced.
+        """
+        self.context_stack.append(node)
+        self.execution_context.push_ancestor(node)
+        try:
+            yield
+        finally:
+            self.context_stack.pop()
+            self.execution_context.pop_ancestor()
+
     def generic_visit(self, node: ASTNode) -> list[ASTNode]:
         """
         Visit node and check against current selector.
@@ -239,58 +255,41 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
             Phase 2: Context-aware matching with combinators
             Phase 3: Optimization and early exit
         """
-        # Update context stack and execution context
-        self.context_stack.append(node)
-        self.execution_context.push_ancestor(node)
+        with self._node_context(node):
+            # Check if node matches current selector
+            if self._matches_current_selector(node):
+                self.results.append(node)
 
-        # Check if node matches current selector
-        if self._matches_current_selector(node):
-            self.results.append(node)
-
-        # Continue traversal to children
-        super().generic_visit(node)
-
-        # Restore context
-        self.context_stack.pop()
-        self.execution_context.pop_ancestor()
+            # Continue traversal to children
+            super().generic_visit(node)
 
         return []
 
     def visit_Rule(self, node: Any) -> list[ASTNode]:  # noqa: N802
         """Visit Rule node - override to check Rule itself."""
-        self.context_stack.append(node)
-        self.execution_context.push_ancestor(node)
+        with self._node_context(node):
+            # Check Rule node itself
+            if self._matches_current_selector(node):
+                self.results.append(node)
 
-        # Check Rule node itself
-        if self._matches_current_selector(node):
-            self.results.append(node)
-
-        # Visit header and options
-        self.visit(node.header)
-        for option in node.options:
-            self.visit(option)
-
-        self.context_stack.pop()
-        self.execution_context.pop_ancestor()
+            # Visit header and options
+            self.visit(node.header)
+            for option in node.options:
+                self.visit(option)
         return []
 
     def visit_Header(self, node: Any) -> list[ASTNode]:  # noqa: N802
         """Visit Header node - override to check Header itself."""
-        self.context_stack.append(node)
-        self.execution_context.push_ancestor(node)
+        with self._node_context(node):
+            # Check Header node itself
+            if self._matches_current_selector(node):
+                self.results.append(node)
 
-        # Check Header node itself
-        if self._matches_current_selector(node):
-            self.results.append(node)
-
-        # Visit address and port nodes
-        self.visit(node.src_addr)
-        self.visit(node.src_port)
-        self.visit(node.dst_addr)
-        self.visit(node.dst_port)
-
-        self.context_stack.pop()
-        self.execution_context.pop_ancestor()
+            # Visit address and port nodes
+            self.visit(node.src_addr)
+            self.visit(node.src_port)
+            self.visit(node.dst_addr)
+            self.visit(node.dst_port)
         return []
 
     def visit_AddressList(self, node: Any) -> list[ASTNode]:  # noqa: N802
