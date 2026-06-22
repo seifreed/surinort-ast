@@ -25,7 +25,6 @@ from surinort_ast.core.nodes import Rule
 from surinort_ast.plugins import (
     AnalysisPlugin,
     PluginRegistry,
-    reset_registry,
 )
 from surinort_ast.plugins.loader import (
     PluginDiscoveryError,
@@ -37,12 +36,7 @@ from surinort_ast.plugins.loader import (
 
 _GROUP = "surinort_ast.plugins"
 
-
-@pytest.fixture(autouse=True)
-def _clean_registry():
-    reset_registry()
-    yield
-    reset_registry()
+pytestmark = pytest.mark.usefixtures("clean_registry")
 
 
 class GoodAnalyzer(AnalysisPlugin):

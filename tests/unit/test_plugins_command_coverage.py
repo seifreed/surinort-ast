@@ -28,19 +28,13 @@ from surinort_ast.plugins import (
     PluginRegistry,
     SerializerPlugin,
     get_registry,
-    reset_registry,
 )
 
 runner = CliRunner()
 
 _RULE = 'alert tcp any any -> any 80 (msg:"r"; sid:42; rev:1;)\n'
 
-
-@pytest.fixture(autouse=True)
-def _clean_registry():
-    reset_registry()
-    yield
-    reset_registry()
+pytestmark = pytest.mark.usefixtures("clean_registry")
 
 
 class DemoSerializer(SerializerPlugin):

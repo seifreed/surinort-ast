@@ -25,16 +25,10 @@ from surinort_ast.plugins import (
     PluginRegistry,
     QueryPlugin,
     get_registry,
-    reset_registry,
 )
 from surinort_ast.plugins.registry import _RegistrySingleton
 
-
-@pytest.fixture(autouse=True)
-def _clean_registry():
-    reset_registry()
-    yield
-    reset_registry()
+pytestmark = pytest.mark.usefixtures("clean_registry")
 
 
 class DemoAnalyzer(AnalysisPlugin):
