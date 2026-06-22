@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from surinort_ast.core.nodes import ASTNode
+from surinort_ast.core.nodes import ASTNode, iter_child_nodes
 
 from .registry import resolve_node_type
 
@@ -708,14 +708,8 @@ class PseudoSelector(Selector):
         return False
 
     def _has_children(self, node: ASTNode) -> bool:
-        """Check if node has any children."""
-        for attr_value in node.__dict__.values():
-            if isinstance(attr_value, list | tuple) and attr_value:
-                if any(hasattr(item, "node_type") for item in attr_value):
-                    return True
-            elif hasattr(attr_value, "node_type"):
-                return True
-        return False
+        """Check if node has any AST-node children."""
+        return any(True for _ in iter_child_nodes(node))
 
     def _matches_position(self, node: ASTNode, context: Any) -> bool:
         """Match :first-child / :last-child against the node's sibling index.
