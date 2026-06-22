@@ -885,38 +885,38 @@ class TestDeserializeStringValuedOptions:
 
     def test_depth_string_value_branch(self) -> None:
         from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
-        from surinort_ast.serialization.protobuf.serializer import _deserialize_depth
+        from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
         pb_opt.depth.string_value = "myvar"
-        result = _deserialize_depth(pb_opt, None, [])
+        result = _deserialize_option(pb_opt)
         assert result.value == "myvar"
 
     def test_offset_string_value_branch(self) -> None:
         from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
-        from surinort_ast.serialization.protobuf.serializer import _deserialize_offset
+        from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
         pb_opt.offset.string_value = "ovar"
-        result = _deserialize_offset(pb_opt, None, [])
+        result = _deserialize_option(pb_opt)
         assert result.value == "ovar"
 
     def test_distance_string_value_branch(self) -> None:
         from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
-        from surinort_ast.serialization.protobuf.serializer import _deserialize_distance
+        from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
         pb_opt.distance.string_value = "dvar"
-        result = _deserialize_distance(pb_opt, None, [])
+        result = _deserialize_option(pb_opt)
         assert result.value == "dvar"
 
     def test_within_string_value_branch(self) -> None:
         from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
-        from surinort_ast.serialization.protobuf.serializer import _deserialize_within
+        from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
         pb_opt.within.string_value = "wvar"
-        result = _deserialize_within(pb_opt, None, [])
+        result = _deserialize_option(pb_opt)
         assert result.value == "wvar"
 
 
@@ -930,30 +930,38 @@ class TestDeserializeBareOptions:
 
     def test_nocase_deserialization(self) -> None:
         from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
-        from surinort_ast.serialization.protobuf.serializer import _deserialize_nocase
+        from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
-        result = _deserialize_nocase(pb.Option(), None, [])
+        pb_opt = pb.Option()
+        pb_opt.nocase.SetInParent()
+        result = _deserialize_option(pb_opt)
         assert isinstance(result, NocaseOption)
 
     def test_rawbytes_deserialization(self) -> None:
         from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
-        from surinort_ast.serialization.protobuf.serializer import _deserialize_rawbytes
+        from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
-        result = _deserialize_rawbytes(pb.Option(), None, [])
+        pb_opt = pb.Option()
+        pb_opt.rawbytes.SetInParent()
+        result = _deserialize_option(pb_opt)
         assert isinstance(result, RawbytesOption)
 
     def test_startswith_deserialization(self) -> None:
         from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
-        from surinort_ast.serialization.protobuf.serializer import _deserialize_startswith
+        from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
-        result = _deserialize_startswith(pb.Option(), None, [])
+        pb_opt = pb.Option()
+        pb_opt.startswith.SetInParent()
+        result = _deserialize_option(pb_opt)
         assert isinstance(result, StartswithOption)
 
     def test_endswith_deserialization(self) -> None:
         from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
-        from surinort_ast.serialization.protobuf.serializer import _deserialize_endswith
+        from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
-        result = _deserialize_endswith(pb.Option(), None, [])
+        pb_opt = pb.Option()
+        pb_opt.endswith.SetInParent()
+        result = _deserialize_option(pb_opt)
         assert isinstance(result, EndswithOption)
 
 

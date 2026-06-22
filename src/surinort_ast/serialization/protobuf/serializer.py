@@ -25,7 +25,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from datetime import UTC, datetime
 from functools import singledispatch
 from typing import Any, TypeVar
@@ -109,6 +109,7 @@ class ProtobufError(Exception):
 # ============================================================================
 
 _EnumT = TypeVar("_EnumT")
+_OptionT = TypeVar("_OptionT", bound=Option)
 
 
 def _enum_mapping(pairs: dict[_EnumT, int]) -> tuple[dict[_EnumT, int], dict[int, _EnumT]]:
@@ -1109,74 +1110,31 @@ def _deserialize_luajit(
     )
 
 
-def _deserialize_depth(pb_opt: Any, location: Location | None, comments: list[str]) -> DepthOption:
-    """Deserialize DepthOption."""
-    value_type = pb_opt.depth.WhichOneof("value_type")
-    value: int | str = (
-        pb_opt.depth.int_value if value_type == "int_value" else pb_opt.depth.string_value
-    )
-    return DepthOption(value=value, location=location, comments=comments)
+def _make_oneof_value_deserializer(
+    field: str, option_class: Callable[..., _OptionT]
+) -> Callable[[Any, Location | None, list[str]], _OptionT]:
+    """Build a deserializer for an option whose value is an int/string oneof."""
+
+    def deserialize(pb_opt: Any, location: Location | None, comments: list[str]) -> _OptionT:
+        pb_field = getattr(pb_opt, field)
+        value_type = pb_field.WhichOneof("value_type")
+        value: int | str = (
+            pb_field.int_value if value_type == "int_value" else pb_field.string_value
+        )
+        return option_class(value=value, location=location, comments=comments)
+
+    return deserialize
 
 
-def _deserialize_offset(
-    pb_opt: Any, location: Location | None, comments: list[str]
-) -> OffsetOption:
-    """Deserialize OffsetOption."""
-    value_type = pb_opt.offset.WhichOneof("value_type")
-    value: int | str = (
-        pb_opt.offset.int_value if value_type == "int_value" else pb_opt.offset.string_value
-    )
-    return OffsetOption(value=value, location=location, comments=comments)
+def _make_bare_deserializer(
+    option_class: Callable[..., _OptionT],
+) -> Callable[[Any, Location | None, list[str]], _OptionT]:
+    """Build a deserializer for an empty marker option carrying only metadata."""
 
+    def deserialize(pb_opt: Any, location: Location | None, comments: list[str]) -> _OptionT:
+        return option_class(location=location, comments=comments)
 
-def _deserialize_distance(
-    pb_opt: Any, location: Location | None, comments: list[str]
-) -> DistanceOption:
-    """Deserialize DistanceOption."""
-    value_type = pb_opt.distance.WhichOneof("value_type")
-    value: int | str = (
-        pb_opt.distance.int_value if value_type == "int_value" else pb_opt.distance.string_value
-    )
-    return DistanceOption(value=value, location=location, comments=comments)
-
-
-def _deserialize_within(
-    pb_opt: Any, location: Location | None, comments: list[str]
-) -> WithinOption:
-    """Deserialize WithinOption."""
-    value_type = pb_opt.within.WhichOneof("value_type")
-    value: int | str = (
-        pb_opt.within.int_value if value_type == "int_value" else pb_opt.within.string_value
-    )
-    return WithinOption(value=value, location=location, comments=comments)
-
-
-def _deserialize_nocase(
-    pb_opt: Any, location: Location | None, comments: list[str]
-) -> NocaseOption:
-    """Deserialize NocaseOption."""
-    return NocaseOption(location=location, comments=comments)
-
-
-def _deserialize_rawbytes(
-    pb_opt: Any, location: Location | None, comments: list[str]
-) -> RawbytesOption:
-    """Deserialize RawbytesOption."""
-    return RawbytesOption(location=location, comments=comments)
-
-
-def _deserialize_startswith(
-    pb_opt: Any, location: Location | None, comments: list[str]
-) -> StartswithOption:
-    """Deserialize StartswithOption."""
-    return StartswithOption(location=location, comments=comments)
-
-
-def _deserialize_endswith(
-    pb_opt: Any, location: Location | None, comments: list[str]
-) -> EndswithOption:
-    """Deserialize EndswithOption."""
-    return EndswithOption(location=location, comments=comments)
+    return deserialize
 
 
 def _deserialize_generic(
@@ -1217,14 +1175,14 @@ _OPTION_DESERIALIZERS = {
     "filestore": _deserialize_filestore,
     "lua": _deserialize_lua,
     "luajit": _deserialize_luajit,
-    "depth": _deserialize_depth,
-    "offset": _deserialize_offset,
-    "distance": _deserialize_distance,
-    "within": _deserialize_within,
-    "nocase": _deserialize_nocase,
-    "rawbytes": _deserialize_rawbytes,
-    "startswith": _deserialize_startswith,
-    "endswith": _deserialize_endswith,
+    "depth": _make_oneof_value_deserializer("depth", DepthOption),
+    "offset": _make_oneof_value_deserializer("offset", OffsetOption),
+    "distance": _make_oneof_value_deserializer("distance", DistanceOption),
+    "within": _make_oneof_value_deserializer("within", WithinOption),
+    "nocase": _make_bare_deserializer(NocaseOption),
+    "rawbytes": _make_bare_deserializer(RawbytesOption),
+    "startswith": _make_bare_deserializer(StartswithOption),
+    "endswith": _make_bare_deserializer(EndswithOption),
     "generic": _deserialize_generic,
 }
 
