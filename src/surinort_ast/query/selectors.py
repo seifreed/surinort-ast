@@ -411,7 +411,43 @@ class AttributeSelector(Selector):
 # ============================================================================
 
 
-class CompoundSelector(Selector):
+class _SequenceSelector(Selector):
+    """
+    Base for selectors that combine an ordered list of member selectors.
+
+    Holds the shared construction, representation, and equality behaviour;
+    subclasses only differ in how ``matches`` combines the members.
+    """
+
+    def __init__(self, selectors: list[Selector]) -> None:
+        """
+        Initialize the selector with its non-empty member list.
+
+        Args:
+            selectors: List of selectors to combine
+
+        Raises:
+            InvalidSelectorError: If selectors list is empty
+        """
+        if not selectors:
+            from . import InvalidSelectorError
+
+            raise InvalidSelectorError(f"{type(self).__name__} requires at least one selector")
+        self.selectors = selectors
+
+    def __repr__(self) -> str:
+        """String representation."""
+        return f"{type(self).__name__}({self.selectors})"
+
+    def __eq__(self, other: object) -> bool:
+        """Equality comparison."""
+        return isinstance(other, type(self)) and self.selectors == other.selectors
+
+    # Explicitly unhashable due to mutable list of selectors
+    __hash__ = None  # type: ignore[assignment]
+
+
+class CompoundSelector(_SequenceSelector):
     """
     Combines multiple selectors with AND logic.
 
@@ -435,22 +471,6 @@ class CompoundSelector(Selector):
         Phase 3: Optimization (early exit, reordering)
     """
 
-    def __init__(self, selectors: list[Selector]) -> None:
-        """
-        Initialize compound selector.
-
-        Args:
-            selectors: List of selectors to combine with AND
-
-        Raises:
-            InvalidSelectorError: If selectors list is empty
-        """
-        if not selectors:
-            from . import InvalidSelectorError
-
-            raise InvalidSelectorError("CompoundSelector requires at least one selector")
-        self.selectors = selectors
-
     def matches(self, node: ASTNode, context: Any = None) -> bool:
         """
         Test if node matches all selectors.
@@ -468,21 +488,8 @@ class CompoundSelector(Selector):
         """
         return all(selector.matches(node, context) for selector in self.selectors)
 
-    def __repr__(self) -> str:
-        """String representation."""
-        return f"CompoundSelector({self.selectors})"
 
-    def __eq__(self, other: object) -> bool:
-        """Equality comparison."""
-        if not isinstance(other, CompoundSelector):
-            return False
-        return self.selectors == other.selectors
-
-    # Explicitly unhashable due to mutable list of selectors
-    __hash__ = None  # type: ignore[assignment]
-
-
-class UnionSelector(Selector):
+class UnionSelector(_SequenceSelector):
     """
     Combines multiple selectors with OR logic.
 
@@ -508,22 +515,6 @@ class UnionSelector(Selector):
         Phase 3: Optimization (early exit on first match)
     """
 
-    def __init__(self, selectors: list[Selector]) -> None:
-        """
-        Initialize union selector.
-
-        Args:
-            selectors: List of selectors to combine with OR
-
-        Raises:
-            InvalidSelectorError: If selectors list is empty
-        """
-        if not selectors:
-            from . import InvalidSelectorError
-
-            raise InvalidSelectorError("UnionSelector requires at least one selector")
-        self.selectors = selectors
-
     def matches(self, node: ASTNode, context: Any = None) -> bool:
         """
         Test if node matches any selector.
@@ -537,19 +528,6 @@ class UnionSelector(Selector):
         """
         # Early exit optimization: return True on first match
         return any(selector.matches(node, context) for selector in self.selectors)
-
-    def __repr__(self) -> str:
-        """String representation."""
-        return f"UnionSelector({self.selectors})"
-
-    def __eq__(self, other: object) -> bool:
-        """Equality comparison."""
-        if not isinstance(other, UnionSelector):
-            return False
-        return self.selectors == other.selectors
-
-    # Explicitly unhashable due to mutable list of selectors
-    __hash__ = None  # type: ignore[assignment]
 
 
 # ============================================================================
