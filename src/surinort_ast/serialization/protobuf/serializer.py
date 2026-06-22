@@ -766,10 +766,15 @@ def _optional_location(pb_obj: Any) -> Location | None:
     return _deserialize_location(pb_obj.location) if pb_obj.HasField("location") else None
 
 
+def _comments(pb_obj: Any) -> list[str]:
+    """Deserialize the repeated ``comments`` field of a protobuf message."""
+    return list(pb_obj.comments) if pb_obj.comments else []
+
+
 def _deserialize_address_expr(pb_addr: Any) -> AddressExpr:
     """Deserialize AddressExpr from protobuf message."""
     location = _optional_location(pb_addr)
-    comments = list(pb_addr.comments) if pb_addr.comments else []
+    comments = _comments(pb_addr)
 
     # Determine which address type is set
     addr_type = pb_addr.WhichOneof("address_type")
@@ -819,7 +824,7 @@ def _deserialize_address_expr(pb_addr: Any) -> AddressExpr:
 def _deserialize_port_expr(pb_port: Any) -> PortExpr:
     """Deserialize PortExpr from protobuf message."""
     location = _optional_location(pb_port)
-    comments = list(pb_port.comments) if pb_port.comments else []
+    comments = _comments(pb_port)
 
     # Determine which port type is set
     port_type = pb_port.WhichOneof("port_type")
@@ -1195,7 +1200,7 @@ def _deserialize_option(pb_opt: Any) -> Option:
     O(n) if-elif chains, reducing cyclomatic complexity from 33 to <10.
     """
     location = _optional_location(pb_opt)
-    comments = list(pb_opt.comments) if pb_opt.comments else []
+    comments = _comments(pb_opt)
 
     # Determine which option type is set
     option_type = pb_opt.WhichOneof("option_type")
@@ -1219,7 +1224,7 @@ def _deserialize_header(pb_header: Any) -> Header:
         dst_addr=_deserialize_address_expr(pb_header.dst_addr),
         dst_port=_deserialize_port_expr(pb_header.dst_port),
         location=location,
-        comments=list(pb_header.comments) if pb_header.comments else [],
+        comments=_comments(pb_header),
     )
 
 
@@ -1261,7 +1266,7 @@ def _deserialize_rule(pb_rule: Any) -> Rule:
         diagnostics=diagnostics,
         raw_text=pb_rule.raw_text if pb_rule.HasField("raw_text") else None,
         location=_optional_location(pb_rule),
-        comments=list(pb_rule.comments) if pb_rule.comments else [],
+        comments=_comments(pb_rule),
     )
 
 
