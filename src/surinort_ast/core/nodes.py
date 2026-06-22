@@ -287,6 +287,11 @@ class ContentModifier(BaseModel):
     name: ContentModifierType | str
     value: int | str | None = None
 
+    @property
+    def name_str(self) -> str:
+        """The modifier name as a string, whether it is a known enum or a literal."""
+        return self.name.value if isinstance(self.name, ContentModifierType) else self.name
+
 
 # ============================================================================
 # Options (Rule Options)

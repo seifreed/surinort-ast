@@ -485,9 +485,7 @@ class FastPatternStrategy(OptimizationStrategy):
 
         # Check modifiers
         for modifier in content.modifiers:
-            mod_name = (
-                modifier.name.value if hasattr(modifier.name, "value") else str(modifier.name)
-            )
+            mod_name = modifier.name_str
 
             # Penalize case-insensitive (slower matching)
             if mod_name == "nocase":

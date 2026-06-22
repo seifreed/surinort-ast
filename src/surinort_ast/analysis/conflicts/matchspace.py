@@ -409,7 +409,7 @@ def _content_is_positioned(content: ContentOption) -> bool:
     """True if an inline offset/depth/distance/within modifier anchors where the
     content must appear, so its literal alone no longer describes the match."""
     for modifier in content.modifiers:
-        name = modifier.name.value if hasattr(modifier.name, "value") else str(modifier.name)
+        name = modifier.name_str
         if name in _POSITIONAL_MODIFIER_NAMES:
             return True
     return False

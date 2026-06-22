@@ -207,9 +207,7 @@ class PerformanceEstimator:
         # Apply modifier multipliers
         multiplier = 1.0
         for modifier in content.modifiers:
-            mod_name = (
-                modifier.name.value if hasattr(modifier.name, "value") else str(modifier.name)
-            )
+            mod_name = modifier.name_str
             mod_mult = self.CONTENT_MODIFIER_MULTIPLIERS.get(mod_name, 1.0)
             multiplier *= mod_mult
 
