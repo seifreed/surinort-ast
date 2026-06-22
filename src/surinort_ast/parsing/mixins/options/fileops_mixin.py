@@ -29,11 +29,9 @@ def _atom_text(item: Any) -> str:
     sub-rule is left untransformed — as a ``Tree`` whose single child carries
     the token; all three are reduced to their text.
     """
-    if isinstance(item, Token):
-        return str(item.value).strip()
     if isinstance(item, Tree):
         return "".join(_atom_text(child) for child in item.children).strip()
-    return str(item).strip()
+    return token_to_str(item).strip()
 
 
 class FileOperationsOptionsMixin:
