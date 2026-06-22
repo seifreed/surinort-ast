@@ -18,8 +18,6 @@ All tests drive the real RuleTransformer methods directly with real Lark
 tokens; no mocks or stubs are used.
 """
 
-from lark import Token
-
 from surinort_ast.core.diagnostics import DiagnosticLevel
 from surinort_ast.core.enums import Dialect
 from surinort_ast.core.nodes import (
@@ -28,18 +26,7 @@ from surinort_ast.core.nodes import (
     ThresholdOption,
 )
 from surinort_ast.parsing.transformer import RuleTransformer
-
-
-def create_token(token_type: str, value: str) -> Token:
-    """Create a Lark Token with the position attributes the transformer expects."""
-    token = Token(token_type, value)
-    token.line = 1
-    token.column = 1
-    token.start_pos = 0
-    token.end_line = 1
-    token.end_column = len(value)
-    token.end_pos = len(value)
-    return token
+from tests.unit._token_helpers import create_token
 
 
 def _warnings(transformer: RuleTransformer) -> list[str]:

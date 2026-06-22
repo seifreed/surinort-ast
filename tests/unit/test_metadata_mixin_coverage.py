@@ -25,39 +25,12 @@ All tests use real parser execution without mocks or test doubles.
 """
 
 import pytest
-from lark import Lark, Token
+from lark import Lark
 
 from surinort_ast.core.enums import Dialect
 from surinort_ast.core.nodes import Rule
 from surinort_ast.parsing.transformer import RuleTransformer
-
-
-def create_token(token_type: str, value: str) -> Token:
-    """
-    Create a Token with all required position attributes for testing.
-
-    Args:
-        token_type: Token type (e.g., "INT", "WORD")
-        value: Token value
-
-    Returns:
-        Token with position attributes set
-
-    Note:
-        Lark tokens need position attributes (line, column, start_pos, etc.)
-        for location tracking. This helper creates tokens suitable for direct
-        transformer method testing.
-    """
-    # Create base token
-    token = Token(token_type, value)
-    # Set required position attributes
-    token.line = 1
-    token.column = 1
-    token.start_pos = 0
-    token.end_line = 1
-    token.end_column = len(value)
-    token.end_pos = len(value)
-    return token
+from tests.unit._token_helpers import create_token
 
 
 class TestGidOption:
