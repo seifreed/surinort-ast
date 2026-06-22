@@ -8,6 +8,8 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from collections.abc import Sequence
+from enum import Enum
+from typing import TypeVar
 
 from ..core.enums import Action, Dialect, Direction, Protocol
 from ..core.nodes import (
@@ -63,6 +65,13 @@ from ..core.nodes import (
 from .option_builders import ContentBuilder, FlowBuilder, ThresholdBuilder
 
 _PCRE_FLAG_CHARS = frozenset("ismxAEGRUBPHKDSWYCO")
+
+_EnumT = TypeVar("_EnumT", bound=Enum)
+
+
+def _coerce_enum(value: _EnumT | str, enum_cls: type[_EnumT]) -> _EnumT:
+    """Coerce a string into ``enum_cls``; leave an existing enum member as-is."""
+    return enum_cls(value) if isinstance(value, str) else value
 
 
 def _normalize_pcre(pattern: str) -> tuple[str, str]:
@@ -146,7 +155,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._action = Action(action) if isinstance(action, str) else action
+        self._action = _coerce_enum(action, Action)
         return self
 
     def alert(self) -> RuleBuilder:
@@ -187,7 +196,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._protocol = Protocol(proto) if isinstance(proto, str) else proto
+        self._protocol = _coerce_enum(proto, Protocol)
         return self
 
     def tcp(self) -> RuleBuilder:
@@ -278,7 +287,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._direction = Direction(direction) if isinstance(direction, str) else direction
+        self._direction = _coerce_enum(direction, Direction)
         return self
 
     def to(self) -> RuleBuilder:
@@ -306,7 +315,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._dialect = Dialect(dialect) if isinstance(dialect, str) else dialect
+        self._dialect = _coerce_enum(dialect, Dialect)
         return self
 
     # ========================================================================
