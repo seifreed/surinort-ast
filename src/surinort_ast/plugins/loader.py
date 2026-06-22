@@ -159,13 +159,12 @@ class PluginLoader:
                     logger.info(f"Loaded plugin from entry point: {plugin_name}")
 
                 except Exception as e:
-                    error_msg = f"Failed to load plugin '{entry_point.name}': {e}"
-                    self._failed_plugins[entry_point.name] = str(e)
-
-                    if ignore_errors:
-                        logger.error(error_msg, exc_info=True)
-                    else:
-                        raise PluginLoadError(error_msg) from e
+                    self._record_plugin_failure(
+                        entry_point.name,
+                        e,
+                        ignore_errors=ignore_errors,
+                        message=f"Failed to load plugin '{entry_point.name}': {e}",
+                    )
 
         except Exception as e:
             if not ignore_errors:
@@ -264,29 +263,25 @@ class PluginLoader:
                         self._validate_plugin(plugin)
                         plugin.register(registry)
                     except Exception as e:
-                        self._failed_plugins[plugin_name] = str(e)
-                        if ignore_errors:
-                            logger.error(
-                                f"Failed to register plugin '{plugin_name}': {e}",
-                                exc_info=True,
-                            )
-                            continue
-                        raise PluginLoadError(
-                            f"Failed to register plugin '{plugin_name}': {e}"
-                        ) from e
+                        self._record_plugin_failure(
+                            plugin_name,
+                            e,
+                            ignore_errors=ignore_errors,
+                            message=f"Failed to register plugin '{plugin_name}': {e}",
+                        )
+                        continue
 
                     self._loaded_plugins.add(plugin_name)
                     loaded_count += 1
                     logger.info(f"Loaded plugin '{plugin_name}' from file: {plugin_file.name}")
 
             except Exception as e:
-                error_msg = f"Failed to load plugin from {plugin_file.name}: {e}"
-                self._failed_plugins[plugin_file.name] = str(e)
-
-                if ignore_errors:
-                    logger.error(error_msg, exc_info=True)
-                else:
-                    raise PluginLoadError(error_msg) from e
+                self._record_plugin_failure(
+                    plugin_file.name,
+                    e,
+                    ignore_errors=ignore_errors,
+                    message=f"Failed to load plugin from {plugin_file.name}: {e}",
+                )
 
         logger.info(f"Loaded {loaded_count} plugins from directory {plugin_dir}")
         return loaded_count
@@ -333,6 +328,23 @@ class PluginLoader:
     # ========================================================================
     # Plugin Validation
     # ========================================================================
+
+    def _record_plugin_failure(
+        self, plugin_name: str, error: Exception, *, ignore_errors: bool, message: str
+    ) -> None:
+        """Record a plugin load/registration failure.
+
+        Stores the error against ``plugin_name`` and, depending on
+        ``ignore_errors``, either logs ``message`` or raises
+        :class:`PluginLoadError`. Centralizes the failure policy shared by the
+        entry-point, module and directory loaders; callers keep their own
+        ``message`` wording.
+        """
+        self._failed_plugins[plugin_name] = str(error)
+        if ignore_errors:
+            logger.error(message, exc_info=True)
+            return
+        raise PluginLoadError(message) from error
 
     def _validate_plugin(self, plugin: Any) -> None:
         """
