@@ -6,8 +6,6 @@ This test suite validates real code behavior without mocks or stubs.
 
 from __future__ import annotations
 
-import json
-
 from surinort_ast import parse_rule, validate_rule
 from surinort_ast.analysis import CoverageAnalyzer, RuleOptimizer
 from surinort_ast.api import (
@@ -19,12 +17,7 @@ from surinort_ast.api import (
 from surinort_ast.core.diagnostics import Diagnostic
 from surinort_ast.core.enums import DiagnosticLevel
 from surinort_ast.core.location import Location, Position, Span
-
-
-def _extract_json(text: str) -> dict[str, object]:
-    start = text.find("{")
-    end = text.rfind("}")
-    return json.loads(text[start : end + 1])
+from tests.unit._helpers import extract_json as _extract_json
 
 
 def test_diagnostics_to_sarif_has_required_fields() -> None:

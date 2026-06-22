@@ -7,14 +7,9 @@ import json
 from typer.testing import CliRunner
 
 from surinort_ast.cli.main import app
+from tests.unit._helpers import extract_json as _extract_json
 
 runner = CliRunner()
-
-
-def _extract_json(text: str) -> dict[str, object]:
-    start = text.find("{")
-    end = text.rfind("}")
-    return json.loads(text[start : end + 1])
 
 
 def test_parse_format_sarif(tmp_path) -> None:
