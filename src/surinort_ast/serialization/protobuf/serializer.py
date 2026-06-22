@@ -247,10 +247,7 @@ def _serialize_address_expr(addr: AddressExpr) -> Any:
     """Serialize AddressExpr to protobuf message."""
     pb_addr = pb.AddressExpr()
 
-    if addr.location:
-        _serialize_location(addr.location, pb_addr.location)
-    if addr.comments:
-        pb_addr.comments.extend(addr.comments)
+    _serialize_base(addr, pb_addr)
 
     # Determine address type and populate
     if isinstance(addr, IPAddress):
@@ -279,10 +276,7 @@ def _serialize_port_expr(port: PortExpr) -> Any:
     """Serialize PortExpr to protobuf message."""
     pb_port = pb.PortExpr()
 
-    if port.location:
-        _serialize_location(port.location, pb_port.location)
-    if port.comments:
-        pb_port.comments.extend(port.comments)
+    _serialize_base(port, pb_port)
 
     # Determine port type and populate
     if isinstance(port, Port):
@@ -328,12 +322,12 @@ def _serialize_content_modifier(mod: ContentModifier) -> Any:
     return pb_mod
 
 
-def _serialize_option_base(opt: Option, pb_opt: Any) -> None:
-    """Populate base Option fields (location, comments) into protobuf message."""
-    if opt.location:
-        _serialize_location(opt.location, pb_opt.location)
-    if opt.comments:
-        pb_opt.comments.extend(opt.comments)
+def _serialize_base(node: Any, pb_node: Any) -> None:
+    """Populate the shared location and comments fields into a protobuf message."""
+    if node.location:
+        _serialize_location(node.location, pb_node.location)
+    if node.comments:
+        pb_node.comments.extend(node.comments)
 
 
 @singledispatch
@@ -346,14 +340,14 @@ def _serialize_option(opt: Option) -> Any:
     """
     # Fallback for unknown option types (should never reach here in practice)
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     return pb_opt
 
 
 @_serialize_option.register
 def _(opt: MsgOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.msg.text = opt.text
     return pb_opt
 
@@ -361,7 +355,7 @@ def _(opt: MsgOption) -> Any:
 @_serialize_option.register
 def _(opt: SidOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.sid.value = opt.value
     return pb_opt
 
@@ -369,7 +363,7 @@ def _(opt: SidOption) -> Any:
 @_serialize_option.register
 def _(opt: RevOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.rev.value = opt.value
     return pb_opt
 
@@ -377,7 +371,7 @@ def _(opt: RevOption) -> Any:
 @_serialize_option.register
 def _(opt: GidOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.gid.value = opt.value
     return pb_opt
 
@@ -385,7 +379,7 @@ def _(opt: GidOption) -> Any:
 @_serialize_option.register
 def _(opt: ClasstypeOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.classtype.value = opt.value
     return pb_opt
 
@@ -393,7 +387,7 @@ def _(opt: ClasstypeOption) -> Any:
 @_serialize_option.register
 def _(opt: PriorityOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.priority.value = opt.value
     return pb_opt
 
@@ -401,7 +395,7 @@ def _(opt: PriorityOption) -> Any:
 @_serialize_option.register
 def _(opt: ReferenceOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.reference.ref_type = opt.ref_type
     pb_opt.reference.ref_id = opt.ref_id
     return pb_opt
@@ -410,7 +404,7 @@ def _(opt: ReferenceOption) -> Any:
 @_serialize_option.register
 def _(opt: MetadataOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     for key, value in opt.entries:
         entry = pb_opt.metadata.entries.add()
         entry.key = key
@@ -421,7 +415,7 @@ def _(opt: MetadataOption) -> Any:
 @_serialize_option.register
 def _(opt: ContentOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.content.pattern = bytes(opt.pattern)
     pb_opt.content.negated = opt.negated
     for modifier in opt.modifiers:
@@ -432,7 +426,7 @@ def _(opt: ContentOption) -> Any:
 @_serialize_option.register
 def _(opt: PcreOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.pcre.pattern = opt.pattern
     pb_opt.pcre.flags = opt.flags
     pb_opt.pcre.negated = opt.negated
@@ -442,7 +436,7 @@ def _(opt: PcreOption) -> Any:
 @_serialize_option.register
 def _(opt: FlowOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.flow.directions.extend([_FLOW_DIRECTION_TO_PB[d] for d in opt.directions])
     pb_opt.flow.states.extend([_FLOW_STATE_TO_PB[s] for s in opt.states])
     return pb_opt
@@ -451,7 +445,7 @@ def _(opt: FlowOption) -> Any:
 @_serialize_option.register
 def _(opt: FlowbitsOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.flowbits.action = opt.action
     pb_opt.flowbits.name = opt.name
     return pb_opt
@@ -460,7 +454,7 @@ def _(opt: FlowbitsOption) -> Any:
 @_serialize_option.register
 def _(opt: ThresholdOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.threshold.threshold_type = opt.threshold_type
     pb_opt.threshold.track = opt.track
     pb_opt.threshold.count = opt.count
@@ -471,7 +465,7 @@ def _(opt: ThresholdOption) -> Any:
 @_serialize_option.register
 def _(opt: DetectionFilterOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.detection_filter.track = opt.track
     pb_opt.detection_filter.count = opt.count
     pb_opt.detection_filter.seconds = opt.seconds
@@ -481,7 +475,7 @@ def _(opt: DetectionFilterOption) -> Any:
 @_serialize_option.register
 def _(opt: BufferSelectOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.buffer_select.buffer_name = opt.buffer_name
     return pb_opt
 
@@ -489,7 +483,7 @@ def _(opt: BufferSelectOption) -> Any:
 @_serialize_option.register
 def _(opt: ByteTestOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.byte_test.bytes_to_extract = opt.bytes_to_extract
     pb_opt.byte_test.operator = opt.operator
     pb_opt.byte_test.value = opt.value
@@ -501,7 +495,7 @@ def _(opt: ByteTestOption) -> Any:
 @_serialize_option.register
 def _(opt: ByteJumpOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.byte_jump.bytes_to_extract = opt.bytes_to_extract
     pb_opt.byte_jump.offset = opt.offset
     pb_opt.byte_jump.flags.extend(opt.flags)
@@ -511,7 +505,7 @@ def _(opt: ByteJumpOption) -> Any:
 @_serialize_option.register
 def _(opt: ByteExtractOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.byte_extract.bytes_to_extract = opt.bytes_to_extract
     pb_opt.byte_extract.offset = opt.offset
     pb_opt.byte_extract.var_name = opt.var_name
@@ -522,7 +516,7 @@ def _(opt: ByteExtractOption) -> Any:
 @_serialize_option.register
 def _(opt: FastPatternOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     # Mark the oneof present so a bare fast_pattern (no offset/length) still
     # round-trips; otherwise WhichOneof returns None on deserialize.
     pb_opt.fast_pattern.SetInParent()
@@ -537,7 +531,7 @@ def _(opt: FastPatternOption) -> Any:
 @_serialize_option.register
 def _(opt: TagOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.tag.tag_type = opt.tag_type
     pb_opt.tag.count = opt.count
     pb_opt.tag.metric = opt.metric
@@ -547,7 +541,7 @@ def _(opt: TagOption) -> Any:
 @_serialize_option.register
 def _(opt: FilestoreOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     # Mark the oneof present so a bare filestore (no direction/scope) still
     # round-trips; otherwise WhichOneof returns None on deserialize.
     pb_opt.filestore.SetInParent()
@@ -561,7 +555,7 @@ def _(opt: FilestoreOption) -> Any:
 @_serialize_option.register
 def _(opt: LuaOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.lua.script_name = opt.script_name
     pb_opt.lua.negated = opt.negated
     return pb_opt
@@ -570,7 +564,7 @@ def _(opt: LuaOption) -> Any:
 @_serialize_option.register
 def _(opt: LuajitOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.luajit.script_name = opt.script_name
     pb_opt.luajit.negated = opt.negated
     return pb_opt
@@ -579,7 +573,7 @@ def _(opt: LuajitOption) -> Any:
 @_serialize_option.register
 def _(opt: DepthOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     if isinstance(opt.value, int):
         pb_opt.depth.int_value = opt.value
     else:
@@ -590,7 +584,7 @@ def _(opt: DepthOption) -> Any:
 @_serialize_option.register
 def _(opt: OffsetOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     if isinstance(opt.value, int):
         pb_opt.offset.int_value = opt.value
     else:
@@ -601,7 +595,7 @@ def _(opt: OffsetOption) -> Any:
 @_serialize_option.register
 def _(opt: DistanceOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     if isinstance(opt.value, int):
         pb_opt.distance.int_value = opt.value
     else:
@@ -612,7 +606,7 @@ def _(opt: DistanceOption) -> Any:
 @_serialize_option.register
 def _(opt: WithinOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     if isinstance(opt.value, int):
         pb_opt.within.int_value = opt.value
     else:
@@ -623,7 +617,7 @@ def _(opt: WithinOption) -> Any:
 @_serialize_option.register
 def _(opt: NocaseOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.nocase.SetInParent()
     return pb_opt
 
@@ -631,7 +625,7 @@ def _(opt: NocaseOption) -> Any:
 @_serialize_option.register
 def _(opt: RawbytesOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.rawbytes.SetInParent()
     return pb_opt
 
@@ -639,7 +633,7 @@ def _(opt: RawbytesOption) -> Any:
 @_serialize_option.register
 def _(opt: StartswithOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.startswith.SetInParent()
     return pb_opt
 
@@ -647,7 +641,7 @@ def _(opt: StartswithOption) -> Any:
 @_serialize_option.register
 def _(opt: EndswithOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.endswith.SetInParent()
     return pb_opt
 
@@ -655,7 +649,7 @@ def _(opt: EndswithOption) -> Any:
 @_serialize_option.register
 def _(opt: GenericOption) -> Any:
     pb_opt = pb.Option()
-    _serialize_option_base(opt, pb_opt)
+    _serialize_base(opt, pb_opt)
     pb_opt.generic.keyword = opt.keyword
     if opt.value is not None:
         pb_opt.generic.value = opt.value
@@ -674,10 +668,7 @@ def _serialize_header(header: Header) -> Any:
     pb_header.dst_addr.CopyFrom(_serialize_address_expr(header.dst_addr))
     pb_header.dst_port.CopyFrom(_serialize_port_expr(header.dst_port))
 
-    if header.location:
-        _serialize_location(header.location, pb_header.location)
-    if header.comments:
-        pb_header.comments.extend(header.comments)
+    _serialize_base(header, pb_header)
 
     return pb_header
 
@@ -737,10 +728,7 @@ def _serialize_rule(rule: Rule) -> Any:
             pb_rule.diagnostics.append(_serialize_diagnostic(diag))
     if rule.raw_text is not None:
         pb_rule.raw_text = rule.raw_text
-    if rule.location:
-        _serialize_location(rule.location, pb_rule.location)
-    if rule.comments:
-        pb_rule.comments.extend(rule.comments)
+    _serialize_base(rule, pb_rule)
 
     return pb_rule
 
