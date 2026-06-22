@@ -322,6 +322,11 @@ class RuleBuilder:
     # Common Options
     # ========================================================================
 
+    def _add_option(self, option: Option) -> RuleBuilder:
+        """Append a rule option and return self for chaining."""
+        self._options.append(option)
+        return self
+
     def msg(self, text: str) -> RuleBuilder:
         """
         Add msg option.
@@ -332,8 +337,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(MsgOption(text=text))
-        return self
+        return self._add_option(MsgOption(text=text))
 
     def sid(self, value: int) -> RuleBuilder:
         """
@@ -345,8 +349,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(SidOption(value=value))
-        return self
+        return self._add_option(SidOption(value=value))
 
     def rev(self, value: int) -> RuleBuilder:
         """
@@ -358,8 +361,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(RevOption(value=value))
-        return self
+        return self._add_option(RevOption(value=value))
 
     def gid(self, value: int) -> RuleBuilder:
         """
@@ -371,8 +373,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(GidOption(value=value))
-        return self
+        return self._add_option(GidOption(value=value))
 
     def classtype(self, value: str) -> RuleBuilder:
         """
@@ -384,8 +385,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(ClasstypeOption(value=value))
-        return self
+        return self._add_option(ClasstypeOption(value=value))
 
     def priority(self, value: int) -> RuleBuilder:
         """
@@ -397,8 +397,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(PriorityOption(value=value))
-        return self
+        return self._add_option(PriorityOption(value=value))
 
     def reference(self, ref_type: str, ref_id: str) -> RuleBuilder:
         """
@@ -411,8 +410,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(ReferenceOption(ref_type=ref_type, ref_id=ref_id))
-        return self
+        return self._add_option(ReferenceOption(ref_type=ref_type, ref_id=ref_id))
 
     def metadata(self, *entries: tuple[str, str]) -> RuleBuilder:
         """
@@ -427,8 +425,7 @@ class RuleBuilder:
         Example:
             >>> builder.metadata(("policy", "balanced"), ("created_at", "2025-01-01"))
         """
-        self._options.append(MetadataOption(entries=list(entries)))
-        return self
+        return self._add_option(MetadataOption(entries=list(entries)))
 
     # ========================================================================
     # Content and Pattern Matching
@@ -531,8 +528,7 @@ class RuleBuilder:
             >>> builder.pcre(r"/admin/i")
         """
         body, embedded_flags = _normalize_pcre(pattern)
-        self._options.append(PcreOption(pattern=body, flags=flags or embedded_flags))
-        return self
+        return self._add_option(PcreOption(pattern=body, flags=flags or embedded_flags))
 
     # ========================================================================
     # Flow and State
@@ -558,8 +554,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(FlowbitsOption(action=action, name=name))
-        return self
+        return self._add_option(FlowbitsOption(action=action, name=name))
 
     # ========================================================================
     # Thresholding
@@ -586,8 +581,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(DetectionFilterOption(track=track, count=count, seconds=seconds))
-        return self
+        return self._add_option(DetectionFilterOption(track=track, count=count, seconds=seconds))
 
     # ========================================================================
     # Advanced Options
@@ -692,8 +686,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(TagOption(tag_type=tag_type, count=count, metric=metric))
-        return self
+        return self._add_option(TagOption(tag_type=tag_type, count=count, metric=metric))
 
     def filestore(self, direction: str | None = None, scope: str | None = None) -> RuleBuilder:
         """
@@ -706,8 +699,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(FilestoreOption(direction=direction, scope=scope))
-        return self
+        return self._add_option(FilestoreOption(direction=direction, scope=scope))
 
     def lua(self, script_name: str, negated: bool = False) -> RuleBuilder:
         """
@@ -720,8 +712,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(LuaOption(script_name=script_name, negated=negated))
-        return self
+        return self._add_option(LuaOption(script_name=script_name, negated=negated))
 
     def luajit(self, script_name: str, negated: bool = False) -> RuleBuilder:
         """
@@ -734,8 +725,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(LuajitOption(script_name=script_name, negated=negated))
-        return self
+        return self._add_option(LuajitOption(script_name=script_name, negated=negated))
 
     def buffer_select(self, buffer_name: str) -> RuleBuilder:
         """
@@ -747,8 +737,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(BufferSelectOption(buffer_name=buffer_name))
-        return self
+        return self._add_option(BufferSelectOption(buffer_name=buffer_name))
 
     def fast_pattern(self, offset: int | None = None, length: int | None = None) -> RuleBuilder:
         """
@@ -761,8 +750,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(FastPatternOption(offset=offset, length=length))
-        return self
+        return self._add_option(FastPatternOption(offset=offset, length=length))
 
     # ========================================================================
     # Raw Option Addition
@@ -778,8 +766,7 @@ class RuleBuilder:
         Returns:
             Self for chaining
         """
-        self._options.append(opt)
-        return self
+        return self._add_option(opt)
 
     # ========================================================================
     # Build Method
