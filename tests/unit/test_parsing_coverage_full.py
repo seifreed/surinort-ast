@@ -424,17 +424,16 @@ class TestResolveByteFlag:
 
 
 # ---------------------------------------------------------------------------
-# transformer.py  — line 286
-# (AddressNegation branch in _address_expr_depth, called from address_list)
+# transformer.py — _expr_depth AddressNegation branch (called from address_list)
 # ---------------------------------------------------------------------------
 
 
 class TestAddressExprDepthNegation:
-    """Line 286: _address_expr_depth handles AddressNegation nodes."""
+    """_expr_depth handles AddressNegation nodes."""
 
     def test_address_list_with_negated_element_triggers_negation_depth(self) -> None:
         # A list containing a negated address forces address_list to call
-        # _address_expr_depth on an AddressNegation, covering line 286.
+        # _expr_depth on an AddressNegation, exercising the negation branch.
         rule = parse_rule('alert tcp [!192.168.1.1,10.0.0.1] any -> any any (msg:"Test"; sid:1;)')
         from surinort_ast.core.nodes import AddressList
 
@@ -442,11 +441,11 @@ class TestAddressExprDepthNegation:
         assert isinstance(rule.header.src_addr.elements[0], AddressNegation)
 
     def test_address_expr_depth_negation_direct(self) -> None:
-        # Call _address_expr_depth directly with an AddressNegation wrapping
-        # another AddressNegation to exercise the recursive call on line 286.
+        # Call _expr_depth directly with an AddressNegation wrapping another
+        # AddressNegation to exercise the recursive negation branch.
         inner = AddressNegation(expr=AnyAddress())
         outer = AddressNegation(expr=inner)
-        depth = RuleTransformer._address_expr_depth(outer)
+        depth = RuleTransformer._expr_depth(outer)
         # outer(1) + inner(1) + leaf(0) = 2
         assert depth == 2
 

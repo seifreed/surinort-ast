@@ -155,6 +155,16 @@ class JSONSerializer:
         """
         return self.from_json(data)
 
+    @staticmethod
+    def _metadata_envelope(data: Any, count: int) -> dict[str, Any]:
+        """Wrap serialized data in the metadata envelope (version, timestamp, count)."""
+        return {
+            "ast_version": __ast_version__,
+            "timestamp": datetime.now(UTC).isoformat(),
+            "count": count,
+            "data": data,
+        }
+
     def _serialize_single_rule(self, rule: Rule) -> dict[str, Any]:
         """
         Serialize a single rule.
@@ -169,12 +179,7 @@ class JSONSerializer:
         rule_data = rule.model_dump(mode="json", exclude_none=False)
 
         if self.include_metadata:
-            return {
-                "ast_version": __ast_version__,
-                "timestamp": datetime.now(UTC).isoformat(),
-                "count": 1,
-                "data": rule_data,
-            }
+            return self._metadata_envelope(rule_data, 1)
         return rule_data
 
     def _serialize_multiple_rules(self, rules: Sequence[Rule]) -> dict[str, Any]:
@@ -190,12 +195,7 @@ class JSONSerializer:
         rules_data = [rule.model_dump(mode="json", exclude_none=False) for rule in rules]
 
         if self.include_metadata:
-            return {
-                "ast_version": __ast_version__,
-                "timestamp": datetime.now(UTC).isoformat(),
-                "count": len(rules),
-                "data": {"rules": rules_data},
-            }
+            return self._metadata_envelope({"rules": rules_data}, len(rules))
         return {"rules": rules_data}
 
     def _validate_metadata(self, data: dict[str, Any]) -> None:

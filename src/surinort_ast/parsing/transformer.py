@@ -261,20 +261,21 @@ class RuleTransformer(
     # observes depth=1 for this method.
 
     @staticmethod
-    def _address_expr_depth(node: Any) -> int:
-        """Return the real nesting depth of an address expression.
+    def _expr_depth(node: Any) -> int:
+        """Return the real nesting depth of an address or port expression.
 
-        ``AddressList`` and ``AddressNegation`` each contribute one level,
-        plus the maximum depth of their children. All other address
-        expressions are leaves and contribute zero.
+        A list or negation node contributes one level plus the maximum depth
+        of its children; all other expressions are leaves and contribute zero.
+        Address and port expressions never mix within a single tree, so the
+        same traversal serves both.
         """
-        from ..core.nodes import AddressList, AddressNegation
+        from ..core.nodes import AddressList, AddressNegation, PortList, PortNegation
 
-        if isinstance(node, AddressNegation):
-            return 1 + RuleTransformer._address_expr_depth(node.expr)
-        if isinstance(node, AddressList):
+        if isinstance(node, (AddressNegation, PortNegation)):
+            return 1 + RuleTransformer._expr_depth(node.expr)
+        if isinstance(node, (AddressList, PortList)):
             return 1 + max(
-                (RuleTransformer._address_expr_depth(el) for el in node.elements),
+                (RuleTransformer._expr_depth(el) for el in node.elements),
                 default=0,
             )
         return 0
@@ -299,7 +300,7 @@ class RuleTransformer(
         # Measure the depth of the constructed node, which includes the
         # depth already contributed by each child element.
         depth = 1 + max(
-            (self._address_expr_depth(el) for el in elements),
+            (self._expr_depth(el) for el in elements),
             default=0,
         )
         self.config.validate_nesting_depth(depth)
@@ -322,7 +323,7 @@ class RuleTransformer(
         """
         from ..core.nodes import AddressNegation
 
-        depth = 1 + self._address_expr_depth(addr)
+        depth = 1 + self._expr_depth(addr)
         self.config.validate_nesting_depth(depth)
         return AddressNegation(expr=addr)
 
@@ -334,28 +335,10 @@ class RuleTransformer(
     # deeply nested port (e.g. ``!!!!...80``) would otherwise outrun the limit
     # and hit Python's recursion ceiling instead of a clean diagnostic.
 
-    @staticmethod
-    def _port_expr_depth(node: Any) -> int:
-        """Return the real nesting depth of a port expression.
-
-        ``PortList`` and ``PortNegation`` each contribute one level plus the
-        maximum depth of their children; all other port expressions are leaves.
-        """
-        from ..core.nodes import PortList, PortNegation
-
-        if isinstance(node, PortNegation):
-            return 1 + RuleTransformer._port_expr_depth(node.expr)
-        if isinstance(node, PortList):
-            return 1 + max(
-                (RuleTransformer._port_expr_depth(el) for el in node.elements),
-                default=0,
-            )
-        return 0
-
     @v_args(inline=True)
     def port_negation(self, port: Any) -> Any:
         """Transform a negated port with real-depth nesting validation."""
-        depth = 1 + self._port_expr_depth(port)
+        depth = 1 + self._expr_depth(port)
         self.config.validate_nesting_depth(depth)
         return super().port_negation(port)
 
@@ -363,7 +346,7 @@ class RuleTransformer(
         """Transform a port list with real-depth nesting validation."""
         elements = list(items)
         depth = 1 + max(
-            (self._port_expr_depth(el) for el in elements),
+            (self._expr_depth(el) for el in elements),
             default=0,
         )
         self.config.validate_nesting_depth(depth)
