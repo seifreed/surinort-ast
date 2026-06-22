@@ -772,9 +772,14 @@ def _deserialize_location(pb_loc: Any) -> Location | None:
     return Location(span=span, file_path=file_path)
 
 
+def _optional_location(pb_obj: Any) -> Location | None:
+    """Deserialize the optional ``location`` field of a protobuf message, or None."""
+    return _deserialize_location(pb_obj.location) if pb_obj.HasField("location") else None
+
+
 def _deserialize_address_expr(pb_addr: Any) -> AddressExpr:
     """Deserialize AddressExpr from protobuf message."""
-    location = _deserialize_location(pb_addr.location) if pb_addr.HasField("location") else None
+    location = _optional_location(pb_addr)
     comments = list(pb_addr.comments) if pb_addr.comments else []
 
     # Determine which address type is set
@@ -824,7 +829,7 @@ def _deserialize_address_expr(pb_addr: Any) -> AddressExpr:
 
 def _deserialize_port_expr(pb_port: Any) -> PortExpr:
     """Deserialize PortExpr from protobuf message."""
-    location = _deserialize_location(pb_port.location) if pb_port.HasField("location") else None
+    location = _optional_location(pb_port)
     comments = list(pb_port.comments) if pb_port.comments else []
 
     # Determine which port type is set
@@ -1243,7 +1248,7 @@ def _deserialize_option(pb_opt: Any) -> Option:
     This function uses a dictionary dispatch table for O(1) lookup instead of
     O(n) if-elif chains, reducing cyclomatic complexity from 33 to <10.
     """
-    location = _deserialize_location(pb_opt.location) if pb_opt.HasField("location") else None
+    location = _optional_location(pb_opt)
     comments = list(pb_opt.comments) if pb_opt.comments else []
 
     # Determine which option type is set
@@ -1259,7 +1264,7 @@ def _deserialize_option(pb_opt: Any) -> Option:
 
 def _deserialize_header(pb_header: Any) -> Header:
     """Deserialize Header from protobuf message."""
-    location = _deserialize_location(pb_header.location) if pb_header.HasField("location") else None
+    location = _optional_location(pb_header)
     return Header(
         protocol=_PB_TO_PROTOCOL[pb_header.protocol],
         src_addr=_deserialize_address_expr(pb_header.src_addr),
@@ -1280,7 +1285,7 @@ def _deserialize_diagnostic(pb_diag: Any) -> Diagnostic:
         # Empty string means the optional field was unset on the wire.
         code=pb_diag.code or None,
         hint=pb_diag.hint or None,
-        location=_deserialize_location(pb_diag.location) if pb_diag.HasField("location") else None,
+        location=_optional_location(pb_diag),
     )
 
 
@@ -1309,7 +1314,7 @@ def _deserialize_rule(pb_rule: Any) -> Rule:
         origin=_deserialize_source_origin(pb_rule.origin) if pb_rule.HasField("origin") else None,
         diagnostics=diagnostics,
         raw_text=pb_rule.raw_text if pb_rule.HasField("raw_text") else None,
-        location=_deserialize_location(pb_rule.location) if pb_rule.HasField("location") else None,
+        location=_optional_location(pb_rule),
         comments=list(pb_rule.comments) if pb_rule.comments else [],
     )
 
