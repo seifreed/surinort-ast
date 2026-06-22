@@ -81,107 +81,46 @@ class ContentBuilder:
         self._pattern = pattern
         return self
 
-    def nocase(self) -> ContentBuilder:
-        """
-        Add nocase modifier (case-insensitive matching).
-
-        Returns:
-            Self for chaining
-        """
-        self._pending_modifiers.append(NocaseOption())
+    def _add_modifier(self, modifier: Option) -> ContentBuilder:
+        """Append a pending content modifier and return self for chaining."""
+        self._pending_modifiers.append(modifier)
         return self
+
+    def nocase(self) -> ContentBuilder:
+        """Add nocase modifier (case-insensitive matching)."""
+        return self._add_modifier(NocaseOption())
 
     def rawbytes(self) -> ContentBuilder:
-        """
-        Add rawbytes modifier (match raw packet data).
-
-        Returns:
-            Self for chaining
-        """
-        self._pending_modifiers.append(RawbytesOption())
-        return self
+        """Add rawbytes modifier (match raw packet data)."""
+        return self._add_modifier(RawbytesOption())
 
     def depth(self, depth: int) -> ContentBuilder:
-        """
-        Add depth modifier (search within first N bytes).
-
-        Args:
-            depth: Maximum depth in bytes
-
-        Returns:
-            Self for chaining
-        """
-        self._pending_modifiers.append(DepthOption(value=depth))
-        return self
+        """Add depth modifier (search within first N bytes)."""
+        return self._add_modifier(DepthOption(value=depth))
 
     def offset(self, offset: int) -> ContentBuilder:
-        """
-        Add offset modifier (start search at byte position).
-
-        Args:
-            offset: Start offset in bytes
-
-        Returns:
-            Self for chaining
-        """
-        self._pending_modifiers.append(OffsetOption(value=offset))
-        return self
+        """Add offset modifier (start search at byte position)."""
+        return self._add_modifier(OffsetOption(value=offset))
 
     def distance(self, distance: int) -> ContentBuilder:
-        """
-        Add distance modifier (relative to previous match).
-
-        Args:
-            distance: Distance in bytes from previous match
-
-        Returns:
-            Self for chaining
-        """
-        self._pending_modifiers.append(DistanceOption(value=distance))
-        return self
+        """Add distance modifier (relative to previous match)."""
+        return self._add_modifier(DistanceOption(value=distance))
 
     def within(self, within: int) -> ContentBuilder:
-        """
-        Add within modifier (match within N bytes of previous).
-
-        Args:
-            within: Maximum bytes from previous match
-
-        Returns:
-            Self for chaining
-        """
-        self._pending_modifiers.append(WithinOption(value=within))
-        return self
+        """Add within modifier (match within N bytes of previous)."""
+        return self._add_modifier(WithinOption(value=within))
 
     def fast_pattern(self) -> ContentBuilder:
-        """
-        Add fast_pattern modifier (use for fast pattern matching).
-
-        Returns:
-            Self for chaining
-        """
-        self._pending_modifiers.append(FastPatternOption())
-        return self
+        """Add fast_pattern modifier (use for fast pattern matching)."""
+        return self._add_modifier(FastPatternOption())
 
     def startswith(self) -> ContentBuilder:
-        """
-        Add startswith modifier (match at start of buffer).
-
-        Returns:
-            Self for chaining
-        """
-        self._pending_modifiers.append(StartswithOption())
-        return self
+        """Add startswith modifier (match at start of buffer)."""
+        return self._add_modifier(StartswithOption())
 
     def endswith(self) -> ContentBuilder:
-        """
-        Add endswith modifier (match at end of buffer).
-
-        Returns:
-            Self for chaining
-        """
-        self._pending_modifiers.append(EndswithOption())
-        return self
+        """Add endswith modifier (match at end of buffer)."""
+        return self._add_modifier(EndswithOption())
 
     def _add_buffer(self, buffer_name: str) -> ContentBuilder:
         """Append a sticky-buffer selection and return self for chaining."""
@@ -276,75 +215,43 @@ class FlowBuilder:
         self._directions: list[FlowDirection] = []
         self._states: list[FlowState] = []
 
-    def to_server(self) -> FlowBuilder:
-        """
-        Set flow direction to server.
-
-        Returns:
-            Self for chaining
-        """
-        self._directions.append(FlowDirection.TO_SERVER)
+    def _add_direction(self, direction: FlowDirection) -> FlowBuilder:
+        """Append a flow direction and return self for chaining."""
+        self._directions.append(direction)
         return self
+
+    def _add_state(self, state: FlowState) -> FlowBuilder:
+        """Append a flow state and return self for chaining."""
+        self._states.append(state)
+        return self
+
+    def to_server(self) -> FlowBuilder:
+        """Set flow direction to server."""
+        return self._add_direction(FlowDirection.TO_SERVER)
 
     def to_client(self) -> FlowBuilder:
-        """
-        Set flow direction to client.
-
-        Returns:
-            Self for chaining
-        """
-        self._directions.append(FlowDirection.TO_CLIENT)
-        return self
+        """Set flow direction to client."""
+        return self._add_direction(FlowDirection.TO_CLIENT)
 
     def from_server(self) -> FlowBuilder:
-        """
-        Set flow direction from server.
-
-        Returns:
-            Self for chaining
-        """
-        self._directions.append(FlowDirection.FROM_SERVER)
-        return self
+        """Set flow direction from server."""
+        return self._add_direction(FlowDirection.FROM_SERVER)
 
     def from_client(self) -> FlowBuilder:
-        """
-        Set flow direction from client.
-
-        Returns:
-            Self for chaining
-        """
-        self._directions.append(FlowDirection.FROM_CLIENT)
-        return self
+        """Set flow direction from client."""
+        return self._add_direction(FlowDirection.FROM_CLIENT)
 
     def established(self) -> FlowBuilder:
-        """
-        Set flow state to established.
-
-        Returns:
-            Self for chaining
-        """
-        self._states.append(FlowState.ESTABLISHED)
-        return self
+        """Set flow state to established."""
+        return self._add_state(FlowState.ESTABLISHED)
 
     def stateless(self) -> FlowBuilder:
-        """
-        Set flow state to stateless.
-
-        Returns:
-            Self for chaining
-        """
-        self._states.append(FlowState.STATELESS)
-        return self
+        """Set flow state to stateless."""
+        return self._add_state(FlowState.STATELESS)
 
     def not_established(self) -> FlowBuilder:
-        """
-        Set flow state to not established.
-
-        Returns:
-            Self for chaining
-        """
-        self._states.append(FlowState.NOT_ESTABLISHED)
-        return self
+        """Set flow state to not established."""
+        return self._add_state(FlowState.NOT_ESTABLISHED)
 
     def done(self) -> RuleBuilder:
         """
