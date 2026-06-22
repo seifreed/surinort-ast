@@ -14,15 +14,14 @@ from typing import Annotated
 
 import typer
 
-from ...api import parse_file, print_rule
+from ...api import print_rule
 from ...core.enums import Dialect
 from ..shared import (
     cli_error_handler,
     console,
     err_console,
-    parse_rules_from_content,
+    load_rules,
     parsing_progress,
-    read_input,
     status_console,
     write_output,
 )
@@ -92,23 +91,9 @@ def fmt_command(
             err_console.print("Error: --in-place and --output are mutually exclusive")
             raise typer.Exit(1) from None
 
-        # Read input
-        if file and str(file) == "-":
-            file = None
-
-        content = read_input(file)
-
-        # Parse and format
+        # Read and parse input
         with parsing_progress("Formatting rules..."):
-            if file:
-                rules = parse_file(file, dialect=dialect)
-            else:
-                # Parse from stdin using shared helper
-                rules = parse_rules_from_content(content, dialect)
-
-        if not rules:
-            err_console.print("Error: No valid rules found")
-            raise typer.Exit(1) from None
+            rules, content, file = load_rules(file, dialect)
 
         # Format rules
         formatted_lines = []

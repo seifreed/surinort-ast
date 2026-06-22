@@ -107,6 +107,22 @@ class Header(ASTNode):
     dst_addr: DiscriminatedAddress
     dst_port: DiscriminatedPort
 
+    @classmethod
+    def wildcard(cls, protocol: Protocol = Protocol.IP) -> Header:
+        """Build a header matching any address and port in the ``TO`` direction.
+
+        Used where only the protocol is known: short-form rules
+        (``action protocol (...)``) and error-recovery placeholders.
+        """
+        return cls(
+            protocol=protocol,
+            src_addr=AnyAddress(),
+            src_port=AnyPort(),
+            direction=Direction.TO,
+            dst_addr=AnyAddress(),
+            dst_port=AnyPort(),
+        )
+
 
 class Rule(ASTNode):
     """

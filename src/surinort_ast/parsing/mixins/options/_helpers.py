@@ -14,8 +14,11 @@ from __future__ import annotations
 
 import functools
 import re
+from collections.abc import Callable, Iterable
+from typing import Any
 
 from ....core.nodes import GenericOption
+from ...helpers import token_to_str
 
 
 def generic_kv(keyword: str, value: str) -> GenericOption:
@@ -26,6 +29,37 @@ def generic_kv(keyword: str, value: str) -> GenericOption:
     urilen, isdataat, flowint, threshold, detection_filter).
     """
     return GenericOption(keyword=keyword, value=value, raw=f"{keyword}:{value}")
+
+
+def parse_kv_params(
+    params: Iterable[Any],
+    on_duplicate: Callable[[str, str, str], None] | None = None,
+) -> tuple[dict[str, str], list[str]]:
+    """Split option parameters into a ``{key: value}`` map and display strings.
+
+    Each 2-element tuple/list param becomes a ``key: value`` entry (also rendered
+    as ``"key value"`` in the returned display list); any other param is
+    stringified via :func:`token_to_str`. When ``on_duplicate`` is given it is
+    called as ``on_duplicate(key, old_value, new_value)`` before a repeated key
+    is overwritten.
+
+    Shared by the ``threshold`` and ``detection_filter`` transformers, which
+    both parse a comma-separated list of ``key value`` parameters before
+    attempting a structured build with a generic-option fallback.
+    """
+    param_dict: dict[str, str] = {}
+    param_strs: list[str] = []
+    for item in params:
+        if isinstance(item, (list, tuple)) and len(item) == 2:
+            key = token_to_str(item[0])
+            value = token_to_str(item[1])
+            if on_duplicate is not None and key in param_dict:
+                on_duplicate(key, param_dict[key], value)
+            param_dict[key] = value
+            param_strs.append(f"{key} {value}")
+        else:
+            param_strs.append(token_to_str(item))
+    return param_dict, param_strs
 
 
 # ============================================================================

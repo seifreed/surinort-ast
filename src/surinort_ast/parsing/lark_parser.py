@@ -24,11 +24,9 @@ from lark import Lark, LarkError, UnexpectedInput, UnexpectedToken
 from lark.exceptions import UnexpectedCharacters
 
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
-from ..core.enums import Action, Dialect, Direction, Protocol
+from ..core.enums import Action, Dialect, Protocol
 from ..core.location import Location, Position, Span
 from ..core.nodes import (
-    AnyAddress,
-    AnyPort,
     ErrorNode,
     Header,
     Rule,
@@ -631,14 +629,7 @@ class LarkRuleParser:
             Rule with minimal valid structure and error diagnostic
         """
         # Create minimal valid header
-        dummy_header = Header(
-            protocol=Protocol.IP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        dummy_header = Header.wildcard(Protocol.IP)
 
         # Create diagnostic from error
         diagnostic = Diagnostic(

@@ -25,7 +25,7 @@ from ...core.enums import Dialect
 from ..shared import (
     cli_error_handler,
     console,
-    emit_sarif,
+    emit_sarif_report,
     err_console,
     parsing_progress,
     resolve_output_format,
@@ -40,12 +40,12 @@ def _resolve_output_format(output_format: str) -> str:
 def _emit_sarif_if_requested(
     rules: list[Any], fmt: str, output: Path | None, sarif_out: Path | None
 ) -> bool:
-    if sarif_out is None and fmt != "sarif":
-        return False
-
-    report = CoverageAnalyzer().analyze(rules)
-    sarif_json = coverage_report_to_sarif(report)
-    return emit_sarif(sarif_json, fmt, output, sarif_out)
+    return emit_sarif_report(
+        lambda: coverage_report_to_sarif(CoverageAnalyzer().analyze(rules)),
+        fmt,
+        output,
+        sarif_out,
+    )
 
 
 def _build_count_table(title: str, item_name: str, counts: Counter[Any], total: int) -> Table:

@@ -45,7 +45,6 @@ from surinort_ast.cli.commands.parse import (
     _build_parse_findings,
     _emit_parse_sarif,
     _format_output,
-    _parse_stdin_rules,
     _resolve_output_format,
 )
 from surinort_ast.cli.main import app
@@ -353,18 +352,6 @@ class TestFromJsonCommand:
 
 class TestParseHelpers:
     """Direct tests for parse.py module-level helpers."""
-
-    def test_parse_stdin_rules_valid(self) -> None:
-        """_parse_stdin_rules parses valid rules from content string."""
-        rules = _parse_stdin_rules(_VALID_RULE + "\n", Dialect.SURICATA, verbose=False)
-
-        assert len(rules) == 1
-
-    def test_parse_stdin_rules_invalid_line_skipped(self) -> None:
-        """Invalid lines are skipped (no on_error callback, verbose=False)."""
-        rules = _parse_stdin_rules("not a rule\n", Dialect.SURICATA, verbose=False)
-
-        assert rules == []
 
     def test_parse_stdin_rules_verbose_long_line_via_cli(self) -> None:
         """Lines 40-41 are covered when --verbose is used with >50-char bad stdin."""

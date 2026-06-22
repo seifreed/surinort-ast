@@ -17,8 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 from lark import Token
 
-from ...helpers import token_to_str
-from ._helpers import generic_kv
+from ._helpers import generic_kv, parse_kv_params
 
 if TYPE_CHECKING:
     from .. import DiagnosticReporter
@@ -95,23 +94,14 @@ class ThresholdOptionsMixin:
         # items[0] should be threshold_params which is a list of tuples
         params = items[0] if items else []
 
+        def _warn_duplicate(key: str, old: str, new: str) -> None:
+            self.add_diagnostic(
+                DiagnosticLevel.WARNING,
+                f"Duplicate threshold parameter '{key}' (was '{old}', now '{new}')",
+            )
+
         # Try to extract structured fields for ThresholdOption
-        param_dict: dict[str, str] = {}
-        param_strs = []
-        for item in params:
-            if isinstance(item, tuple) and len(item) == 2:
-                key = str(item[0])
-                value = str(item[1])
-                if key in param_dict:
-                    self.add_diagnostic(
-                        DiagnosticLevel.WARNING,
-                        f"Duplicate threshold parameter '{key}' "
-                        f"(was '{param_dict[key]}', now '{value}')",
-                    )
-                param_dict[key] = value
-                param_strs.append(f"{key} {value}")
-            else:
-                param_strs.append(token_to_str(item))
+        param_dict, param_strs = parse_kv_params(params, on_duplicate=_warn_duplicate)
 
         # Build ThresholdOption if all required fields are present
         if all(k in param_dict for k in ("type", "track", "count", "seconds")):
@@ -196,17 +186,7 @@ class ThresholdOptionsMixin:
         # items[0] is the list of tuples from detection_params
         params = items[0] if items else []
 
-        param_dict: dict[str, str] = {}
-        param_strs = []
-        for item in params:
-            if isinstance(item, (list, tuple)) and len(item) == 2:
-                # item is a tuple from detection_param: (key, value)
-                key = token_to_str(item[0])
-                value = token_to_str(item[1])
-                param_dict[key] = value
-                param_strs.append(f"{key} {value}")
-            else:
-                param_strs.append(token_to_str(item))
+        param_dict, param_strs = parse_kv_params(params)
 
         # Build DetectionFilterOption if all required fields are present
         if all(k in param_dict for k in ("track", "count", "seconds")):

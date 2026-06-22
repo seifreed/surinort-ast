@@ -26,9 +26,9 @@ from lark import Token, Tree
 from lark.visitors import Transformer, v_args
 
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
-from ..core.enums import Dialect, Direction
+from ..core.enums import Dialect
 from ..core.location import Location
-from ..core.nodes import AnyAddress, AnyPort, Header, Rule
+from ..core.nodes import Header, Rule
 from .helpers import token_to_location
 from .mixins.address_transformer import AddressTransformerMixin
 from .mixins.content_transformer import (
@@ -211,21 +211,9 @@ class RuleTransformer(
         second = args[1]
         options = args[2] if len(args) > 2 else []
 
-        if isinstance(second, Header):
-            # Full form: action header (options)
-            header = second
-        else:
-            # Short form: action protocol (options)
-            # Build a minimal header with any addresses/ports and default direction
-            protocol = second
-            header = Header(
-                protocol=protocol,
-                src_addr=AnyAddress(),
-                src_port=AnyPort(),
-                direction=Direction.TO,
-                dst_addr=AnyAddress(),
-                dst_port=AnyPort(),
-            )
+        # Full form passes a parsed header; short form (action protocol ...)
+        # passes only the protocol, expanded to an any/any TO any/any header.
+        header = second if isinstance(second, Header) else Header.wildcard(second)
 
         # Create rule with accumulated diagnostics
         location = header.location

@@ -23,7 +23,7 @@ from ...core.enums import DiagnosticLevel, Dialect
 from ..shared import (
     cli_error_handler,
     console,
-    emit_sarif,
+    emit_sarif_report,
     parsing_progress,
     resolve_output_format,
     validate_file_path,
@@ -203,14 +203,13 @@ def _emit_validation_report(
     warning_count: int,
 ) -> None:
     """Emit the validation report as text and/or SARIF."""
-    if sarif_out is None and fmt != "sarif":
-        _emit_validation_text(
-            rules, all_diagnostics, lua_warnings, error_count, warning_count, output
-        )
-        return
-
-    sarif_json = to_sarif(_build_validation_findings(file, all_diagnostics, lua_warnings))
-    if not emit_sarif(sarif_json, fmt, output, sarif_out):
+    emitted_as_sarif = emit_sarif_report(
+        lambda: to_sarif(_build_validation_findings(file, all_diagnostics, lua_warnings)),
+        fmt,
+        output,
+        sarif_out,
+    )
+    if not emitted_as_sarif:
         _emit_validation_text(
             rules, all_diagnostics, lua_warnings, error_count, warning_count, output
         )

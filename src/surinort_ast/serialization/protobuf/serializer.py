@@ -28,7 +28,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Sequence
 from datetime import UTC, datetime
 from functools import singledispatch
-from typing import Any
+from typing import Any, TypeVar
 
 from surinort_ast.core.diagnostics import Diagnostic, DiagnosticLevel
 from surinort_ast.core.enums import (
@@ -108,24 +108,15 @@ class ProtobufError(Exception):
 # Enum Mappings (optimized lookup tables)
 # ============================================================================
 
-_ACTION_TO_PB: dict[Action, int] = {}
-_PB_TO_ACTION: dict[int, Action] = {}
-_PROTOCOL_TO_PB: dict[Protocol, int] = {}
-_PB_TO_PROTOCOL: dict[int, Protocol] = {}
-_DIRECTION_TO_PB: dict[Direction, int] = {}
-_PB_TO_DIRECTION: dict[int, Direction] = {}
-_DIALECT_TO_PB: dict[Dialect, int] = {}
-_PB_TO_DIALECT: dict[int, Dialect] = {}
-_DIAGNOSTIC_LEVEL_TO_PB: dict[DiagnosticLevel, int] = {}
-_PB_TO_DIAGNOSTIC_LEVEL: dict[int, DiagnosticLevel] = {}
-_CONTENT_MODIFIER_TO_PB: dict[ContentModifierType, int] = {}
-_PB_TO_CONTENT_MODIFIER: dict[int, ContentModifierType] = {}
-_FLOW_DIRECTION_TO_PB: dict[FlowDirection, int] = {}
-_PB_TO_FLOW_DIRECTION: dict[int, FlowDirection] = {}
-_FLOW_STATE_TO_PB: dict[FlowState, int] = {}
-_PB_TO_FLOW_STATE: dict[int, FlowState] = {}
+_EnumT = TypeVar("_EnumT")
 
-_ACTION_TO_PB.update(
+
+def _enum_mapping(pairs: dict[_EnumT, int]) -> tuple[dict[_EnumT, int], dict[int, _EnumT]]:
+    """Build the forward and reverse lookup tables for a bijective enum map."""
+    return pairs, {pb_value: member for member, pb_value in pairs.items()}
+
+
+_ACTION_TO_PB, _PB_TO_ACTION = _enum_mapping(
     {
         Action.ALERT: pb.ALERT,
         Action.LOG: pb.LOG,
@@ -135,9 +126,8 @@ _ACTION_TO_PB.update(
         Action.SDROP: pb.SDROP,
     }
 )
-_PB_TO_ACTION.update({v: k for k, v in _ACTION_TO_PB.items()})
 
-_PROTOCOL_TO_PB.update(
+_PROTOCOL_TO_PB, _PB_TO_PROTOCOL = _enum_mapping(
     {
         Protocol.TCP: pb.TCP,
         Protocol.TCP_PKT: pb.TCP_PKT,
@@ -173,36 +163,32 @@ _PROTOCOL_TO_PB.update(
         Protocol.FILE: pb.FILE,
     }
 )
-_PB_TO_PROTOCOL.update({v: k for k, v in _PROTOCOL_TO_PB.items()})
 
-_DIRECTION_TO_PB.update(
+_DIRECTION_TO_PB, _PB_TO_DIRECTION = _enum_mapping(
     {
         Direction.TO: pb.TO,
         Direction.FROM: pb.FROM,
         Direction.BIDIRECTIONAL: pb.BIDIRECTIONAL,
     }
 )
-_PB_TO_DIRECTION.update({v: k for k, v in _DIRECTION_TO_PB.items()})
 
-_DIALECT_TO_PB.update(
+_DIALECT_TO_PB, _PB_TO_DIALECT = _enum_mapping(
     {
         Dialect.SURICATA: pb.SURICATA,
         Dialect.SNORT2: pb.SNORT2,
         Dialect.SNORT3: pb.SNORT3,
     }
 )
-_PB_TO_DIALECT.update({v: k for k, v in _DIALECT_TO_PB.items()})
 
-_DIAGNOSTIC_LEVEL_TO_PB.update(
+_DIAGNOSTIC_LEVEL_TO_PB, _PB_TO_DIAGNOSTIC_LEVEL = _enum_mapping(
     {
         DiagnosticLevel.ERROR: pb.ERROR,
         DiagnosticLevel.WARNING: pb.WARNING,
         DiagnosticLevel.INFO: pb.INFO,
     }
 )
-_PB_TO_DIAGNOSTIC_LEVEL.update({v: k for k, v in _DIAGNOSTIC_LEVEL_TO_PB.items()})
 
-_CONTENT_MODIFIER_TO_PB.update(
+_CONTENT_MODIFIER_TO_PB, _PB_TO_CONTENT_MODIFIER = _enum_mapping(
     {
         ContentModifierType.NOCASE: pb.NOCASE,
         ContentModifierType.OFFSET: pb.OFFSET,
@@ -216,9 +202,8 @@ _CONTENT_MODIFIER_TO_PB.update(
         ContentModifierType.BSIZE: pb.BSIZE,
     }
 )
-_PB_TO_CONTENT_MODIFIER.update({v: k for k, v in _CONTENT_MODIFIER_TO_PB.items()})
 
-_FLOW_DIRECTION_TO_PB.update(
+_FLOW_DIRECTION_TO_PB, _PB_TO_FLOW_DIRECTION = _enum_mapping(
     {
         FlowDirection.TO_CLIENT: pb.TO_CLIENT,
         FlowDirection.TO_SERVER: pb.TO_SERVER,
@@ -226,9 +211,8 @@ _FLOW_DIRECTION_TO_PB.update(
         FlowDirection.FROM_SERVER: pb.FROM_SERVER,
     }
 )
-_PB_TO_FLOW_DIRECTION.update({v: k for k, v in _FLOW_DIRECTION_TO_PB.items()})
 
-_FLOW_STATE_TO_PB.update(
+_FLOW_STATE_TO_PB, _PB_TO_FLOW_STATE = _enum_mapping(
     {
         FlowState.ESTABLISHED: pb.ESTABLISHED,
         FlowState.NOT_ESTABLISHED: pb.NOT_ESTABLISHED,
@@ -237,7 +221,6 @@ _FLOW_STATE_TO_PB.update(
         FlowState.NO_STREAM: pb.NO_STREAM,
     }
 )
-_PB_TO_FLOW_STATE.update({v: k for k, v in _FLOW_STATE_TO_PB.items()})
 
 
 # ============================================================================

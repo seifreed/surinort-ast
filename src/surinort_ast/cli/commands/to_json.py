@@ -15,13 +15,11 @@ from typing import Annotated
 
 import typer
 
-from ...api import parse_file, to_json
+from ...api import to_json
 from ...core.enums import Dialect
 from ..shared import (
     cli_error_handler,
-    err_console,
-    parse_rules_from_content,
-    read_input,
+    load_rules,
     status_console,
     write_output,
 )
@@ -55,22 +53,7 @@ def to_json_command(
         cat rules.txt | surinort to-json - --compact
     """
     with cli_error_handler():
-        # Read input
-        if file and str(file) == "-":
-            file = None
-
-        content = read_input(file)
-
-        # Parse rules
-        if file:
-            rules = parse_file(file, dialect=dialect)
-        else:
-            # Parse from stdin using shared helper
-            rules = parse_rules_from_content(content, dialect)
-
-        if not rules:
-            err_console.print("Error: No valid rules found")
-            raise typer.Exit(1) from None
+        rules, _, _ = load_rules(file, dialect)
 
         # Convert to JSON
         output_data = {

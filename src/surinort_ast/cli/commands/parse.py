@@ -16,33 +16,30 @@ from typing import Annotated, Any
 import typer
 
 from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
-from ...api import parse_file, print_rule, to_json, to_sarif
+from ...api import print_rule, to_json, to_sarif
 from ...core.enums import Dialect
 from ..shared import (
     cli_error_handler,
-    emit_sarif,
+    emit_sarif_report,
     err_console,
-    parse_rules_from_content,
+    load_rules,
     parsing_progress,
-    read_input,
     resolve_output_format,
     status_console,
     write_output,
 )
 
 
-def _parse_stdin_rules(content: str, dialect: Dialect, verbose: bool) -> list[Any]:
-    """Parse rules from stdin content, warning per failed line when verbose."""
+def _warn_failed_line(line: str, exc: Exception) -> None:
+    """Warn on a stdin line that failed to parse.
 
-    def _warn(line: str, exc: Exception) -> None:
-        # Surface the structured exception name and message so users can
-        # diagnose the failure instead of seeing a 50-char truncation.
-        snippet = line if len(line) <= 50 else f"{line[:50]}..."
-        err_console.print(
-            f"[yellow]Warning:[/yellow] Failed to parse {snippet} ({type(exc).__name__}: {exc})"
-        )
-
-    return parse_rules_from_content(content, dialect, on_error=_warn if verbose else None)
+    Surfaces the structured exception name and message so users can diagnose
+    the failure instead of seeing a bare 50-char truncation.
+    """
+    snippet = line if len(line) <= 50 else f"{line[:50]}..."
+    err_console.print(
+        f"[yellow]Warning:[/yellow] Failed to parse {snippet} ({type(exc).__name__}: {exc})"
+    )
 
 
 def _format_output(rules: list[Any], json_output: bool, dialect: Dialect, verbose: bool) -> str:
@@ -91,12 +88,12 @@ def _resolve_output_format(output_format: str, json_output: bool) -> str:
 def _emit_parse_sarif(
     rules: list[Any], file: Path | None, output: Path | None, fmt: str, sarif_out: Path | None
 ) -> bool:
-    if sarif_out is None and fmt != "sarif":
-        return False
-
-    parse_findings = _build_parse_findings(rules, str(file) if file else None)
-    sarif_json = to_sarif(parse_findings)
-    return emit_sarif(sarif_json, fmt, output, sarif_out)
+    return emit_sarif_report(
+        lambda: to_sarif(_build_parse_findings(rules, str(file) if file else None)),
+        fmt,
+        output,
+        sarif_out,
+    )
 
 
 def parse_command(
@@ -150,23 +147,14 @@ def parse_command(
     with cli_error_handler(verbose=verbose):
         fmt = _resolve_output_format(output_format, json_output)
 
-        # Read input
-        if file and str(file) == "-":
-            file = None
-
-        content = read_input(file)
-
-        # Parse rules
+        # Read and parse input
         with parsing_progress("Parsing rules..."):
-            if file:
-                rules = parse_file(file, dialect=dialect, workers=workers)
-            else:
-                # Parse from stdin
-                rules = _parse_stdin_rules(content, dialect, verbose)
-
-        if not rules:
-            err_console.print("Error: No valid rules found")
-            raise typer.Exit(1) from None
+            rules, _, file = load_rules(
+                file,
+                dialect,
+                workers=workers,
+                on_error=_warn_failed_line if verbose else None,
+            )
 
         # Optional SARIF generation
         if _emit_parse_sarif(rules, file, output, fmt, sarif_out):

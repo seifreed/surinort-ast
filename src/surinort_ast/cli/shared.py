@@ -21,6 +21,7 @@ from lark.exceptions import LarkError
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from ..core.enums import Dialect
 from ..core.nodes import Rule
 from ..exceptions import ParseError
 
@@ -175,6 +176,27 @@ def emit_sarif(sarif_json: str, fmt: str, output: Path | None, sarif_out: Path |
     return False
 
 
+def emit_sarif_report(
+    build: Callable[[], str],
+    fmt: str,
+    output: Path | None,
+    sarif_out: Path | None,
+) -> bool:
+    """Build and emit a SARIF report only when one is requested.
+
+    Skips building entirely when no SARIF output is wanted (no ``--sarif-out``
+    and ``fmt != "sarif"``), so ``build`` runs lazily. When SARIF is requested,
+    ``build`` produces the SARIF JSON and it is emitted via :func:`emit_sarif`.
+
+    Returns:
+        True if the SARIF report was emitted as the primary output, so the
+        caller can skip its text rendering.
+    """
+    if sarif_out is None and fmt != "sarif":
+        return False
+    return emit_sarif(build(), fmt, output, sarif_out)
+
+
 def read_input(file_path: Path | None) -> str:
     """Read input from file or stdin."""
     if file_path:
@@ -273,3 +295,44 @@ def parse_rules_from_content(
                     logger.debug("Skipping malformed rule from stream input: %s", exc)
 
     return rules
+
+
+def load_rules(
+    file: Path | None,
+    dialect: Dialect,
+    *,
+    workers: int = 1,
+    on_error: Callable[[str, LarkError], None] | None = None,
+) -> tuple[list[Rule], str, Path | None]:
+    """Read input from a file or stdin and parse it into rules.
+
+    Treats a ``-`` argument as stdin. A real file path is parsed with
+    :func:`parse_file`; stdin content is parsed line by line with
+    :func:`parse_rules_from_content`. Exits with code 1 when no rules parse.
+
+    Args:
+        file: Rule file path, ``Path("-")`` for stdin, or ``None`` for stdin.
+        dialect: Dialect for the parser.
+        workers: Parallel workers for file parsing.
+        on_error: Optional per-line error callback for stdin parsing.
+
+    Returns:
+        ``(rules, content, file)`` where ``content`` is the raw input text and
+        ``file`` is normalized to ``None`` for stdin input.
+    """
+    from ..api import parse_file
+
+    if file is not None and str(file) == "-":
+        file = None
+
+    content = read_input(file)
+    if file is not None:
+        rules = parse_file(file, dialect=dialect, workers=workers)
+    else:
+        rules = parse_rules_from_content(content, dialect, on_error=on_error)
+
+    if not rules:
+        err_console.print("Error: No valid rules found")
+        raise typer.Exit(1) from None
+
+    return rules, content, file

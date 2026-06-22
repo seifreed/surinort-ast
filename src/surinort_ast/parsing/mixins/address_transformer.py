@@ -149,6 +149,39 @@ class AddressTransformerMixin:
                 )
                 return
 
+    def _build_cidr(self, ip_token: Token, prefix_token: Token, ip_version: int) -> IPCIDRRange:
+        """
+        Build an :class:`IPCIDRRange`, validating the prefix for the IP version.
+
+        Args:
+            ip_token: Token containing the network address.
+            prefix_token: Token containing the prefix length.
+            ip_version: 4 or 6; determines the valid prefix range (0-32 / 0-128).
+
+        Defensive Validation:
+            The grammar ensures ``prefix_token`` is a valid integer, but the
+            magnitude is validated here so an out-of-range prefix yields a clear
+            diagnostic and is clamped to a usable value instead of producing a
+            structurally invalid node.
+        """
+        max_prefix = 32 if ip_version == 4 else 128
+        network = str(ip_token.value)
+        prefix_len = int(prefix_token.value)
+
+        if prefix_len < 0 or prefix_len > max_prefix:
+            self.add_diagnostic(
+                DiagnosticLevel.WARNING,
+                f"IPv{ip_version} CIDR prefix length {prefix_len} out of range (0-{max_prefix})",
+                token_to_location(prefix_token, self.file_path),
+            )
+            prefix_len = max(0, min(prefix_len, max_prefix))
+
+        return IPCIDRRange(
+            network=network,
+            prefix_len=prefix_len,
+            location=token_to_location(ip_token, self.file_path),
+        )
+
     @v_args(inline=True)
     def ipv4_cidr(self, ip_token: Token, prefix_token: Token) -> IPCIDRRange:
         """
@@ -160,35 +193,9 @@ class AddressTransformerMixin:
 
         Returns:
             IPCIDRRange node representing the CIDR block
-
-        Defensive Validation:
-            The grammar ensures prefix_token contains a valid integer, but we
-            validate the range (0-32) for IPv4 to provide clear error messages
-            and protect against malformed input. This is defensive programming
-            despite grammar guarantees.
         """
-        network = str(ip_token.value)
-        prefix_len = int(prefix_token.value)
-
-        self._check_ipv4_octets(network, token_to_location(ip_token, self.file_path))
-
-        # Defensive validation: Grammar enforces integer, we enforce IPv4 range (0-32)
-        # This provides clear diagnostics and documents expected range
-        if prefix_len < 0 or prefix_len > 32:
-            self.add_diagnostic(
-                DiagnosticLevel.WARNING,
-                f"IPv4 CIDR prefix length {prefix_len} out of range (0-32)",
-                token_to_location(prefix_token, self.file_path),
-            )
-            # Clamp to the valid range so the AST never carries a structurally
-            # invalid prefix (the shared model permits up to 128 for IPv6).
-            prefix_len = max(0, min(prefix_len, 32))
-
-        return IPCIDRRange(
-            network=network,
-            prefix_len=prefix_len,
-            location=token_to_location(ip_token, self.file_path),
-        )
+        self._check_ipv4_octets(str(ip_token.value), token_to_location(ip_token, self.file_path))
+        return self._build_cidr(ip_token, prefix_token, ip_version=4)
 
     @v_args(inline=True)
     def ipv6_cidr(self, ip_token: Token, prefix_token: Token) -> IPCIDRRange:
@@ -201,33 +208,8 @@ class AddressTransformerMixin:
 
         Returns:
             IPCIDRRange node representing the CIDR block
-
-        Defensive Validation:
-            The grammar ensures prefix_token contains a valid integer, but we
-            validate the range (0-128) for IPv6 to provide clear error messages
-            and protect against malformed input. This is defensive programming
-            despite grammar guarantees.
         """
-        network = str(ip_token.value)
-        prefix_len = int(prefix_token.value)
-
-        # Defensive validation: Grammar enforces integer, we enforce IPv6 range (0-128)
-        # This provides clear diagnostics and documents expected range
-        if prefix_len < 0 or prefix_len > 128:
-            self.add_diagnostic(
-                DiagnosticLevel.WARNING,
-                f"IPv6 CIDR prefix length {prefix_len} out of range (0-128)",
-                token_to_location(prefix_token, self.file_path),
-            )
-            # Clamp to the valid range so a malformed prefix yields a diagnostic
-            # plus a usable node instead of crashing the whole rule parse.
-            prefix_len = max(0, min(prefix_len, 128))
-
-        return IPCIDRRange(
-            network=network,
-            prefix_len=prefix_len,
-            location=token_to_location(ip_token, self.file_path),
-        )
+        return self._build_cidr(ip_token, prefix_token, ip_version=6)
 
     @v_args(inline=True)
     def address_range(self, start: Any, end: Any) -> IPRange:
