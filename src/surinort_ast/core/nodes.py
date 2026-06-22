@@ -11,6 +11,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import base64
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Union
 
 from pydantic import (
@@ -864,3 +865,20 @@ def extract_sid(rule: Rule) -> int | None:
         if isinstance(option, SidOption):
             return option.value
     return None
+
+
+def iter_child_nodes(node: ASTNode) -> Iterator[ASTNode]:
+    """Yield the direct AST-node children of ``node`` in field-declaration order.
+
+    Descends into list/tuple fields, yielding their AST-node members; non-node
+    fields (scalars, enums, locations) are skipped. Shared by the visitor and
+    query traversals so the definition of "a node's children" lives in one place.
+    """
+    for field_name in type(node).model_fields:
+        value = getattr(node, field_name)
+        if isinstance(value, ASTNode):
+            yield value
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                if isinstance(item, ASTNode):
+                    yield item

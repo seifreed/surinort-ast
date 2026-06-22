@@ -15,6 +15,7 @@ from .nodes import (
     PortList,
     PortNegation,
     Rule,
+    iter_child_nodes,
 )
 
 T = TypeVar("T")
@@ -77,15 +78,8 @@ class ASTVisitor(Generic[T]):
             Result from default_return()
         """
         # Visit all fields that are ASTNodes or sequences of ASTNodes
-        for field_name in node.__class__.model_fields:
-            field_value = getattr(node, field_name)
-
-            if isinstance(field_value, ASTNode):
-                self.visit(field_value)
-            elif isinstance(field_value, (list, tuple)):
-                for item in field_value:
-                    if isinstance(item, ASTNode):
-                        self.visit(item)
+        for child in iter_child_nodes(node):
+            self.visit(child)
 
         return self.default_return()
 
@@ -323,15 +317,8 @@ class ASTWalker:
         Args:
             node: AST node to visit
         """
-        for field_name in node.__class__.model_fields:
-            field_value = getattr(node, field_name)
-
-            if isinstance(field_value, ASTNode):
-                self.walk(field_value)
-            elif isinstance(field_value, (list, tuple)):
-                for item in field_value:
-                    if isinstance(item, ASTNode):
-                        self.walk(item)
+        for child in iter_child_nodes(node):
+            self.walk(child)
 
     def visit_Rule(self, node: Rule) -> None:  # noqa: N802
         """Visit Rule node."""

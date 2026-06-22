@@ -17,7 +17,7 @@ from collections.abc import Iterator, Sequence
 # Combinator enum and other selector classes imported locally where used
 from typing import TYPE_CHECKING, Any
 
-from surinort_ast.core.nodes import ASTNode, Header, Rule
+from surinort_ast.core.nodes import ASTNode, Header, Rule, iter_child_nodes
 from surinort_ast.core.visitor import ASTVisitor
 
 if TYPE_CHECKING:
@@ -50,14 +50,7 @@ def query_children(node: ASTNode) -> list[ASTNode]:
         return [node.src_addr, node.src_port, node.dst_addr, node.dst_port]
 
     # Generic node: declared fields in order, descending into nested AST nodes.
-    children: list[ASTNode] = []
-    for field_name in type(node).model_fields:
-        value = getattr(node, field_name)
-        if isinstance(value, ASTNode):
-            children.append(value)
-        elif isinstance(value, (list, tuple)):
-            children.extend(item for item in value if isinstance(item, ASTNode))
-    return children
+    return list(iter_child_nodes(node))
 
 
 def _sibling_index(siblings: list[ASTNode], node: ASTNode) -> int | None:
