@@ -10,14 +10,11 @@ Author: Marc Rivero López | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 import typer
 
 from ..shared import console
-
-if TYPE_CHECKING:
-    from surinort_ast.core.nodes import Rule
 
 # ============================================================================
 # Plugin List Command
@@ -269,6 +266,7 @@ def analyze_command(
     """
     import json
 
+    from surinort_ast.core.nodes import extract_sid_str
     from surinort_ast.parsing.lark_parser import LarkRuleParser
     from surinort_ast.plugins import PluginLoader, get_registry
 
@@ -308,7 +306,7 @@ def analyze_command(
             all_results.append(
                 {
                     "rule_index": i,
-                    "sid": _extract_sid(rule),
+                    "sid": extract_sid_str(rule),
                     "results": results,
                 }
             )
@@ -316,7 +314,7 @@ def analyze_command(
             # Display summary
             score = results.get("score", "N/A")
             issues = results.get("issues", [])
-            console.print(f"Rule {i} (SID: {_extract_sid(rule)}): Score {score}")
+            console.print(f"Rule {i} (SID: {extract_sid_str(rule)}): Score {score}")
             if issues:
                 for issue in issues:
                     severity = issue.get("severity", "unknown")
@@ -334,14 +332,6 @@ def analyze_command(
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1) from e
-
-
-def _extract_sid(rule: Rule) -> str | None:
-    """Extract the SID as a string from a rule's options (None if absent)."""
-    from surinort_ast.core.nodes import extract_sid
-
-    sid = extract_sid(rule)
-    return None if sid is None else str(sid)
 
 
 # ============================================================================

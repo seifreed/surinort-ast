@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from ..core.enums import Dialect
-from ..core.nodes import Rule, SourceOrigin, extract_sid
+from ..core.nodes import Rule, SourceOrigin, extract_sid_str
 from ..exceptions import ParseError
 from ..parsing.lark_parser import LarkRuleParser
 from ..parsing.parser_config import ParserConfig
@@ -494,7 +494,7 @@ class StreamParser:
                 origin = SourceOrigin(
                     file_path=file_path,
                     line_number=first_line_num,
-                    rule_id=self._extract_sid(rule),
+                    rule_id=extract_sid_str(rule),
                 )
 
                 update_dict: dict[str, Any] = {"origin": origin}
@@ -540,11 +540,6 @@ class StreamParser:
                 return None
 
             raise ParseError(f"Line {first_line_num}: {e}") from e
-
-    def _extract_sid(self, rule: Rule) -> str | None:
-        """Extract the SID as a string for tracking (None if absent)."""
-        sid = extract_sid(rule)
-        return None if sid is None else str(sid)
 
     def _count_lines(self, file_path: Path) -> int:
         """

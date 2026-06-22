@@ -330,7 +330,7 @@ class LarkRuleParser:
                 # Create new Rule with updated diagnostics (immutable)
                 rule = rule.model_copy(update={"diagnostics": existing_diagnostics})
 
-            logger.debug(f"Successfully parsed rule: SID={self._extract_sid(rule)}")
+            logger.debug(f"Successfully parsed rule: SID={extract_sid(rule)}")
 
             return rule
 
@@ -671,7 +671,7 @@ class LarkRuleParser:
             Rule with updated metadata
         """
         # Extract SID if available
-        sid = self._extract_sid(rule)
+        sid = extract_sid(rule)
 
         # Calculate line number
         line_num = None
@@ -686,7 +686,3 @@ class LarkRuleParser:
         )
 
         return rule.model_copy(update={"origin": origin, "raw_text": raw_text})
-
-    def _extract_sid(self, rule: Rule) -> int | None:
-        """Extract the SID from a rule's options (None if absent)."""
-        return extract_sid(rule)

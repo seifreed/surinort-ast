@@ -25,6 +25,7 @@ from surinort_ast.core.nodes import (
     Protocol,
     Rule,
     SidOption,
+    extract_sid,
 )
 from surinort_ast.exceptions import ParseError
 from surinort_ast.parsing.lark_parser import LarkRuleParser
@@ -227,7 +228,7 @@ class TestBasicRuleParsing:
         assert sid_option.value == 999888
 
         # Extract SID using internal method
-        extracted_sid = parser._extract_sid(rule)
+        extracted_sid = extract_sid(rule)
         assert extracted_sid == 999888
 
     def test_parse_rule_without_sid(self):
@@ -240,7 +241,7 @@ class TestBasicRuleParsing:
         try:
             rule = parser.parse(rule_text)
             # If parsing succeeds, extract SID should return None
-            extracted_sid = parser._extract_sid(rule)
+            extracted_sid = extract_sid(rule)
             assert extracted_sid is None
         except Exception:
             # If grammar requires SID, this is expected
@@ -851,7 +852,7 @@ class TestEdgeCases:
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
         rule_no_sid = rule.model_copy(update={"options": []})
 
-        extracted = parser._extract_sid(rule_no_sid)
+        extracted = extract_sid(rule_no_sid)
 
         assert extracted is None
 
@@ -1421,7 +1422,7 @@ class TestSpecificErrorPaths:
         rule = parser.parse('alert tcp any any -> any 80 (msg:"Test"; sid:999;)')
 
         # Extract SID should work regardless of location
-        sid = parser._extract_sid(rule)
+        sid = extract_sid(rule)
         assert sid == 999
 
 

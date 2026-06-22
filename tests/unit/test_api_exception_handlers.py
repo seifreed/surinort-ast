@@ -535,12 +535,8 @@ invalid syntax here
         assert errors[0][0] == 1  # Index of failed rule
         assert "Failed to parse rule" in errors[0][1]
 
-    def test_parser_extract_sid_returns_none(self) -> None:
-        """
-        Test that _extract_sid returns None when rule has no SID option.
-
-        This tests line 550 in parser.py.
-        """
+    def test_extract_sid_returns_none(self) -> None:
+        """Test that extract_sid returns None when a rule has no SID option."""
         from surinort_ast.core.nodes import (
             Action,
             AnyAddress,
@@ -550,9 +546,8 @@ invalid syntax here
             MsgOption,
             Protocol,
             Rule,
+            extract_sid,
         )
-
-        parser = LarkRuleParser()
 
         # Create a rule without SID option
         header = Header(
@@ -571,6 +566,4 @@ invalid syntax here
             options=[MsgOption(text="test")],
         )
 
-        # Call _extract_sid - should return None (line 550)
-        sid = parser._extract_sid(rule)
-        assert sid is None
+        assert extract_sid(rule) is None

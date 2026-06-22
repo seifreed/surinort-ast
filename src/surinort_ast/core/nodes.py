@@ -867,6 +867,12 @@ def extract_sid(rule: Rule) -> int | None:
     return None
 
 
+def extract_sid_str(rule: Rule) -> str | None:
+    """Return the rule's SID as a string, or None when it has no sid option."""
+    sid = extract_sid(rule)
+    return None if sid is None else str(sid)
+
+
 def iter_child_nodes(node: ASTNode) -> Iterator[ASTNode]:
     """Yield the direct AST-node children of ``node`` in field-declaration order.
 
