@@ -519,10 +519,7 @@ class StreamParser:
                         update_dict["location"] = Location(span=span, file_path=file_path)
 
                 # Conditionally include raw text
-                if self.include_raw_text:
-                    update_dict["raw_text"] = full_text
-                else:
-                    update_dict["raw_text"] = None
+                update_dict["raw_text"] = full_text if self.include_raw_text else None
 
                 rule = rule.model_copy(update=update_dict)
 
@@ -605,10 +602,7 @@ def _parse_chunk_worker(
             origin = SourceOrigin(file_path=file_path, line_number=line_num)
 
             update_dict: dict[str, Any] = {"origin": origin}
-            if include_raw_text:
-                update_dict["raw_text"] = text
-            else:
-                update_dict["raw_text"] = None
+            update_dict["raw_text"] = text if include_raw_text else None
 
             rule = rule.model_copy(update=update_dict)
 
