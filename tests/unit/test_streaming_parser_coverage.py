@@ -36,8 +36,8 @@ from typing import Any
 
 import pytest
 
-from surinort_ast.core.enums import Action, Dialect
-from surinort_ast.core.nodes import Rule, SourceOrigin
+from surinort_ast.core.enums import Action, Dialect, Direction, Protocol
+from surinort_ast.core.nodes import AnyAddress, AnyPort, Header, Rule, SourceOrigin
 from surinort_ast.exceptions import ParseError
 from surinort_ast.parsing.lark_parser import LarkRuleParser
 from surinort_ast.streaming.parser import (
@@ -55,6 +55,25 @@ from surinort_ast.streaming.parser import (
 # ---------------------------------------------------------------------------
 
 _VALID_RULE = 'alert tcp any any -> any 80 (msg:"T"; sid:1;)'
+
+
+def _bare_rule(origin: SourceOrigin | None = None) -> Rule:
+    """Build a minimal ``alert tcp any any -> any`` rule for batch/stream tests."""
+    return Rule(
+        action=Action.ALERT,
+        header=Header(
+            protocol=Protocol.TCP,
+            src_addr=AnyAddress(),
+            src_port=AnyPort(),
+            direction=Direction.TO,
+            dst_addr=AnyAddress(),
+            dst_port=AnyPort(),
+        ),
+        options=(),
+        dialect=Dialect.SURICATA,
+        origin=origin,
+        diagnostics=(),
+    )
 
 
 def _write(tmp_path: Path, content: str, filename: str = "rules.rules") -> Path:
@@ -190,47 +209,13 @@ def test_iter_rule_blocks_trailing_incomplete_block_yielded() -> None:
 
 def test_batch_line_bounds_no_tracked_lines_returns_zero_zero() -> None:
     """When no rule in the list carries a tracked line number, return (0, 0) (line 187)."""
-    from surinort_ast.core.enums import Direction, Protocol
-    from surinort_ast.core.nodes import AnyAddress, AnyPort, Header
-
-    rule = Rule(
-        action=Action.ALERT,
-        header=Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        ),
-        options=(),
-        dialect=Dialect.SURICATA,
-        origin=None,
-        diagnostics=(),
-    )
+    rule = _bare_rule()
     assert _batch_line_bounds([rule]) == (0, 0)
 
 
 def test_batch_line_bounds_origin_without_line_number_returns_zero_zero() -> None:
     """A rule with origin but line_number=None still yields (0, 0) (line 187)."""
-    from surinort_ast.core.enums import Direction, Protocol
-    from surinort_ast.core.nodes import AnyAddress, AnyPort, Header
-
-    rule = Rule(
-        action=Action.ALERT,
-        header=Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        ),
-        options=(),
-        dialect=Dialect.SURICATA,
-        origin=SourceOrigin(file_path="x.rules", line_number=None),
-        diagnostics=(),
-    )
+    rule = _bare_rule(SourceOrigin(file_path="x.rules", line_number=None))
     assert _batch_line_bounds([rule]) == (0, 0)
 
 
@@ -719,24 +704,7 @@ def test_count_unquoted_parens_single_quote_suppresses_parens() -> None:
 
 def test_stream_batch_total_count() -> None:
     """StreamBatch.total_count returns the sum of successes and errors (line 173)."""
-    from surinort_ast.core.enums import Direction, Protocol
-    from surinort_ast.core.nodes import AnyAddress, AnyPort, Header
-
-    rule = Rule(
-        action=Action.ALERT,
-        header=Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        ),
-        options=(),
-        dialect=Dialect.SURICATA,
-        origin=None,
-        diagnostics=(),
-    )
+    rule = _bare_rule()
     batch = StreamBatch(
         rules=[rule, rule],
         errors=[(1, "err1"), (2, "err2"), (3, "err3")],
