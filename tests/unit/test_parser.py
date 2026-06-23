@@ -39,6 +39,7 @@ from surinort_ast.core.nodes import (
     SidOption,
 )
 from surinort_ast.parsing.transformer import RuleTransformer
+from tests._helpers import iter_rule_lines
 
 
 class TestBasicParsing:
@@ -339,22 +340,15 @@ class TestRealRuleParsing:
         """Parse all simple rules from fixtures."""
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
-        with open(simple_rules_file, encoding="utf-8") as f:
-            for line_num, line in enumerate(f, 1):
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                try:
-                    parse_tree = lark_parser.parse(line)
-                    result = transformer.transform(parse_tree)
-                    assert isinstance(result, list)
-                    assert len(result) >= 1
-                    assert isinstance(result[0], Rule)
-                except Exception as e:
-                    pytest.fail(
-                        f"Failed to parse simple rule at line {line_num}: {line}\nError: {e}"
-                    )
+        for line_num, line in iter_rule_lines(simple_rules_file):
+            try:
+                parse_tree = lark_parser.parse(line)
+                result = transformer.transform(parse_tree)
+                assert isinstance(result, list)
+                assert len(result) >= 1
+                assert isinstance(result[0], Rule)
+            except Exception as e:
+                pytest.fail(f"Failed to parse simple rule at line {line_num}: {line}\nError: {e}")
 
     def test_parse_complex_fixture_rules(
         self, lark_parser: Lark, transformer: RuleTransformer, fixtures_dir
@@ -362,22 +356,15 @@ class TestRealRuleParsing:
         """Parse all complex rules from fixtures."""
         complex_rules_file = fixtures_dir / "complex_rules.txt"
 
-        with open(complex_rules_file, encoding="utf-8") as f:
-            for line_num, line in enumerate(f, 1):
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                try:
-                    parse_tree = lark_parser.parse(line)
-                    result = transformer.transform(parse_tree)
-                    assert isinstance(result, list)
-                    assert len(result) >= 1
-                    assert isinstance(result[0], Rule)
-                except Exception as e:
-                    pytest.fail(
-                        f"Failed to parse complex rule at line {line_num}: {line}\nError: {e}"
-                    )
+        for line_num, line in iter_rule_lines(complex_rules_file):
+            try:
+                parse_tree = lark_parser.parse(line)
+                result = transformer.transform(parse_tree)
+                assert isinstance(result, list)
+                assert len(result) >= 1
+                assert isinstance(result[0], Rule)
+            except Exception as e:
+                pytest.fail(f"Failed to parse complex rule at line {line_num}: {line}\nError: {e}")
 
     @pytest.mark.parametrize("rule_index", range(10))
     def test_parse_suricata_samples(

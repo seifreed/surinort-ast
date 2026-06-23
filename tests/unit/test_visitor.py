@@ -14,6 +14,7 @@ from lark import Lark
 from surinort_ast.core.nodes import ContentOption, IPAddress, MsgOption, SidOption
 from surinort_ast.core.visitor import ASTTransformer, ASTVisitor, ASTWalker
 from surinort_ast.parsing.transformer import RuleTransformer
+from tests._helpers import iter_rule_lines
 
 
 class SIDCollector(ASTVisitor[list[int]]):
@@ -283,15 +284,10 @@ class TestVisitorIntegration:
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
         rules = []
-        with open(simple_rules_file, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                parse_tree = lark_parser.parse(line)
-                rule = transformer.transform(parse_tree)[0]
-                rules.append(rule)
+        for _, line in iter_rule_lines(simple_rules_file):
+            parse_tree = lark_parser.parse(line)
+            rule = transformer.transform(parse_tree)[0]
+            rules.append(rule)
 
         # Collect all SIDs
         collector = SIDCollector()
@@ -310,15 +306,10 @@ class TestVisitorIntegration:
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
         rules = []
-        with open(simple_rules_file, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                parse_tree = lark_parser.parse(line)
-                rule = transformer.transform(parse_tree)[0]
-                rules.append(rule)
+        for _, line in iter_rule_lines(simple_rules_file):
+            parse_tree = lark_parser.parse(line)
+            rule = transformer.transform(parse_tree)[0]
+            rules.append(rule)
 
         # Transform all rules (increment SIDs)
         incrementer = SIDIncrementer(increment=9000000)

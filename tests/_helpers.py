@@ -8,6 +8,19 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
+def iter_rule_lines(path: Path) -> Iterator[tuple[int, str]]:
+    """Yield ``(line_number, stripped_line)`` for the meaningful lines of a rules file.
+
+    Skips blank lines and ``#`` comments, replacing the repeated
+    open-strip-skip loop across the parsing tests.
+    """
+    with path.open(encoding="utf-8") as f:
+        for line_num, line in enumerate(f, 1):
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#"):
+                yield line_num, stripped
+
+
 @contextmanager
 def temp_file(content: str, suffix: str = ".rules") -> Iterator[Path]:
     """Write ``content`` verbatim to a temporary file and yield its path.

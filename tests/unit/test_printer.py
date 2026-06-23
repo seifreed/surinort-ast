@@ -15,6 +15,7 @@ from lark import Lark
 from surinort_ast.parsing.transformer import RuleTransformer
 from surinort_ast.printer.formatter import FormatterOptions
 from surinort_ast.printer.text_printer import TextPrinter, print_rule
+from tests._helpers import iter_rule_lines
 
 
 class TestBasicPrinting:
@@ -158,32 +159,27 @@ class TestRoundtripParsing:
         """Roundtrip all simple fixture rules."""
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
-        with open(simple_rules_file, encoding="utf-8") as f:
-            for line_num, line in enumerate(f, 1):
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
+        for line_num, line in iter_rule_lines(simple_rules_file):
+            # Parse original
+            parse_tree1 = lark_parser.parse(line)
+            rule1 = transformer.transform(parse_tree1)[0]
 
-                # Parse original
-                parse_tree1 = lark_parser.parse(line)
-                rule1 = transformer.transform(parse_tree1)[0]
+            # Print
+            printed_text = text_printer.print_rule(rule1)
 
-                # Print
-                printed_text = text_printer.print_rule(rule1)
+            # Parse printed
+            try:
+                parse_tree2 = lark_parser.parse(printed_text)
+                rule2 = transformer.transform(parse_tree2)[0]
 
-                # Parse printed
-                try:
-                    parse_tree2 = lark_parser.parse(printed_text)
-                    rule2 = transformer.transform(parse_tree2)[0]
-
-                    # Verify key fields match
-                    assert rule1.action == rule2.action, f"Action mismatch at line {line_num}"
-                    protocol_msg = f"Protocol mismatch at line {line_num}"
-                    assert rule1.header.protocol == rule2.header.protocol, protocol_msg
-                except Exception as e:
-                    pytest.fail(
-                        f"Roundtrip failed at line {line_num}\nOriginal: {line}\nPrinted: {printed_text}\nError: {e}"
-                    )
+                # Verify key fields match
+                assert rule1.action == rule2.action, f"Action mismatch at line {line_num}"
+                protocol_msg = f"Protocol mismatch at line {line_num}"
+                assert rule1.header.protocol == rule2.header.protocol, protocol_msg
+            except Exception as e:
+                pytest.fail(
+                    f"Roundtrip failed at line {line_num}\nOriginal: {line}\nPrinted: {printed_text}\nError: {e}"
+                )
 
 
 class TestDeterministicOutput:

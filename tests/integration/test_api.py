@@ -11,6 +11,8 @@ NO MOCKS - all tests use real parser, printer, and serializer.
 
 import pytest
 
+from tests._helpers import iter_rule_lines
+
 # Note: These imports may need adjustment based on actual API structure
 # from surinort_ast import parse_rule, print_rule, to_json, from_json
 
@@ -99,16 +101,11 @@ class TestPublicAPI:
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
         rules = []
-        with open(simple_rules_file, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                parse_tree = lark_parser.parse(line)
-                result = transformer.transform(parse_tree)
-                if isinstance(result, list) and len(result) > 0:
-                    rules.append(result[0])
+        for _, line in iter_rule_lines(simple_rules_file):
+            parse_tree = lark_parser.parse(line)
+            result = transformer.transform(parse_tree)
+            if isinstance(result, list) and len(result) > 0:
+                rules.append(result[0])
 
         # Should have parsed multiple rules
         assert len(rules) > 0
@@ -248,18 +245,13 @@ class TestRealWorldScenarios:
         simple_rules_file = fixtures_dir / "simple_rules.txt"
 
         stats_collector = RuleStats()
-        with open(simple_rules_file, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                try:
-                    parse_tree = lark_parser.parse(line)
-                    rule = transformer.transform(parse_tree)[0]
-                    stats_collector.visit(rule)
-                except Exception:
-                    pass
+        for _, line in iter_rule_lines(simple_rules_file):
+            try:
+                parse_tree = lark_parser.parse(line)
+                rule = transformer.transform(parse_tree)[0]
+                stats_collector.visit(rule)
+            except Exception:
+                pass
 
         stats = stats_collector.stats
 
