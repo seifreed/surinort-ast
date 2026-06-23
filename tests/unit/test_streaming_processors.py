@@ -7,9 +7,6 @@ and validating rules during streaming.
 Licensed under GNU General Public License v3.0
 """
 
-import tempfile
-from pathlib import Path
-
 from surinort_ast.core.diagnostics import Diagnostic, DiagnosticLevel
 from surinort_ast.core.enums import Action, Protocol
 from surinort_ast.streaming import StreamParser
@@ -19,6 +16,7 @@ from surinort_ast.streaming.processor import (
     TransformProcessor,
     ValidateProcessor,
 )
+from tests._helpers import temp_rules_file
 
 # ============================================================================
 # Filter Processor Tests
@@ -33,12 +31,7 @@ def test_filter_processor_basic():
         'alert tcp any any -> any 443 (msg:"HTTPS"; sid:3;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -48,8 +41,6 @@ def test_filter_processor_basic():
 
         assert len(tcp_rules) == 2
         assert all(r.header.protocol == Protocol.TCP for r in tcp_rules)
-    finally:
-        temp_path.unlink()
 
 
 def test_filter_processor_by_action():
@@ -60,12 +51,7 @@ def test_filter_processor_by_action():
         'alert udp any any -> any 53 (msg:"Alert DNS"; sid:3;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -75,8 +61,6 @@ def test_filter_processor_by_action():
 
         assert len(alert_rules) == 2
         assert all(r.action == Action.ALERT for r in alert_rules)
-    finally:
-        temp_path.unlink()
 
 
 def test_filter_processor_by_sid():
@@ -87,12 +71,7 @@ def test_filter_processor_by_sid():
         'alert tcp any any -> any 80 (msg:"Rule 3"; sid:3000;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -107,20 +86,13 @@ def test_filter_processor_by_sid():
         filtered_rules = list(sid_filter.stream(input_stream))
 
         assert len(filtered_rules) == 1
-    finally:
-        temp_path.unlink()
 
 
 def test_filter_processor_error_handling():
     """Test filter processor error handling."""
     rules_text = ['alert tcp any any -> any 80 (msg:"Test"; sid:1;)']
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -133,8 +105,6 @@ def test_filter_processor_error_handling():
 
         # Should keep rules when predicate errors (safe default: don't lose data)
         assert len(filtered_rules) == len(rules_text)
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -149,12 +119,7 @@ def test_transform_processor_basic():
         'alert tcp any any -> any 443 (msg:"Test"; sid:2;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -169,20 +134,13 @@ def test_transform_processor_basic():
 
         assert len(transformed_rules) == 2
         assert all(r.action == Action.DROP for r in transformed_rules)
-    finally:
-        temp_path.unlink()
 
 
 def test_transform_processor_error_handling():
     """Test transform processor error handling."""
     rules_text = ['alert tcp any any -> any 80 (msg:"Test"; sid:1;)']
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -195,8 +153,6 @@ def test_transform_processor_error_handling():
 
         # Should filter out all rules due to errors
         assert len(transformed_rules) == 0
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -211,12 +167,7 @@ def test_validate_processor_basic():
         "alert tcp any any -> any 80 (sid:2;)",  # Missing msg
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -226,8 +177,6 @@ def test_validate_processor_basic():
         assert len(validated_rules) == 2
         # Second rule should have diagnostic about missing msg
         assert len(validated_rules[1].diagnostics) > 0
-    finally:
-        temp_path.unlink()
 
 
 def test_validate_processor_does_not_duplicate_codeless_diagnostic():
@@ -254,12 +203,7 @@ def test_validate_processor_strict_mode():
         "alert tcp any any -> any 80 (sid:2;)",  # Missing msg
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -269,8 +213,6 @@ def test_validate_processor_strict_mode():
 
         # Note: Missing msg is a warning, not error, so both should pass
         assert len(validated_rules) == 2
-    finally:
-        temp_path.unlink()
 
 
 def test_validate_processor_custom_validators():
@@ -280,12 +222,7 @@ def test_validate_processor_custom_validators():
         'alert tcp any any -> any 80 (msg:"Test"; sid:2000000;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -308,8 +245,6 @@ def test_validate_processor_custom_validators():
         # First rule should have error diagnostic
         has_error = any(d.level == DiagnosticLevel.ERROR for d in validated_rules[0].diagnostics)
         assert has_error
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -325,12 +260,7 @@ def test_aggregate_processor_basic():
         'alert tcp any any -> any 443 (msg:"HTTPS"; sid:3;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -342,8 +272,6 @@ def test_aggregate_processor_basic():
         assert aggregator.stats.rules_by_protocol[Protocol.TCP] == 2
         assert aggregator.stats.rules_by_protocol[Protocol.UDP] == 1
         assert aggregator.stats.rules_by_action[Action.ALERT] == 3
-    finally:
-        temp_path.unlink()
 
 
 def test_aggregate_processor_sids():
@@ -354,12 +282,7 @@ def test_aggregate_processor_sids():
         'alert tcp any any -> any 80 (msg:"Rule 3"; sid:1;)',  # Duplicate SID
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -368,8 +291,6 @@ def test_aggregate_processor_sids():
 
         assert len(rules) == 3
         assert len(aggregator.stats.unique_sids) == 2  # Only 2 unique SIDs
-    finally:
-        temp_path.unlink()
 
 
 def test_aggregate_processor_custom_aggregators():
@@ -379,12 +300,7 @@ def test_aggregate_processor_custom_aggregators():
         'alert tcp any any -> any 80 (msg:"Test"; pcre:"/test/"; sid:2;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -400,20 +316,13 @@ def test_aggregate_processor_custom_aggregators():
 
         assert len(rules) == 2
         assert aggregator.stats.custom_stats.get("total_content", 0) == 1
-    finally:
-        temp_path.unlink()
 
 
 def test_aggregate_processor_reset():
     """Test aggregator reset."""
     rules_text = ['alert tcp any any -> any 80 (msg:"Test"; sid:1;)']
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -425,8 +334,6 @@ def test_aggregate_processor_reset():
         # Reset
         aggregator.reset()
         assert aggregator.stats.total_rules == 0
-    finally:
-        temp_path.unlink()
 
 
 def test_aggregate_stats_to_dict():
@@ -436,12 +343,7 @@ def test_aggregate_stats_to_dict():
         'alert udp any any -> any 53 (msg:"Test"; sid:2;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -453,8 +355,6 @@ def test_aggregate_stats_to_dict():
         assert stats_dict["total_rules"] == 2
         assert "tcp" in stats_dict["rules_by_protocol"]
         assert "udp" in stats_dict["rules_by_protocol"]
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -470,12 +370,7 @@ def test_chained_processor_filter_transform():
         'alert tcp any any -> any 443 (msg:"HTTPS"; sid:3;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -491,8 +386,6 @@ def test_chained_processor_filter_transform():
         assert len(result_rules) == 2
         assert all(r.action == Action.DROP for r in result_rules)
         assert all(r.header.protocol == Protocol.TCP for r in result_rules)
-    finally:
-        temp_path.unlink()
 
 
 def test_chained_processor_filter_aggregate():
@@ -503,12 +396,7 @@ def test_chained_processor_filter_aggregate():
         'alert tcp any any -> any 443 (msg:"HTTPS"; sid:3;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -522,8 +410,6 @@ def test_chained_processor_filter_aggregate():
         assert len(result_rules) == 2
         assert aggregator.stats.total_rules == 2
         assert aggregator.stats.rules_by_protocol[Protocol.TCP] == 2
-    finally:
-        temp_path.unlink()
 
 
 def test_chained_processor_complex_pipeline():
@@ -535,12 +421,7 @@ def test_chained_processor_complex_pipeline():
         'drop tcp any any -> any 22 (msg:"SSH"; sid:4;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         input_stream = parser.stream_file(temp_path)
 
@@ -555,5 +436,3 @@ def test_chained_processor_complex_pipeline():
 
         assert len(result_rules) == 2  # Only TCP ALERT rules
         assert aggregator.stats.total_rules == 2
-    finally:
-        temp_path.unlink()
