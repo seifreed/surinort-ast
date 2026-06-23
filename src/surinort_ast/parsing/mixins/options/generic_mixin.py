@@ -158,18 +158,3 @@ class GenericOptionsMixin:
             - Multi-line: /* comment */
         """
         return
-
-    def NEWLINE(self, token: Token) -> None:  # noqa: N802 - Lark grammar rule name
-        """
-        Ignore newlines.
-
-        Args:
-            token: Newline token
-
-        Returns:
-            None (filtered out by options())
-
-        Note:
-            Method name must match Lark terminal name (NEWLINE).
-        """
-        return

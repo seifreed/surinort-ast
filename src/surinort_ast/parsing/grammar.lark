@@ -5,7 +5,7 @@
 // Start rule: file with multiple rules
 ?start: rule_file
 
-rule_file: (rule | comment | NEWLINE)*
+rule_file: (rule | comment)*
 
 // Rule structure: action protocol addr port direction addr port ( options )
 // Full and short rule forms (Snort3 allows protocol-only headers)
@@ -407,3 +407,4 @@ SDROP: "sdrop"
 %import common.WS
 %import common.NEWLINE
 %ignore WS
+%ignore NEWLINE

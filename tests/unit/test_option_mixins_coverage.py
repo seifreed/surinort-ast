@@ -73,10 +73,9 @@ class TestGenericOptionTransformer:
         assert transformer.option_value([_token("STRING", '"hello"')]) == "hello"
         assert transformer.option_value([]) == ""
 
-    def test_terminal_ignores_return_none(self):
+    def test_comment_ignored_returns_none(self):
         transformer = _transformer()
         assert transformer.comment([]) is None
-        assert transformer.NEWLINE(_token("NEWLINE", "\n")) is None
 
 
 class TestUrilenValue:
