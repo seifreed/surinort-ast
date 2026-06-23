@@ -7,8 +7,6 @@ Licensed under GNU General Public License v3.0
 """
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -16,7 +14,7 @@ from surinort_ast.api import parse_rule
 from surinort_ast.core.nodes import Rule
 from surinort_ast.exceptions import SerializationError
 from surinort_ast.streaming import StreamParser, StreamWriter, StreamWriterJSON, StreamWriterText
-from tests._helpers import temp_output_path
+from tests._helpers import temp_output_path, temp_rules_file
 
 # ============================================================================
 # Text Writer Tests
@@ -215,15 +213,7 @@ def test_stream_and_write_pipeline():
         'alert udp any any -> any 53 (msg:"DNS"; sid:3;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        input_path = Path(f.name)
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        output_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as input_path, temp_output_path() as output_path:
         # Stream parse and write
         parser = StreamParser()
         with StreamWriterText(output_path) as writer:
@@ -233,9 +223,6 @@ def test_stream_and_write_pipeline():
         # Verify output
         output_content = output_path.read_text()
         assert output_content.count("alert") == 3
-    finally:
-        input_path.unlink()
-        output_path.unlink()
 
 
 def test_stream_and_write_json_pipeline():
@@ -246,15 +233,7 @@ def test_stream_and_write_json_pipeline():
         'alert tcp any any -> any 443 (msg:"HTTPS"; sid:2;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        input_path = Path(f.name)
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        output_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as input_path, temp_output_path(".json") as output_path:
         # Stream parse and write to JSON
         parser = StreamParser()
         with StreamWriterJSON(output_path) as writer:
@@ -267,9 +246,6 @@ def test_stream_and_write_json_pipeline():
 
         assert len(data) == 2
         assert data[0]["action"] == "alert"
-    finally:
-        input_path.unlink()
-        output_path.unlink()
 
 
 def test_stream_filter_and_write():
@@ -284,15 +260,7 @@ def test_stream_filter_and_write():
         'alert tcp any any -> any 443 (msg:"HTTPS"; sid:3;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        input_path = Path(f.name)
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        output_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as input_path, temp_output_path() as output_path:
         # Stream, filter TCP, and write
         parser = StreamParser()
         tcp_filter = FilterProcessor(lambda r: r.header.protocol == Protocol.TCP)
@@ -305,9 +273,6 @@ def test_stream_filter_and_write():
         output_content = output_path.read_text()
         assert output_content.count("alert tcp") == 2
         assert "udp" not in output_content.lower()
-    finally:
-        input_path.unlink()
-        output_path.unlink()
 
 
 # ============================================================================

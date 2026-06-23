@@ -21,7 +21,7 @@ from surinort_ast.streaming import (
     TransformProcessor,
     ValidateProcessor,
 )
-from tests._helpers import temp_rules_file
+from tests._helpers import temp_output_path, temp_rules_file
 
 # ============================================================================
 # End-to-End Streaming Tests
@@ -69,15 +69,7 @@ def test_complete_processing_pipeline():
         'alert tcp any any -> any 22 (msg:"SSH"; sid:4;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        input_path = Path(f.name)
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        output_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as input_path, temp_output_path() as output_path:
         # Build pipeline: parse -> filter TCP -> validate -> aggregate -> write
         parser = StreamParser()
         tcp_filter = FilterProcessor(lambda r: r.header.protocol == Protocol.TCP)
@@ -98,9 +90,6 @@ def test_complete_processing_pipeline():
         # Verify output file
         output_content = output_path.read_text()
         assert output_content.count("alert tcp") == 3
-    finally:
-        input_path.unlink()
-        output_path.unlink()
 
 
 def test_transform_and_write_pipeline():
@@ -110,15 +99,7 @@ def test_transform_and_write_pipeline():
         'alert tcp any any -> any 443 (msg:"HTTPS"; sid:2;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        input_path = Path(f.name)
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        output_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as input_path, temp_output_path() as output_path:
         # Transform alert to drop
         parser = StreamParser()
         transformer = TransformProcessor(lambda r: r.model_copy(update={"action": Action.DROP}))
@@ -131,9 +112,6 @@ def test_transform_and_write_pipeline():
         output_content = output_path.read_text()
         assert output_content.count("drop tcp") == 2
         assert "alert" not in output_content
-    finally:
-        input_path.unlink()
-        output_path.unlink()
 
 
 def test_filter_aggregate_report():
