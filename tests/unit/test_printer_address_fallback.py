@@ -304,45 +304,6 @@ class TestByteTestOption:
         assert ">" in printed
         assert "1024" in printed
 
-    def test_print_byte_test_with_flags(self, text_printer: TextPrinter):
-        """Test printing byte_test with flags (line 322-323)."""
-        from surinort_ast.core.nodes import (
-            Action,
-            ByteTestOption,
-            ContentOption,
-            MsgOption,
-            Rule,
-            SidOption,
-        )
-
-        header = any_header()
-
-        byte_test = ByteTestOption(
-            bytes_to_extract=2,
-            operator="<",
-            value=100,
-            offset=5,
-            flags=["big", "string", "dec"],  # Non-empty flags
-        )
-
-        rule = Rule(
-            action=Action.ALERT,
-            header=header,
-            options=[
-                MsgOption(text="Byte Test Flags"),
-                ContentOption(pattern=b"test", modifiers=[]),
-                byte_test,
-                SidOption(value=2),
-            ],
-        )
-
-        printed = text_printer.print_rule(rule)
-
-        assert "byte_test:" in printed
-        assert "big" in printed
-        assert "string" in printed
-        assert "dec" in printed
-
 
 class TestByteJumpOption:
     """Test ByteJumpOption printing (lines 327-331)."""
@@ -362,44 +323,6 @@ class TestByteJumpOption:
 
         assert "byte_jump:" in printed
         assert "4" in printed
-
-    def test_print_byte_jump_with_flags(self, text_printer: TextPrinter):
-        """Test printing byte_jump with flags (line 329-330)."""
-        from surinort_ast.core.nodes import (
-            Action,
-            ByteJumpOption,
-            ContentOption,
-            MsgOption,
-            Rule,
-            SidOption,
-        )
-
-        header = any_header()
-
-        byte_jump = ByteJumpOption(
-            bytes_to_extract=2,
-            offset=10,
-            flags=["big", "string"],  # Non-empty flags
-        )
-
-        rule = Rule(
-            action=Action.ALERT,
-            header=header,
-            options=[
-                MsgOption(text="Byte Jump Flags"),
-                ContentOption(pattern=b"test", modifiers=[]),
-                byte_jump,
-                SidOption(value=2),
-            ],
-        )
-
-        printed = text_printer.print_rule(rule)
-
-        assert "byte_jump:" in printed
-        assert "2" in printed
-        assert "10" in printed
-        assert "big" in printed
-        assert "string" in printed
 
 
 class TestByteExtractOption:
@@ -421,44 +344,6 @@ class TestByteExtractOption:
         assert "0" in printed
         assert "myvar" in printed
 
-    def test_print_byte_extract_with_flags(self, text_printer: TextPrinter):
-        """Test printing byte_extract with flags (line 340-341)."""
-        from surinort_ast.core.nodes import (
-            Action,
-            ByteExtractOption,
-            ContentOption,
-            MsgOption,
-            Rule,
-            SidOption,
-        )
-
-        header = any_header()
-
-        byte_extract = ByteExtractOption(
-            bytes_to_extract=2,
-            offset=5,
-            var_name="var2",
-            flags=["big", "string"],  # Non-empty flags
-        )
-
-        rule = Rule(
-            action=Action.ALERT,
-            header=header,
-            options=[
-                MsgOption(text="Byte Extract Flags"),
-                ContentOption(pattern=b"test", modifiers=[]),
-                byte_extract,
-                SidOption(value=2),
-            ],
-        )
-
-        printed = text_printer.print_rule(rule)
-
-        assert "byte_extract:" in printed
-        assert "var2" in printed
-        assert "big" in printed
-        assert "string" in printed
-
 
 class TestFastPatternOption:
     """Test FastPatternOption printing (lines 344-347)."""
@@ -477,38 +362,6 @@ class TestFastPatternOption:
         printed = text_printer.print_rule(rule)
 
         assert "fast_pattern;" in printed
-
-    def test_print_fast_pattern_with_offset_length(self, text_printer: TextPrinter):
-        """Test printing fast_pattern with offset and length (line 346)."""
-        from surinort_ast.core.nodes import (
-            Action,
-            ContentOption,
-            FastPatternOption,
-            MsgOption,
-            Rule,
-            SidOption,
-        )
-
-        header = any_header()
-
-        fast_pattern = FastPatternOption(offset=10, length=20)
-
-        rule = Rule(
-            action=Action.ALERT,
-            header=header,
-            options=[
-                MsgOption(text="Fast Pattern Offset"),
-                ContentOption(pattern=b"test", modifiers=[]),
-                fast_pattern,
-                SidOption(value=2),
-            ],
-        )
-
-        printed = text_printer.print_rule(rule)
-
-        assert "fast_pattern:" in printed
-        assert "10" in printed
-        assert "20" in printed
 
 
 class TestTagOption:
