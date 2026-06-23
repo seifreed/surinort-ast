@@ -35,7 +35,7 @@ class ASTVisitor(Generic[T]):
         ...     def __init__(self):
         ...         self.sids = []
         ...
-        ...     def visit_SidOption(self, node):
+        ...     def visit_sidoption(self, node):
         ...         self.sids.append(node.value)
         ...         return None
         ...
@@ -61,7 +61,7 @@ class ASTVisitor(Generic[T]):
         if node is None:
             return self.default_return()
 
-        method_name = f"visit_{node.node_type}"
+        method_name = f"visit_{node.node_type.lower()}"
         visitor = getattr(self, method_name, self.generic_visit)
         return visitor(node)
 
@@ -99,14 +99,14 @@ class ASTVisitor(Generic[T]):
         return cast(T, None)
 
     # Specialized visit methods for common nodes
-    def visit_Rule(self, node: Rule) -> T:  # noqa: N802
+    def visit_rule(self, node: Rule) -> T:
         """Visit Rule node."""
         self.visit(node.header)
         for option in node.options:
             self.visit(option)
         return self.default_return()
 
-    def visit_Header(self, node: Header) -> T:  # noqa: N802
+    def visit_header(self, node: Header) -> T:
         """Visit Header node."""
         self.visit(node.src_addr)
         self.visit(node.src_port)
@@ -114,24 +114,24 @@ class ASTVisitor(Generic[T]):
         self.visit(node.dst_port)
         return self.default_return()
 
-    def visit_AddressList(self, node: AddressList) -> T:  # noqa: N802
+    def visit_addresslist(self, node: AddressList) -> T:
         """Visit AddressList node."""
         for addr in node.elements:
             self.visit(addr)
         return self.default_return()
 
-    def visit_AddressNegation(self, node: AddressNegation) -> T:  # noqa: N802
+    def visit_addressnegation(self, node: AddressNegation) -> T:
         """Visit AddressNegation node."""
         self.visit(node.expr)
         return self.default_return()
 
-    def visit_PortList(self, node: PortList) -> T:  # noqa: N802
+    def visit_portlist(self, node: PortList) -> T:
         """Visit PortList node."""
         for port in node.elements:
             self.visit(port)
         return self.default_return()
 
-    def visit_PortNegation(self, node: PortNegation) -> T:  # noqa: N802
+    def visit_portnegation(self, node: PortNegation) -> T:
         """Visit PortNegation node."""
         self.visit(node.expr)
         return self.default_return()
@@ -146,7 +146,7 @@ class ASTTransformer(ASTVisitor[ASTNode]):
 
     Example:
         >>> class SIDRewriter(ASTTransformer):
-        ...     def visit_SidOption(self, node):
+        ...     def visit_sidoption(self, node):
         ...         # Add 1000000 to all SIDs
         ...         return node.model_copy(update={'value': node.value + 1000000})
         ...
@@ -214,7 +214,7 @@ class ASTTransformer(ASTVisitor[ASTNode]):
             return node.model_copy(update=updates)
         return node
 
-    def visit_Rule(self, node: Rule) -> Rule:  # noqa: N802
+    def visit_rule(self, node: Rule) -> Rule:
         """Transform Rule node."""
         new_header = self._visit_child(node.header)
         new_options = [self._visit_child(opt) for opt in node.options]
@@ -228,7 +228,7 @@ class ASTTransformer(ASTVisitor[ASTNode]):
             )
         return node
 
-    def visit_Header(self, node: Header) -> Header:  # noqa: N802
+    def visit_header(self, node: Header) -> Header:
         """Transform Header node."""
         new_src_addr = self._visit_child(node.src_addr)
         new_src_port = self._visit_child(node.src_port)
@@ -251,28 +251,28 @@ class ASTTransformer(ASTVisitor[ASTNode]):
             )
         return node
 
-    def visit_AddressList(self, node: AddressList) -> AddressList:  # noqa: N802
+    def visit_addresslist(self, node: AddressList) -> AddressList:
         """Transform AddressList node."""
         new_elements = [self._visit_child(addr) for addr in node.elements]
         if new_elements != list(node.elements):
             return node.model_copy(update={"elements": tuple(new_elements)})
         return node
 
-    def visit_AddressNegation(self, node: AddressNegation) -> AddressNegation:  # noqa: N802
+    def visit_addressnegation(self, node: AddressNegation) -> AddressNegation:
         """Transform AddressNegation node."""
         new_expr = self._visit_child(node.expr)
         if new_expr != node.expr:
             return node.model_copy(update={"expr": new_expr})
         return node
 
-    def visit_PortList(self, node: PortList) -> PortList:  # noqa: N802
+    def visit_portlist(self, node: PortList) -> PortList:
         """Transform PortList node."""
         new_elements = [self._visit_child(port) for port in node.elements]
         if new_elements != list(node.elements):
             return node.model_copy(update={"elements": tuple(new_elements)})
         return node
 
-    def visit_PortNegation(self, node: PortNegation) -> PortNegation:  # noqa: N802
+    def visit_portnegation(self, node: PortNegation) -> PortNegation:
         """Transform PortNegation node."""
         new_expr = self._visit_child(node.expr)
         if new_expr != node.expr:
@@ -288,9 +288,9 @@ class ASTWalker:
 
     Example:
         >>> class RulePrinter(ASTWalker):
-        ...     def visit_Rule(self, node):
+        ...     def visit_rule(self, node):
         ...         print(f"Rule: {node.action} {node.header.protocol}")
-        ...         super().visit_Rule(node)
+        ...         super().visit_rule(node)
         ...
         >>> printer = RulePrinter()
         >>> printer.walk(rule)
@@ -306,7 +306,7 @@ class ASTWalker:
         if node is None:
             return
 
-        method_name = f"visit_{node.node_type}"
+        method_name = f"visit_{node.node_type.lower()}"
         visitor = getattr(self, method_name, self.generic_visit)
         visitor(node)
 
@@ -320,13 +320,13 @@ class ASTWalker:
         for child in iter_child_nodes(node):
             self.walk(child)
 
-    def visit_Rule(self, node: Rule) -> None:  # noqa: N802
+    def visit_rule(self, node: Rule) -> None:
         """Visit Rule node."""
         self.walk(node.header)
         for option in node.options:
             self.walk(option)
 
-    def visit_Header(self, node: Header) -> None:  # noqa: N802
+    def visit_header(self, node: Header) -> None:
         """Visit Header node."""
         self.walk(node.src_addr)
         self.walk(node.src_port)

@@ -20,7 +20,7 @@ from surinort_ast.core.visitor import ASTTransformer
 class IPRewriter(ASTTransformer):
     """Rewrites every IPAddress value to a sentinel."""
 
-    def visit_IPAddress(self, node: IPAddress) -> IPAddress:
+    def visit_ipaddress(self, node: IPAddress) -> IPAddress:
         return node.model_copy(update={"value": "9.9.9.9"})
 
 

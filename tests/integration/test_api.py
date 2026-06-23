@@ -183,7 +183,7 @@ class TestRealWorldScenarios:
                 super().__init__()
                 self.increment = increment
 
-            def visit_SidOption(self, node: SidOption) -> SidOption:
+            def visit_sidoption(self, node: SidOption) -> SidOption:
                 return node.model_copy(update={"value": node.value + self.increment})
 
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1; rev:1;)'
@@ -220,7 +220,7 @@ class TestRealWorldScenarios:
                     "actions": {},
                 }
 
-            def visit_Rule(self, node):
+            def visit_rule(self, node):
                 self.stats["total"] += 1
 
                 # Count protocol
@@ -236,7 +236,7 @@ class TestRealWorldScenarios:
                 if has_classtype:
                     self.stats["with_classtype"] += 1
 
-                return super().visit_Rule(node)
+                return super().visit_rule(node)
 
             def default_return(self):
                 return self.stats

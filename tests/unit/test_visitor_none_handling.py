@@ -109,7 +109,7 @@ class TestVisitorDefaultReturn:
 
 
 class TestVisitorAddressList:
-    """Test visit_AddressList method (lines 117-119)."""
+    """Test visit_addresslist method (lines 117-119)."""
 
     def test_visit_address_list(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test visiting AddressList with multiple addresses."""
@@ -122,7 +122,7 @@ class TestVisitorAddressList:
                 super().__init__()
                 self.addresses = []
 
-            def visit_IPAddress(self, node):
+            def visit_ipaddress(self, node):
                 self.addresses.append(node.value)
                 return self.default_return()
 
@@ -136,7 +136,7 @@ class TestVisitorAddressList:
 
 
 class TestVisitorAddressNegation:
-    """Test visit_AddressNegation method (lines 123-124)."""
+    """Test visit_addressnegation method (lines 123-124)."""
 
     def test_visit_address_negation(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test visiting AddressNegation node."""
@@ -149,9 +149,9 @@ class TestVisitorAddressNegation:
                 super().__init__()
                 self.negations = 0
 
-            def visit_AddressNegation(self, node):
+            def visit_addressnegation(self, node):
                 self.negations += 1
-                return super().visit_AddressNegation(node)
+                return super().visit_addressnegation(node)
 
             def default_return(self) -> int:
                 return self.negations
@@ -162,7 +162,7 @@ class TestVisitorAddressNegation:
 
 
 class TestVisitorPortList:
-    """Test visit_PortList method (lines 128-130)."""
+    """Test visit_portlist method (lines 128-130)."""
 
     def test_visit_port_list(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test visiting PortList with multiple ports."""
@@ -175,7 +175,7 @@ class TestVisitorPortList:
                 super().__init__()
                 self.ports = []
 
-            def visit_Port(self, node):
+            def visit_port(self, node):
                 self.ports.append(node.value)
                 return self.default_return()
 
@@ -190,7 +190,7 @@ class TestVisitorPortList:
 
 
 class TestVisitorPortNegation:
-    """Test visit_PortNegation method (lines 134-135)."""
+    """Test visit_portnegation method (lines 134-135)."""
 
     def test_visit_port_negation(self, lark_parser: Lark, transformer: RuleTransformer):
         """Test visiting PortNegation node."""
@@ -203,9 +203,9 @@ class TestVisitorPortNegation:
                 super().__init__()
                 self.negations = 0
 
-            def visit_PortNegation(self, node):
+            def visit_portnegation(self, node):
                 self.negations += 1
-                return super().visit_PortNegation(node)
+                return super().visit_portnegation(node)
 
             def default_return(self) -> int:
                 return self.negations
@@ -237,7 +237,7 @@ class TestTransformerGenericVisit:
         rule = transformer.transform(parse_tree)[0]
 
         class IPReplacer(ASTTransformer):
-            def visit_IPAddress(self, node):
+            def visit_ipaddress(self, node):
                 if node.value == "192.168.1.1":
                     return node.model_copy(update={"value": "10.0.0.1"})
                 return node
@@ -257,7 +257,7 @@ class TestTransformerGenericVisit:
         rule = transformer.transform(parse_tree)[0]
 
         class ContentModifier(ASTTransformer):
-            def visit_ContentOption(self, node):
+            def visit_contentoption(self, node):
                 # Modify content patterns
                 new_pattern = node.pattern.replace(b"foo", b"baz")
                 if new_pattern != node.pattern:
@@ -289,16 +289,16 @@ class TestTransformerGenericVisit:
 
 
 class TestTransformerRuleVisit:
-    """Test transformer visit_Rule (line 209)."""
+    """Test transformer visit_rule (line 209)."""
 
     def test_visit_rule_with_changes(self, lark_parser: Lark, transformer: RuleTransformer):
-        """Test visit_Rule creates new rule when changed."""
+        """Test visit_rule creates new rule when changed."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
 
         class SIDDoubler(ASTTransformer):
-            def visit_SidOption(self, node):
+            def visit_sidoption(self, node):
                 return node.model_copy(update={"value": node.value * 2})
 
         doubler = SIDDoubler()
@@ -311,16 +311,16 @@ class TestTransformerRuleVisit:
 
 
 class TestTransformerAddressList:
-    """Test transformer visit_AddressList (lines 236-239)."""
+    """Test transformer visit_addresslist (lines 236-239)."""
 
     def test_visit_address_list_with_changes(self, lark_parser: Lark, transformer: RuleTransformer):
-        """Test visit_AddressList creates new list when elements change."""
+        """Test visit_addresslist creates new list when elements change."""
         rule_text = 'alert tcp [192.168.1.1,10.0.0.1] any -> any 80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
 
         class IPNormalizer(ASTTransformer):
-            def visit_IPAddress(self, node):
+            def visit_ipaddress(self, node):
                 # Normalize all IPs to 0.0.0.0
                 return node.model_copy(update={"value": "0.0.0.0"})
 
@@ -332,18 +332,18 @@ class TestTransformerAddressList:
 
 
 class TestTransformerAddressNegation:
-    """Test transformer visit_AddressNegation (lines 243-246)."""
+    """Test transformer visit_addressnegation (lines 243-246)."""
 
     def test_visit_address_negation_with_change(
         self, lark_parser: Lark, transformer: RuleTransformer
     ):
-        """Test visit_AddressNegation creates new node when expr changes."""
+        """Test visit_addressnegation creates new node when expr changes."""
         rule_text = 'alert tcp !192.168.1.1 any -> any 80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
 
         class IPReplacer(ASTTransformer):
-            def visit_IPAddress(self, node):
+            def visit_ipaddress(self, node):
                 return node.model_copy(update={"value": "10.0.0.1"})
 
         replacer = IPReplacer()
@@ -354,16 +354,16 @@ class TestTransformerAddressNegation:
 
 
 class TestTransformerPortList:
-    """Test transformer visit_PortList (lines 250-253)."""
+    """Test transformer visit_portlist (lines 250-253)."""
 
     def test_visit_port_list_with_changes(self, lark_parser: Lark, transformer: RuleTransformer):
-        """Test visit_PortList creates new list when elements change."""
+        """Test visit_portlist creates new list when elements change."""
         rule_text = 'alert tcp any any -> any [80,443] (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
 
         class PortShifter(ASTTransformer):
-            def visit_Port(self, node):
+            def visit_port(self, node):
                 return node.model_copy(update={"value": node.value + 10000})
 
         shifter = PortShifter()
@@ -374,16 +374,16 @@ class TestTransformerPortList:
 
 
 class TestTransformerPortNegation:
-    """Test transformer visit_PortNegation (lines 257-260)."""
+    """Test transformer visit_portnegation (lines 257-260)."""
 
     def test_visit_port_negation_with_change(self, lark_parser: Lark, transformer: RuleTransformer):
-        """Test visit_PortNegation creates new node when expr changes."""
+        """Test visit_portnegation creates new node when expr changes."""
         rule_text = 'alert tcp any any -> any !80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
 
         class PortReplacer(ASTTransformer):
-            def visit_Port(self, node):
+            def visit_port(self, node):
                 return node.model_copy(update={"value": 443})
 
         replacer = PortReplacer()
@@ -483,7 +483,7 @@ class TestTransformerNoChangesPaths:
     """Test transformer paths that return original node (lines 239, 246, 253, 260)."""
 
     def test_address_list_no_changes(self, lark_parser: Lark, transformer: RuleTransformer):
-        """Test visit_AddressList returns original when no changes (line 239)."""
+        """Test visit_addresslist returns original when no changes (line 239)."""
         rule_text = 'alert tcp [192.168.1.1,10.0.0.1] any -> any 80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
@@ -499,7 +499,7 @@ class TestTransformerNoChangesPaths:
         assert new_rule.header.src_addr is rule.header.src_addr
 
     def test_address_negation_no_changes(self, lark_parser: Lark, transformer: RuleTransformer):
-        """Test visit_AddressNegation returns original when no changes (line 246)."""
+        """Test visit_addressnegation returns original when no changes (line 246)."""
         rule_text = 'alert tcp !192.168.1.1 any -> any 80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
@@ -513,7 +513,7 @@ class TestTransformerNoChangesPaths:
         assert new_rule.header.src_addr is rule.header.src_addr
 
     def test_port_list_no_changes(self, lark_parser: Lark, transformer: RuleTransformer):
-        """Test visit_PortList returns original when no changes (line 253)."""
+        """Test visit_portlist returns original when no changes (line 253)."""
         rule_text = 'alert tcp any any -> any [80,443] (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
@@ -527,7 +527,7 @@ class TestTransformerNoChangesPaths:
         assert new_rule.header.dst_port is rule.header.dst_port
 
     def test_port_negation_no_changes(self, lark_parser: Lark, transformer: RuleTransformer):
-        """Test visit_PortNegation returns original when no changes (line 260)."""
+        """Test visit_portnegation returns original when no changes (line 260)."""
         rule_text = 'alert tcp any any -> any !80 (msg:"Test"; sid:1;)'
         parse_tree = lark_parser.parse(rule_text)
         rule = transformer.transform(parse_tree)[0]
@@ -557,7 +557,7 @@ class TestTransformerGenericVisitDetailedPaths:
         rule = transformer.transform(parse_tree)[0]
 
         class NoneReturningTransformer(ASTTransformer):
-            def visit_IPAddress(self, node):
+            def visit_ipaddress(self, node):
                 # None signals "no change"; the original node must be preserved.
                 return None
 
@@ -573,7 +573,7 @@ class TestTransformerGenericVisitDetailedPaths:
     ):
         """Returning None for one option preserves it while others transform.
 
-        Regression: visit_Rule injected the None into the options list, which
+        Regression: visit_rule injected the None into the options list, which
         either corrupted the node (None in options) or raised. None must mean
         'keep this option unchanged'.
         """
@@ -582,10 +582,10 @@ class TestTransformerGenericVisitDetailedPaths:
         rule = transformer.transform(parse_tree)[0]
 
         class PartialTransformer(ASTTransformer):
-            def visit_SidOption(self, node):
+            def visit_sidoption(self, node):
                 return None  # no change
 
-            def visit_MsgOption(self, node):
+            def visit_msgoption(self, node):
                 return node.model_copy(update={"text": node.text.upper()})
 
         new_rule = PartialTransformer().visit(rule)
@@ -623,7 +623,7 @@ class TestTransformerGenericVisitDetailedPaths:
         rule = transformer.transform(parse_tree)[0]
 
         class NoOpTransformer(ASTTransformer):
-            def visit_IPAddress(self, node):
+            def visit_ipaddress(self, node):
                 # Return same node (no change)
                 return node
 
@@ -641,7 +641,7 @@ class TestTransformerGenericVisitDetailedPaths:
         rule = transformer.transform(parse_tree)[0]
 
         class IPChanger(ASTTransformer):
-            def visit_IPAddress(self, node):
+            def visit_ipaddress(self, node):
                 return node.model_copy(update={"value": "10.0.0.1"})
 
         changer = IPChanger()

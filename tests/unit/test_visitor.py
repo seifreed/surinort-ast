@@ -24,7 +24,7 @@ class SIDCollector(ASTVisitor[list[int]]):
         super().__init__()
         self.sids = []
 
-    def visit_SidOption(self, node: SidOption) -> list[int]:
+    def visit_sidoption(self, node: SidOption) -> list[int]:
         """Collect SID value."""
         self.sids.append(node.value)
         return self.sids
@@ -41,7 +41,7 @@ class MessageCollector(ASTVisitor[list[str]]):
         super().__init__()
         self.messages = []
 
-    def visit_MsgOption(self, node: MsgOption) -> list[str]:
+    def visit_msgoption(self, node: MsgOption) -> list[str]:
         """Collect message text."""
         self.messages.append(node.text)
         return self.messages
@@ -112,7 +112,7 @@ class SIDIncrementer(ASTTransformer):
         super().__init__()
         self.increment = increment
 
-    def visit_SidOption(self, node: SidOption) -> SidOption:
+    def visit_sidoption(self, node: SidOption) -> SidOption:
         """Increment SID value."""
         return node.model_copy(update={"value": node.value + self.increment})
 
@@ -125,7 +125,7 @@ class IPReplacer(ASTTransformer):
         self.old_ip = old_ip
         self.new_ip = new_ip
 
-    def visit_IPAddress(self, node: IPAddress) -> IPAddress:
+    def visit_ipaddress(self, node: IPAddress) -> IPAddress:
         """Replace IP address."""
         if node.value == self.old_ip:
             return node.model_copy(update={"value": self.new_ip})
@@ -338,7 +338,7 @@ class TestCustomVisitors:
             super().__init__()
             self.patterns = []
 
-        def visit_ContentOption(self, node: ContentOption) -> list[bytes]:
+        def visit_contentoption(self, node: ContentOption) -> list[bytes]:
             """Collect content pattern."""
             self.patterns.append(node.pattern)
             return self.patterns

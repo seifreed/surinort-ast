@@ -265,7 +265,7 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
 
         return []
 
-    def visit_Rule(self, node: Any) -> list[ASTNode]:  # noqa: N802
+    def visit_rule(self, node: Any) -> list[ASTNode]:
         """Visit Rule node - override to check Rule itself."""
         with self._node_context(node):
             # Check Rule node itself
@@ -278,7 +278,7 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
                 self.visit(option)
         return []
 
-    def visit_Header(self, node: Any) -> list[ASTNode]:  # noqa: N802
+    def visit_header(self, node: Any) -> list[ASTNode]:
         """Visit Header node - override to check Header itself."""
         with self._node_context(node):
             # Check Header node itself
@@ -292,19 +292,19 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
             self.visit(node.dst_port)
         return []
 
-    def visit_AddressList(self, node: Any) -> list[ASTNode]:  # noqa: N802
+    def visit_addresslist(self, node: Any) -> list[ASTNode]:
         """Match the AddressList itself, then descend with context."""
         return self.generic_visit(node)
 
-    def visit_AddressNegation(self, node: Any) -> list[ASTNode]:  # noqa: N802
+    def visit_addressnegation(self, node: Any) -> list[ASTNode]:
         """Match the AddressNegation itself, then descend with context."""
         return self.generic_visit(node)
 
-    def visit_PortList(self, node: Any) -> list[ASTNode]:  # noqa: N802
+    def visit_portlist(self, node: Any) -> list[ASTNode]:
         """Match the PortList itself, then descend with context."""
         return self.generic_visit(node)
 
-    def visit_PortNegation(self, node: Any) -> list[ASTNode]:  # noqa: N802
+    def visit_portnegation(self, node: Any) -> list[ASTNode]:
         """Match the PortNegation itself, then descend with context."""
         return self.generic_visit(node)
 
