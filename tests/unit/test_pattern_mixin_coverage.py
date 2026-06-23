@@ -16,6 +16,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import pytest
 from lark import Token
 
 from surinort_ast import parse_rule
@@ -84,77 +85,23 @@ class TestPcreOptionEmptyItems:
 class TestPcreOptionValidPatterns:
     """Test pcre_option with valid patterns and flags."""
 
-    def test_pcre_option_simple_pattern(self):
-        """
-        Test pcre_option with simple pattern without flags.
+    @pytest.mark.parametrize(
+        ("pcre", "pattern", "flags"),
+        [
+            ("/test/", "test", ""),
+            ("/test/i", "test", "i"),
+            ("/test/imsxAEGRUB", "test", "imsxAEGRUB"),
+            ("/[a-zA-Z0-9]{8,}/", "[a-zA-Z0-9]{8,}", ""),
+        ],
+    )
+    def test_pcre_option_pattern_and_flags(self, pcre: str, pattern: str, flags: str):
+        """A pcre option parses into a single PcreOption with the expected pattern and flags."""
+        rule = parse_rule(f'alert tcp any any -> any any (msg:"Test"; pcre:"{pcre}"; sid:1;)')
 
-        Rule: pcre:"/test/";
-        Expected: pattern="test", flags=""
-        """
-        # Arrange
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; pcre:"/test/"; sid:1;)'
-
-        # Act
-        rule = parse_rule(rule_text)
-
-        # Assert
         pcre_opts = [opt for opt in rule.options if isinstance(opt, PcreOption)]
         assert len(pcre_opts) == 1
-        pcre_opt = pcre_opts[0]
-        assert pcre_opt.pattern == "test"
-        assert pcre_opt.flags == ""
-
-    def test_pcre_option_with_single_flag(self):
-        """
-        Test pcre_option with pattern and single flag.
-
-        Rule: pcre:"/test/i";
-        Expected: pattern="test", flags="i"
-        """
-        # Arrange
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; pcre:"/test/i"; sid:1;)'
-
-        # Act
-        rule = parse_rule(rule_text)
-
-        # Assert
-        pcre_opts = [opt for opt in rule.options if isinstance(opt, PcreOption)]
-        assert len(pcre_opts) == 1
-        pcre_opt = pcre_opts[0]
-        assert pcre_opt.pattern == "test"
-        assert pcre_opt.flags == "i"
-
-    def test_pcre_option_with_multiple_flags(self):
-        """
-        Test pcre_option with pattern and multiple flags.
-
-        Rule: pcre:"/test/imsxAEGRUB";
-        Expected: pattern="test", flags="imsxAEGRUB"
-
-        PCRE Flags tested:
-        - i: Case insensitive
-        - m: Multiline
-        - s: Dot matches newline
-        - x: Extended
-        - A: Anchor at start
-        - E: Dollar matches newline at end
-        - G: Dollar matches newline anywhere
-        - R: Relative to previous match
-        - U: Ungreedy
-        - B: Match in HTTP response body
-        """
-        # Arrange
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; pcre:"/test/imsxAEGRUB"; sid:1;)'
-
-        # Act
-        rule = parse_rule(rule_text)
-
-        # Assert
-        pcre_opts = [opt for opt in rule.options if isinstance(opt, PcreOption)]
-        assert len(pcre_opts) == 1
-        pcre_opt = pcre_opts[0]
-        assert pcre_opt.pattern == "test"
-        assert pcre_opt.flags == "imsxAEGRUB"
+        assert pcre_opts[0].pattern == pattern
+        assert pcre_opts[0].flags == flags
 
     def test_pcre_option_complex_pattern(self):
         """
@@ -177,26 +124,6 @@ class TestPcreOptionValidPatterns:
         assert "GET" in pcre_opt.pattern
         assert "admin" in pcre_opt.pattern
         assert pcre_opt.flags == "i"
-
-    def test_pcre_option_with_special_chars(self):
-        """
-        Test pcre_option with special regex characters.
-
-        Rule: pcre:"/[a-zA-Z0-9]{8,}/";
-        Expected: pattern matches 8+ alphanumeric characters
-        """
-        # Arrange
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; pcre:"/[a-zA-Z0-9]{8,}/"; sid:1;)'
-
-        # Act
-        rule = parse_rule(rule_text)
-
-        # Assert
-        pcre_opts = [opt for opt in rule.options if isinstance(opt, PcreOption)]
-        assert len(pcre_opts) == 1
-        pcre_opt = pcre_opts[0]
-        assert pcre_opt.pattern == "[a-zA-Z0-9]{8,}"
-        assert pcre_opt.flags == ""
 
 
 class TestPcreOptionNegation:
