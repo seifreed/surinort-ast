@@ -443,8 +443,9 @@ class _SequenceSelector(Selector):
         """Equality comparison."""
         return isinstance(other, type(self)) and self.selectors == other.selectors
 
-    # Explicitly unhashable due to mutable list of selectors
-    __hash__ = None  # type: ignore[assignment]
+    def __hash__(self) -> int:
+        """Unhashable: the selector list is mutable."""
+        raise TypeError(f"unhashable type: {type(self).__name__!r}")
 
 
 class CompoundSelector(_SequenceSelector):
