@@ -10,7 +10,6 @@ These tests trigger the actual exception handlers through real code execution.
 from __future__ import annotations
 
 import shutil
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -20,6 +19,7 @@ from surinort_ast.core.location import Location, Position, Span
 from surinort_ast.core.nodes import Rule
 from surinort_ast.exceptions import ParseError
 from surinort_ast.parsing.lark_parser import LarkRuleParser
+from tests._helpers import temp_file
 from tests.unit._helpers import any_header
 
 
@@ -136,30 +136,17 @@ class TestApiParsingExceptionHandlers:
         """
         Test that parse_file handles empty files correctly.
         """
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write("")
-            temp_path = f.name
-
-        try:
+        with temp_file("") as temp_path:
             rules = parse_file(temp_path)
             assert rules == []
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_with_only_comments(self) -> None:
         """
         Test that parse_file handles files with only comments.
         """
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write("# This is a comment\n")
-            f.write("# Another comment\n")
-            temp_path = f.name
-
-        try:
+        with temp_file("# This is a comment\n# Another comment\n") as temp_path:
             rules = parse_file(temp_path)
             assert rules == []
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_with_valid_rules(self) -> None:
         """
@@ -170,11 +157,7 @@ alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)
 # Comment line
 alert tcp any any -> any 22 (msg:"Rule 3"; sid:3;)
 """
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(rules_content)
-            temp_path = f.name
-
-        try:
+        with temp_file(rules_content) as temp_path:
             rules = parse_file(temp_path)
             assert len(rules) == 3
             assert all(hasattr(r, "origin") for r in rules)
@@ -185,8 +168,6 @@ alert tcp any any -> any 22 (msg:"Rule 3"; sid:3;)
             assert rules[0].origin.line_number == 1
             assert rules[1].origin.line_number == 2
             assert rules[2].origin.line_number == 4
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_with_mixed_valid_invalid_rules(self) -> None:
         """
@@ -196,16 +177,10 @@ alert tcp any any -> any 22 (msg:"Rule 3"; sid:3;)
 invalid rule syntax
 alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)
 """
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(rules_content)
-            temp_path = f.name
-
-        try:
+        with temp_file(rules_content) as temp_path:
             rules = parse_file(temp_path)
             # Should only parse the 2 valid rules
             assert len(rules) == 2
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_with_all_invalid_rules_raises_error(self) -> None:
         """
@@ -215,16 +190,10 @@ alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)
 invalid rule 2
 invalid rule 3
 """
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(rules_content)
-            temp_path = f.name
-
-        try:
+        with temp_file(rules_content) as temp_path:
             with pytest.raises(ParseError) as exc_info:
                 parse_file(temp_path)
             assert "Failed to parse any rules" in str(exc_info.value)
-        finally:
-            Path(temp_path).unlink()
 
 
 class TestParserExceptionHandlers:
@@ -428,11 +397,7 @@ class TestParserExceptionHandlers:
 alert tcp any any -> any 443 (msg:"test2"; sid:2;)
 alert tcp any any -> any 22 (msg:"test3"; sid:3;)
 """
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(rules_content)
-            temp_path = f.name
-
-        try:
+        with temp_file(rules_content) as temp_path:
             parser = LarkRuleParser()
             rules = parser.parse_file(temp_path)
 
@@ -441,15 +406,13 @@ alert tcp any any -> any 22 (msg:"test3"; sid:3;)
 
             # First rule should have line number 1 (first_line_num)
             assert rules[0].origin is not None
-            assert rules[0].origin.file_path == temp_path
+            assert rules[0].origin.file_path == str(temp_path)
             assert rules[0].origin.line_number == 1
 
             # Second rule should have line number 2
             assert rules[1].origin is not None
-            assert rules[1].origin.file_path == temp_path
+            assert rules[1].origin.file_path == str(temp_path)
             assert rules[1].origin.line_number == 2
-        finally:
-            Path(temp_path).unlink()
 
     def test_parser_error_recovery_mode(self) -> None:
         """
@@ -503,18 +466,12 @@ class TestIntegrationExceptionPaths:
         rules_content = """alert tcp any any -> any 80 (msg:"test"; sid:1;)
 invalid syntax here
 """
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(rules_content)
-            temp_path = f.name
-
-        try:
+        with temp_file(rules_content) as temp_path:
             parser = LarkRuleParser()
             # skip_errors=True means incomplete rule is silently skipped
             rules = parser.parse_file(temp_path, skip_errors=True)
             # Should have at least 1 valid rule
             assert len(rules) >= 1
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_rules_batch_function(self) -> None:
         """

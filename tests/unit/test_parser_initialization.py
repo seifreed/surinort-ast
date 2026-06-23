@@ -29,6 +29,7 @@ from surinort_ast.core.nodes import (
 )
 from surinort_ast.exceptions import ParseError
 from surinort_ast.parsing.lark_parser import LarkRuleParser
+from tests._helpers import temp_file
 
 
 def _is_error_rule(rule: Rule) -> bool:
@@ -376,30 +377,22 @@ class TestFileParsing:
         """Parse file containing single rule."""
         parser = LarkRuleParser()
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n') as temp_path:
             rules = parser.parse_file(temp_path)
 
             assert len(rules) == 1
             assert isinstance(rules[0], Rule)
             assert rules[0].action == Action.ALERT
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_multiple_rules(self):
         """Parse file containing multiple rules."""
         parser = LarkRuleParser()
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)\n')
-            f.write('drop tcp any any -> any 443 (msg:"Rule 2"; sid:2;)\n')
-            f.write('pass tcp any any -> any 22 (msg:"Rule 3"; sid:3;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)\n'
+            'drop tcp any any -> any 443 (msg:"Rule 2"; sid:2;)\n'
+            'pass tcp any any -> any 22 (msg:"Rule 3"; sid:3;)\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path)
 
             assert len(rules) == 3
@@ -407,46 +400,36 @@ class TestFileParsing:
             assert rules[0].action == Action.ALERT
             assert rules[1].action == Action.DROP
             assert rules[2].action == Action.PASS
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_with_comments(self):
         """Parse file with comment lines (should be skipped)."""
         parser = LarkRuleParser()
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write("# This is a comment\n")
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            f.write("# Another comment\n")
-            f.write('drop tcp any any -> any 443 (msg:"Test 2"; sid:2;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            "# This is a comment\n"
+            'alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n'
+            "# Another comment\n"
+            'drop tcp any any -> any 443 (msg:"Test 2"; sid:2;)\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path)
 
             assert len(rules) == 2
             assert all(isinstance(r, Rule) for r in rules)
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_with_blank_lines(self):
         """Parse file with blank lines (should be skipped)."""
         parser = LarkRuleParser()
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            f.write("\n")
-            f.write("   \n")
-            f.write('drop tcp any any -> any 443 (msg:"Test 2"; sid:2;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n'
+            "\n"
+            "   \n"
+            'drop tcp any any -> any 443 (msg:"Test 2"; sid:2;)\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path)
 
             assert len(rules) == 2
             assert all(isinstance(r, Rule) for r in rules)
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_multiline_rule(self):
         """Parse file with multi-line rule."""
@@ -473,31 +456,25 @@ class TestFileParsing:
         """Parse file with incomplete rule at end."""
         parser = LarkRuleParser()
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Complete"; sid:1;)\n')
-            f.write('alert tcp any any -> any 443 (msg:"Incomplete"')
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Complete"; sid:1;)\n'
+            'alert tcp any any -> any 443 (msg:"Incomplete"'
+        ) as temp_path:
             rules = parser.parse_file(temp_path, skip_errors=False)
 
             assert len(rules) >= 1
             # First rule should parse successfully
             assert rules[0].action == Action.ALERT
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_skip_errors_true(self):
         """Parse file with skip_errors=True ignores bad rules."""
         parser = LarkRuleParser()
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
-            f.write("invalid rule syntax here\n")
-            f.write('drop tcp any any -> any 443 (msg:"Also good"; sid:2;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n'
+            "invalid rule syntax here\n"
+            'drop tcp any any -> any 443 (msg:"Also good"; sid:2;)\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path, skip_errors=True)
 
             # Both valid rules must be recovered and the invalid line skipped;
@@ -507,28 +484,22 @@ class TestFileParsing:
             assert all(isinstance(r, Rule) for r in rules)
             assert all(not _is_error_rule(r) for r in rules)
             assert _rule_sids(rules) == [1, 2]
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_skip_errors_false(self):
         """Parse file with skip_errors=False includes error rules."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
-            f.write("invalid rule syntax here\n")
-            f.write('drop tcp any any -> any 443 (msg:"Also good"; sid:2;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n'
+            "invalid rule syntax here\n"
+            'drop tcp any any -> any 443 (msg:"Also good"; sid:2;)\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path, skip_errors=False)
 
             # Should get at least 2 valid rules
             assert len(rules) >= 2
             # At least 2 should parse
             assert any(isinstance(r, Rule) for r in rules)
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_file_nonexistent(self):
         """Parse non-existent file raises FileNotFoundError."""
@@ -678,47 +649,32 @@ class TestConvenienceFunctions:
 
     def test_parse_rules_file_function(self):
         """Test parse_rules_file convenience function."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            f.write('drop tcp any any -> any 443 (msg:"Test 2"; sid:2;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n'
+            'drop tcp any any -> any 443 (msg:"Test 2"; sid:2;)\n'
+        ) as temp_path:
             rules = LarkRuleParser().parse_file(temp_path)
 
             assert len(rules) == 2
             assert all(isinstance(r, Rule) for r in rules)
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_rules_file_function_custom_dialect(self):
         """Test parse_rules_file with custom dialect."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n') as temp_path:
             rules = LarkRuleParser(dialect=Dialect.SNORT3).parse_file(temp_path)
 
             assert len(rules) == 1
             assert rules[0].dialect == Dialect.SNORT3
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_rules_file_function_skip_errors(self):
         """Test parse_rules_file with skip_errors parameter."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
-            f.write("invalid bad syntax here\n")
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Good"; sid:1;)\ninvalid bad syntax here\n'
+        ) as temp_path:
             rules = LarkRuleParser().parse_file(temp_path, skip_errors=True)
 
             assert len(rules) >= 1
             assert any(isinstance(r, Rule) for r in rules)
-        finally:
-            Path(temp_path).unlink()
 
 
 class TestErrorNodeCreation:
@@ -930,17 +886,11 @@ class TestSpecificErrorPaths:
         """Test rule detection ending with closing parenthesis."""
         parser = LarkRuleParser()
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n') as temp_path:
             rules = parser.parse_file(temp_path)
 
             assert len(rules) == 1
             assert isinstance(rules[0], Rule)
-        finally:
-            Path(temp_path).unlink()
 
     def test_file_parse_blank_line_triggers_parse(self):
         """Test blank line triggers parsing of accumulated rule."""
@@ -1027,18 +977,13 @@ class TestSpecificErrorPaths:
         """Test exception handling when skip_errors=False."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
-            f.write("completely invalid garbage\n")
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Good"; sid:1;)\ncompletely invalid garbage\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path, skip_errors=False)
 
             # Should get at least one rule (the good one)
             assert len(rules) >= 1
-        finally:
-            Path(temp_path).unlink()
 
     def test_grammar_file_not_found_error(self):
         """Test that grammar file exists (indirect test of error path)."""
@@ -1066,18 +1011,12 @@ class TestSpecificErrorPaths:
         """Test parse_file accepts Path object."""
         parser = LarkRuleParser()
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n') as temp_path:
             path_obj = Path(temp_path)
             rules = parser.parse_file(path_obj)
 
             assert len(rules) == 1
             assert isinstance(rules[0], Rule)
-        finally:
-            Path(temp_path).unlink()
 
     def test_parse_with_transformer_diagnostics(self):
         """Test merging of transformer diagnostics into rule."""
@@ -1142,32 +1081,20 @@ class TestSpecificErrorPaths:
         """Test rule ending detection with semicolon."""
         parser = LarkRuleParser()
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n') as temp_path:
             rules = parser.parse_file(temp_path)
 
             assert len(rules) == 1
-        finally:
-            Path(temp_path).unlink()
 
     def test_file_parse_incomplete_rule_no_semicolon_or_paren(self):
         """Test incomplete rule at EOF without proper ending."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Test"')
-            temp_path = f.name
-
-        try:
+        with temp_file('alert tcp any any -> any 80 (msg:"Test"') as temp_path:
             rules = parser.parse_file(temp_path, skip_errors=False)
 
             # Should attempt to parse incomplete rule
             assert len(rules) >= 0
-        finally:
-            Path(temp_path).unlink()
 
     def test_source_metadata_with_location_line_number(self):
         """Test line number calculation in source metadata."""
@@ -1433,92 +1360,67 @@ class TestMultilineAccumulation:
         """A rule whose option block spans several lines parses cleanly."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write("alert tcp any any -> any 80 (\n")
-            f.write('    msg:"Multi-line rule";\n')
-            f.write("    flow:established,to_server;\n")
-            f.write("    sid:1;\n")
-            f.write(")\n")
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            "alert tcp any any -> any 80 (\n"
+            '    msg:"Multi-line rule";\n'
+            "    flow:established,to_server;\n"
+            "    sid:1;\n"
+            ")\n"
+        ) as temp_path:
             rules = parser.parse_file(temp_path)
 
             assert len(rules) == 1
             assert not _is_error_rule(rules[0])
             assert _rule_sids(rules) == [1]
-        finally:
-            Path(temp_path).unlink()
 
     def test_non_terminated_line_does_not_swallow_next_rule(self):
         """A junk line without a terminator must not merge with the next rule."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
-            f.write("garbage line without terminator\n")
-            f.write('drop tcp any any -> any 443 (msg:"Also good"; sid:2;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n'
+            "garbage line without terminator\n"
+            'drop tcp any any -> any 443 (msg:"Also good"; sid:2;)\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path, skip_errors=True)
 
             assert _rule_sids(rules) == [1, 2]
             assert all(not _is_error_rule(r) for r in rules)
-        finally:
-            Path(temp_path).unlink()
 
     def test_skip_errors_skips_error_rules_in_non_strict_mode(self):
         """skip_errors=True drops parse-error rules even when strict is False."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write("garbage line without terminator\n")
-            temp_path = f.name
-
-        try:
+        with temp_file("garbage line without terminator\n") as temp_path:
             assert parser.parse_file(temp_path, skip_errors=True) == []
 
             error_rules = parser.parse_file(temp_path, skip_errors=False)
             assert len(error_rules) == 1
             assert _is_error_rule(error_rules[0])
-        finally:
-            Path(temp_path).unlink()
 
     def test_backslash_line_continuation(self):
         """A backslash at end of line continues the rule onto the next line."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Cont"; \\\n')
-            f.write("sid:7;)\n")
-            temp_path = f.name
-
-        try:
+        with temp_file('alert tcp any any -> any 80 (msg:"Cont"; \\\nsid:7;)\n') as temp_path:
             rules = parser.parse_file(temp_path)
 
             assert len(rules) == 1
             assert not _is_error_rule(rules[0])
             assert _rule_sids(rules) == [7]
-        finally:
-            Path(temp_path).unlink()
 
     def test_parens_inside_quoted_values_do_not_break_accumulation(self):
         """Parens inside msg/content/pcre must not affect rule boundaries."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"has (paren) inside"; sid:1;)\n')
-            f.write('alert tcp any any -> any 81 (msg:"second"; sid:2;)\n')
-            temp_path = f.name
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"has (paren) inside"; sid:1;)\n'
+            'alert tcp any any -> any 81 (msg:"second"; sid:2;)\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path)
 
             assert _rule_sids(rules) == [1, 2]
             assert all(not _is_error_rule(r) for r in rules)
-        finally:
-            Path(temp_path).unlink()
 
     def test_paren_depth_ignores_quoted_parens(self):
         """_paren_depth counts only unquoted parentheses."""

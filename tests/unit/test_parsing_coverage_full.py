@@ -53,6 +53,7 @@ from surinort_ast.parsing.mixins.content_transformer import (
 from surinort_ast.parsing.mixins.options._helpers import strip_outer_quotes
 from surinort_ast.parsing.parser_config import ParserConfig
 from surinort_ast.parsing.transformer import RuleTransformer
+from tests._helpers import temp_file
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -577,16 +578,10 @@ class TestParseFileRemainingLinesNone:
         # Positive case: a valid rule at EOF (no trailing newline) is appended
         # via line 454->455.
         parser = LarkRuleParser(strict=False)
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write('alert tcp any any -> any 80 (msg:"EOF"; sid:1;)')
-            tmp = f.name
-
-        try:
+        with temp_file('alert tcp any any -> any 80 (msg:"EOF"; sid:1;)') as tmp:
             rules = parser.parse_file(tmp)
             assert len(rules) == 1
             assert rules[0].action.value == "alert"
-        finally:
-            Path(tmp).unlink()
 
 
 # ---------------------------------------------------------------------------
