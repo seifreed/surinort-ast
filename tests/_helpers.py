@@ -6,6 +6,16 @@ import tempfile
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
+from typing import TypeVar
+
+from surinort_ast.core.nodes import Option, Rule
+
+_OptionT = TypeVar("_OptionT", bound=Option)
+
+
+def first_option(rule: Rule, option_type: type[_OptionT]) -> _OptionT | None:
+    """Return the first option of ``option_type`` on ``rule``, or None."""
+    return next((opt for opt in rule.options if isinstance(opt, option_type)), None)
 
 
 def iter_rule_lines(path: Path) -> Iterator[tuple[int, str]]:

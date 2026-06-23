@@ -32,6 +32,7 @@ from surinort_ast.core.nodes import (
 )
 from surinort_ast.parsing.lark_parser import LarkRuleParser
 from surinort_ast.parsing.parser_config import ParserConfig
+from tests._helpers import first_option
 
 
 class TestAllProtocols:
@@ -138,7 +139,7 @@ class TestAllOptions:
         rule_text = 'alert tcp any any -> any any (msg:"Test Message"; sid:1;)'
         rule = parse_rule(rule_text)
 
-        msg_opt = next((opt for opt in rule.options if isinstance(opt, MsgOption)), None)
+        msg_opt = first_option(rule, MsgOption)
         assert msg_opt is not None
         assert msg_opt.text == "Test Message"
 
@@ -147,7 +148,7 @@ class TestAllOptions:
         rule_text = 'alert tcp any any -> any any (msg:"Test"; sid:123456;)'
         rule = parse_rule(rule_text)
 
-        sid_opt = next((opt for opt in rule.options if isinstance(opt, SidOption)), None)
+        sid_opt = first_option(rule, SidOption)
         assert sid_opt is not None
         assert sid_opt.value == 123456
 
@@ -156,7 +157,7 @@ class TestAllOptions:
         rule_text = 'alert tcp any any -> any any (msg:"Test"; sid:1; rev:5;)'
         rule = parse_rule(rule_text)
 
-        rev_opt = next((opt for opt in rule.options if isinstance(opt, RevOption)), None)
+        rev_opt = first_option(rule, RevOption)
         assert rev_opt is not None
         assert rev_opt.value == 5
 
@@ -165,7 +166,7 @@ class TestAllOptions:
         rule_text = 'alert tcp any any -> any any (msg:"Test"; gid:100; sid:1;)'
         rule = parse_rule(rule_text)
 
-        gid_opt = next((opt for opt in rule.options if isinstance(opt, GidOption)), None)
+        gid_opt = first_option(rule, GidOption)
         assert gid_opt is not None
         assert gid_opt.value == 100
 
@@ -174,7 +175,7 @@ class TestAllOptions:
         rule_text = 'alert tcp any any -> any any (msg:"Test"; classtype:trojan-activity; sid:1;)'
         rule = parse_rule(rule_text)
 
-        ct_opt = next((opt for opt in rule.options if isinstance(opt, ClasstypeOption)), None)
+        ct_opt = first_option(rule, ClasstypeOption)
         assert ct_opt is not None
         assert ct_opt.value == "trojan-activity"
 
@@ -183,7 +184,7 @@ class TestAllOptions:
         rule_text = 'alert tcp any any -> any any (msg:"Test"; priority:1; sid:1;)'
         rule = parse_rule(rule_text)
 
-        pri_opt = next((opt for opt in rule.options if isinstance(opt, PriorityOption)), None)
+        pri_opt = first_option(rule, PriorityOption)
         assert pri_opt is not None
         assert pri_opt.value == 1
 
@@ -192,7 +193,7 @@ class TestAllOptions:
         rule_text = 'alert tcp any any -> any any (msg:"Test"; reference:cve,2021-12345; sid:1;)'
         rule = parse_rule(rule_text)
 
-        ref_opt = next((opt for opt in rule.options if isinstance(opt, ReferenceOption)), None)
+        ref_opt = first_option(rule, ReferenceOption)
         assert ref_opt is not None
         assert ref_opt.ref_type == "cve"
         assert ref_opt.ref_id == "2021-12345"
@@ -205,7 +206,7 @@ class TestAllOptions:
         )
         rule = parse_rule(rule_text)
 
-        meta_opt = next((opt for opt in rule.options if isinstance(opt, MetadataOption)), None)
+        meta_opt = first_option(rule, MetadataOption)
         assert meta_opt is not None
         assert len(meta_opt.entries) >= 1
 
@@ -214,7 +215,7 @@ class TestAllOptions:
         rule_text = 'alert tcp any any -> any any (content:"malware"; sid:1;)'
         rule = parse_rule(rule_text)
 
-        content_opt = next((opt for opt in rule.options if isinstance(opt, ContentOption)), None)
+        content_opt = first_option(rule, ContentOption)
         assert content_opt is not None
         assert content_opt.pattern == b"malware"
 
@@ -223,7 +224,7 @@ class TestAllOptions:
         rule_text = 'alert tcp any any -> any any (pcre:"/attack/i"; sid:1;)'
         rule = parse_rule(rule_text)
 
-        pcre_opt = next((opt for opt in rule.options if isinstance(opt, PcreOption)), None)
+        pcre_opt = first_option(rule, PcreOption)
         assert pcre_opt is not None
         assert pcre_opt.pattern == "attack"
         assert pcre_opt.flags == "i"
@@ -233,7 +234,7 @@ class TestAllOptions:
         rule_text = "alert tcp any any -> any any (flow:established,to_server; sid:1;)"
         rule = parse_rule(rule_text)
 
-        flow_opt = next((opt for opt in rule.options if isinstance(opt, FlowOption)), None)
+        flow_opt = first_option(rule, FlowOption)
         assert flow_opt is not None
         assert FlowState.ESTABLISHED in flow_opt.states
         assert FlowDirection.TO_SERVER in flow_opt.directions
@@ -243,7 +244,7 @@ class TestAllOptions:
         rule_text = "alert tcp any any -> any any (flowbits:set,infected; sid:1;)"
         rule = parse_rule(rule_text)
 
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         assert fb_opt.action == "set"
         assert fb_opt.name == "infected"
@@ -264,7 +265,7 @@ class TestAllOptions:
         rule_text = "alert tcp any any -> any any (filestore:request,file; sid:1;)"
         rule = parse_rule(rule_text)
 
-        fs_opt = next((opt for opt in rule.options if isinstance(opt, FilestoreOption)), None)
+        fs_opt = first_option(rule, FilestoreOption)
         assert fs_opt is not None
         assert fs_opt.direction == "request"
         assert fs_opt.scope == "file"
@@ -402,7 +403,7 @@ class TestSIDValidation:
         rule_text = 'alert tcp any any -> any any (msg:"Test"; sid:1000001;)'
         rule = parse_rule(rule_text)
 
-        sid_opt = next((opt for opt in rule.options if isinstance(opt, SidOption)), None)
+        sid_opt = first_option(rule, SidOption)
         assert sid_opt is not None
         assert sid_opt.value == 1000001
 
@@ -424,7 +425,7 @@ class TestQuotedStrings:
         rule_text = 'alert tcp any any -> any any (msg:"Simple message"; sid:1;)'
         rule = parse_rule(rule_text)
 
-        msg_opt = next((opt for opt in rule.options if isinstance(opt, MsgOption)), None)
+        msg_opt = first_option(rule, MsgOption)
         assert msg_opt is not None
         assert msg_opt.text == "Simple message"
 
@@ -433,7 +434,7 @@ class TestQuotedStrings:
         rule_text = r'alert tcp any any -> any any (msg:"Message with \"quotes\""; sid:1;)'
         rule = parse_rule(rule_text)
 
-        msg_opt = next((opt for opt in rule.options if isinstance(opt, MsgOption)), None)
+        msg_opt = first_option(rule, MsgOption)
         assert msg_opt is not None
         # Should contain quotes
         assert "quotes" in msg_opt.text
@@ -443,7 +444,7 @@ class TestQuotedStrings:
         rule_text = r'alert tcp any any -> any any (msg:"Path: C:\\Windows"; sid:1;)'
         rule = parse_rule(rule_text)
 
-        msg_opt = next((opt for opt in rule.options if isinstance(opt, MsgOption)), None)
+        msg_opt = first_option(rule, MsgOption)
         assert msg_opt is not None
         # Should contain backslash
         assert "\\" in msg_opt.text or "Windows" in msg_opt.text
@@ -457,7 +458,7 @@ class TestHexStrings:
         rule_text = 'alert tcp any any -> any any (content:"|48 65 6C 6C 6F|"; sid:1;)'
         rule = parse_rule(rule_text)
 
-        content_opt = next((opt for opt in rule.options if isinstance(opt, ContentOption)), None)
+        content_opt = first_option(rule, ContentOption)
         assert content_opt is not None
         assert content_opt.pattern == b"Hello"
 
@@ -466,7 +467,7 @@ class TestHexStrings:
         rule_text = 'alert tcp any any -> any any (content:"|48 65 6c 6c 6f|"; sid:1;)'
         rule = parse_rule(rule_text)
 
-        content_opt = next((opt for opt in rule.options if isinstance(opt, ContentOption)), None)
+        content_opt = first_option(rule, ContentOption)
         assert content_opt is not None
         assert content_opt.pattern == b"Hello"
 
@@ -475,7 +476,7 @@ class TestHexStrings:
         rule_text = 'alert tcp any any -> any any (content:"|48656C6C6F|"; sid:1;)'
         rule = parse_rule(rule_text)
 
-        content_opt = next((opt for opt in rule.options if isinstance(opt, ContentOption)), None)
+        content_opt = first_option(rule, ContentOption)
         assert content_opt is not None
         assert content_opt.pattern == b"Hello"
 
@@ -490,7 +491,7 @@ class TestHexStrings:
         )
         rule = parse_rule(rule_text, dialect=dialect)
 
-        content_opt = next((opt for opt in rule.options if isinstance(opt, ContentOption)), None)
+        content_opt = first_option(rule, ContentOption)
         assert content_opt is not None
         assert content_opt.pattern == b"\x089507c4e8\x03com\x00"
 

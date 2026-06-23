@@ -29,7 +29,7 @@ from surinort_ast.core.nodes import (
 )
 from surinort_ast.exceptions import ParseError
 from surinort_ast.parsing.lark_parser import LarkRuleParser
-from tests._helpers import temp_file
+from tests._helpers import first_option, temp_file
 
 
 def _is_error_rule(rule: Rule) -> bool:
@@ -224,7 +224,7 @@ class TestBasicRuleParsing:
         rule = parser.parse(rule_text)
 
         # Find SID option
-        sid_option = next((opt for opt in rule.options if isinstance(opt, SidOption)), None)
+        sid_option = first_option(rule, SidOption)
         assert sid_option is not None
         assert sid_option.value == 999888
 

@@ -20,6 +20,7 @@ from surinort_ast.core.nodes import (
 )
 from surinort_ast.printer.formatter import FormatterOptions
 from surinort_ast.printer.text_printer import TextPrinter, print_rule, print_rules
+from tests._helpers import first_option
 
 
 class TestRoundtripBasic:
@@ -78,8 +79,8 @@ class TestRoundtripContent:
         rule2 = parse_rule(printed)
 
         # Extract content patterns
-        content1 = next((opt for opt in rule1.options if isinstance(opt, ContentOption)), None)
-        content2 = next((opt for opt in rule2.options if isinstance(opt, ContentOption)), None)
+        content1 = first_option(rule1, ContentOption)
+        content2 = first_option(rule2, ContentOption)
 
         assert content1 is not None
         assert content2 is not None
@@ -93,8 +94,8 @@ class TestRoundtripContent:
         rule2 = parse_rule(printed)
 
         # Verify HELLO is preserved
-        content1 = next((opt for opt in rule1.options if isinstance(opt, ContentOption)), None)
-        content2 = next((opt for opt in rule2.options if isinstance(opt, ContentOption)), None)
+        content1 = first_option(rule1, ContentOption)
+        content2 = first_option(rule2, ContentOption)
 
         assert content1 is not None
         assert content2 is not None
@@ -108,8 +109,8 @@ class TestRoundtripContent:
         printed = print_rule(rule1)
         rule2 = parse_rule(printed)
 
-        content1 = next((opt for opt in rule1.options if isinstance(opt, ContentOption)), None)
-        content2 = next((opt for opt in rule2.options if isinstance(opt, ContentOption)), None)
+        content1 = first_option(rule1, ContentOption)
+        content2 = first_option(rule2, ContentOption)
 
         assert content1 is not None
         assert content2 is not None
@@ -139,8 +140,8 @@ class TestRoundtripPCRE:
         printed = print_rule(rule1)
         rule2 = parse_rule(printed)
 
-        pcre1 = next((opt for opt in rule1.options if isinstance(opt, PcreOption)), None)
-        pcre2 = next((opt for opt in rule2.options if isinstance(opt, PcreOption)), None)
+        pcre1 = first_option(rule1, PcreOption)
+        pcre2 = first_option(rule2, PcreOption)
 
         assert pcre1 is not None
         assert pcre2 is not None
@@ -153,8 +154,8 @@ class TestRoundtripPCRE:
         printed = print_rule(rule1)
         rule2 = parse_rule(printed)
 
-        pcre1 = next((opt for opt in rule1.options if isinstance(opt, PcreOption)), None)
-        pcre2 = next((opt for opt in rule2.options if isinstance(opt, PcreOption)), None)
+        pcre1 = first_option(rule1, PcreOption)
+        pcre2 = first_option(rule2, PcreOption)
 
         assert pcre1 is not None
         assert pcre2 is not None

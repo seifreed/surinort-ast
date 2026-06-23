@@ -25,6 +25,7 @@ from surinort_ast import parse_rule
 from surinort_ast.core.diagnostics import DiagnosticLevel
 from surinort_ast.core.enums import FlowDirection, FlowState
 from surinort_ast.core.nodes import FlowbitsOption, FlowOption, GenericOption
+from tests._helpers import first_option
 
 
 class TestFlowOptionUnknownValue:
@@ -83,7 +84,7 @@ class TestFlowOptionUnknownValue:
         assert rule is not None
 
         # Find the FlowOption
-        flow_opt = next((opt for opt in rule.options if isinstance(opt, FlowOption)), None)
+        flow_opt = first_option(rule, FlowOption)
         assert flow_opt is not None
 
         # Valid values should be parsed correctly
@@ -127,7 +128,7 @@ class TestFlowbitsOptionActionOnly:
         assert rule is not None
 
         # Find the FlowbitsOption
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         assert fb_opt.action == "noalert"
         assert fb_opt.name == ""  # Name should be empty string
@@ -139,7 +140,7 @@ class TestFlowbitsOptionActionOnly:
 
         assert rule is not None
 
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         assert fb_opt.action == "unset"
         assert fb_opt.name == ""
@@ -153,7 +154,7 @@ class TestFlowbitsOptionActionOnly:
 
         assert rule is not None
 
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         # Action should be parsed
         assert fb_opt.action == "toggle"
@@ -169,7 +170,7 @@ class TestFlowbitsOptionActionAndName:
 
         assert rule is not None
 
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         assert fb_opt.action == "set"
         assert fb_opt.name == "mybit"
@@ -181,7 +182,7 @@ class TestFlowbitsOptionActionAndName:
 
         assert rule is not None
 
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         assert fb_opt.action == "isset"
         assert fb_opt.name == "checkbit"
@@ -193,7 +194,7 @@ class TestFlowbitsOptionActionAndName:
 
         assert rule is not None
 
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         assert fb_opt.action == "toggle"
         assert fb_opt.name == "flag"
@@ -205,7 +206,7 @@ class TestFlowbitsOptionActionAndName:
 
         assert rule is not None
 
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         assert fb_opt.action == "isnotset"
         assert fb_opt.name == "notflag"
@@ -217,7 +218,7 @@ class TestFlowbitsOptionActionAndName:
 
         assert rule is not None
 
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         assert fb_opt.action == "unset"
         assert fb_opt.name == "clearbit"
@@ -229,7 +230,7 @@ class TestFlowbitsOptionActionAndName:
 
         assert rule is not None
 
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         assert fb_opt.action == "isset"
         # Compound names should be joined with &
@@ -459,13 +460,13 @@ class TestFlowMixinIntegration:
         assert rule is not None
 
         # Should have FlowOption
-        flow_opt = next((opt for opt in rule.options if isinstance(opt, FlowOption)), None)
+        flow_opt = first_option(rule, FlowOption)
         assert flow_opt is not None
         assert FlowState.ESTABLISHED in flow_opt.states
         assert FlowDirection.TO_SERVER in flow_opt.directions
 
         # Should have FlowbitsOption
-        fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+        fb_opt = first_option(rule, FlowbitsOption)
         assert fb_opt is not None
         assert fb_opt.action == "set"
         assert fb_opt.name == "attack_started"
@@ -491,7 +492,7 @@ class TestFlowMixinIntegration:
             rule = parse_rule(rule_text)
 
             assert rule is not None
-            flow_opt = next((opt for opt in rule.options if isinstance(opt, FlowOption)), None)
+            flow_opt = first_option(rule, FlowOption)
             assert flow_opt is not None
             assert len(flow_opt.directions) > 0
 
@@ -510,7 +511,7 @@ class TestFlowMixinIntegration:
             rule = parse_rule(rule_text)
 
             assert rule is not None
-            flow_opt = next((opt for opt in rule.options if isinstance(opt, FlowOption)), None)
+            flow_opt = first_option(rule, FlowOption)
             assert flow_opt is not None
             assert len(flow_opt.states) > 0
 
@@ -521,7 +522,7 @@ class TestFlowMixinIntegration:
 
         assert rule is not None
 
-        flow_opt = next((opt for opt in rule.options if isinstance(opt, FlowOption)), None)
+        flow_opt = first_option(rule, FlowOption)
         assert flow_opt is not None
         # All values were invalid, so lists should be empty
         assert len(flow_opt.directions) == 0
@@ -554,7 +555,7 @@ class TestFlowMixinEdgeCases:
             rule = parse_rule(rule_text)
             assert rule is not None
 
-            fb_opt = next((opt for opt in rule.options if isinstance(opt, FlowbitsOption)), None)
+            fb_opt = first_option(rule, FlowbitsOption)
             assert fb_opt is not None
             assert fb_opt.action == action
 
@@ -565,7 +566,7 @@ class TestFlowMixinEdgeCases:
 
         assert rule is not None
 
-        flow_opt = next((opt for opt in rule.options if isinstance(opt, FlowOption)), None)
+        flow_opt = first_option(rule, FlowOption)
         assert flow_opt is not None
 
         # Should have both direction and states
