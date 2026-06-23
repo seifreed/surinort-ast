@@ -15,7 +15,6 @@ import pytest
 from lark import Lark
 
 # Import core modules
-from surinort_ast.core.nodes import Rule
 from surinort_ast.parsing.transformer import RuleTransformer
 from surinort_ast.printer.text_printer import TextPrinter
 from surinort_ast.serialization.json_serializer import JSONSerializer
@@ -198,53 +197,6 @@ def snort_sample_rules(snort29_rules_file: Path) -> list[str]:
                 if len(rules) >= 50:
                     break
     return rules
-
-
-# ============================================================================
-# Utility Functions
-# ============================================================================
-
-
-def parse_rule(rule_text: str, lark_parser: Lark, transformer: RuleTransformer) -> Rule:
-    """
-    Parse a single rule text to AST.
-
-    Helper function for tests to parse rules using real parser.
-
-    Args:
-        rule_text: Rule text to parse
-        lark_parser: Lark parser instance
-        transformer: AST transformer
-
-    Returns:
-        Parsed Rule AST node
-    """
-    parse_tree = lark_parser.parse(rule_text)
-    result = transformer.transform(parse_tree)
-
-    # Handle single rule or list of rules
-    if isinstance(result, list):
-        return result[0] if result else None
-    return result
-
-
-def count_rules_in_file(file_path: Path) -> int:
-    """
-    Count non-comment, non-empty lines in a rule file.
-
-    Args:
-        file_path: Path to rule file
-
-    Returns:
-        Number of actual rules (excluding comments/empty lines)
-    """
-    count = 0
-    with open(file_path, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                count += 1
-    return count
 
 
 # ============================================================================
