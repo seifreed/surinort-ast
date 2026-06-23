@@ -131,11 +131,21 @@ class TestRuleBuilderBasics:
 class TestActions:
     """Test action configuration methods."""
 
-    def test_alert_action(self) -> None:
-        """Test alert() method."""
+    @pytest.mark.parametrize(
+        ("method", "expected"),
+        [
+            ("alert", Action.ALERT),
+            ("drop", Action.DROP),
+            ("reject", Action.REJECT),
+            ("pass_", Action.PASS),
+            ("log", Action.LOG),
+            ("sdrop", Action.SDROP),
+        ],
+    )
+    def test_action_method(self, method: str, expected: Action) -> None:
+        """Each action shortcut method sets the corresponding Action."""
         rule = (
-            RuleBuilder()
-            .alert()
+            getattr(RuleBuilder(), method)()
             .tcp()
             .source_ip("any")
             .source_port("any")
@@ -145,87 +155,7 @@ class TestActions:
             .sid(1)
             .build()
         )
-        assert rule.action == Action.ALERT
-
-    def test_drop_action(self) -> None:
-        """Test drop() method."""
-        rule = (
-            RuleBuilder()
-            .drop()
-            .tcp()
-            .source_ip("any")
-            .source_port("any")
-            .dest_ip("any")
-            .dest_port(80)
-            .msg("Test")
-            .sid(1)
-            .build()
-        )
-        assert rule.action == Action.DROP
-
-    def test_reject_action(self) -> None:
-        """Test reject() method."""
-        rule = (
-            RuleBuilder()
-            .reject()
-            .tcp()
-            .source_ip("any")
-            .source_port("any")
-            .dest_ip("any")
-            .dest_port(80)
-            .msg("Test")
-            .sid(1)
-            .build()
-        )
-        assert rule.action == Action.REJECT
-
-    def test_pass_action(self) -> None:
-        """Test pass_() method."""
-        rule = (
-            RuleBuilder()
-            .pass_()
-            .tcp()
-            .source_ip("any")
-            .source_port("any")
-            .dest_ip("any")
-            .dest_port(80)
-            .msg("Test")
-            .sid(1)
-            .build()
-        )
-        assert rule.action == Action.PASS
-
-    def test_log_action(self) -> None:
-        """Test log() method."""
-        rule = (
-            RuleBuilder()
-            .log()
-            .tcp()
-            .source_ip("any")
-            .source_port("any")
-            .dest_ip("any")
-            .dest_port(80)
-            .msg("Test")
-            .sid(1)
-            .build()
-        )
-        assert rule.action == Action.LOG
-
-    def test_sdrop_action(self) -> None:
-        """Test sdrop() method."""
-        rule = (
-            RuleBuilder()
-            .sdrop()
-            .tcp()
-            .source_ip("any")
-            .source_port("any")
-            .dest_ip("any")
-            .dest_port(80)
-            .msg("Test")
-            .sid(1)
-            .build()
-        )
-        assert rule.action == Action.SDROP
+        assert rule.action == expected
 
     def test_action_with_string(self) -> None:
         """Test action() with string parameter."""
@@ -247,12 +177,19 @@ class TestActions:
 class TestProtocols:
     """Test protocol configuration methods."""
 
-    def test_tcp_protocol(self) -> None:
-        """Test tcp() method."""
+    @pytest.mark.parametrize(
+        ("method", "expected"),
+        [
+            ("tcp", Protocol.TCP),
+            ("udp", Protocol.UDP),
+            ("http", Protocol.HTTP),
+            ("dns", Protocol.DNS),
+        ],
+    )
+    def test_protocol_method(self, method: str, expected: Protocol) -> None:
+        """Each protocol shortcut method sets the corresponding Protocol."""
         rule = (
-            RuleBuilder()
-            .alert()
-            .tcp()
+            getattr(RuleBuilder().alert(), method)()
             .source_ip("any")
             .source_port("any")
             .dest_ip("any")
@@ -261,55 +198,7 @@ class TestProtocols:
             .sid(1)
             .build()
         )
-        assert rule.header.protocol == Protocol.TCP
-
-    def test_udp_protocol(self) -> None:
-        """Test udp() method."""
-        rule = (
-            RuleBuilder()
-            .alert()
-            .udp()
-            .source_ip("any")
-            .source_port("any")
-            .dest_ip("any")
-            .dest_port(53)
-            .msg("Test")
-            .sid(1)
-            .build()
-        )
-        assert rule.header.protocol == Protocol.UDP
-
-    def test_http_protocol(self) -> None:
-        """Test http() method."""
-        rule = (
-            RuleBuilder()
-            .alert()
-            .http()
-            .source_ip("any")
-            .source_port("any")
-            .dest_ip("any")
-            .dest_port(80)
-            .msg("Test")
-            .sid(1)
-            .build()
-        )
-        assert rule.header.protocol == Protocol.HTTP
-
-    def test_dns_protocol(self) -> None:
-        """Test dns() method."""
-        rule = (
-            RuleBuilder()
-            .alert()
-            .dns()
-            .source_ip("any")
-            .source_port("any")
-            .dest_ip("any")
-            .dest_port(53)
-            .msg("Test")
-            .sid(1)
-            .build()
-        )
-        assert rule.header.protocol == Protocol.DNS
+        assert rule.header.protocol == expected
 
     def test_protocol_with_string(self) -> None:
         """Test protocol() with string parameter."""
