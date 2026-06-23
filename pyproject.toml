@@ -195,17 +195,14 @@ ignore = [
     "PLR0912", # Too many branches (inherent to selector matching logic)
 ]
 "src/surinort_ast/query/executor.py" = [
-    "ARG001",  # Unused arguments (executor interface compliance)
     "ARG002",  # Unused arguments (executor interface compliance)
     "PLR0911", # Too many returns (inherent to query execution)
-    "PLR0912", # Too many branches (inherent to query execution)
 ]
 "src/surinort_ast/serialization/protobuf/serializer.py" = [
     "ARG001",  # Unused arguments (serializer interface compliance)
     "PLR0911", # Too many returns (inherent to serialization logic)
 ]
 "src/surinort_ast/streaming/processor.py" = [
-    "ARG002",  # Unused arguments (processor interface compliance)
     "PLC0415", # Lazy import avoids validation-layer import cycles
 ]
 "src/surinort_ast/serialization/json_serializer.py" = [
@@ -215,8 +212,6 @@ ignore = [
 # Import outside top-level to avoid circular dependencies (by design)
 "src/surinort_ast/streaming/parser.py" = [
     "PLC0415",  # Import inside function (avoids circular imports)
-    "PLR0912",  # Too many branches (inherent to streaming parser logic)
-    "PLR0915",  # Too many statements (inherent to streaming parser logic)
 ]
 "src/surinort_ast/plugins/loader.py" = [
     "PLC0415",  # Import inside function (avoids circular imports)
@@ -252,7 +247,6 @@ ignore = [
 # Complex logic inherent to parsing/validation/CLI
 "src/surinort_ast/api/parsing.py" = [
     "PLC0415",  # Import inside function (avoids circular imports)
-    "PLR0912",  # Too many branches (inherent to API validation)
 ]
 "src/surinort_ast/builder/rule_builder.py" = [
     "F401",    # Builder re-exports share import blocks with optional builder helpers
@@ -260,12 +254,6 @@ ignore = [
 ]
 "src/surinort_ast/core/nodes.py" = [
     "UP007",    # Runtime type aliases need Union syntax for Pydantic
-]
-"src/surinort_ast/cli/main.py" = [
-    "PLR0912",  # Too many branches (CLI command dispatch)
-    "PLR0915",  # Too many statements (CLI setup)
-    "PLC0415",  # Import inside function (optional dependencies)
-    "ARG001",   # Unused arguments (CLI framework callbacks)
 ]
 
 [tool.ruff.format]
