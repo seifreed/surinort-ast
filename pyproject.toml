@@ -309,101 +309,35 @@ disable_error_code = [
 module = "surinort_ast.serialization.protobuf.serializer"
 disable_error_code = ["attr-defined", "no-any-return", "unused-ignore", "import-untyped"]
 
-# Streaming parser: union-attr errors are false positives with discriminated unions
+# Streaming parser: arg-type false positive on discriminated-union tuple append
 [[tool.mypy.overrides]]
 module = "surinort_ast.streaming.parser"
-disable_error_code = ["union-attr", "arg-type"]
+disable_error_code = ["arg-type"]
 
-[[tool.mypy.overrides]]
-module = "surinort_ast.streaming.processor"
-disable_error_code = ["union-attr", "arg-type", "unused-ignore"]
-
-# Query system: union-attr false positives with selector type narrowing
+# Query executor: union-attr false positives with selector type narrowing
 [[tool.mypy.overrides]]
 module = "surinort_ast.query.executor"
-disable_error_code = ["union-attr", "assignment", "unreachable"]
+disable_error_code = ["union-attr"]
 
+# LSH: hashing helper returns Any from the stdlib
 [[tool.mypy.overrides]]
 module = "surinort_ast.analysis.lsh"
 disable_error_code = ["no-any-return"]
 
-# Plugin system: complex type union compatibility
+# Plugin loader: list-of-union vs base-plugin return covariance
 [[tool.mypy.overrides]]
 module = "surinort_ast.plugins.loader"
 disable_error_code = ["return-value"]
-
-# Writers: generator type compatibility
-[[tool.mypy.overrides]]
-module = "surinort_ast.streaming.writers"
-disable_error_code = ["misc"]
 
 # Analysis strategies: union compatibility with base Option type
 [[tool.mypy.overrides]]
 module = "surinort_ast.analysis.strategies"
 disable_error_code = ["arg-type"]
 
-# Builder: union type handling for address expressions
-[[tool.mypy.overrides]]
-module = "surinort_ast.builder.rule_builder"
-disable_error_code = ["assignment", "operator", "attr-defined"]
-
 # CLI shared: untyped callback decorators
 [[tool.mypy.overrides]]
 module = "surinort_ast.cli.shared"
 disable_error_code = ["no-untyped-def"]
-
-# Lark decorator files: untyped decorators from Lark library (@v_args, etc.)
-# These cannot be fixed without library type stubs, so misc errors are suppressed
-[[tool.mypy.overrides]]
-module = "surinort_ast.parsing.mixins.port_transformer"
-disable_error_code = ["misc"]
-
-[[tool.mypy.overrides]]
-module = "surinort_ast.parsing.mixins.header_transformer"
-disable_error_code = ["misc"]
-
-[[tool.mypy.overrides]]
-module = "surinort_ast.parsing.mixins.content_transformer"
-disable_error_code = ["misc"]
-
-[[tool.mypy.overrides]]
-module = "surinort_ast.parsing.mixins.address_transformer"
-disable_error_code = ["misc"]
-
-[[tool.mypy.overrides]]
-module = "surinort_ast.parsing.mixins.options.metadata_mixin"
-disable_error_code = ["misc"]
-
-[[tool.mypy.overrides]]
-module = "surinort_ast.parsing.mixins.options.buffer_mixin"
-disable_error_code = ["misc"]
-
-[[tool.mypy.overrides]]
-module = "surinort_ast.parsing.transformer"
-disable_error_code = ["misc"]
-
-[[tool.mypy.overrides]]
-module = "surinort_ast.query.parser"
-disable_error_code = ["misc"]
-
-[[tool.mypy.overrides]]
-module = "surinort_ast.cli.main"
-disable_error_code = ["misc"]
-
-# API parsing: return type compatibility
-[[tool.mypy.overrides]]
-module = "surinort_ast.api.parsing"
-disable_error_code = ["no-any-return"]
-
-# CLI plugins command: plugin type assignments
-[[tool.mypy.overrides]]
-module = "surinort_ast.cli.commands.plugins"
-disable_error_code = ["assignment", "unused-ignore", "import-untyped", "name-defined"]
-
-# Plugin interface: missing library stubs for internal module
-[[tool.mypy.overrides]]
-module = "surinort_ast.plugins.interface"
-disable_error_code = ["import-untyped"]
 
 # Pytest configuration
 [tool.pytest.ini_options]
