@@ -59,17 +59,11 @@ from surinort_ast.query.selectors import (
 # ---------------------------------------------------------------------------
 
 SIMPLE_RULE = 'alert tcp any any -> any 80 (msg:"hello"; content:"x"; sid:1;)'
-THREE_OPTIONS = 'alert tcp any any -> any 80 (msg:"a"; content:"b"; sid:1;)'
 
 
 @pytest.fixture
 def simple_rule():
     return parse_rule(SIMPLE_RULE)
-
-
-@pytest.fixture
-def three_options_rule():
-    return parse_rule(THREE_OPTIONS)
 
 
 # ===========================================================================

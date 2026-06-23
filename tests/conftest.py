@@ -125,39 +125,6 @@ def simple_rule_text() -> str:
     return 'alert tcp any any -> any 80 (msg:"HTTP Traffic"; sid:1000001; rev:1;)'
 
 
-@pytest.fixture
-def complex_rule_text() -> str:
-    """Complex rule with multiple content matches and modifiers."""
-    return (
-        "alert http $EXTERNAL_NET any -> $HOME_NET any "
-        '(msg:"ET MALWARE Possible CobaltStrike Malleable C2 Profile"; '
-        'flow:established,to_server; http.method; content:"POST"; '
-        'http.uri; content:"/api/v1/"; depth:8; pcre:"/\\/api\\/v1\\/[a-z]{8,12}$/"; '
-        'http.header; content:"Accept|3a| */*"; content:"User-Agent|3a| Mozilla/5.0"; '
-        "classtype:trojan-activity; sid:2027452; rev:2; metadata:created_at 2019_06_10;)"
-    )
-
-
-@pytest.fixture
-def malformed_rule_text() -> str:
-    """Malformed rule for error recovery testing."""
-    return 'alert tcp any any -> any 80 (msg:"Missing semicolon" sid:999)'
-
-
-@pytest.fixture
-def multiline_rule_text() -> str:
-    """Multi-line rule (realistic format)."""
-    return """alert tcp any any -> any 443 (
-    msg:"TLS Suspicious Certificate";
-    flow:established,to_server;
-    tls.sni; content:"malicious.com"; nocase;
-    tls.cert_subject; content:"CN=Fake";
-    classtype:bad-unknown;
-    sid:3000001;
-    rev:1;
-)"""
-
-
 # ============================================================================
 # Real Rule Sample Fixtures
 # ============================================================================
@@ -177,24 +144,6 @@ def suricata_sample_rules(suricata_rules_file: Path) -> list[str]:
             if line and not line.startswith("#"):
                 rules.append(line)
                 if len(rules) >= 100:
-                    break
-    return rules
-
-
-@pytest.fixture(scope="session")
-def snort_sample_rules(snort29_rules_file: Path) -> list[str]:
-    """
-    Load first 50 non-comment lines from Snort rules.
-
-    Returns real rules for testing, skipping comments and empty lines.
-    """
-    rules = []
-    with open(snort29_rules_file, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                rules.append(line)
-                if len(rules) >= 50:
                     break
     return rules
 
