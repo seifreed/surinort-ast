@@ -217,7 +217,7 @@ class TestOptions:
 
         assert len(restored.options) == len(rule.options)
         for orig_opt, rest_opt in zip(rule.options, restored.options, strict=True):
-            assert type(orig_opt) == type(rest_opt)  # noqa: E721
+            assert type(orig_opt) is type(rest_opt)
 
     def test_content_option(self):
         """Test content option with modifiers."""
