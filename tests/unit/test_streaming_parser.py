@@ -7,7 +7,6 @@ of large rule files.
 Licensed under GNU General Public License v3.0
 """
 
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -19,7 +18,7 @@ from surinort_ast.streaming import (
     stream_parse_file,
     stream_parse_file_parallel,
 )
-from tests._helpers import temp_file
+from tests._helpers import temp_file, temp_rules_file
 
 # ============================================================================
 # Basic Streaming Tests
@@ -51,20 +50,13 @@ def test_stream_single_rule():
     """Test streaming a single rule from file."""
     rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        f.write(rule_text)
-        f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_file(rule_text + "\n") as temp_path:
         parser = StreamParser()
         rules = list(parser.stream_file(temp_path))
 
         assert len(rules) == 1
         assert rules[0].action == Action.ALERT
         assert rules[0].header.protocol == Protocol.TCP
-    finally:
-        temp_path.unlink()
 
 
 def test_stream_multiple_rules():
@@ -75,13 +67,7 @@ def test_stream_multiple_rules():
         'alert udp any any -> any 53 (msg:"DNS"; sid:3;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule)
-            f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         rules = list(parser.stream_file(temp_path))
 
@@ -90,8 +76,6 @@ def test_stream_multiple_rules():
         assert rules[1].action == Action.ALERT
         assert rules[2].action == Action.ALERT
         assert rules[2].header.protocol == Protocol.UDP
-    finally:
-        temp_path.unlink()
 
 
 def test_stream_with_comments_and_blanks():
@@ -181,13 +165,7 @@ def test_stream_batched():
     """Test batch streaming."""
     rules_text = [f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)' for i in range(25)]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule)
-            f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         batches = list(parser.stream_file_batched(temp_path, batch_size=10))
 
@@ -198,8 +176,6 @@ def test_stream_batched():
         assert batches[0].batch_number == 0
         assert batches[1].batch_number == 1
         assert batches[2].batch_number == 2
-    finally:
-        temp_path.unlink()
 
 
 def test_stream_batch_properties():
@@ -257,13 +233,7 @@ def test_stream_with_progress_callback():
     """Test progress callback during streaming."""
     rules_text = [f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)' for i in range(10)]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule)
-            f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         progress_calls = []
 
         def track_progress(processed, total):
@@ -275,8 +245,6 @@ def test_stream_with_progress_callback():
         assert len(rules) == 10
         assert len(progress_calls) == 10  # Called for each rule
         assert progress_calls[-1][0] == 10  # Final count
-    finally:
-        temp_path.unlink()
 
 
 @pytest.mark.parametrize(
@@ -310,13 +278,7 @@ def test_stream_source_origin():
         'alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule)
-            f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
         rules = list(parser.stream_file(temp_path))
 
@@ -326,8 +288,6 @@ def test_stream_source_origin():
 
         assert rules[1].origin is not None
         assert rules[1].origin.line_number == 2
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -339,13 +299,7 @@ def test_parallel_streaming():
     """Test parallel streaming with multiprocessing."""
     rules_text = [f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)' for i in range(100)]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule)
-            f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         rules = list(
             stream_parse_file_parallel(
                 temp_path,
@@ -355,21 +309,13 @@ def test_parallel_streaming():
         )
 
         assert len(rules) == 100
-    finally:
-        temp_path.unlink()
 
 
 def test_parallel_streaming_small_chunks():
     """Test parallel streaming with small chunks."""
     rules_text = [f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)' for i in range(20)]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule)
-            f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         rules = list(
             stream_parse_file_parallel(
                 temp_path,
@@ -379,8 +325,6 @@ def test_parallel_streaming_small_chunks():
         )
 
         assert len(rules) == 20
-    finally:
-        temp_path.unlink()
 
 
 def test_parallel_streaming_reassembles_multiline_rules():
@@ -424,35 +368,19 @@ def test_stream_parse_file_individual():
     """Test stream_parse_file convenience function (individual rules)."""
     rules_text = [f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)' for i in range(5)]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule)
-            f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         rules = list(stream_parse_file(temp_path))
         assert len(rules) == 5
-    finally:
-        temp_path.unlink()
 
 
 def test_stream_parse_file_batched():
     """Test stream_parse_file with batch_size."""
     rules_text = [f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)' for i in range(25)]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule)
-            f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         batches = list(stream_parse_file(temp_path, batch_size=10))
         assert len(batches) == 3
         assert batches[0].success_count == 10
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -465,19 +393,11 @@ def test_stream_large_file():
     """Test streaming a large file (1000 rules)."""
     rules_text = [f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)' for i in range(1000)]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule)
-            f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser(include_raw_text=False, track_locations=False)
         rules = list(parser.stream_file(temp_path))
 
         assert len(rules) == 1000
-    finally:
-        temp_path.unlink()
 
 
 @pytest.mark.slow
@@ -485,18 +405,10 @@ def test_stream_large_file_batched():
     """Test batch streaming a large file (1000 rules)."""
     rules_text = [f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)' for i in range(1000)]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule)
-            f.write("\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser(include_raw_text=False, track_locations=False)
         batches = list(parser.stream_file_batched(temp_path, batch_size=100))
 
         assert len(batches) == 10
         total_rules = sum(b.success_count for b in batches)
         assert total_rules == 1000
-    finally:
-        temp_path.unlink()

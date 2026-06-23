@@ -30,7 +30,7 @@ from surinort_ast.builder import RuleBuilder
 from surinort_ast.core.enums import Protocol
 from surinort_ast.query import query, query_exists, query_first
 from surinort_ast.streaming import StreamParser, stream_parse_file
-from tests._helpers import temp_output_path
+from tests._helpers import temp_output_path, temp_rules_file
 
 
 class TestQueryAndAnalysisIntegration:
@@ -149,13 +149,7 @@ class TestStreamingAndAnalysisIntegration:
             'drop tcp any any -> any 22 (msg:"SSH"; sid:5;)',
         ]
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             # Stream parse the file
             parser = StreamParser()
             rules = list(parser.stream_file(temp_path))
@@ -168,8 +162,6 @@ class TestStreamingAndAnalysisIntegration:
             assert Protocol.TCP in report.protocol_distribution
             assert Protocol.UDP in report.protocol_distribution
             assert Protocol.ICMP in report.protocol_distribution
-        finally:
-            temp_path.unlink()
 
     def test_stream_batches_and_estimate_costs(self):
         """Test streaming in batches and estimating costs."""
@@ -179,13 +171,7 @@ class TestStreamingAndAnalysisIntegration:
             for i in range(num_rules)
         ]
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             parser = StreamParser()
             estimator = PerformanceEstimator()
 
@@ -201,8 +187,6 @@ class TestStreamingAndAnalysisIntegration:
 
             assert rule_count == num_rules
             assert total_cost > 0
-        finally:
-            temp_path.unlink()
 
 
 class TestBuilderAndQueryIntegration:
@@ -336,13 +320,7 @@ class TestQueryStreamingIntegration:
             'alert udp any any -> any 53 (msg:"DNS"; sid:4000;)',
         ]
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             # Stream and filter
             parser = StreamParser()
             alert_rules = []
@@ -358,8 +336,6 @@ class TestQueryStreamingIntegration:
 
             assert len(alert_rules) == 3
             assert len(high_sid_rules) == 2
-        finally:
-            temp_path.unlink()
 
 
 class TestComplexRealWorldScenarios:
@@ -450,13 +426,7 @@ class TestComplexRealWorldScenarios:
                 f'{action} {protocol} any any -> any {port} (msg:"Rule {i}"; sid:{i};)'
             )
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             # Stream and filter
             parser = StreamParser()
             all_rules = list(parser.stream_file(temp_path))
@@ -475,8 +445,6 @@ class TestComplexRealWorldScenarios:
             # Both should have TCP and UDP
             assert Protocol.TCP in all_report.protocol_distribution
             assert Protocol.UDP in all_report.protocol_distribution
-        finally:
-            temp_path.unlink()
 
 
 class TestErrorHandlingAcrossModules:

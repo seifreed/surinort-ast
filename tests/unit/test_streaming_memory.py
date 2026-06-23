@@ -20,7 +20,7 @@ import pytest
 
 from surinort_ast.core.enums import Action
 from surinort_ast.streaming import StreamParser, stream_parse_file
-from tests._helpers import temp_file
+from tests._helpers import temp_file, temp_rules_file
 
 
 class TestMemoryEfficiency:
@@ -34,13 +34,7 @@ class TestMemoryEfficiency:
             f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)
         ]
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             parser = StreamParser(track_locations=False, include_raw_text=False)
 
             # Process incrementally - get first rule
@@ -53,8 +47,6 @@ class TestMemoryEfficiency:
 
             # Clean up iterator
             rule_iter.close()
-        finally:
-            temp_path.unlink()
 
     def test_stream_with_minimal_memory_options(self):
         """Test streaming with all memory-saving options enabled."""
@@ -62,13 +54,7 @@ class TestMemoryEfficiency:
             f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(100)
         ]
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             # Minimal memory configuration
             parser = StreamParser(
                 track_locations=False,  # Don't track source locations
@@ -83,8 +69,6 @@ class TestMemoryEfficiency:
             # Verify memory-saving options were respected
             for rule in rules:
                 assert rule.raw_text is None  # No raw text stored
-        finally:
-            temp_path.unlink()
 
     def test_batch_processing_memory_profile(self):
         """Test that batch processing doesn't accumulate all rules."""
@@ -94,13 +78,7 @@ class TestMemoryEfficiency:
             f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)
         ]
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             parser = StreamParser(include_raw_text=False, track_locations=False)
 
             # Process in batches
@@ -116,8 +94,6 @@ class TestMemoryEfficiency:
             # Verify batches don't accumulate
             total_rules = sum(b.success_count for b in batches)
             assert total_rules == num_rules
-        finally:
-            temp_path.unlink()
 
 
 class TestLargeFileHandling:
@@ -129,12 +105,7 @@ class TestLargeFileHandling:
         options = " ".join(f'content:"pattern{i}";' for i in range(100))
         long_rule = f'alert tcp any any -> any 80 ({options} msg:"Long"; sid:1;)'
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(long_rule)
-            f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(long_rule + "\n") as temp_path:
             parser = StreamParser()
             rules = list(parser.stream_file(temp_path))
 
@@ -142,8 +113,6 @@ class TestLargeFileHandling:
             # Should have parsed all content options
             content_count = sum(1 for opt in rules[0].options if opt.node_type == "ContentOption")
             assert content_count == 100
-        finally:
-            temp_path.unlink()
 
     def test_multiline_rule_spanning_many_lines(self):
         """Test streaming with deeply indented multi-line rules."""
@@ -199,13 +168,7 @@ class TestChunkBoundaries:
                 rule = f'alert tcp any any -> any {port} (msg:"Rule {i}"; sid:{sid};)'
             rules_text.append(rule)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             # Use small chunk size to force boundary splits
             parser = StreamParser(chunk_size=512)
             rules = list(parser.stream_file(temp_path))
@@ -219,8 +182,6 @@ class TestChunkBoundaries:
                 # Find sid option
                 sid_opts = [opt for opt in rule.options if opt.node_type == "SidOption"]
                 assert len(sid_opts) == 1
-        finally:
-            temp_path.unlink()
 
 
 class TestErrorRecovery:
@@ -268,13 +229,7 @@ class TestProgressTracking:
             f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)
         ]
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             progress_updates = []
 
             def track_progress(processed, total):
@@ -294,8 +249,6 @@ class TestProgressTracking:
 
             # Final progress should equal total
             assert progress_updates[-1][0] == num_rules
-        finally:
-            temp_path.unlink()
 
 
 class TestBatchProcessing:
@@ -309,13 +262,7 @@ class TestBatchProcessing:
             f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(num_rules)
         ]
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             parser = StreamParser()
             batches = list(parser.stream_file_batched(temp_path, batch_size=batch_size))
 
@@ -334,8 +281,6 @@ class TestBatchProcessing:
             assert batches[0].start_line == 1
             assert batches[1].start_line > batches[0].end_line
             assert batches[2].start_line > batches[1].end_line
-        finally:
-            temp_path.unlink()
 
     def test_batch_errors_tracked(self):
         """Test that batch processing tracks errors correctly."""
@@ -369,20 +314,12 @@ class TestConvenienceFunctions:
         """Test stream_parse_file convenience function."""
         rules_text = [f'alert tcp any any -> any {i} (msg:"Rule {i}"; sid:{i};)' for i in range(10)]
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            for rule in rules_text:
-                f.write(rule)
-                f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_rules_file(rules_text) as temp_path:
             # Use convenience function
             rules = list(stream_parse_file(temp_path))
 
             assert len(rules) == 10
             assert all(r.action == Action.ALERT for r in rules)
-        finally:
-            temp_path.unlink()
 
 
 class TestEdgeCases:
