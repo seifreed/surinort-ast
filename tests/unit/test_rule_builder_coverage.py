@@ -157,9 +157,6 @@ class TestContentModifierBranches:
     """Each keyword argument branch inside content() must emit the correct
     modifier option node immediately after the ContentOption."""
 
-    def _content_opts(self, rule):  # type: ignore[no-untyped-def]
-        return [o for o in rule.options if isinstance(o, ContentOption)]
-
     def test_sticky_buffer_kwarg_enabled(self) -> None:
         """http_uri=True must prepend a BufferSelectOption before ContentOption."""
         rule = _base().sid(1).content(b"GET", http_uri=True).build()
