@@ -237,8 +237,8 @@ def test_rule_conversion_workflow():
 
         # Export to JSON
         with StreamWriter.json(json_path) as json_writer:
-            for rule in validator.stream(parser.stream_file(input_path)):
-                json_writer.write(rule)
+            for parsed in validator.stream(parser.stream_file(input_path)):
+                json_writer.write(parsed)
 
         assert json_writer.count == 2
 
@@ -246,8 +246,8 @@ def test_rule_conversion_workflow():
         transformer = TransformProcessor(lambda r: r.model_copy(update={"action": Action.DROP}))
 
         with StreamWriter.text(output_path) as text_writer:
-            for rule in transformer.stream(parser.stream_file(input_path)):
-                text_writer.write(rule)
+            for parsed in transformer.stream(parser.stream_file(input_path)):
+                text_writer.write(parsed)
 
         # Verify outputs
         output_content = output_path.read_text()

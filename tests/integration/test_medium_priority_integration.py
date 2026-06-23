@@ -175,7 +175,7 @@ class TestStreamingAndAnalysisIntegration:
             parser = StreamParser()
             estimator = PerformanceEstimator()
 
-            total_cost = 0
+            total_cost = 0.0
             rule_count = 0
 
             # Process in batches

@@ -68,8 +68,11 @@ class TestNodeCreation:
         """Nodes should be immutable (frozen)."""
         port = Port(value=80)
 
+        # Assign through a non-literal attribute name: the frozen model must
+        # reject it at runtime (the static read-only check is not the point).
+        field = "value"
         with pytest.raises((ValidationError, AttributeError)):
-            port.value = 443  # Should fail
+            setattr(port, field, 443)
 
     def test_port_validation(self):
         """Port numbers must be valid."""
@@ -408,7 +411,7 @@ class TestStrictValidation:
     def test_wrong_field_type(self):
         """Wrong field types should be rejected."""
         with pytest.raises(ValidationError):
-            Port(value="not_a_number")  # type: ignore
+            Port(value="not_a_number")
 
 
 class TestNodeImmutabilityAndHashing:

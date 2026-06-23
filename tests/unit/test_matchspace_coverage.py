@@ -60,7 +60,9 @@ class TestIntervalHelpers:
 
 class TestConcreteIpInterval:
     def test_ip_range(self):
-        interval, version = _concrete_ip_interval(IPRange(start="10.0.0.1", end="10.0.0.5"))
+        result = _concrete_ip_interval(IPRange(start="10.0.0.1", end="10.0.0.5"))
+        assert result is not None
+        interval, version = result
         assert version == 4
         assert interval[0] < interval[1]
 
@@ -88,7 +90,7 @@ class TestBuildAddrSet:
         # The closed AST union is exhaustively handled; the catch-all keeps the
         # function total and conservatively treats any unrecognized node as
         # opaque. An object outside the union exercises that documented path.
-        result = build_addr_set(object())  # type: ignore[arg-type]
+        result = build_addr_set(object())
         assert result.opaque
 
 
@@ -126,7 +128,7 @@ class TestPortSets:
         assert build_port_set(PortNegation(expr=Port(value=80))).opaque
 
     def test_unknown_port_node_opaque(self):
-        result = build_port_set(object())  # type: ignore[arg-type]
+        result = build_port_set(object())
         assert result.opaque
 
     def test_union_port_any_dominates(self):

@@ -45,7 +45,7 @@ class TestSerializerPlugin(SerializerPlugin):
     def serialize(self, rule: Rule) -> str:
         return f"TEST:{rule.action.value}"
 
-    def deserialize(self, data: str) -> Rule:
+    def deserialize(self, data: str | bytes) -> Rule:
         # Minimal implementation for testing
         from surinort_ast import parse_rule
 

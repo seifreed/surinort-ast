@@ -11,6 +11,7 @@ NO MOCKS - all tests use real parsing, printing, and serialization.
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -457,7 +458,7 @@ class TestParseRules:
 
     def test_parse_rules_empty_list(self):
         """Parse empty list of rules."""
-        texts = []
+        texts: list[Any] = []
 
         rules, errors = parse_rules(texts)
 
@@ -498,7 +499,7 @@ class TestErrorHandling:
         # so we'll just verify the error path exists by checking the exception is raised
         try:
             # This will fail because string doesn't have model_dump_json
-            to_json(invalid_object)  # type: ignore
+            to_json(invalid_object)
             pytest.fail("Expected AttributeError or SerializationError")
         except (AttributeError, SerializationError):
             # Expected - either AttributeError from missing method

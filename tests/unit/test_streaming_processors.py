@@ -193,6 +193,7 @@ def test_validate_processor_does_not_duplicate_codeless_diagnostic():
     rule = rule.model_copy(update={"diagnostics": [codeless]})
 
     out = ValidateProcessor().process(rule)
+    assert out is not None
     assert sum(1 for d in out.diagnostics if d.message == "parse note") == 1
 
 

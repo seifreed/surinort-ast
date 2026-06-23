@@ -23,7 +23,7 @@ Before any commit or merge, every one of these must pass clean:
 - `ruff check src/ tests/`
 - `ruff format --check src/ tests/`
 - `black --check src/ tests/`
-- `mypy src/ --strict`
+- `mypy src/ tests/ --strict`
 - `bandit -r src/`
 - `pip-audit -r requirements.txt`
 - the full non-slow test suite: `pytest tests/ -m "not slow"`
@@ -62,8 +62,8 @@ ruff check src/ tests/
 ruff format --check src/ tests/
 black --check src/ tests/
 
-# Type check
-mypy src/ --strict
+# Type check (tests are checked at a pragmatic strictness; see [tool.mypy] tests.* override)
+mypy src/ tests/ --strict
 
 # Security scan
 bandit -r src/ -f screen

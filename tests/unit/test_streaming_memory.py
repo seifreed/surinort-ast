@@ -163,10 +163,12 @@ class TestChunkBoundaries:
             # Make some rules longer to increase chance of boundary splits
             if i % 3 == 0:
                 options = " ".join(f'content:"opt{j}";' for j in range(20))
-                rule = f'alert tcp any any -> any {port} ({options} msg:"Rule {i}"; sid:{sid};)'
+                rule_text = (
+                    f'alert tcp any any -> any {port} ({options} msg:"Rule {i}"; sid:{sid};)'
+                )
             else:
-                rule = f'alert tcp any any -> any {port} (msg:"Rule {i}"; sid:{sid};)'
-            rules_text.append(rule)
+                rule_text = f'alert tcp any any -> any {port} (msg:"Rule {i}"; sid:{sid};)'
+            rules_text.append(rule_text)
 
         with temp_rules_file(rules_text) as temp_path:
             # Use small chunk size to force boundary splits

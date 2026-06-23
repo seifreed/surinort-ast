@@ -144,7 +144,7 @@ jobs:
 
       - name: Run MyPy type checker
         run: |
-          mypy src/ --strict --show-error-codes
+          mypy src/ tests/ --strict --show-error-codes
 
   # Test matrix - Python 3.11-3.14 on Ubuntu, macOS, Windows
   test:

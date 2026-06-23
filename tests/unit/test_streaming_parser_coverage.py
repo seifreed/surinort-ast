@@ -445,7 +445,7 @@ class _NoneReturningParser:
         file_path: str | None = None,
         line_offset: int = 0,
     ) -> None:
-        return None  # type: ignore[return-value]
+        return None
 
 
 def test_parse_lines_none_rule_returns_none() -> None:
@@ -465,9 +465,7 @@ def test_parse_lines_parse_error_reraised_when_not_skipping() -> None:
     """A ParseError from the underlying parser is re-raised when skip_errors=False (line 535)."""
     parser = StreamParser()
     # Strict parser raises ParseError on malformed input.
-    parser._parser = LarkRuleParser(  # type: ignore[assignment]
-        dialect=Dialect.SURICATA, strict=True, error_recovery=False
-    )
+    parser._parser = LarkRuleParser(dialect=Dialect.SURICATA, strict=True, error_recovery=False)
     with pytest.raises(ParseError):
         parser._parse_lines([(1, "garbage input here")], "test.rules", skip_errors=False)
 
@@ -475,9 +473,7 @@ def test_parse_lines_parse_error_reraised_when_not_skipping() -> None:
 def test_parse_lines_parse_error_returns_none_when_skipping() -> None:
     """A ParseError from the underlying parser returns None when skip_errors=True (line 533-534)."""
     parser = StreamParser()
-    parser._parser = LarkRuleParser(  # type: ignore[assignment]
-        dialect=Dialect.SURICATA, strict=True, error_recovery=False
-    )
+    parser._parser = LarkRuleParser(dialect=Dialect.SURICATA, strict=True, error_recovery=False)
     result = parser._parse_lines([(1, "garbage input here")], "test.rules", skip_errors=True)
     assert result is None
 

@@ -150,7 +150,7 @@ class TestQueryResult:
             res.filter("Rule > Header")
 
     def test_repr(self):
-        assert "2 nodes" in repr(QueryResult([object(), object()]))  # type: ignore[list-item]
+        assert "2 nodes" in repr(QueryResult([object(), object()]))
 
 
 class TestQBuilder:

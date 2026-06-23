@@ -84,7 +84,7 @@ class TestRoundtripParsing:
         assert rule1.action == rule2.action
         assert rule1.header.protocol == rule2.header.protocol
         assert rule1.header.direction == rule2.header.direction
-        assert rule1.header.dst_port.value == rule2.header.dst_port.value  # type: ignore
+        assert rule1.header.dst_port.value == rule2.header.dst_port.value
 
         # Options should match
         assert len(rule1.options) == len(rule2.options)

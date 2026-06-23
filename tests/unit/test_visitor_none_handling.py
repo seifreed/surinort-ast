@@ -9,6 +9,8 @@ Tests all visit_* methods and edge cases using real AST traversal.
 NO MOCKS - all tests use actual visitor execution on real AST nodes.
 """
 
+from typing import Any
+
 from lark import Lark
 
 from surinort_ast.core.nodes import (
@@ -448,7 +450,7 @@ class TestBaseVisitorDefaultReturn:
 
     def test_base_visitor_default_return(self):
         """Test that base ASTVisitor.default_return returns None."""
-        visitor = ASTVisitor()
+        visitor: ASTVisitor[Any] = ASTVisitor()
         result = visitor.default_return()
         assert result is None
 

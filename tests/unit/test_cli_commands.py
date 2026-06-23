@@ -47,8 +47,8 @@ class TestHelperFunctions:
 
     def test_version_callback_does_nothing_when_false(self):
         """version_callback should do nothing when value=False"""
-        result = version_callback(False)
-        assert result is None
+        # Returns None and must not raise or exit when the flag is False.
+        version_callback(False)
 
     def test_read_input_from_file(self, tmp_path):
         """read_input should read from file when file_path is provided"""

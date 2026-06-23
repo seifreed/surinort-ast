@@ -71,7 +71,10 @@ class TestIterChunkResults:
     """``_iter_chunk_results`` yields rules and logs worker error entries."""
 
     def test_yields_rules_and_skips_errors(self) -> None:
-        rule = Rule.model_construct()
+        # Deliberately build a field-less Rule to exercise defensive branches;
+        # model_construct skips validation, so the missing required fields are
+        # intentional here.
+        rule = Rule.model_construct()  # type: ignore[call-arg]
         chunk_results: list[tuple[int, Rule | None, str | None]] = [
             (1, rule, None),
             (2, None, "boom"),

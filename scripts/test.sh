@@ -118,7 +118,7 @@ fi
 # Run type checking if enabled
 if [[ "$TYPE_CHECK" == "true" ]]; then
     log_info "Running MyPy type checker..."
-    mypy src/ --strict || {
+    mypy src/ tests/ --strict || {
         log_error "Type checking failed!"
         exit 1
     }

@@ -14,6 +14,7 @@ NO MOCKS - all tests use real parser execution with actual rule files.
 """
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 from lark import Lark
@@ -211,7 +212,7 @@ class TestAllRulesGolden:
 
         grand_total = 0
         grand_success = 0
-        all_errors = []
+        all_errors: list[Any] = []
 
         for source_name, rule_file in rule_files:
             total_rules, parsed_successfully, errors = _parse_all_lines(

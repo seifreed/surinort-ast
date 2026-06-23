@@ -13,7 +13,7 @@ back to the timer-based timeout instead of crashing with
 
 from concurrent.futures import ThreadPoolExecutor
 
-from surinort_ast.core.nodes import ErrorNode, Rule
+from surinort_ast.core.nodes import Rule
 from surinort_ast.parsing.lark_parser import LarkRuleParser
 
 _RULE = 'alert tcp any any -> any 80 (msg:"Thread"; sid:1;)'
@@ -27,7 +27,6 @@ def test_parse_succeeds_on_worker_thread():
         result = pool.submit(parser.parse, _RULE).result()
 
     assert isinstance(result, Rule)
-    assert not isinstance(result, ErrorNode)
     assert result.action.value == "alert"
 
 

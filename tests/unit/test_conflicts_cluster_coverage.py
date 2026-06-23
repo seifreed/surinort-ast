@@ -81,7 +81,7 @@ class TestNonIntersectingCandidates:
 
         report = detect_conflicts(rules)
 
-        assert all(set(c.rule_ids) != {"1", "2"} for c in report.conflicts)
+        assert all(set(c.rule_ids) != {1, 2} for c in report.conflicts)
 
     def test_disjoint_address_same_action_no_overlap(self):
         # Same action on the same destination port but disjoint source addresses,
@@ -93,7 +93,7 @@ class TestNonIntersectingCandidates:
 
         report = detect_conflicts(rules)
 
-        assert all(set(c.rule_ids) != {"1", "2"} for c in report.conflicts)
+        assert all(set(c.rule_ids) != {1, 2} for c in report.conflicts)
 
 
 class TestConflictModelsRendering:

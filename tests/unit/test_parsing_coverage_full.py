@@ -26,6 +26,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 from lark import Token, Tree
@@ -94,7 +95,7 @@ class TestTokenToLocationFallback:
         tok.end_line = 1
         tok.end_column = 8
         # Explicitly unset end_pos so the else-branch fires
-        tok.end_pos = None  # type: ignore[assignment]
+        tok.end_pos = None
 
         loc = token_to_location(tok)
 
@@ -125,7 +126,7 @@ class TestDiagnosticReporterProtocol:
 
         impl = _Impl()
         # Invoking the Protocol's unbound __call__ covers the stub body.
-        DiagnosticReporter.__call__(impl, DiagnosticLevel.INFO, "test")  # type: ignore[arg-type]
+        DiagnosticReporter.__call__(impl, DiagnosticLevel.INFO, "test")
 
 
 # ---------------------------------------------------------------------------
@@ -342,7 +343,7 @@ class TestByteTestOptionTreeBranches:
     def test_byte_test_flag_tree_with_non_token_child_hits_line_756(self) -> None:
         # Line 756: child is NOT a Token (it is a Tree) inside byte_test_flag tree
         # → flag_parts.append(str(child)) is executed (line 756)
-        inner_child = Tree("inner_rule", [])
+        inner_child: Tree[Any] = Tree("inner_rule", [])
         tree_flag = Tree("byte_test_flag", [inner_child])
         t = _transformer()
         result = t.byte_test_option([[tree_flag]])
@@ -403,7 +404,7 @@ class TestFormatByteFlagParams:
 
     def test_tree_with_no_children(self) -> None:
         # Lines 862-863: Tree with no children → str(p)
-        tree = Tree("byte_jump_flag", [])
+        tree: Tree[Any] = Tree("byte_jump_flag", [])
         result = ContentTransformerMixin._format_byte_flag_params([tree])
         assert "byte_jump_flag" in result
 
@@ -675,7 +676,7 @@ class TestMetadataEntryNonTokenChild:
         # The isinstance(child, Token) check at line 332 is False → loop continues
         # without appending anything (branch 332->325).
         inner_tree = Tree("inner_rule", [_token("WORD", "deep")])
-        outer_tree = Tree("metadata_word", [inner_tree])
+        outer_tree: Tree[Any] = Tree("metadata_word", [inner_tree])
 
         t = _transformer()
         result = t.metadata_entry([outer_tree])
@@ -685,8 +686,8 @@ class TestMetadataEntryNonTokenChild:
     def test_mixed_token_and_tree_with_tree_child(self) -> None:
         # A Token followed by a Tree-with-Tree-child: only the Token contributes
         tok = _token("WORD", "created_at")
-        inner_tree = Tree("inner", [Tree("nested", [])])
-        outer_tree = Tree("metadata_word", [inner_tree])
+        inner_tree: Tree[Any] = Tree("inner", [Tree("nested", [])])
+        outer_tree: Tree[Any] = Tree("metadata_word", [inner_tree])
 
         t = _transformer()
         result = t.metadata_entry([tok, outer_tree])

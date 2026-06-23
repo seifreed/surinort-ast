@@ -9,6 +9,8 @@ Tests all serialization paths using real rules and data.
 NO MOCKS - all tests use actual serialization/deserialization.
 """
 
+from typing import Any
+
 import pytest
 from lark import Lark
 
@@ -77,7 +79,7 @@ class TestJSONSerializerValidation:
         serializer = JSONSerializer()
 
         # Data without ast_version
-        invalid_data = {"data": {"rules": []}}
+        invalid_data: dict[str, Any] = {"data": {"rules": []}}
 
         with pytest.raises(ValueError, match="Missing ast_version"):
             serializer._validate_metadata(invalid_data)

@@ -8,6 +8,7 @@ This test suite validates real code behavior without mocks or stubs.
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 from typer.testing import CliRunner
@@ -258,7 +259,7 @@ class TestCLIFromJSONCommand:
     def test_from_json_command_output_file(self, tmp_path):
         """Test from-json command with output file"""
         json_file = tmp_path / "test.json"
-        json_data = {"rules": []}
+        json_data: dict[str, Any] = {"rules": []}
         json_file.write_text(json.dumps(json_data))
 
         output_file = tmp_path / "output.rules"

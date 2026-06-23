@@ -11,6 +11,8 @@ similarity search on MinHash signatures.
 All tests use real signatures and validate actual LSH operations.
 """
 
+from typing import Any
+
 import pytest
 
 from surinort_ast import parse_rule
@@ -460,7 +462,7 @@ class TestLSHEdgeCases:
         """Test handling of empty signature."""
         lsh = LSHIndex(threshold=0.8)
 
-        empty_sig = []
+        empty_sig: list[Any] = []
 
         # Should handle empty signature
         bands = lsh._get_bands(empty_sig)

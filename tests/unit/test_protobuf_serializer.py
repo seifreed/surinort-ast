@@ -8,6 +8,8 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 """
 
+from typing import Any
+
 import pytest
 
 from surinort_ast import parse_rule
@@ -206,7 +208,7 @@ class TestOptions:
         rule = parse_rule(rule_text)
         binary = to_protobuf(rule)
         restored = from_protobuf(binary)
-        assert restored.options[0].text == rule.options[0].text  # type: ignore[attr-defined]
+        assert restored.options[0].text == rule.options[0].text
 
     def test_sid_rev_gid(self):
         """Test SID, REV, and GID options."""
@@ -339,7 +341,7 @@ class TestBatchSerialization:
 
     def test_empty_list(self):
         """Test serialization of empty rule list."""
-        rules = []
+        rules: list[Any] = []
         binary = to_protobuf(rules)
         restored = from_protobuf(binary)
 

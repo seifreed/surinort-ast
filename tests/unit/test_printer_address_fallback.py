@@ -69,7 +69,7 @@ class TestPortFallback:
             pass
 
         unknown_port = UnknownPortExpr()
-        result = text_printer._print_port(unknown_port)  # type: ignore
+        result = text_printer._print_port(unknown_port)
 
         assert result == "any"
 
@@ -142,7 +142,7 @@ class TestAddressListFallback:
             pass
 
         unknown_addr = UnknownAddressExpr()
-        result = text_printer._print_address(unknown_addr)  # type: ignore
+        result = text_printer._print_address(unknown_addr)
 
         assert result == "any"
 

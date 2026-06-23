@@ -105,7 +105,7 @@ def _minimal_header() -> Header:
     return any_header()
 
 
-def _wrap(options: list) -> Rule:  # type: ignore[type-arg]
+def _wrap(options: list) -> Rule:
     """Build a Rule that uses the supplied option list."""
     return Rule(
         action=Action.ALERT,
@@ -310,7 +310,7 @@ class TestSerializeOptionFallback:
         from surinort_ast.core.nodes import Option
         from surinort_ast.serialization.protobuf import serializer as _ser
 
-        class _UnknownOpt(Option):  # type: ignore[misc]
+        class _UnknownOpt(Option):
             type: Literal["_UnknownOpt"] = "_UnknownOpt"
 
         unknown = _UnknownOpt()
@@ -727,7 +727,7 @@ class TestDeserializeAddressExprUnknownType:
     """Line 856: ProtobufError raised for an unknown address_type oneof value."""
 
     def test_unknown_address_type_raises(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_address_expr
 
         pb_addr = pb.AddressExpr()
@@ -745,7 +745,7 @@ class TestDeserializePortExprUnknownType:
     """Line 892: ProtobufError raised for an unknown port_type oneof value."""
 
     def test_unknown_port_type_raises(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_port_expr
 
         pb_port = pb.PortExpr()
@@ -878,7 +878,7 @@ class TestDeserializeStringValuedOptions:
     """
 
     def test_depth_string_value_branch(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
@@ -887,7 +887,7 @@ class TestDeserializeStringValuedOptions:
         assert result.value == "myvar"
 
     def test_offset_string_value_branch(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
@@ -896,7 +896,7 @@ class TestDeserializeStringValuedOptions:
         assert result.value == "ovar"
 
     def test_distance_string_value_branch(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
@@ -905,7 +905,7 @@ class TestDeserializeStringValuedOptions:
         assert result.value == "dvar"
 
     def test_within_string_value_branch(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
@@ -923,7 +923,7 @@ class TestDeserializeBareOptions:
     """Lines 1206, 1213, 1220: nocase, rawbytes, startswith, endswith deserialization."""
 
     def test_nocase_deserialization(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
@@ -932,7 +932,7 @@ class TestDeserializeBareOptions:
         assert isinstance(result, NocaseOption)
 
     def test_rawbytes_deserialization(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
@@ -941,7 +941,7 @@ class TestDeserializeBareOptions:
         assert isinstance(result, RawbytesOption)
 
     def test_startswith_deserialization(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
@@ -950,7 +950,7 @@ class TestDeserializeBareOptions:
         assert isinstance(result, StartswithOption)
 
     def test_endswith_deserialization(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
@@ -968,7 +968,7 @@ class TestDeserializeOptionUnknownType:
     """Line 1289: ProtobufError raised for None/unknown option_type in dispatch."""
 
     def test_none_option_type_raises(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_option
 
         pb_opt = pb.Option()
@@ -1015,12 +1015,12 @@ class TestToProtobufExceptionWrapping:
         rule = parse_rule("alert tcp any any -> any any (sid:1;)")
         serializer = ProtobufSerializer()
 
-        _ser._serialize_rule = _bad_serialize  # type: ignore[assignment]
+        _ser._serialize_rule = _bad_serialize
         try:
             with pytest.raises(ProtobufError, match="Failed to serialize"):
                 serializer.to_protobuf(rule)
         finally:
-            _ser._serialize_rule = real_serialize_rule  # type: ignore[assignment]
+            _ser._serialize_rule = real_serialize_rule
 
 
 # ---------------------------------------------------------------------------
@@ -1055,7 +1055,7 @@ class TestToProtobufStream:
             if isinstance(result, Rule):
                 total.append(result)
             else:
-                total.extend(result)  # type: ignore[arg-type]
+                total.extend(result)
         assert len(total) == 5
 
     def test_stream_empty_list(self) -> None:
@@ -1240,7 +1240,7 @@ class TestSerializeLocationNone:
     """Line 268: calling _serialize_location(None, ...) returns immediately."""
 
     def test_none_location_is_noop(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _serialize_location
 
         pb_loc = pb.Location()
@@ -1260,7 +1260,7 @@ class TestSerializeAddressExprFallthrough:
     def test_unrecognised_address_subclass_returns_empty_proto(self) -> None:
         from surinort_ast.serialization.protobuf.serializer import _serialize_address_expr
 
-        class _Dummy(AddressExpr):  # type: ignore[misc]
+        class _Dummy(AddressExpr):
             type: Literal["_Dummy"] = "_Dummy"
 
         result = _serialize_address_expr(_Dummy())
@@ -1279,7 +1279,7 @@ class TestSerializePortExprFallthrough:
     def test_unrecognised_port_subclass_returns_empty_proto(self) -> None:
         from surinort_ast.serialization.protobuf.serializer import _serialize_port_expr
 
-        class _DummyPort(PortExpr):  # type: ignore[misc]
+        class _DummyPort(PortExpr):
             type: Literal["_DummyPort"] = "_DummyPort"
 
         result = _serialize_port_expr(_DummyPort())
@@ -1346,13 +1346,13 @@ class TestSerializeRuleOriginFalsyBranch:
         rule = parse_rule("alert tcp any any -> any any (sid:1;)").model_copy(
             update={"origin": SourceOrigin(file_path="/x")}
         )
-        _ser._serialize_source_origin = _return_none  # type: ignore[assignment]
+        _ser._serialize_source_origin = _return_none
         try:
             # Should serialize without crashing; the origin field is simply skipped.
             pb_rule = _ser._serialize_rule(rule)
             assert not pb_rule.HasField("origin")
         finally:
-            _ser._serialize_source_origin = real_fn  # type: ignore[assignment]
+            _ser._serialize_source_origin = real_fn
 
 
 # ---------------------------------------------------------------------------
@@ -1364,7 +1364,7 @@ class TestDeserializeLocationNoSpan:
     """Line 790: _deserialize_location returns None when pb_loc has no span."""
 
     def test_no_span_returns_none(self) -> None:
-        from surinort_ast.serialization.protobuf import ast_pb2 as pb  # type: ignore[import]
+        from surinort_ast.serialization.protobuf import ast_pb2 as pb
         from surinort_ast.serialization.protobuf.serializer import _deserialize_location
 
         pb_loc = pb.Location()
@@ -1390,9 +1390,9 @@ class TestToProtobufReRaisesProtobufError:
         rule = parse_rule("alert tcp any any -> any any (sid:1;)")
         serializer = ProtobufSerializer()
 
-        _ser._serialize_rule = _raise_pb_error  # type: ignore[assignment]
+        _ser._serialize_rule = _raise_pb_error
         try:
             with pytest.raises(ProtobufError, match="inner error"):
                 serializer.to_protobuf(rule)
         finally:
-            _ser._serialize_rule = real_serialize_rule  # type: ignore[assignment]
+            _ser._serialize_rule = real_serialize_rule

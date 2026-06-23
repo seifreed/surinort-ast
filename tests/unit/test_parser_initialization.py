@@ -150,8 +150,8 @@ class TestParserCaching:
         lark_instance = parser._get_parser()
 
         assert lark_instance is not None
-        assert parser._lark_parser is not None
-        assert parser._lark_parser is lark_instance
+        # The instance is now cached on the parser: a second access returns it.
+        assert parser._get_parser() is lark_instance
 
     def test_get_parser_caches_instance(self):
         """Parser instance is cached after first creation."""

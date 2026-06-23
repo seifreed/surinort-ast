@@ -8,6 +8,8 @@ Specific test to cover parser.py line 237 by triggering VisitError.
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from lark import Token, Tree
 from lark.exceptions import VisitError
@@ -32,7 +34,7 @@ def test_parser_visit_error_in_transform():
 
     # Create an invalid tree structure that will cause VisitError
     # The tree parses but transformation fails
-    invalid_tree = Tree(
+    invalid_tree: Tree[Any] = Tree(
         "rule",
         [
             Tree("action", [Token("ACTION", "alert")]),

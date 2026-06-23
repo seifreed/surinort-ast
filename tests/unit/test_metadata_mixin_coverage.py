@@ -24,6 +24,8 @@ REACHABLE LINES COVERED BY THIS SUITE:
 All tests use real parser execution without mocks or test doubles.
 """
 
+from typing import Any
+
 import pytest
 from lark import Lark
 
@@ -291,7 +293,7 @@ class TestMetadataEntryEdgeCases:
 
         # Create empty Tree
         key_token = create_token("WORD", "author")
-        empty_tree = Tree("metadata_word", [])
+        empty_tree: Tree[Any] = Tree("metadata_word", [])
 
         result = transformer.metadata_entry([key_token, empty_tree])
 

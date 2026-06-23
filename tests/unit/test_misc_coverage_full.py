@@ -122,7 +122,7 @@ class TestApiParsingCustomParser:
 
     def test_parse_file_sequential_strips_raw_text(self, tmp_path: pytest.TempPathFactory) -> None:
         """Line 374: update_dict["raw_text"] = None inside _parse_file_sequential."""
-        rules_file = tmp_path / "rules.rules"  # type: ignore[operator]
+        rules_file = tmp_path / "rules.rules"
         rules_file.write_text(_SIMPLE_RULE + "\n")
 
         from surinort_ast.api.parsing import parse_file
@@ -133,7 +133,7 @@ class TestApiParsingCustomParser:
 
     def test_parse_file_streaming_returns_iterator(self, tmp_path: pytest.TempPathFactory) -> None:
         """Lines 484-486: parse_file_streaming delegating to stream_parse_file."""
-        rules_file = tmp_path / "r.rules"  # type: ignore[operator]
+        rules_file = tmp_path / "r.rules"
         rules_file.write_text(_SIMPLE_RULE + "\n")
 
         from surinort_ast.api.parsing import parse_file_streaming
@@ -182,7 +182,7 @@ class TestApiSerializationErrorPaths:
         import surinort_ast.api.serialization as _api_ser
 
         original_cls = _api_ser.JSONSerializer
-        _api_ser.JSONSerializer = _RaisingSer  # type: ignore[attr-defined]
+        _api_ser.JSONSerializer = _RaisingSer
         try:
             with pytest.raises(SerializationError, match="direct SE from inner serializer"):
                 api_from_json('{"action": "alert"}')
@@ -194,7 +194,7 @@ class TestApiSerializationErrorPaths:
         # Pass an object that looks like a Finding sequence but causes the
         # SARIF serializer to fail during attribute access.
         with pytest.raises(SerializationError, match="Failed to serialize to SARIF"):
-            to_sarif(["not_a_finding"])  # type: ignore[list-item]
+            to_sarif(["not_a_finding"])
 
 
 # ---------------------------------------------------------------------------
@@ -208,12 +208,12 @@ class TestJsonSerializerCompatVersion:
     def test_non_string_version_returns_false(self) -> None:
         """Lines 235-236: AttributeError on .split() for a non-string version."""
         s = JSONSerializer()
-        assert s._is_compatible_version(123) is False  # type: ignore[arg-type]
+        assert s._is_compatible_version(123) is False
 
     def test_none_version_returns_false(self) -> None:
         """Lines 235-236: AttributeError for None version."""
         s = JSONSerializer()
-        assert s._is_compatible_version(None) is False  # type: ignore[arg-type]
+        assert s._is_compatible_version(None) is False
 
     def test_from_json_raises_for_non_string_ast_version(self) -> None:
         """_validate_metadata uses _is_compatible_version; invalid type triggers ValueError."""
@@ -237,12 +237,12 @@ class TestSarifSerializerErrorPaths:
     def test_to_sarif_log_wraps_error(self) -> None:
         """Lines 22-23: to_sarif_log catches arbitrary errors and re-raises SerializationError."""
         with pytest.raises(SerializationError, match="Failed to serialize to SARIF log"):
-            to_sarif_log(["not_a_finding"])  # type: ignore[list-item]
+            to_sarif_log(["not_a_finding"])
 
     def test_to_sarif_json_wraps_error(self) -> None:
         """Lines 30-31: to_sarif_json catches arbitrary errors and re-raises SerializationError."""
         with pytest.raises(SerializationError, match="Failed to serialize to SARIF JSON"):
-            to_sarif_json(["not_a_finding"])  # type: ignore[list-item]
+            to_sarif_json(["not_a_finding"])
 
 
 # ---------------------------------------------------------------------------

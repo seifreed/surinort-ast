@@ -36,10 +36,10 @@ class TestFormatStyle:
         for style in FormatStyle:
             assert isinstance(style.value, str)
 
-    def test_style_comparison(self):
-        """Test enum comparison."""
-        assert FormatStyle.COMPACT == FormatStyle.COMPACT
-        assert FormatStyle.COMPACT != FormatStyle.STANDARD
+    def test_style_members_are_distinct(self):
+        """FormatStyle members must each carry a unique value."""
+        values = [style.value for style in FormatStyle]
+        assert len(values) == len(set(values))
 
     def test_style_membership(self):
         """Test that values are in enum."""
@@ -324,7 +324,7 @@ class TestFromStyle:
             pass
 
         unknown = UnknownStyle()
-        opts = FormatterOptions.from_style(unknown)  # type: ignore
+        opts = FormatterOptions.from_style(unknown)
         expected = FormatterOptions.standard()
 
         # Should return standard style as fallback
