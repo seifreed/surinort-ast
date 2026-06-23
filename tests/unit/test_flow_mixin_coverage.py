@@ -240,35 +240,23 @@ class TestFlowbitsOptionActionAndName:
 class TestFlowintOption:
     """Test flowint option returning GenericOption (lines 233-234)."""
 
-    def test_flowint_option_isset_operation(self):
-        """Test flowint with isset operation."""
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; flowint:counter,isset; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        assert rule is not None
-
-        # Flowint should be parsed as GenericOption
-        flowint_opt = next(
-            (
-                opt
-                for opt in rule.options
-                if isinstance(opt, GenericOption) and opt.keyword == "flowint"
-            ),
-            None,
-        )
-        assert flowint_opt is not None
-        assert flowint_opt.keyword == "flowint"
-        assert "counter" in flowint_opt.value
-        assert "isset" in flowint_opt.value
-        # Value should be comma-separated
-        assert "," in flowint_opt.value
-
-    def test_flowint_option_isnotset_operation(self):
-        """Test flowint with isnotset operation."""
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; flowint:counter,isnotset; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        assert rule is not None
+    @pytest.mark.parametrize(
+        "spec",
+        [
+            "counter,isset",
+            "counter,isnotset",
+            "counter,set,5",
+            "counter,add,1",
+            "counter,sub,1",
+            "counter,gt,10",
+            "counter,eq,100",
+            "myvar,add,2",
+            "my_complex_counter_123,set,999",
+        ],
+    )
+    def test_flowint_option_value_and_raw(self, spec):
+        """flowint parses as a GenericOption whose value and raw preserve the spec verbatim."""
+        rule = parse_rule(f'alert tcp any any -> any any (msg:"Test"; flowint:{spec}; sid:1;)')
 
         flowint_opt = next(
             (
@@ -280,141 +268,8 @@ class TestFlowintOption:
         )
         assert flowint_opt is not None
         assert flowint_opt.keyword == "flowint"
-        assert flowint_opt.value == "counter,isnotset"
-
-    def test_flowint_option_set_with_value(self):
-        """Test flowint with set operation and value."""
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; flowint:counter,set,5; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        assert rule is not None
-
-        flowint_opt = next(
-            (
-                opt
-                for opt in rule.options
-                if isinstance(opt, GenericOption) and opt.keyword == "flowint"
-            ),
-            None,
-        )
-        assert flowint_opt is not None
-        assert flowint_opt.keyword == "flowint"
-        assert flowint_opt.value == "counter,set,5"
-
-    def test_flowint_option_increment_operation(self):
-        """Test flowint with increment operation."""
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; flowint:counter,add,1; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        assert rule is not None
-
-        flowint_opt = next(
-            (
-                opt
-                for opt in rule.options
-                if isinstance(opt, GenericOption) and opt.keyword == "flowint"
-            ),
-            None,
-        )
-        assert flowint_opt is not None
-        assert flowint_opt.keyword == "flowint"
-        assert flowint_opt.value == "counter,add,1"
-
-    def test_flowint_option_decrement_operation(self):
-        """Test flowint with decrement operation."""
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; flowint:counter,sub,1; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        assert rule is not None
-
-        flowint_opt = next(
-            (
-                opt
-                for opt in rule.options
-                if isinstance(opt, GenericOption) and opt.keyword == "flowint"
-            ),
-            None,
-        )
-        assert flowint_opt is not None
-        assert flowint_opt.keyword == "flowint"
-        assert flowint_opt.value == "counter,sub,1"
-
-    def test_flowint_option_comparison_greater_than(self):
-        """Test flowint with greater than comparison."""
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; flowint:counter,gt,10; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        assert rule is not None
-
-        flowint_opt = next(
-            (
-                opt
-                for opt in rule.options
-                if isinstance(opt, GenericOption) and opt.keyword == "flowint"
-            ),
-            None,
-        )
-        assert flowint_opt is not None
-        assert flowint_opt.keyword == "flowint"
-        assert flowint_opt.value == "counter,gt,10"
-
-    def test_flowint_option_comparison_equals(self):
-        """Test flowint with equality comparison."""
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; flowint:counter,eq,100; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        assert rule is not None
-
-        flowint_opt = next(
-            (
-                opt
-                for opt in rule.options
-                if isinstance(opt, GenericOption) and opt.keyword == "flowint"
-            ),
-            None,
-        )
-        assert flowint_opt is not None
-        assert flowint_opt.keyword == "flowint"
-        assert "counter" in flowint_opt.value
-        assert "eq" in flowint_opt.value
-        assert "100" in flowint_opt.value
-
-    def test_flowint_option_raw_attribute(self):
-        """Test that flowint GenericOption has correct raw attribute."""
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; flowint:myvar,add,2; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        assert rule is not None
-
-        flowint_opt = next(
-            (
-                opt
-                for opt in rule.options
-                if isinstance(opt, GenericOption) and opt.keyword == "flowint"
-            ),
-            None,
-        )
-        assert flowint_opt is not None
-        # Raw should include the keyword and value
-        assert flowint_opt.raw == "flowint:myvar,add,2"
-
-    def test_flowint_option_complex_variable_name(self):
-        """Test flowint with complex variable name."""
-        rule_text = 'alert tcp any any -> any any (msg:"Test"; flowint:my_complex_counter_123,set,999; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        assert rule is not None
-
-        flowint_opt = next(
-            (
-                opt
-                for opt in rule.options
-                if isinstance(opt, GenericOption) and opt.keyword == "flowint"
-            ),
-            None,
-        )
-        assert flowint_opt is not None
-        assert "my_complex_counter_123" in flowint_opt.value
+        assert flowint_opt.value == spec
+        assert flowint_opt.raw == f"flowint:{spec}"
 
     @pytest.mark.parametrize(
         "spec",
