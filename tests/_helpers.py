@@ -8,7 +8,10 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TypeVar
 
+from lark import Lark
+
 from surinort_ast.core.nodes import Option, Rule
+from surinort_ast.parsing.transformer import RuleTransformer
 
 _OptionT = TypeVar("_OptionT", bound=Option)
 
@@ -16,6 +19,16 @@ _OptionT = TypeVar("_OptionT", bound=Option)
 def first_option(rule: Rule, option_type: type[_OptionT]) -> _OptionT | None:
     """Return the first option of ``option_type`` on ``rule``, or None."""
     return next((opt for opt in rule.options if isinstance(opt, option_type)), None)
+
+
+def transform_rule(rule_text: str, lark_parser: Lark, transformer: RuleTransformer) -> Rule:
+    """Parse ``rule_text`` with the given Lark parser + transformer and return the Rule.
+
+    Centralises the ``lark_parser.parse(...) -> transformer.transform(...)[0]`` idiom
+    used across the parsing tests.
+    """
+    result = transformer.transform(lark_parser.parse(rule_text))
+    return result[0]
 
 
 def iter_rule_lines(path: Path) -> Iterator[tuple[int, str]]:

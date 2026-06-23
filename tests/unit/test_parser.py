@@ -39,7 +39,7 @@ from surinort_ast.core.nodes import (
     SidOption,
 )
 from surinort_ast.parsing.transformer import RuleTransformer
-from tests._helpers import iter_rule_lines
+from tests._helpers import iter_rule_lines, transform_rule
 
 
 class TestBasicParsing:
@@ -79,9 +79,7 @@ class TestBasicParsing:
 
         for action_text, expected_action in actions_to_test:
             rule_text = f'{action_text} tcp any any -> any 80 (msg:"Test"; sid:1;)'
-            parse_tree = lark_parser.parse(rule_text)
-            result = transformer.transform(parse_tree)
-            rule = result[0]
+            rule = transform_rule(rule_text, lark_parser, transformer)
 
             assert rule.action == expected_action, f"Failed to parse action: {action_text}"
 
@@ -102,9 +100,7 @@ class TestBasicParsing:
 
         for proto_text, expected_proto in protocols_to_test:
             rule_text = f'alert {proto_text} any any -> any 80 (msg:"Test"; sid:1;)'
-            parse_tree = lark_parser.parse(rule_text)
-            result = transformer.transform(parse_tree)
-            rule = result[0]
+            rule = transform_rule(rule_text, lark_parser, transformer)
 
             assert rule.header.protocol == expected_proto, f"Failed to parse protocol: {proto_text}"
 
@@ -118,9 +114,7 @@ class TestBasicParsing:
 
         for dir_text, expected_dir in directions_to_test:
             rule_text = f'alert tcp any any {dir_text} any 80 (msg:"Test"; sid:1;)'
-            parse_tree = lark_parser.parse(rule_text)
-            result = transformer.transform(parse_tree)
-            rule = result[0]
+            rule = transform_rule(rule_text, lark_parser, transformer)
 
             assert rule.header.direction == expected_dir, f"Failed to parse direction: {dir_text}"
 
@@ -131,9 +125,7 @@ class TestAddressParsing:
     def test_parse_ipv4_address(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse IPv4 addresses."""
         rule_text = 'alert tcp 192.168.1.1 any -> 10.0.0.1 80 (msg:"Test"; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         assert isinstance(rule.header.src_addr, IPAddress)
         assert rule.header.src_addr.value == "192.168.1.1"
@@ -146,9 +138,7 @@ class TestAddressParsing:
     def test_parse_ipv4_cidr(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse IPv4 CIDR notation."""
         rule_text = 'alert tcp 192.168.1.0/24 any -> 10.0.0.0/8 80 (msg:"Test"; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         assert isinstance(rule.header.src_addr, IPCIDRRange)
         assert rule.header.src_addr.network == "192.168.1.0"
@@ -161,9 +151,7 @@ class TestAddressParsing:
     def test_parse_address_variables(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse address variables."""
         rule_text = 'alert tcp $EXTERNAL_NET any -> $HOME_NET 80 (msg:"Test"; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         assert isinstance(rule.header.src_addr, AddressVariable)
         assert rule.header.src_addr.name == "EXTERNAL_NET"
@@ -174,9 +162,7 @@ class TestAddressParsing:
     def test_parse_address_list(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse address lists."""
         rule_text = 'alert tcp [192.168.1.0/24,10.0.0.0/8] any -> any 80 (msg:"Test"; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         assert isinstance(rule.header.src_addr, AddressList)
         assert len(rule.header.src_addr.elements) == 2
@@ -190,9 +176,7 @@ class TestPortParsing:
     def test_parse_single_port(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse single port numbers."""
         rule_text = 'alert tcp any 1234 -> any 80 (msg:"Test"; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         assert isinstance(rule.header.src_port, Port)
         assert rule.header.src_port.value == 1234
@@ -203,9 +187,7 @@ class TestPortParsing:
     def test_parse_port_range(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse port ranges."""
         rule_text = 'alert tcp any any -> any 1024:65535 (msg:"Test"; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         assert isinstance(rule.header.dst_port, PortRange)
         assert rule.header.dst_port.start == 1024
@@ -214,9 +196,7 @@ class TestPortParsing:
     def test_parse_port_variable(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse port variables."""
         rule_text = 'alert tcp any any -> any $HTTP_PORTS (msg:"Test"; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         assert isinstance(rule.header.dst_port, PortVariable)
         assert rule.header.dst_port.name == "HTTP_PORTS"
@@ -243,9 +223,7 @@ class TestOptionParsing:
     def test_parse_basic_options(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse basic rule options."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test Message"; sid:1000001; rev:2; gid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         # Find options by type
         msg_opt = next((o for o in rule.options if isinstance(o, MsgOption)), None)
@@ -264,9 +242,7 @@ class TestOptionParsing:
     def test_parse_classtype_option(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse classtype option."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; classtype:trojan-activity; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         classtype_opt = next((o for o in rule.options if isinstance(o, ClasstypeOption)), None)
         assert classtype_opt is not None
@@ -275,9 +251,7 @@ class TestOptionParsing:
     def test_parse_content_option(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse content matching option."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; content:"GET"; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         content_opt = next((o for o in rule.options if isinstance(o, ContentOption)), None)
         assert content_opt is not None
@@ -286,9 +260,7 @@ class TestOptionParsing:
     def test_parse_content_with_hex(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse content with hex bytes."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; content:|48 65 6c 6c 6f|; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         content_opt = next((o for o in rule.options if isinstance(o, ContentOption)), None)
         assert content_opt is not None
@@ -297,9 +269,7 @@ class TestOptionParsing:
     def test_parse_pcre_option(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse PCRE option."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; pcre:"/pattern/i"; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         pcre_opt = next((o for o in rule.options if isinstance(o, PcreOption)), None)
         assert pcre_opt is not None
@@ -309,9 +279,7 @@ class TestOptionParsing:
     def test_parse_flow_option(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse flow option."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; flow:established,to_server; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         flow_opt = next((o for o in rule.options if isinstance(o, FlowOption)), None)
         assert flow_opt is not None
@@ -321,9 +289,7 @@ class TestOptionParsing:
     def test_parse_sticky_buffer(self, lark_parser: Lark, transformer: RuleTransformer):
         """Parse sticky buffer selection."""
         rule_text = 'alert http any any -> any any (msg:"Test"; http.uri; content:"/test"; sid:1;)'
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         # Find http_uri buffer select option
         buffer_opts = [o for o in rule.options if isinstance(o, BufferSelectOption)]
@@ -445,9 +411,7 @@ class TestLocationTracking:
         """Verify location information is captured."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         # Header should have location
         if rule.header.location:

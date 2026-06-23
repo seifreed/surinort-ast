@@ -15,7 +15,7 @@ from lark import Lark
 from surinort_ast.parsing.transformer import RuleTransformer
 from surinort_ast.printer.formatter import FormatterOptions
 from surinort_ast.printer.text_printer import TextPrinter, print_rule
-from tests._helpers import iter_rule_lines
+from tests._helpers import iter_rule_lines, transform_rule
 
 
 class TestBasicPrinting:
@@ -28,9 +28,7 @@ class TestBasicPrinting:
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
         # Parse
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         # Print
         printed = text_printer.print_rule(rule)
@@ -51,9 +49,7 @@ class TestBasicPrinting:
         rule_text = 'alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"Test"; sid:1;)'
 
         # Parse
-        parse_tree = lark_parser.parse(rule_text)
-        result = transformer.transform(parse_tree)
-        rule = result[0]
+        rule = transform_rule(rule_text, lark_parser, transformer)
 
         # Print
         printed = text_printer.print_rule(rule)
