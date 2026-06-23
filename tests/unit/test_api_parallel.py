@@ -28,6 +28,7 @@ from surinort_ast.api import (
 from surinort_ast.core.enums import Action, Dialect, Protocol
 from surinort_ast.core.nodes import Rule
 from surinort_ast.exceptions import ParseError, SerializationError
+from tests._helpers import temp_file
 
 
 class TestParseRule:
@@ -83,56 +84,38 @@ class TestParseFile:
 
     def test_parse_simple_file(self):
         """Test parsing a simple rules file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)\n')
-            f.write('alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)\n')
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)\n'
+            'alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)\n'
+        ) as temp_path:
             rules = parse_file(temp_path)
             assert len(rules) == 2
             assert all(isinstance(r, Rule) for r in rules)
             assert rules[0].origin.line_number == 1
             assert rules[1].origin.line_number == 2
-        finally:
-            temp_path.unlink()
 
     def test_parse_file_with_comments(self):
         """Test that comments are skipped."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write("# This is a comment\n")
-            f.write('alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)\n')
-            f.write("# Another comment\n")
-            f.write('alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)\n')
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(
+            "# This is a comment\n"
+            'alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)\n'
+            "# Another comment\n"
+            'alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)\n'
+        ) as temp_path:
             rules = parse_file(temp_path)
             assert len(rules) == 2
-        finally:
-            temp_path.unlink()
 
     def test_parse_file_with_blank_lines(self):
         """Test that blank lines are skipped."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write("\n\n")
-            f.write('alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)\n')
-            f.write("\n")
-            f.write('alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)\n')
-            f.write("\n\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(
+            "\n\n"
+            'alert tcp any any -> any 80 (msg:"Rule 1"; sid:1;)\n'
+            "\n"
+            'alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)\n'
+            "\n\n"
+        ) as temp_path:
             rules = parse_file(temp_path)
             assert len(rules) == 2
-        finally:
-            temp_path.unlink()
 
     def test_parse_file_sequential(self):
         """Test sequential file parsing (workers=1)."""
@@ -197,54 +180,34 @@ class TestParseFile:
         parsed differently depending on the worker count."""
         from surinort_ast.core.nodes import extract_sid
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write('alert tcp any any -> any any (msg:"x"; content:"abc\\"; sid:1;)\n')
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any any (msg:"x"; content:"abc\\"; sid:1;)\n'
+        ) as temp_path:
             seq = parse_file(temp_path, workers=1)
             par = parse_file(temp_path, workers=2)
             assert [extract_sid(r) for r in seq] == [1]
             assert [extract_sid(r) for r in par] == [1]
             assert seq[0].raw_text == par[0].raw_text
-        finally:
-            temp_path.unlink()
 
     def test_parse_file_with_errors_partial_success(self):
         """Test file parsing with some malformed rules."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Good Rule"; sid:1;)\n')
-            f.write("invalid rule here\n")
-            f.write('alert tcp any any -> any 443 (msg:"Another Good"; sid:2;)\n')
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Good Rule"; sid:1;)\n'
+            "invalid rule here\n"
+            'alert tcp any any -> any 443 (msg:"Another Good"; sid:2;)\n'
+        ) as temp_path:
             # Should parse the valid rules and skip invalid ones
             rules = parse_file(temp_path)
             # At least the valid rules should be parsed
             assert len(rules) >= 1
-        finally:
-            temp_path.unlink()
 
     def test_parse_file_all_errors_raises(self):
         """Test that file with all invalid rules raises ParseError."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write("invalid rule 1\n")
-            f.write("invalid rule 2\n")
-            f.write("invalid rule 3\n")
-            temp_path = Path(f.name)
-
-        try:
-            with pytest.raises(ParseError, match="Failed to parse any rules"):
-                parse_file(temp_path)
-        finally:
-            temp_path.unlink()
+        with (
+            temp_file("invalid rule 1\ninvalid rule 2\ninvalid rule 3\n") as temp_path,
+            pytest.raises(ParseError, match="Failed to parse any rules"),
+        ):
+            parse_file(temp_path)
 
     def test_parse_nonexistent_file_raises(self):
         """Test that nonexistent file raises FileNotFoundError."""
@@ -258,13 +221,7 @@ class TestParseFile:
 
     def test_parse_file_origin_tracking(self):
         """Test that file origin is tracked correctly."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n') as temp_path:
             rules = parse_file(temp_path)
             assert len(rules) == 1
             rule = rules[0]
@@ -272,8 +229,6 @@ class TestParseFile:
             # Use resolved path since parse_file resolves symlinks
             assert rule.origin.file_path == str(temp_path.resolve())
             assert rule.origin.line_number == 1
-        finally:
-            temp_path.unlink()
 
 
 class TestParseRules:

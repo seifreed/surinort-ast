@@ -19,7 +19,7 @@ from surinort_ast.core.enums import Dialect
 from surinort_ast.exceptions import ParseError
 from surinort_ast.parsing.lark_parser import LarkRuleParser
 from surinort_ast.parsing.parser_config import ParserConfig
-from tests._helpers import temp_output_path
+from tests._helpers import temp_file, temp_output_path
 
 
 class TestParserErrorRecovery:
@@ -209,65 +209,47 @@ class TestParserFileOperations:
         """Parser should skip comment lines in files."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write("# Comment line\n")
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            f.write("# Another comment\n")
-            f.write('alert tcp any any -> any 443 (msg:"HTTPS"; sid:2;)\n')
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(
+            "# Comment line\n"
+            'alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n'
+            "# Another comment\n"
+            'alert tcp any any -> any 443 (msg:"HTTPS"; sid:2;)\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path)
             assert len(rules) == 2
             # Verify both rules parsed
             assert all(rule.action is not None for rule in rules)
-        finally:
-            temp_path.unlink()
 
     def test_parse_file_with_blank_lines(self):
         """Parser should skip blank lines."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write("\n")
-            f.write('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-            f.write("\n\n")
-            f.write('alert tcp any any -> any 443 (msg:"HTTPS"; sid:2;)\n')
-            f.write("\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(
+            "\n"
+            'alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n'
+            "\n\n"
+            'alert tcp any any -> any 443 (msg:"HTTPS"; sid:2;)\n'
+            "\n"
+        ) as temp_path:
             rules = parser.parse_file(temp_path)
             assert len(rules) == 2
-        finally:
-            temp_path.unlink()
 
     def test_parse_multiline_rules(self):
         """Parser should handle multiline rules in files."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write("alert tcp any any -> any 80 (\n")
-            f.write('    msg:"Multi-line rule";\n')
-            f.write("    flow:established,to_server;\n")
-            f.write("    sid:1;\n")
-            f.write(")\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(
+            "alert tcp any any -> any 80 (\n"
+            '    msg:"Multi-line rule";\n'
+            "    flow:established,to_server;\n"
+            "    sid:1;\n"
+            ")\n"
+        ) as temp_path:
             rules = parser.parse_file(temp_path)
             assert len(rules) >= 1
             # First rule should be valid
             if rules:
                 assert rules[0].action is not None
-        finally:
-            temp_path.unlink()
 
     def test_parse_file_utf8_encoding(self):
         """Parser should handle UTF-8 encoded files."""
@@ -290,38 +272,25 @@ class TestParserFileOperations:
         """Parser should skip malformed rules when skip_errors=True."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
-            f.write("invalid rule here\n")
-            f.write('alert tcp any any -> any 443 (msg:"Also Good"; sid:2;)\n')
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n'
+            "invalid rule here\n"
+            'alert tcp any any -> any 443 (msg:"Also Good"; sid:2;)\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path, skip_errors=True)
             # Should get 2 valid rules
             assert len(rules) >= 2
-        finally:
-            temp_path.unlink()
 
     def test_parse_file_with_errors_no_skip(self):
         """Parser should include error nodes when skip_errors=False."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".rules", delete=False, encoding="utf-8"
-        ) as f:
-            f.write('alert tcp any any -> any 80 (msg:"Good"; sid:1;)\n')
-            f.write("invalid rule here\n")
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(
+            'alert tcp any any -> any 80 (msg:"Good"; sid:1;)\ninvalid rule here\n'
+        ) as temp_path:
             rules = parser.parse_file(temp_path, skip_errors=False)
             # Should get at least 2 entries (1 valid + 1 error)
             assert len(rules) >= 1
-        finally:
-            temp_path.unlink()
 
     def test_parse_nonexistent_file(self):
         """Parser should raise FileNotFoundError for missing files."""
