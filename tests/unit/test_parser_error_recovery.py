@@ -19,6 +19,7 @@ from surinort_ast.core.enums import Dialect
 from surinort_ast.exceptions import ParseError
 from surinort_ast.parsing.lark_parser import LarkRuleParser
 from surinort_ast.parsing.parser_config import ParserConfig
+from tests._helpers import temp_output_path
 
 
 class TestParserErrorRecovery:
@@ -199,15 +200,10 @@ class TestParserFileOperations:
         """Parser should handle empty files."""
         parser = LarkRuleParser(strict=False)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            temp_path = Path(f.name)
-
-        try:
+        with temp_output_path() as temp_path:
             rules = parser.parse_file(temp_path)
             assert isinstance(rules, list)
             assert len(rules) == 0
-        finally:
-            temp_path.unlink()
 
     def test_parse_file_with_comments(self):
         """Parser should skip comment lines in files."""

@@ -30,6 +30,7 @@ from surinort_ast.builder import RuleBuilder
 from surinort_ast.core.enums import Protocol
 from surinort_ast.query import query, query_exists, query_first
 from surinort_ast.streaming import StreamParser, stream_parse_file
+from tests._helpers import temp_output_path
 
 
 class TestQueryAndAnalysisIntegration:
@@ -507,10 +508,7 @@ class TestErrorHandlingAcrossModules:
     def test_analyze_empty_streamed_ruleset(self):
         """Test analyzing an empty streamed ruleset."""
         # Create empty file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            temp_path = Path(f.name)
-
-        try:
+        with temp_output_path() as temp_path:
             parser = StreamParser()
             rules = list(parser.stream_file(temp_path))
 
@@ -520,8 +518,6 @@ class TestErrorHandlingAcrossModules:
 
             assert report.total_rules == 0
             assert len(report.protocol_distribution) == 0
-        finally:
-            temp_path.unlink()
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from surinort_ast.api import parse_rule
 from surinort_ast.core.nodes import Rule
 from surinort_ast.exceptions import SerializationError
 from surinort_ast.streaming import StreamParser, StreamWriter, StreamWriterJSON, StreamWriterText
+from tests._helpers import temp_output_path
 
 # ============================================================================
 # Text Writer Tests
@@ -27,10 +28,7 @@ def test_text_writer_basic():
     rule1 = parse_rule('alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)')
     rule2 = parse_rule('alert tcp any any -> any 443 (msg:"HTTPS"; sid:2;)')
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path() as temp_path:
         with StreamWriterText(temp_path) as writer:
             writer.write(rule1)
             writer.write(rule2)
@@ -42,18 +40,13 @@ def test_text_writer_basic():
         assert "alert tcp" in content
         assert "sid:1" in content
         assert "sid:2" in content
-    finally:
-        temp_path.unlink()
 
 
 def test_text_writer_context_manager():
     """Test text writer as context manager."""
     rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path() as temp_path:
         with StreamWriter.text(temp_path) as writer:
             writer.write(rule)
             assert writer.count == 1
@@ -62,8 +55,6 @@ def test_text_writer_context_manager():
         assert temp_path.exists()
         content = temp_path.read_text()
         assert "alert tcp" in content
-    finally:
-        temp_path.unlink()
 
 
 def test_text_writer_write_many():
@@ -74,10 +65,7 @@ def test_text_writer_write_many():
         parse_rule('alert tcp any any -> any 22 (msg:"Rule 3"; sid:3;)'),
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path() as temp_path:
         with StreamWriterText(temp_path) as writer:
             count = writer.write_many(rules)
 
@@ -86,35 +74,25 @@ def test_text_writer_write_many():
         # Verify content
         content = temp_path.read_text()
         assert content.count("alert tcp") == 3
-    finally:
-        temp_path.unlink()
 
 
 def test_text_writer_stable_formatting():
     """Test stable formatting option."""
     rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path() as temp_path:
         with StreamWriterText(temp_path, stable=True) as writer:
             writer.write(rule)
 
         content = temp_path.read_text()
         assert "alert tcp" in content
-    finally:
-        temp_path.unlink()
 
 
 def test_text_writer_header_footer():
     """Test header and footer comments."""
     rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path() as temp_path:
         with StreamWriterText(
             temp_path, header_comment="Generated rules", footer_comment="End of rules"
         ) as writer:
@@ -123,23 +101,16 @@ def test_text_writer_header_footer():
         content = temp_path.read_text()
         assert "# Generated rules" in content
         assert "# End of rules" in content
-    finally:
-        temp_path.unlink()
 
 
 def test_text_writer_without_context_manager():
     """Test that writing without context manager raises error."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path() as temp_path:
         writer = StreamWriterText(temp_path)
         rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
         with pytest.raises(RuntimeError, match="Writer not opened"):
             writer.write(rule)
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -152,10 +123,7 @@ def test_json_writer_basic():
     rule1 = parse_rule('alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)')
     rule2 = parse_rule('alert tcp any any -> any 443 (msg:"HTTPS"; sid:2;)')
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path(".json") as temp_path:
         with StreamWriterJSON(temp_path) as writer:
             writer.write(rule1)
             writer.write(rule2)
@@ -168,18 +136,13 @@ def test_json_writer_basic():
         assert len(data) == 2
         assert data[0]["action"] == "alert"
         assert data[1]["action"] == "alert"
-    finally:
-        temp_path.unlink()
 
 
 def test_json_writer_context_manager():
     """Test JSON writer as context manager."""
     rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path(".json") as temp_path:
         with StreamWriter.json(temp_path) as writer:
             writer.write(rule)
             assert writer.count == 1
@@ -190,44 +153,32 @@ def test_json_writer_context_manager():
 
         assert isinstance(data, list)
         assert len(data) == 1
-    finally:
-        temp_path.unlink()
 
 
 def test_json_writer_compact():
     """Test compact JSON formatting."""
     rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path(".json") as temp_path:
         with StreamWriterJSON(temp_path, indent=None) as writer:
             writer.write(rule)
 
         content = temp_path.read_text()
         # Compact JSON should have fewer newlines
         assert content.count("\n") < 10
-    finally:
-        temp_path.unlink()
 
 
 def test_json_writer_pretty():
     """Test pretty JSON formatting."""
     rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path(".json") as temp_path:
         with StreamWriterJSON(temp_path, indent=4) as writer:
             writer.write(rule)
 
         content = temp_path.read_text()
         # Pretty JSON should have many newlines
         assert content.count("\n") > 10
-    finally:
-        temp_path.unlink()
 
 
 def test_json_writer_write_many():
@@ -237,10 +188,7 @@ def test_json_writer_write_many():
         parse_rule('alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)'),
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path(".json") as temp_path:
         with StreamWriterJSON(temp_path) as writer:
             count = writer.write_many(rules)
 
@@ -251,8 +199,6 @@ def test_json_writer_write_many():
             data = json.load(f)
 
         assert len(data) == 2
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -376,18 +322,12 @@ def test_writer_count_tracking():
         parse_rule('alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)'),
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
-        with StreamWriterText(temp_path) as writer:
-            assert writer.count == 0
-            writer.write(rules[0])
-            assert writer.count == 1
-            writer.write(rules[1])
-            assert writer.count == 2
-    finally:
-        temp_path.unlink()
+    with temp_output_path() as temp_path, StreamWriterText(temp_path) as writer:
+        assert writer.count == 0
+        writer.write(rules[0])
+        assert writer.count == 1
+        writer.write(rules[1])
+        assert writer.count == 2
 
 
 # ============================================================================
@@ -423,31 +363,21 @@ class _FailingHeaderWriter(StreamWriter):
 
 def test_footer_failure_still_closes_file():
     """A failing footer must not leak the file handle."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path() as temp_path:
         writer = _FailingFooterWriter(temp_path)
         with pytest.raises(ValueError, match="footer boom"), writer:
             pass
         # The error propagated, but the handle is closed, not leaked.
         assert writer._file is None
-    finally:
-        temp_path.unlink()
 
 
 def test_header_failure_closes_file():
     """A failing header in __enter__ must close the just-opened handle."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        temp_path = Path(f.name)
-
-    try:
+    with temp_output_path() as temp_path:
         writer = _FailingHeaderWriter(temp_path)
         with pytest.raises(ValueError, match="header boom"), writer:
             pass
         assert writer._file is None
-    finally:
-        temp_path.unlink()
 
 
 def test_json_writer_stays_valid_when_a_rule_fails_mid_stream():
@@ -464,9 +394,7 @@ def test_json_writer_stays_valid_when_a_rule_fails_mid_stream():
 
     good = parse_rule("alert tcp any any -> any 80 (sid:1;)")
     for indent in (2, None):
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            temp_path = Path(f.name)
-        try:
+        with temp_output_path(".json") as temp_path:
             with StreamWriterJSON(temp_path, indent=indent) as writer:
                 writer.write(good)
                 with pytest.raises(SerializationError):
@@ -474,5 +402,3 @@ def test_json_writer_stays_valid_when_a_rule_fails_mid_stream():
             data = json.loads(temp_path.read_text())
             assert isinstance(data, list)
             assert len(data) == 1
-        finally:
-            temp_path.unlink()

@@ -29,3 +29,10 @@ def temp_rules_file(rules: Sequence[str]) -> Iterator[Path]:
     """Write ``rules`` (one per line) to a temporary ``.rules`` file."""
     with temp_file("".join(rule + "\n" for rule in rules)) as path:
         yield path
+
+
+@contextmanager
+def temp_output_path(suffix: str = ".rules") -> Iterator[Path]:
+    """Yield a path to an empty temporary file for tests that write output to it."""
+    with temp_file("", suffix=suffix) as path:
+        yield path
