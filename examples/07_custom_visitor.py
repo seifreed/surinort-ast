@@ -27,7 +27,7 @@ def example_1_signature_id_collector():
         def __init__(self):
             self.signatures = []
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             """Extract signature metadata from rule."""
             sig_info = {
                 "sid": None,
@@ -85,7 +85,7 @@ def example_2_content_pattern_extractor():
             self.patterns = []
             self.current_rule_sid = None
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             """Track which rule we're in."""
             # Find SID first
             for opt in node.options:
@@ -94,10 +94,10 @@ def example_2_content_pattern_extractor():
                     break
 
             # Visit all options
-            super().visit_Rule(node)
+            super().visit_rule(node)
             self.current_rule_sid = None
 
-        def visit_ContentOption(self, node):
+        def visit_contentoption(self, node):
             """Extract content pattern."""
             pattern = node.pattern
             if isinstance(pattern, bytes):
@@ -115,17 +115,17 @@ def example_2_content_pattern_extractor():
 
             self.patterns.append(pattern_info)
 
-        def visit_NocaseOption(self, node):
+        def visit_nocaseoption(self, node):
             """Mark last pattern as case-insensitive."""
             if self.patterns:
                 self.patterns[-1]["nocase"] = True
 
-        def visit_OffsetOption(self, node):
+        def visit_offsetoption(self, node):
             """Record offset for last pattern."""
             if self.patterns:
                 self.patterns[-1]["offset"] = node.value
 
-        def visit_DepthOption(self, node):
+        def visit_depthoption(self, node):
             """Record depth for last pattern."""
             if self.patterns:
                 self.patterns[-1]["depth"] = node.value
@@ -167,10 +167,10 @@ def example_3_protocol_analyzer():
             self.dns_keywords = Counter()
             self.current_protocol = None
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             """Track protocol."""
             self.current_protocol = node.header.protocol.value
-            super().visit_Rule(node)
+            super().visit_rule(node)
 
         def generic_visit(self, node):
             """Count protocol-specific keywords."""
@@ -227,22 +227,22 @@ def example_4_complexity_scorer():
             self.score = 0
             self.details = defaultdict(int)
 
-        def visit_ContentOption(self, node):
+        def visit_contentoption(self, node):
             """Content patterns add complexity."""
             self.score += 10
             self.details["content_patterns"] += 1
 
-        def visit_PcreOption(self, node):
+        def visit_pcreoption(self, node):
             """PCRE patterns are more complex."""
             self.score += 20
             self.details["pcre_patterns"] += 1
 
-        def visit_ByteTestOption(self, node):
+        def visit_bytetestoption(self, node):
             """Byte tests add significant complexity."""
             self.score += 15
             self.details["byte_operations"] += 1
 
-        def visit_FlowOption(self, node):
+        def visit_flowoption(self, node):
             """Flow tracking adds complexity."""
             self.score += 5
             self.details["flow_tracking"] += 1
@@ -294,13 +294,13 @@ def example_5_rule_relationship_finder():
             self.references = []
             self.classtype = None
 
-        def visit_SidOption(self, node):
+        def visit_sidoption(self, node):
             self.sid = node.value
 
-        def visit_ReferenceOption(self, node):
+        def visit_referenceoption(self, node):
             self.references.append(f"{node.ref_type}:{node.ref_id}")
 
-        def visit_ClasstypeOption(self, node):
+        def visit_classtypeoption(self, node):
             self.classtype = node.value
 
         def default_return(self):
@@ -366,13 +366,13 @@ def example_6_ast_transformer_chain():
         def __init__(self, offset):
             self.offset = offset
 
-        def visit_SidOption(self, node):
+        def visit_sidoption(self, node):
             return node.model_copy(update={"value": node.value + self.offset})
 
     class RevBumper(ASTTransformer):
         """Increment revision numbers."""
 
-        def visit_RevOption(self, node):
+        def visit_revoption(self, node):
             return node.model_copy(update={"value": node.value + 1})
 
     from surinort_ast import print_rule

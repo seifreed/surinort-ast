@@ -307,7 +307,7 @@ class SIDCollector(ASTVisitor):
     def __init__(self):
         self.sids = []
 
-    def visit_SidOption(self, node):
+    def visit_sidoption(self, node):
         self.sids.append(node.value)
         return None
 
@@ -321,7 +321,7 @@ print(collector.sids)
 from surinort_ast.core.visitor import ASTTransformer
 
 class SIDRewriter(ASTTransformer):
-    def visit_SidOption(self, node):
+    def visit_sidoption(self, node):
         return node.model_copy(update={'value': node.value + 1000000})
 
 transformer = SIDRewriter()

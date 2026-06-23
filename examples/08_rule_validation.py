@@ -96,7 +96,7 @@ def example_3_custom_validator():
         def __init__(self):
             self.issues = []
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             """Validate rule-level requirements."""
             # Check for required metadata
             has_msg = any(opt.node_type == "MsgOption" for opt in node.options)
@@ -122,7 +122,7 @@ def example_3_custom_validator():
                 if not has_reference:
                     self.issues.append("Blocking rule should include reference")
 
-            super().visit_Rule(node)
+            super().visit_rule(node)
 
         def default_return(self):
             return None
@@ -163,14 +163,14 @@ def example_4_port_range_validation():
         def __init__(self):
             self.issues = []
 
-        def visit_Port(self, node):
+        def visit_port(self, node):
             """Validate single port value."""
             if node.value < 0 or node.value > 65535:
                 self.issues.append(f"Invalid port: {node.value} (must be 0-65535)")
             elif node.value == 0:
                 self.issues.append("Warning: Port 0 is unusual")
 
-        def visit_PortRange(self, node):
+        def visit_portrange(self, node):
             """Validate port range."""
             if node.start > node.end:
                 self.issues.append(f"Invalid range: {node.start}:{node.end} (start > end)")
@@ -218,7 +218,7 @@ def example_5_content_validation():
             self.content_count = 0
             self.has_depth_or_offset = False
 
-        def visit_ContentOption(self, node):
+        def visit_contentoption(self, node):
             """Track content patterns."""
             self.content_count += 1
 
@@ -229,21 +229,21 @@ def example_5_content_validation():
             ):
                 self.issues.append("Empty content pattern detected")
 
-        def visit_OffsetOption(self, node):
+        def visit_offsetoption(self, node):
             """Track offset usage."""
             self.has_depth_or_offset = True
             if node.value < 0:
                 self.issues.append(f"Invalid offset: {node.value} (must be >= 0)")
 
-        def visit_DepthOption(self, node):
+        def visit_depthoption(self, node):
             """Track depth usage."""
             self.has_depth_or_offset = True
             if node.value <= 0:
                 self.issues.append(f"Invalid depth: {node.value} (must be > 0)")
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             """Validate at rule level."""
-            super().visit_Rule(node)
+            super().visit_rule(node)
 
             # Performance tip: Using depth/offset with content improves performance
             if self.content_count > 0 and not self.has_depth_or_offset:

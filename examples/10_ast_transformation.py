@@ -26,7 +26,7 @@ def example_1_action_converter():
     class AlertToDropConverter(ASTTransformer):
         """Convert alert actions to drop."""
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             """Convert alert to drop."""
             if node.action == Action.ALERT:
                 # Create new rule with drop action
@@ -80,7 +80,7 @@ def example_2_sid_namespace_migrator():
             self.new_start = new_start
             self.migration_map = {}
 
-        def visit_SidOption(self, node):
+        def visit_sidoption(self, node):
             """Migrate SID if in old namespace."""
             old_sid = node.value
 
@@ -127,7 +127,7 @@ def example_3_revision_bumper():
     class RevisionBumper(ASTTransformer):
         """Increment revision numbers or add if missing."""
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             """Ensure rule has revision and bump it."""
             has_rev = False
             new_options = []
@@ -178,7 +178,7 @@ def example_4_metadata_enricher():
         def __init__(self, default_classtype="unknown"):
             self.default_classtype = default_classtype
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             """Add missing classtype."""
             has_classtype = any(opt.node_type == "ClasstypeOption" for opt in node.options)
 
@@ -238,7 +238,7 @@ def example_5_port_normalizer():
                 "dns": 53,
             }
 
-        def visit_PortVariable(self, node):
+        def visit_portvariable(self, node):
             """Replace common port variables with explicit ports."""
             # Check if variable name matches known service
             var_name = node.name.lower().replace("$", "").replace("_port", "")
@@ -265,7 +265,7 @@ def example_6_multi_pass_transformation():
     class Pass1_SIDMigrator(ASTTransformer):
         """First pass: Migrate SIDs."""
 
-        def visit_SidOption(self, node):
+        def visit_sidoption(self, node):
             if node.value < 1000000:
                 return node.model_copy(update={"value": node.value + 1000000})
             return node
@@ -273,13 +273,13 @@ def example_6_multi_pass_transformation():
     class Pass2_RevBumper(ASTTransformer):
         """Second pass: Bump revisions."""
 
-        def visit_RevOption(self, node):
+        def visit_revoption(self, node):
             return node.model_copy(update={"value": node.value + 1})
 
     class Pass3_MetadataAdder(ASTTransformer):
         """Third pass: Add metadata."""
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             has_classtype = any(opt.node_type == "ClasstypeOption" for opt in node.options)
             if not has_classtype:
                 new_opt = ClasstypeOption(value="updated-rule")
@@ -323,7 +323,7 @@ def example_7_conditional_transformer():
     class ConditionalTransformer(ASTTransformer):
         """Transform only rules matching certain conditions."""
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             """Transform only TCP rules on port 80."""
             is_tcp = node.header.protocol.value == "tcp"
 

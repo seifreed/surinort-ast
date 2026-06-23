@@ -66,7 +66,7 @@ def example_2_simple_visitor():
         def __init__(self):
             self.sids = []
 
-        def visit_SidOption(self, node):
+        def visit_sidoption(self, node):
             """Visit SID option and collect value."""
             self.sids.append(node.value)
 
@@ -105,7 +105,7 @@ def example_3_content_analyzer():
             self.has_pcre = False
             self.http_keywords = []
 
-        def visit_ContentOption(self, node):
+        def visit_contentoption(self, node):
             """Collect content patterns."""
             pattern = node.pattern
             # Convert bytes to string for display
@@ -115,15 +115,15 @@ def example_3_content_analyzer():
                 pattern_str = str(pattern)
             self.content_patterns.append(pattern_str)
 
-        def visit_PcreOption(self, node):
+        def visit_pcreoption(self, node):
             """Check for PCRE patterns."""
             self.has_pcre = True
 
-        def visit_HttpMethodOption(self, node):
+        def visit_httpmethodoption(self, node):
             """Track HTTP-specific keywords."""
             self.http_keywords.append("http_method")
 
-        def visit_HttpUriOption(self, node):
+        def visit_httpurioption(self, node):
             """Track HTTP URI keywords."""
             self.http_keywords.append("http_uri")
 
@@ -157,12 +157,12 @@ def example_4_walker_pattern():
             self.option_count = 0
             self.content_count = 0
 
-        def visit_Rule(self, node):
+        def visit_rule(self, node):
             """Visit rule and print basic info."""
             print(f"\nRule: {node.action.value} {node.header.protocol.value}")
-            super().visit_Rule(node)
+            super().visit_rule(node)
 
-        def visit_ContentOption(self, node):
+        def visit_contentoption(self, node):
             """Count content options."""
             self.content_count += 1
             print(f"  Found content pattern #{self.content_count}")

@@ -137,7 +137,7 @@ def example_5_bulk_sid_update():
         def __init__(self, offset):
             self.offset = offset
 
-        def visit_SidOption(self, node):
+        def visit_sidoption(self, node):
             """Add offset to SID value."""
             return node.model_copy(update={"value": node.value + self.offset})
 

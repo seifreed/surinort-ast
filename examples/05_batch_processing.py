@@ -174,7 +174,7 @@ def example_5_bulk_transformation():
         def __init__(self, offset):
             self.offset = offset
 
-        def visit_SidOption(self, node):
+        def visit_sidoption(self, node):
             return node.model_copy(update={"value": node.value + self.offset})
 
     rules_text = [
