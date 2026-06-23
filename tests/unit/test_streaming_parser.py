@@ -19,6 +19,7 @@ from surinort_ast.streaming import (
     stream_parse_file,
     stream_parse_file_parallel,
 )
+from tests._helpers import temp_file
 
 # ============================================================================
 # Basic Streaming Tests
@@ -104,17 +105,11 @@ alert tcp any any -> any 443 (msg:"Rule 2"; sid:2;)
 
 """
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        f.write(content)
-        temp_path = Path(f.name)
-
-    try:
+    with temp_file(content) as temp_path:
         parser = StreamParser()
         rules = list(parser.stream_file(temp_path))
 
         assert len(rules) == 2
-    finally:
-        temp_path.unlink()
 
 
 def test_stream_multiline_rules():
@@ -132,17 +127,11 @@ alert tcp any any -> any 80 (
     sid:1001;
 )"""
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        f.write(content)
-        temp_path = Path(f.name)
-
-    try:
+    with temp_file(content) as temp_path:
         parser = StreamParser()
         rules = list(parser.stream_file(temp_path))
 
         assert len(rules) == 2
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -154,11 +143,7 @@ def test_stream_raw_text_inclusion():
     """Test include_raw_text option."""
     rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        f.write(rule_text)
-        temp_path = Path(f.name)
-
-    try:
+    with temp_file(rule_text) as temp_path:
         # With raw text
         parser_with = StreamParser(include_raw_text=True)
         rules_with = list(parser_with.stream_file(temp_path))
@@ -169,19 +154,13 @@ def test_stream_raw_text_inclusion():
         parser_without = StreamParser(include_raw_text=False)
         rules_without = list(parser_without.stream_file(temp_path))
         assert rules_without[0].raw_text is None
-    finally:
-        temp_path.unlink()
 
 
 def test_stream_location_tracking():
     """Test track_locations option."""
     rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        f.write(rule_text)
-        temp_path = Path(f.name)
-
-    try:
+    with temp_file(rule_text) as temp_path:
         # With location tracking
         parser_with = StreamParser(track_locations=True)
         rules_with = list(parser_with.stream_file(temp_path))
@@ -191,8 +170,6 @@ def test_stream_location_tracking():
         parser_without = StreamParser(track_locations=False)
         _rules_without = list(parser_without.stream_file(temp_path))
         # Note: May still have location from origin metadata
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -251,11 +228,7 @@ def test_stream_skip_errors():
 invalid rule here
 alert tcp any any -> any 443 (msg:"Valid"; sid:2;)"""
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        f.write(content)
-        temp_path = Path(f.name)
-
-    try:
+    with temp_file(content) as temp_path:
         # With skip_errors=True, should get 2 valid rules
         parser = StreamParser()
         rules = list(parser.stream_file(temp_path, skip_errors=True))
@@ -265,8 +238,6 @@ alert tcp any any -> any 443 (msg:"Valid"; sid:2;)"""
         rules_all = list(parser.stream_file(temp_path, skip_errors=False))
         # At least the 2 valid rules
         assert len(rules_all) >= 2
-    finally:
-        temp_path.unlink()
 
 
 def test_stream_file_not_found():
@@ -323,14 +294,8 @@ def test_count_lines_handles_missing_trailing_newline(content, expected):
     Regression: counting only ``\\n`` bytes undercounted a file whose last line
     was unterminated, so the progress total could undershoot the rules streamed.
     """
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        f.write(content)
-        temp_path = Path(f.name)
-
-    try:
+    with temp_file(content) as temp_path:
         assert StreamParser()._count_lines(temp_path) == expected
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -439,11 +404,7 @@ def test_parallel_streaming_reassembles_multiline_rules():
     def sids(rules):
         return sorted(o.value for r in rules for o in r.options if o.node_type == "SidOption")
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        f.write(text)
-        temp_path = Path(f.name)
-
-    try:
+    with temp_file(text) as temp_path:
         sequential = list(stream_parse_file(temp_path))
         parallel = list(stream_parse_file_parallel(temp_path, workers=2, chunk_size=2))
 
@@ -452,8 +413,6 @@ def test_parallel_streaming_reassembles_multiline_rules():
         # not drop the multi-line rule or emit extra error nodes.
         assert len(parallel) == 3
         assert sids(parallel) == [1, 2, 3]
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================

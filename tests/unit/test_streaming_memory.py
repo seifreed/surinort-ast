@@ -20,6 +20,7 @@ import pytest
 
 from surinort_ast.core.enums import Action
 from surinort_ast.streaming import StreamParser, stream_parse_file
+from tests._helpers import temp_file
 
 
 class TestMemoryEfficiency:
@@ -158,18 +159,12 @@ class TestLargeFileHandling:
     rev:1;
 )"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(multiline_rule)
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(multiline_rule) as temp_path:
             parser = StreamParser()
             rules = list(parser.stream_file(temp_path))
 
             assert len(rules) == 1
             assert rules[0].action == Action.ALERT
-        finally:
-            temp_path.unlink()
 
     def test_file_with_many_blank_lines(self):
         """Test streaming with excessive blank lines."""
@@ -178,18 +173,12 @@ class TestLargeFileHandling:
             content_lines.append(f"alert tcp any any -> any {i} (sid:{i};)")
             content_lines.extend(["", "", "", ""])  # Add blank lines
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write("\n".join(content_lines))
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file("\n".join(content_lines)) as temp_path:
             parser = StreamParser()
             rules = list(parser.stream_file(temp_path))
 
             # Should skip blank lines and get 10 rules
             assert len(rules) == 10
-        finally:
-            temp_path.unlink()
 
 
 class TestChunkBoundaries:
@@ -245,11 +234,7 @@ alert tcp any any -> any 443 (msg:"Valid 2"; sid:2;)
 another invalid line
 alert tcp any any -> any 8080 (msg:"Valid 3"; sid:3;)"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(content)
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(content) as temp_path:
             parser = StreamParser()
             rules = list(parser.stream_file(temp_path, skip_errors=True))
 
@@ -258,27 +243,19 @@ alert tcp any any -> any 8080 (msg:"Valid 3"; sid:3;)"""
             assert rules[0].header.dst_port.value == 80
             assert rules[1].header.dst_port.value == 443
             assert rules[2].header.dst_port.value == 8080
-        finally:
-            temp_path.unlink()
 
     def test_partial_rule_at_end_of_file(self):
         """Test handling of incomplete rule at EOF."""
         content = """alert tcp any any -> any 80 (msg:"Valid"; sid:1;)
 alert tcp any any -> any 443 (msg:"Incomplete"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(content)
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(content) as temp_path:
             parser = StreamParser()
             rules = list(parser.stream_file(temp_path, skip_errors=True))
 
             # Should get 1 valid rule
             assert len(rules) == 1
             assert rules[0].header.dst_port.value == 80
-        finally:
-            temp_path.unlink()
 
 
 class TestProgressTracking:
@@ -368,11 +345,7 @@ alert tcp any any -> any 443 (msg:"Valid 2"; sid:2;)
 ANOTHER INVALID
 alert tcp any any -> any 8080 (msg:"Valid 3"; sid:3;)"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(content)
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(content) as temp_path:
             parser = StreamParser()
             batches = list(parser.stream_file_batched(temp_path, batch_size=10))
 
@@ -387,8 +360,6 @@ alert tcp any any -> any 8080 (msg:"Valid 3"; sid:3;)"""
             total_errors = sum(b.error_count for b in batches)
             # Just verify error count is non-negative
             assert total_errors >= 0
-        finally:
-            temp_path.unlink()
 
 
 class TestConvenienceFunctions:
@@ -437,34 +408,22 @@ class TestEdgeCases:
 # Another comment
 # Yet another comment"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(content)
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(content) as temp_path:
             parser = StreamParser()
             rules = list(parser.stream_file(temp_path))
 
             assert len(rules) == 0
-        finally:
-            temp_path.unlink()
 
     def test_single_rule_file(self):
         """Test file with exactly one rule."""
         content = 'alert tcp any any -> any 80 (msg:"Single rule"; sid:1;)'
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-            f.write(content)
-            temp_path = Path(f.name)
-
-        try:
+        with temp_file(content) as temp_path:
             parser = StreamParser()
             rules = list(parser.stream_file(temp_path))
 
             assert len(rules) == 1
             assert rules[0].action == Action.ALERT
-        finally:
-            temp_path.unlink()
 
 
 if __name__ == "__main__":

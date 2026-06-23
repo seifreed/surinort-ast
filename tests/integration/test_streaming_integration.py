@@ -21,6 +21,7 @@ from surinort_ast.streaming import (
     TransformProcessor,
     ValidateProcessor,
 )
+from tests._helpers import temp_rules_file
 
 # ============================================================================
 # End-to-End Streaming Tests
@@ -32,12 +33,7 @@ def test_streaming_api_integration():
     # Create test file
     rules_text = [f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)' for i in range(100)]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         # Test streaming API
         count = 0
         for rule in parse_file_streaming(temp_path):
@@ -45,20 +41,13 @@ def test_streaming_api_integration():
             count += 1
 
         assert count == 100
-    finally:
-        temp_path.unlink()
 
 
 def test_streaming_batch_api_integration():
     """Test batch streaming API integration."""
     rules_text = [f'alert tcp any any -> any 80 (msg:"Rule {i}"; sid:{i};)' for i in range(100)]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         # Test batch streaming
         batch_count = 0
         total_rules = 0
@@ -69,8 +58,6 @@ def test_streaming_batch_api_integration():
 
         assert batch_count == 4  # 100 rules / 25 per batch
         assert total_rules == 100
-    finally:
-        temp_path.unlink()
 
 
 def test_complete_processing_pipeline():
@@ -159,12 +146,7 @@ def test_filter_aggregate_report():
         'alert udp any any -> any 123 (msg:"NTP"; sid:5;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
 
         # Filter alert rules only
@@ -186,8 +168,6 @@ def test_filter_aggregate_report():
         stats_dict = aggregator.stats.to_dict()
         assert stats_dict["total_rules"] == 4
         assert stats_dict["unique_sids"] == 4
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -308,12 +288,7 @@ def test_rule_analysis_workflow():
         'alert udp any any -> any 53 (msg:"DNS"; content:"query"; sid:3;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
 
         # Custom aggregator: count content options
@@ -335,8 +310,6 @@ def test_rule_analysis_workflow():
         assert stats["custom_stats"]["total_content"] == 2
         assert stats["rules_by_protocol"]["tcp"] == 2
         assert stats["rules_by_protocol"]["udp"] == 1
-    finally:
-        temp_path.unlink()
 
 
 # ============================================================================
@@ -354,12 +327,7 @@ def test_streaming_with_mixed_valid_invalid():
         'alert tcp any any -> any 22 (msg:"Valid 3"; sid:3;)',
     ]
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".rules", delete=False) as f:
-        for rule in rules_text:
-            f.write(rule + "\n")
-        temp_path = Path(f.name)
-
-    try:
+    with temp_rules_file(rules_text) as temp_path:
         parser = StreamParser()
 
         # With skip_errors=True
@@ -369,5 +337,3 @@ def test_streaming_with_mixed_valid_invalid():
         # Count total attempts
         all_attempts = list(parser.stream_file(temp_path, skip_errors=False))
         assert len(all_attempts) >= 3  # At least the valid ones
-    finally:
-        temp_path.unlink()
