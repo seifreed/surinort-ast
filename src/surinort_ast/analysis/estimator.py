@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, cast
 
+from .option_categories import CONTENT_MODIFIER_OPTIONS as _CONTENT_MODIFIER_OPTIONS
+
 if TYPE_CHECKING:
     from ..core.nodes import ContentOption, Option, PcreOption, Rule
 
@@ -94,23 +96,9 @@ class PerformanceEstimator:
         "B": 1.3,  # PCRE body inspection
     }
 
-    # Standalone content modifiers that attach to the preceding content option:
-    # they adjust its cost and a non-modifier option between them breaks the
-    # chain. Kept as one set so the cost-adjustment and chain-breaking checks
-    # never drift apart.
-    CONTENT_MODIFIER_OPTIONS: ClassVar[frozenset[str]] = frozenset(
-        {
-            "DepthOption",
-            "OffsetOption",
-            "DistanceOption",
-            "WithinOption",
-            "NocaseOption",
-            "RawbytesOption",
-            "StartswithOption",
-            "EndswithOption",
-            "FastPatternOption",
-        }
-    )
+    # Content modifiers that attach to the preceding content option, sourced
+    # from the shared category set so cost and chain checks never drift.
+    CONTENT_MODIFIER_OPTIONS: ClassVar[frozenset[str]] = _CONTENT_MODIFIER_OPTIONS
 
     def estimate_cost(self, rule: Rule) -> float:
         """

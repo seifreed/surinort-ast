@@ -22,29 +22,7 @@ if TYPE_CHECKING:
 
 from ..printer.text_printer import TextPrinter
 from .optimizer import Optimization
-
-# Options whose meaning depends on their position in the option sequence: sticky
-# content modifiers, relative offsets, sticky-buffer selection, and the byte_*
-# family (which defines and consumes extracted variables in order). Reordering
-# them, or removing a "duplicate", detaches them from the content they qualify
-# and silently changes detection semantics, so strategies must treat their
-# presence as order-significant.
-POSITIONAL_OPTIONS: frozenset[str] = frozenset(
-    {
-        "DepthOption",
-        "OffsetOption",
-        "DistanceOption",
-        "WithinOption",
-        "NocaseOption",
-        "RawbytesOption",
-        "StartswithOption",
-        "EndswithOption",
-        "FastPatternOption",
-        "BufferSelectOption",
-        "LuaOption",
-        "LuajitOption",
-    }
-)
+from .option_categories import POSITIONAL_OPTIONS
 
 # These keywords parse to a keyword-tagged GenericOption rather than a dedicated
 # node, yet each is position- and state-significant, so moving or deduplicating
