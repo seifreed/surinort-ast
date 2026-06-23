@@ -19,6 +19,9 @@ from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
 from ...api import print_rule, to_json, to_sarif
 from ...core.enums import Dialect
 from ..shared import (
+    DialectOption,
+    OutputOption,
+    SarifOutOption,
     cli_error_handler,
     emit_sarif_report,
     err_console,
@@ -104,14 +107,8 @@ def parse_command(
             exists=False,
         ),
     ] = None,
-    dialect: Annotated[
-        Dialect,
-        typer.Option("--dialect", "-d", help="IDS rule dialect"),
-    ] = Dialect.SURICATA,
-    output: Annotated[
-        Path | None,
-        typer.Option("--output", "-o", help="Output file (default: stdout)"),
-    ] = None,
+    dialect: DialectOption = Dialect.SURICATA,
+    output: OutputOption = None,
     json_output: Annotated[
         bool,
         typer.Option("--json", "-j", help="Output as JSON"),
@@ -120,10 +117,7 @@ def parse_command(
         str,
         typer.Option("--format", help="Output format: text, json, sarif"),
     ] = "text",
-    sarif_out: Annotated[
-        Path | None,
-        typer.Option("--sarif-out", help="Write SARIF report to file"),
-    ] = None,
+    sarif_out: SarifOutOption = None,
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Show detailed parsing info"),

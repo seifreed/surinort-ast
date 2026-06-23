@@ -19,23 +19,26 @@ from ...analysis import ConflictDetectorConfig, Severity, detect_conflicts
 from ...api import parse_file
 from ...core.enums import Dialect
 from ...exceptions import ParseError
-from ..shared import err_console, parsing_progress, resolve_output_format, write_output
+from ..shared import (
+    DialectOption,
+    OutputOption,
+    err_console,
+    parsing_progress,
+    resolve_output_format,
+    write_output,
+)
 
 
 def conflicts_command(
     file: Annotated[Path, typer.Argument(help="Rule file to analyze")],
-    dialect: Annotated[
-        Dialect, typer.Option("--dialect", "-d", help="IDS rule dialect")
-    ] = Dialect.SURICATA,
+    dialect: DialectOption = Dialect.SURICATA,
     output_format: Annotated[
         str, typer.Option("--format", help="Output format: text, json, markdown")
     ] = "text",
     min_severity: Annotated[
         Severity, typer.Option("--min-severity", help="Minimum severity to report")
     ] = Severity.INFO,
-    output: Annotated[
-        Path | None, typer.Option("--output", "-o", help="Output file (default: stdout)")
-    ] = None,
+    output: OutputOption = None,
 ) -> None:
     """
     Detect conflicts across IDS rules.

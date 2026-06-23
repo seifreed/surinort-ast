@@ -22,6 +22,9 @@ from ...analysis import CoverageAnalyzer
 from ...api import coverage_report_to_sarif, parse_file
 from ...core.enums import Dialect
 from ..shared import (
+    DialectOption,
+    OutputOption,
+    SarifOutOption,
     cli_error_handler,
     emit_sarif_report,
     err_console,
@@ -91,22 +94,13 @@ def stats_command(
         Path,
         typer.Argument(help="Rule file to analyze"),
     ],
-    dialect: Annotated[
-        Dialect,
-        typer.Option("--dialect", "-d", help="IDS rule dialect"),
-    ] = Dialect.SURICATA,
+    dialect: DialectOption = Dialect.SURICATA,
     output_format: Annotated[
         str,
         typer.Option("--format", help="Output format: text, sarif"),
     ] = "text",
-    output: Annotated[
-        Path | None,
-        typer.Option("--output", "-o", help="Output file (default: stdout)"),
-    ] = None,
-    sarif_out: Annotated[
-        Path | None,
-        typer.Option("--sarif-out", help="Write SARIF report to file"),
-    ] = None,
+    output: OutputOption = None,
+    sarif_out: SarifOutOption = None,
 ) -> None:
     """
     Show statistics about IDS rules.

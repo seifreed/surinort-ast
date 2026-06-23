@@ -20,6 +20,9 @@ from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
 from ...api import parse_file, to_sarif, validate_rule
 from ...core.enums import DiagnosticLevel, Dialect
 from ..shared import (
+    DialectOption,
+    OutputOption,
+    SarifOutOption,
     cli_error_handler,
     console,
     emit_sarif_report,
@@ -222,10 +225,7 @@ def validate_command(
         Path,
         typer.Argument(help="Rule file to validate"),
     ],
-    dialect: Annotated[
-        Dialect,
-        typer.Option("--dialect", "-d", help="IDS rule dialect"),
-    ] = Dialect.SURICATA,
+    dialect: DialectOption = Dialect.SURICATA,
     strict: Annotated[
         bool,
         typer.Option("--strict", help="Treat warnings as errors"),
@@ -238,14 +238,8 @@ def validate_command(
         str,
         typer.Option("--format", help="Output format: text, sarif"),
     ] = "text",
-    output: Annotated[
-        Path | None,
-        typer.Option("--output", "-o", help="Output file (default: stdout)"),
-    ] = None,
-    sarif_out: Annotated[
-        Path | None,
-        typer.Option("--sarif-out", help="Write SARIF report to file"),
-    ] = None,
+    output: OutputOption = None,
+    sarif_out: SarifOutOption = None,
 ) -> None:
     """
     Validate IDS rules and report issues.

@@ -17,7 +17,7 @@ import typer
 
 from ...api import from_json, print_rule
 from ...exceptions import SerializationError
-from ..shared import err_console, read_input, status_console, write_output
+from ..shared import OutputOption, err_console, read_input, status_console, write_output
 
 
 def _flatten_loaded(items: Any) -> Any:
@@ -33,10 +33,7 @@ def from_json_command(
         Path | None,
         typer.Argument(help="JSON file to convert (or - for stdin)"),
     ] = None,
-    output: Annotated[
-        Path | None,
-        typer.Option("--output", "-o", help="Output file (default: stdout)"),
-    ] = None,
+    output: OutputOption = None,
     stable: Annotated[
         bool,
         typer.Option("--stable", "-s", help="Use stable/canonical formatting"),

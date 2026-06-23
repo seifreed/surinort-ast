@@ -10,20 +10,15 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Annotated
 
 import typer
 
 from ...api import to_json_schema
-from ..shared import err_console, status_console, write_output
+from ..shared import OutputOption, err_console, status_console, write_output
 
 
 def schema_command(
-    output: Annotated[
-        Path | None,
-        typer.Option("--output", "-o", help="Output file (default: stdout)"),
-    ] = None,
+    output: OutputOption = None,
 ) -> None:
     """
     Generate JSON Schema for Rule AST.

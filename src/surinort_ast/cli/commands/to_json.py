@@ -18,6 +18,8 @@ import typer
 from ...api import to_json
 from ...core.enums import Dialect
 from ..shared import (
+    DialectOption,
+    OutputOption,
     cli_error_handler,
     load_rules,
     status_console,
@@ -30,14 +32,8 @@ def to_json_command(
         Path | None,
         typer.Argument(help="Rule file to convert (or - for stdin)"),
     ] = None,
-    dialect: Annotated[
-        Dialect,
-        typer.Option("--dialect", "-d", help="IDS rule dialect"),
-    ] = Dialect.SURICATA,
-    output: Annotated[
-        Path | None,
-        typer.Option("--output", "-o", help="Output file (default: stdout)"),
-    ] = None,
+    dialect: DialectOption = Dialect.SURICATA,
+    output: OutputOption = None,
     compact: Annotated[
         bool,
         typer.Option("--compact", "-c", help="Compact JSON output"),

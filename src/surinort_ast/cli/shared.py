@@ -16,6 +16,7 @@ import traceback
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from lark.exceptions import LarkError
@@ -25,6 +26,26 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from ..core.enums import Dialect
 from ..core.nodes import Rule
 from ..exceptions import ParseError
+
+# ============================================================================
+# Reusable CLI option types
+# ============================================================================
+# Shared Typer option declarations so every command exposes identical flags,
+# help text, and defaults from a single source. Defaults stay at each call
+# site (e.g. ``output: OutputOption = None``).
+
+DialectOption = Annotated[
+    Dialect,
+    typer.Option("--dialect", "-d", help="IDS rule dialect"),
+]
+OutputOption = Annotated[
+    Path | None,
+    typer.Option("--output", "-o", help="Output file (default: stdout)"),
+]
+SarifOutOption = Annotated[
+    Path | None,
+    typer.Option("--sarif-out", help="Write SARIF report to file"),
+]
 
 # ============================================================================
 # Console Setup
