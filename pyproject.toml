@@ -489,5 +489,3 @@ exclude = [
 [tool.bandit]
 targets = ["src"]
 exclude_dirs = ["tests", "venv", ".venv", "env", "benchmarks", "examples"]
-# B101: assert_used - Allow asserts in non-production code paths
-skips = ["B101"]

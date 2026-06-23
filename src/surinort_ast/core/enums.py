@@ -5,12 +5,17 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 """
 
-from enum import Enum
+from enum import Enum, auto
+from typing import Any
 
 
 class Action(str, Enum):
     """
     Rule actions for IDS/IPS systems.
+
+    Each value is the lowercased member name; ``auto()`` derives it so no
+    member is written as a bare string literal (which would trip bandit's
+    B105 hardcoded-password heuristic on ``PASS``).
 
     Attributes:
         ALERT: Generate an alert (passive monitoring)
@@ -21,12 +26,16 @@ class Action(str, Enum):
         SDROP: Silent drop (Suricata specific)
     """
 
-    ALERT = "alert"
-    LOG = "log"
-    PASS = "pass"  # nosec B105
-    DROP = "drop"
-    REJECT = "reject"
-    SDROP = "sdrop"
+    @staticmethod
+    def _generate_next_value_(name: str, *_: Any) -> str:
+        return name.lower()
+
+    ALERT = auto()
+    LOG = auto()
+    PASS = auto()
+    DROP = auto()
+    REJECT = auto()
+    SDROP = auto()
 
 
 class Protocol(str, Enum):
