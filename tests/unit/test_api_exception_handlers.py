@@ -20,6 +20,7 @@ from surinort_ast.core.location import Location, Position, Span
 from surinort_ast.core.nodes import Rule
 from surinort_ast.exceptions import ParseError
 from surinort_ast.parsing.lark_parser import LarkRuleParser
+from tests.unit._helpers import any_header
 
 
 class TestApiParsingExceptionHandlers:
@@ -539,25 +540,13 @@ invalid syntax here
         """Test that extract_sid returns None when a rule has no SID option."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
-            Direction,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             extract_sid,
         )
 
         # Create a rule without SID option
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         # Create rule with only msg option, no SID
         rule = Rule(

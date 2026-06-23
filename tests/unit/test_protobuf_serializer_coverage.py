@@ -75,6 +75,7 @@ from surinort_ast.serialization.protobuf import (
     from_protobuf,
     to_protobuf,
 )
+from tests.unit._helpers import any_header
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -101,14 +102,7 @@ def _make_loc(file_path: str | None = None) -> Location:
 
 def _minimal_header() -> Header:
     """Return a minimal TCP->any header with AnyAddress/AnyPort."""
-    return Header(
-        protocol=Protocol.TCP,
-        src_addr=AnyAddress(),
-        src_port=AnyPort(),
-        direction=Direction.TO,
-        dst_addr=AnyAddress(),
-        dst_port=AnyPort(),
-    )
+    return any_header()
 
 
 def _wrap(options: list) -> Rule:  # type: ignore[type-arg]

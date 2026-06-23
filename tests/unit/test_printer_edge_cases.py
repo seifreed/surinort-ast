@@ -18,8 +18,6 @@ This test file targets all missing lines from the previous coverage run:
 
 from surinort_ast.core.nodes import (
     Action,
-    AnyAddress,
-    AnyPort,
     BufferSelectOption,
     ByteExtractOption,
     ByteJumpOption,
@@ -29,16 +27,13 @@ from surinort_ast.core.nodes import (
     ContentModifierType,
     ContentOption,
     DetectionFilterOption,
-    Direction,
     FastPatternOption,
     FlowDirection,
     FlowOption,
     FlowState,
-    Header,
     MetadataOption,
     MsgOption,
     PriorityOption,
-    Protocol,
     ReferenceOption,
     RevOption,
     Rule,
@@ -46,6 +41,7 @@ from surinort_ast.core.nodes import (
     ThresholdOption,
 )
 from surinort_ast.printer.text_printer import TextPrinter, print_rule, print_rules
+from tests.unit._helpers import any_header
 
 
 class TestThresholdOption:
@@ -55,14 +51,7 @@ class TestThresholdOption:
         """Test printing threshold option with type:threshold."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         threshold = ThresholdOption(
             threshold_type="threshold",
@@ -94,14 +83,7 @@ class TestThresholdOption:
         """Test printing threshold option with type:limit."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         threshold = ThresholdOption(
             threshold_type="limit",
@@ -137,14 +119,7 @@ class TestDetectionFilterOption:
         """Test printing detection_filter with track:by_src."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         detection_filter = DetectionFilterOption(
             track="by_src",
@@ -174,14 +149,7 @@ class TestDetectionFilterOption:
         """Test printing detection_filter with track:by_dst."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         detection_filter = DetectionFilterOption(
             track="by_dst",
@@ -214,14 +182,7 @@ class TestByteTestOption:
         """Test printing byte_test with flags=['relative']."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_test = ByteTestOption(
             bytes_to_extract=4,
@@ -256,14 +217,7 @@ class TestByteTestOption:
         """Test printing byte_test with multiple flags."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_test = ByteTestOption(
             bytes_to_extract=2,
@@ -303,14 +257,7 @@ class TestByteJumpOption:
         """Test printing byte_jump with flags=['relative']."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_jump = ByteJumpOption(
             bytes_to_extract=4,
@@ -341,14 +288,7 @@ class TestByteJumpOption:
         """Test printing byte_jump with multiple flags."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_jump = ByteJumpOption(
             bytes_to_extract=2,
@@ -383,14 +323,7 @@ class TestByteExtractOption:
         """Test printing byte_extract with flags=['relative']."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_extract = ByteExtractOption(
             bytes_to_extract=4,
@@ -423,14 +356,7 @@ class TestByteExtractOption:
         """Test printing byte_extract with multiple flags."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_extract = ByteExtractOption(
             bytes_to_extract=2,
@@ -467,14 +393,7 @@ class TestFastPatternOption:
         """Test printing fast_pattern with offset and length (line 346)."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         fast_pattern = FastPatternOption(offset=0, length=10)
 
@@ -500,14 +419,7 @@ class TestFastPatternOption:
         """Test printing fast_pattern with different offset/length values."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         fast_pattern = FastPatternOption(offset=10, length=20)
 
@@ -536,14 +448,7 @@ class TestContentWithModifiers:
         """Test printing content with single modifier."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         # Create content with nocase modifier
         content = ContentOption(
@@ -577,14 +482,7 @@ class TestContentWithModifiers:
         """Test printing content with multiple modifiers."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         # Create content with multiple modifiers
         content = ContentOption(
@@ -627,14 +525,7 @@ class TestContentWithModifiers:
         """Test printing content with distance and within modifiers."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         # First content
         content1 = ContentOption(
@@ -776,14 +667,7 @@ class TestMissingOptionTypes:
 
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -804,14 +688,7 @@ class TestMissingOptionTypes:
 
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -832,14 +709,7 @@ class TestMissingOptionTypes:
 
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -860,14 +730,7 @@ class TestMissingOptionTypes:
 
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -888,14 +751,7 @@ class TestMissingOptionTypes:
 
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -918,14 +774,7 @@ class TestMissingOptionTypes:
 
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -951,14 +800,7 @@ class TestMissingOptionTypes:
 
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -980,14 +822,7 @@ class TestConvenienceFunctions:
 
     def test_print_rule_function(self) -> None:
         """Test print_rule convenience function (lines 485-486)."""
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -1010,14 +845,7 @@ class TestConvenienceFunctions:
         """Test print_rule with FormatterOptions."""
         from surinort_ast.printer.formatter import FormatterOptions
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -1037,14 +865,7 @@ class TestConvenienceFunctions:
 
     def test_print_rules_function(self) -> None:
         """Test print_rules convenience function (lines 500-501)."""
-        header1 = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header1 = any_header()
 
         rule1 = Rule(
             action=Action.ALERT,
@@ -1055,14 +876,7 @@ class TestConvenienceFunctions:
             ],
         )
 
-        header2 = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header2 = any_header()
 
         rule2 = Rule(
             action=Action.ALERT,
@@ -1089,14 +903,7 @@ class TestByteTestWithoutFlags:
         """Test byte_test without flags - branch coverage for line 322->324."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_test = ByteTestOption(
             bytes_to_extract=4,
@@ -1130,14 +937,7 @@ class TestByteTestWithoutFlags:
         """Test byte_jump without flags - branch coverage for line 329->331."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_jump = ByteJumpOption(
             bytes_to_extract=4,
@@ -1167,14 +967,7 @@ class TestByteTestWithoutFlags:
         """Test byte_extract without flags - branch coverage for line 340->342."""
         text_printer = TextPrinter()
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_extract = ByteExtractOption(
             bytes_to_extract=4,

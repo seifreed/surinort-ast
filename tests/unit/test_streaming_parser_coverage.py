@@ -36,8 +36,8 @@ from typing import Any
 
 import pytest
 
-from surinort_ast.core.enums import Action, Dialect, Direction, Protocol
-from surinort_ast.core.nodes import AnyAddress, AnyPort, Header, Rule, SourceOrigin
+from surinort_ast.core.enums import Action, Dialect
+from surinort_ast.core.nodes import Rule, SourceOrigin
 from surinort_ast.exceptions import ParseError
 from surinort_ast.parsing.lark_parser import LarkRuleParser
 from surinort_ast.streaming.parser import (
@@ -49,6 +49,7 @@ from surinort_ast.streaming.parser import (
     _parse_chunk_worker,
     stream_parse_file_parallel,
 )
+from tests.unit._helpers import any_header
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -61,14 +62,7 @@ def _bare_rule(origin: SourceOrigin | None = None) -> Rule:
     """Build a minimal ``alert tcp any any -> any`` rule for batch/stream tests."""
     return Rule(
         action=Action.ALERT,
-        header=Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        ),
+        header=any_header(),
         options=(),
         dialect=Dialect.SURICATA,
         origin=origin,

@@ -18,6 +18,7 @@ from surinort_ast.serialization.protobuf import (
     from_protobuf,
     to_protobuf,
 )
+from tests.unit._helpers import any_header
 
 # Skip all tests if protobuf is not available
 pytestmark = pytest.mark.skipif(
@@ -474,11 +475,8 @@ class TestRoundtripRegressions:
         Regression: PcreOption.negated had no proto field and was dropped, so a
         negated match silently became a positive one.
         """
-        from surinort_ast.core.enums import Action, Direction, Protocol
+        from surinort_ast.core.enums import Action
         from surinort_ast.core.nodes import (
-            AnyAddress,
-            AnyPort,
-            Header,
             MsgOption,
             PcreOption,
             Rule,
@@ -487,14 +485,7 @@ class TestRoundtripRegressions:
 
         rule = Rule(
             action=Action.ALERT,
-            header=Header(
-                protocol=Protocol.TCP,
-                src_addr=AnyAddress(),
-                src_port=AnyPort(),
-                direction=Direction.TO,
-                dst_addr=AnyAddress(),
-                dst_port=AnyPort(),
-            ),
+            header=any_header(),
             options=[
                 PcreOption(pattern="/evil/", flags="", negated=True),
                 MsgOption(text="t"),
@@ -603,12 +594,9 @@ class TestProtobufLargeByteTestValue:
     """
 
     def test_large_value_and_negative_offset_round_trip(self):
-        from surinort_ast.core.enums import Action, Direction, Protocol
+        from surinort_ast.core.enums import Action
         from surinort_ast.core.nodes import (
-            AnyAddress,
-            AnyPort,
             ByteTestOption,
-            Header,
             Port,
             Rule,
             SidOption,
@@ -616,14 +604,7 @@ class TestProtobufLargeByteTestValue:
 
         rule = Rule(
             action=Action.ALERT,
-            header=Header(
-                protocol=Protocol.TCP,
-                src_addr=AnyAddress(),
-                src_port=AnyPort(),
-                direction=Direction.TO,
-                dst_addr=AnyAddress(),
-                dst_port=Port(value=80),
-            ),
+            header=any_header(dst_port=Port(value=80)),
             options=[
                 ByteTestOption(bytes_to_extract=8, operator=">", value=5_000_000_000, offset=-4),
                 SidOption(value=1),

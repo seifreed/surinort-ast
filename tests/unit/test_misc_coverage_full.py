@@ -41,11 +41,8 @@ from surinort_ast.analysis.strategies import OptionReorderStrategy
 from surinort_ast.api.parsing import parse_rule as api_parse_rule
 from surinort_ast.api.serialization import from_json as api_from_json
 from surinort_ast.api.serialization import to_sarif
-from surinort_ast.core.enums import Action, Direction, Protocol
+from surinort_ast.core.enums import Action
 from surinort_ast.core.nodes import (
-    AnyAddress,
-    AnyPort,
-    Header,
     Option,
     Rule,
 )
@@ -60,6 +57,7 @@ from surinort_ast.serialization.sarif.models import (
     _compact_dict,
 )
 from surinort_ast.serialization.sarif.serializer import to_sarif_json, to_sarif_log
+from tests.unit._helpers import any_header
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -70,14 +68,7 @@ _SIMPLE_RULE = 'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)'
 
 def _rule_with_empty_options() -> Rule:
     """Return a Rule whose options list is empty (cost = 0.0)."""
-    header = Header(
-        protocol=Protocol.TCP,
-        src_addr=AnyAddress(),
-        src_port=AnyPort(),
-        direction=Direction.TO,
-        dst_addr=AnyAddress(),
-        dst_port=AnyPort(),
-    )
+    header = any_header()
     return Rule(action=Action.ALERT, header=header, options=[])
 
 

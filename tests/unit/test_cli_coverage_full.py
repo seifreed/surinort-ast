@@ -49,8 +49,9 @@ from surinort_ast.cli.commands.parse import (
 )
 from surinort_ast.cli.main import app
 from surinort_ast.core.diagnostics import Diagnostic
-from surinort_ast.core.enums import Action, DiagnosticLevel, Dialect, Direction, Protocol
-from surinort_ast.core.nodes import AnyAddress, AnyPort, Header, Rule
+from surinort_ast.core.enums import Action, DiagnosticLevel, Dialect
+from surinort_ast.core.nodes import Rule
+from tests.unit._helpers import any_header
 
 _VALID_RULE = 'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)'
 _VALID_RULE_2 = 'alert tcp any any -> any 443 (msg:"HTTPS"; sid:2;)'
@@ -66,14 +67,7 @@ def _make_rule_with_diagnostic() -> Rule:
     """Return a Rule carrying one WARNING diagnostic."""
     return Rule(
         action=Action.ALERT,
-        header=Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        ),
+        header=any_header(),
         options=(),
         diagnostics=(
             Diagnostic(

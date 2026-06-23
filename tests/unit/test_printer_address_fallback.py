@@ -23,6 +23,7 @@ from lark import Lark
 from surinort_ast.parsing.transformer import RuleTransformer
 from surinort_ast.printer.formatter import FormatterOptions
 from surinort_ast.printer.text_printer import TextPrinter, print_rules
+from tests.unit._helpers import any_header
 
 
 class TestAddressFallback:
@@ -35,22 +36,10 @@ class TestAddressFallback:
         # This requires constructing a rule AST directly since parser always adds options
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
-            Direction,
-            Header,
-            Protocol,
             Rule,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,  # Use Direction.TO instead of UNIDIRECTIONAL
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -271,25 +260,13 @@ class TestAdditionalOptions:
         """Test printing FlowbitsOption (line 290)."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
-            Direction,
             FlowbitsOption,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             SidOption,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         flowbits = FlowbitsOption(action="set", name="test.bit")
 
@@ -331,26 +308,14 @@ class TestByteTestOption:
         """Test printing byte_test with flags (line 322-323)."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
             ByteTestOption,
             ContentOption,
-            Direction,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             SidOption,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_test = ByteTestOption(
             bytes_to_extract=2,
@@ -402,26 +367,14 @@ class TestByteJumpOption:
         """Test printing byte_jump with flags (line 329-330)."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
             ByteJumpOption,
             ContentOption,
-            Direction,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             SidOption,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_jump = ByteJumpOption(
             bytes_to_extract=2,
@@ -472,26 +425,14 @@ class TestByteExtractOption:
         """Test printing byte_extract with flags (line 340-341)."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
             ByteExtractOption,
             ContentOption,
-            Direction,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             SidOption,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         byte_extract = ByteExtractOption(
             bytes_to_extract=2,
@@ -541,26 +482,14 @@ class TestFastPatternOption:
         """Test printing fast_pattern with offset and length (line 346)."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
             ContentOption,
-            Direction,
             FastPatternOption,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             SidOption,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         fast_pattern = FastPatternOption(offset=10, length=20)
 
@@ -589,25 +518,13 @@ class TestTagOption:
         """Test printing tag option."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
-            Direction,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             SidOption,
             TagOption,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         tag = TagOption(tag_type="host", count=10, metric="seconds")
 
@@ -632,25 +549,13 @@ class TestTagOption:
         """Test printing tag with session type."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
-            Direction,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             SidOption,
             TagOption,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         tag = TagOption(tag_type="session", count=5, metric="packets")
 
@@ -807,24 +712,12 @@ class TestEdgeCases:
         """Test printing rule with comments (line 110-111)."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
-            Direction,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             SidOption,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,  # Use Direction.TO
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         rule = Rule(
             action=Action.ALERT,
@@ -897,27 +790,15 @@ class TestEdgeCases:
         """Test printing content with inline modifiers (lines 412-414)."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
             ContentModifier,
             ContentModifierType,
             ContentOption,
-            Direction,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             SidOption,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         # Content with inline modifiers
         content = ContentOption(
@@ -951,25 +832,13 @@ class TestEdgeCases:
         """Test printing content with special characters needing hex (lines 453-455)."""
         from surinort_ast.core.nodes import (
             Action,
-            AnyAddress,
-            AnyPort,
             ContentOption,
-            Direction,
-            Header,
             MsgOption,
-            Protocol,
             Rule,
             SidOption,
         )
 
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=AnyPort(),
-        )
+        header = any_header()
 
         # Content with special bytes that need hex encoding
         content = ContentOption(

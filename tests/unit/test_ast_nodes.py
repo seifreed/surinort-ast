@@ -40,6 +40,7 @@ from surinort_ast.core.nodes import (
     Rule,
     SidOption,
 )
+from tests.unit._helpers import any_header
 
 
 class TestNodeCreation:
@@ -47,14 +48,7 @@ class TestNodeCreation:
 
     def test_create_minimal_rule(self):
         """Create minimal valid rule."""
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=Port(value=80),
-        )
+        header = any_header(dst_port=Port(value=80))
 
         rule = Rule(
             action=Action.ALERT,
@@ -162,14 +156,7 @@ class TestNodeSerialization:
 
     def test_serialize_simple_rule(self):
         """Serialize simple rule to dict."""
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=Port(value=80),
-        )
+        header = any_header(dst_port=Port(value=80))
 
         rule = Rule(
             action=Action.ALERT,
@@ -396,14 +383,7 @@ class TestModelCopy:
 
     def test_modify_rule_action(self):
         """Modify rule action."""
-        header = Header(
-            protocol=Protocol.TCP,
-            src_addr=AnyAddress(),
-            src_port=AnyPort(),
-            direction=Direction.TO,
-            dst_addr=AnyAddress(),
-            dst_port=Port(value=80),
-        )
+        header = any_header(dst_port=Port(value=80))
 
         original = Rule(
             action=Action.ALERT,

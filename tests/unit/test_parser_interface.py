@@ -15,6 +15,7 @@ from surinort_ast.core.enums import Action, Dialect, Protocol
 from surinort_ast.core.nodes import Rule
 from surinort_ast.parsing import IParser, LarkRuleParser, ParserConfig, ParserFactory
 from surinort_ast.parsing.interfaces import IParser as IParserProtocol
+from tests.unit._helpers import any_header
 
 
 class MockParser:
@@ -36,19 +37,10 @@ class MockParser:
     def parse(self, text: str, file_path: str | None = None, line_offset: int = 0) -> Rule:
         """Mock parse implementation that returns a simple rule."""
         self.parse_called = True
-        from surinort_ast.core.enums import Direction
-        from surinort_ast.core.nodes import AnyAddress, AnyPort, Header
 
         return Rule(
             action=Action.ALERT,
-            header=Header(
-                protocol=Protocol.TCP,
-                src_addr=AnyAddress(),
-                src_port=AnyPort(),
-                direction=Direction.TO,
-                dst_addr=AnyAddress(),
-                dst_port=AnyPort(),
-            ),
+            header=any_header(),
             options=[],
             raw_text=text,
             dialect=self.dialect,
