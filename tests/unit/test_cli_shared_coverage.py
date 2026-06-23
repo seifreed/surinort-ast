@@ -50,7 +50,7 @@ class TestValidateFilePath:
 
         monkeypatch.setattr(Path, "resolve", fake_resolve)
 
-        with pytest.raises(ValueError, match="Invalid allowed base directory"):
+        with pytest.raises(ValueError, match="Invalid base directory"):
             validate_file_path(target, allowed_base=base)
 
 

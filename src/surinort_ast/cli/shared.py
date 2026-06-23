@@ -25,6 +25,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ..core.enums import Dialect
 from ..core.nodes import Rule
+from ..core.path_security import PathSecurityError, validate_path
 from ..exceptions import ParseError
 
 # ============================================================================
@@ -97,29 +98,14 @@ def validate_file_path(
         - Symlinks are rejected by default to prevent attacks
     """
     try:
-        # Resolve to absolute path
-        resolved = path.resolve(strict=must_exist)
-    except (OSError, RuntimeError) as e:
-        # Sanitize error message - only show filename, not full path
-        raise ValueError(f"Invalid path: {path.name}") from e
-
-    # Check if it's a symlink and reject if not allowed
-    if not allow_symlinks and path.is_symlink():
-        raise ValueError(f"Symlinks not allowed: {path.name}")
-
-    # Validate against allowed base directory
-    if allowed_base is not None:
-        try:
-            allowed_resolved = allowed_base.resolve()
-        except (OSError, RuntimeError) as e:
-            raise ValueError("Invalid allowed base directory") from e
-
-        # Use is_relative_to() to check if resolved path is under allowed_base
-        # This is the secure way to prevent path traversal
-        if not resolved.is_relative_to(allowed_resolved):
-            raise ValueError(f"Path outside allowed directory: {path.name}")
-
-    return resolved
+        return validate_path(
+            path,
+            allowed_base=allowed_base,
+            allow_symlinks=allow_symlinks,
+            must_exist=must_exist,
+        )
+    except PathSecurityError as e:
+        raise ValueError(str(e)) from e
 
 
 @contextmanager

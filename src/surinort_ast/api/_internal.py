@@ -18,6 +18,7 @@ from lark import Lark
 
 from ..core.enums import Dialect
 from ..core.nodes import Rule, SourceOrigin
+from ..core.path_security import PathSecurityError, validate_path
 from ..exceptions import ParseError
 from ..parsing.helpers import normalize_rule_text
 from ..parsing.transformer import RuleTransformer
@@ -75,83 +76,21 @@ class _GrammarCache:
 # ============================================================================
 
 
-def _sanitize_path_for_error(path: Path) -> str:
-    """
-    Sanitize file path for error messages to prevent information disclosure.
-
-    This prevents CWE-209 (Information Exposure Through Error Messages) by
-    removing full directory paths that could reveal system structure.
-
-    Args:
-        path: Path to sanitize
-
-    Returns:
-        Sanitized path string (filename only)
-
-    Security Note:
-        Always use this function when including file paths in error messages
-        that may be exposed to users or logs.
-    """
-    return path.name
-
-
 def _validate_file_path(
     path: Path,
     allowed_base: Path | None = None,
     allow_symlinks: bool = False,
 ) -> Path:
     """
-    Validate and resolve file path with security checks.
+    Validate and resolve a file path, raising ``ParseError`` on failure.
 
-    Implements CWE-22 (Path Traversal) prevention by validating that resolved
-    paths stay within allowed boundaries. This protects against:
-    - Directory traversal via .. sequences
-    - Symlink attacks (optional)
-    - Absolute path escapes outside allowed directories
-
-    Args:
-        path: Path to validate
-        allowed_base: Optional base directory that must contain the resolved path.
-                     If None, only basic validation is performed.
-        allow_symlinks: Whether to allow symlinks (default: False for security)
-
-    Returns:
-        Resolved absolute path
-
-    Raises:
-        ParseError: If path is invalid or violates security constraints
-
-    Security Notes:
-        - Always validates the RESOLVED path, not the input
-        - Symlinks are rejected by default
-        - Error messages are sanitized to prevent path disclosure
+    Thin API-layer wrapper over :func:`surinort_ast.core.path_security.validate_path`
+    that translates the neutral security error into the API's ``ParseError``.
     """
-    if "\x00" in str(path):
-        raise ParseError(f"Invalid path: {_sanitize_path_for_error(path)}")
-
     try:
-        # Resolve to absolute path (strict=False to allow nonexistent files)
-        resolved = path.resolve()
-    except (OSError, RuntimeError) as e:
-        # Sanitize error - only show filename
-        raise ParseError(f"Invalid path: {_sanitize_path_for_error(path)}") from e
-
-    # Check symlinks if not allowed
-    if not allow_symlinks and path.is_symlink():
-        raise ParseError(f"Symlinks not allowed: {_sanitize_path_for_error(path)}")
-
-    # Validate against allowed base directory
-    if allowed_base is not None:
-        try:
-            allowed_resolved = allowed_base.resolve()
-        except (OSError, RuntimeError) as e:
-            raise ParseError("Invalid base directory") from e
-
-        # Check if resolved path is within allowed base
-        if not resolved.is_relative_to(allowed_resolved):
-            raise ParseError(f"Path outside allowed directory: {_sanitize_path_for_error(path)}")
-
-    return resolved
+        return validate_path(path, allowed_base=allowed_base, allow_symlinks=allow_symlinks)
+    except PathSecurityError as e:
+        raise ParseError(str(e)) from e
 
 
 # ============================================================================

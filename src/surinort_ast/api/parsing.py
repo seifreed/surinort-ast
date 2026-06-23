@@ -20,13 +20,13 @@ from lark.exceptions import LarkError
 
 from ..core.enums import Dialect
 from ..core.nodes import Rule, SourceOrigin
+from ..core.path_security import sanitize_path_for_error
 from ..exceptions import ParseError
 from ..parsing.helpers import normalize_rule_text
 from ..parsing.transformer import RuleTransformer
 from ._internal import (
     _get_parser,
     _parse_batch_worker,
-    _sanitize_path_for_error,
     _validate_file_path,
 )
 
@@ -335,17 +335,17 @@ def _read_rule_lines(file_path: Path) -> list[tuple[int, str]]:
     task per physical line silently dropped every multi-line rule.
     """
     if not file_path.exists():
-        raise FileNotFoundError(f"File not found: {_sanitize_path_for_error(file_path)}")
+        raise FileNotFoundError(f"File not found: {sanitize_path_for_error(file_path)}")
 
     if not file_path.is_file():
-        raise ParseError(f"Not a file: {_sanitize_path_for_error(file_path)}")
+        raise ParseError(f"Not a file: {sanitize_path_for_error(file_path)}")
 
     try:
         lines = file_path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError) as e:
         # UnicodeDecodeError is a ValueError, not an OSError, so it would
         # otherwise escape the documented ParseError contract.
-        raise ParseError(f"Failed to read file {_sanitize_path_for_error(file_path)}: {e}") from e
+        raise ParseError(f"Failed to read file {sanitize_path_for_error(file_path)}: {e}") from e
 
     from ..streaming.parser import _iter_rule_blocks
 
@@ -376,7 +376,7 @@ def _parse_file_sequential(
             rule = rule.model_copy(update=update_dict)
             rules.append(rule)
         except ParseError as e:
-            errors.append(f"Line {line_num} in {_sanitize_path_for_error(file_path)}: {e}")
+            errors.append(f"Line {line_num} in {sanitize_path_for_error(file_path)}: {e}")
 
     return rules, errors
 
@@ -419,7 +419,7 @@ def _parse_file_parallel(
                 if parsed_rule is not None:
                     rules.append(parsed_rule)
                 if err:
-                    errors.append(f"Line {ln} in {_sanitize_path_for_error(file_path)}: {err}")
+                    errors.append(f"Line {ln} in {sanitize_path_for_error(file_path)}: {err}")
 
     return rules, errors
 

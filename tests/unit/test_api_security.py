@@ -16,7 +16,8 @@ from pathlib import Path
 import pytest
 
 from surinort_ast.api import parse_file
-from surinort_ast.api._internal import _sanitize_path_for_error, _validate_file_path
+from surinort_ast.api._internal import _validate_file_path
+from surinort_ast.core.path_security import sanitize_path_for_error
 from surinort_ast.exceptions import ParseError
 
 
@@ -27,7 +28,7 @@ class TestPathSanitization:
         """Full paths should be reduced to filename only"""
         deep_path = tmp_path / "level1" / "level2" / "level3" / "file.rules"
 
-        sanitized = _sanitize_path_for_error(deep_path)
+        sanitized = sanitize_path_for_error(deep_path)
 
         assert sanitized == "file.rules"
         assert "level1" not in sanitized
@@ -39,7 +40,7 @@ class TestPathSanitization:
         """Filename should be preserved"""
         file_path = tmp_path / "important_rules.txt"
 
-        sanitized = _sanitize_path_for_error(file_path)
+        sanitized = sanitize_path_for_error(file_path)
 
         assert sanitized == "important_rules.txt"
 
@@ -47,7 +48,7 @@ class TestPathSanitization:
         """Absolute paths should be reduced to basename"""
         path = Path("/etc/suricata/rules/local.rules")
 
-        sanitized = _sanitize_path_for_error(path)
+        sanitized = sanitize_path_for_error(path)
 
         assert sanitized == "local.rules"
         assert "/etc" not in sanitized
@@ -57,7 +58,7 @@ class TestPathSanitization:
         """Relative paths should be reduced to basename"""
         path = Path("../../../sensitive/data/file.txt")
 
-        sanitized = _sanitize_path_for_error(path)
+        sanitized = sanitize_path_for_error(path)
 
         assert sanitized == "file.txt"
         assert ".." not in sanitized
@@ -360,10 +361,10 @@ class TestSecurityDocumentation:
     """Tests to ensure security features are properly documented"""
 
     def test_validate_file_path_has_security_docs(self):
-        """_validate_file_path should document security features"""
-        from surinort_ast.api import _internal
+        """The canonical path validator should document security features"""
+        from surinort_ast.core import path_security
 
-        docstring = _internal._validate_file_path.__doc__
+        docstring = path_security.validate_path.__doc__
 
         assert "CWE-22" in docstring
         assert "Path Traversal" in docstring or "traversal" in docstring
@@ -380,10 +381,10 @@ class TestSecurityDocumentation:
         assert "security" in docstring.lower() or "Security" in docstring
 
     def test_sanitize_path_has_security_docs(self):
-        """_sanitize_path_for_error should document CWE-209"""
-        from surinort_ast.api import _internal
+        """sanitize_path_for_error should document CWE-209"""
+        from surinort_ast.core import path_security
 
-        docstring = _internal._sanitize_path_for_error.__doc__
+        docstring = path_security.sanitize_path_for_error.__doc__
 
         assert "CWE-209" in docstring
         assert "Information Exposure" in docstring or "information" in docstring.lower()
