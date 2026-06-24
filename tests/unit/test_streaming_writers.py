@@ -74,12 +74,12 @@ def test_text_writer_write_many():
         assert content.count("alert tcp") == 3
 
 
-def test_text_writer_stable_formatting():
-    """Test stable formatting option."""
+def test_text_writer_writes_reparseable_rules():
+    """The text writer emits standard, reparseable rule output."""
     rule = parse_rule('alert tcp any any -> any 80 (msg:"Test"; sid:1;)')
 
     with temp_output_path() as temp_path:
-        with StreamWriterText(temp_path, stable=True) as writer:
+        with StreamWriterText(temp_path) as writer:
             writer.write(rule)
 
         content = temp_path.read_text()

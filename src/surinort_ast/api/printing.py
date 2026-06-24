@@ -14,13 +14,14 @@ from ..printer.formatter import FormatterOptions
 from ..printer.text_printer import TextPrinter
 
 
-def print_rule(rule: Rule, stable: bool = False) -> str:
+def print_rule(rule: Rule) -> str:
     """
     Convert a Rule AST back to text format.
 
+    The output is built directly from the AST and is therefore deterministic.
+
     Args:
         rule: Rule AST to print
-        stable: Use stable/canonical formatting
 
     Returns:
         Formatted rule text
@@ -31,9 +32,7 @@ def print_rule(rule: Rule, stable: bool = False) -> str:
         >>> print(text)
         alert tcp any any -> any 80 (msg:"Test"; sid:1;)
     """
-    options = FormatterOptions.stable() if stable else FormatterOptions.standard()
-
-    printer = TextPrinter(options=options)
+    printer = TextPrinter(options=FormatterOptions.standard())
     return printer.print_rule(rule)
 
 

@@ -34,10 +34,6 @@ def from_json_command(
         typer.Argument(help="JSON file to convert (or - for stdin)"),
     ] = None,
     output: OutputOption = None,
-    stable: Annotated[
-        bool,
-        typer.Option("--stable", "-s", help="Use stable/canonical formatting"),
-    ] = False,
 ) -> None:
     """
     Convert JSON back to IDS rules.
@@ -76,7 +72,7 @@ def from_json_command(
         # Format rules
         formatted_lines = []
         for rule in rules:
-            formatted_lines.append(print_rule(rule, stable=stable))
+            formatted_lines.append(print_rule(rule))
 
         result = "\n".join(formatted_lines) + "\n"
         write_output(result, output)

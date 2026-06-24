@@ -236,24 +236,16 @@ class TestPrintRule:
         assert "alert" in printed
         assert "msg:" in printed
 
-    def test_print_rule_stable(self):
-        """Print rule with stable formatting."""
+    def test_print_rule(self):
+        """Print rule to text and confirm it is reparseable."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
         rule = parse_rule(rule_text)
 
-        printed = print_rule(rule, stable=True)
+        printed = print_rule(rule)
 
         assert "alert" in printed
         assert "msg:" in printed
-
-    def test_print_rule_not_stable(self):
-        """Print rule without stable formatting."""
-        rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        printed = print_rule(rule, stable=False)
-
-        assert "alert" in printed
+        assert parse_rule(printed).action == rule.action
 
 
 class TestJSONSerialization:

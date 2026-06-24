@@ -255,18 +255,6 @@ class TestFmtCommand:
         assert result.exit_code == 0
         assert "Formatted 1 rule(s)" in result.output
 
-    def test_fmt_with_stable_option(self, tmp_path):
-        """Fmt command should use stable formatting with --stable"""
-        rules_file = tmp_path / "rules.txt"
-        rules_file.write_text(
-            'alert tcp any any -> any 80 (msg:"HTTP"; sid:1;)\n',
-            encoding="utf-8",
-        )
-
-        result = self.runner.invoke(app, ["fmt", str(rules_file), "--stable"])
-
-        assert result.exit_code == 0
-
     def test_fmt_check_mode_formatted(self, tmp_path):
         """Fmt check mode should exit 0 if already formatted"""
         rules_file = tmp_path / "rules.txt"
@@ -581,16 +569,6 @@ class TestFromJsonCommand:
 
         assert result.exit_code == 0
         assert "Converted 1 rule(s) from JSON" in result.output
-
-    def test_from_json_stable(self, tmp_path):
-        """from-json with --stable should use stable formatting"""
-        json_file = tmp_path / "rules.json"
-        json_data = {"rules": [create_valid_rule_json()]}
-        json_file.write_text(json.dumps(json_data), encoding="utf-8")
-
-        result = self.runner.invoke(app, ["from-json", str(json_file), "--stable"])
-
-        assert result.exit_code == 0
 
     def test_from_json_with_output_file(self, tmp_path):
         """from-json should write to output file"""

@@ -94,15 +94,6 @@ class TestCLIFormatCommand:
         assert result.exit_code == 0
         assert "alert" in result.stdout or "Success" in result.stdout
 
-    def test_fmt_command_stable(self, tmp_path):
-        """Test fmt command with stable formatting"""
-        file = tmp_path / "test.rules"
-        file.write_text('alert tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
-
-        result = runner.invoke(app, ["fmt", str(file), "--stable"])
-
-        assert result.exit_code == 0
-
     def test_fmt_command_check_mode(self, tmp_path):
         """Test fmt command in check mode"""
         file = tmp_path / "test.rules"

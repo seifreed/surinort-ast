@@ -17,16 +17,12 @@ class FormatStyle(str, Enum):
     Predefined formatting styles.
 
     Attributes:
-        COMPACT: Minimal whitespace, single line where possible
-        STANDARD: Balanced readability and compactness
-        VERBOSE: Maximum readability with extra spacing
-        STABLE: Canonical format for deterministic output
+        COMPACT: Minimal whitespace for dense output
+        STANDARD: Balanced, readable output (the default)
     """
 
     COMPACT = "compact"
     STANDARD = "standard"
-    VERBOSE = "verbose"
-    STABLE = "stable"
 
 
 class FormatterOptions(BaseModel):
@@ -34,41 +30,14 @@ class FormatterOptions(BaseModel):
     Configuration options for rule text formatting.
 
     Attributes:
-        indent: Indentation string (default: 4 spaces)
-        line_width: Maximum line width before wrapping (0 = no limit)
         preserve_comments: Whether to include comments in output
         space_after_commas: Add space after commas in lists
-        space_around_operators: Add spaces around operators (=, <>, etc.)
-        normalize_whitespace: Normalize whitespace to single spaces
-        sort_options: Sort options alphabetically (breaks semantics, use carefully)
-        stable_mode: Enable deterministic output (overrides other settings)
         hex_uppercase: Use uppercase for hex bytes (e.g., |41| vs |41|)
         option_separator: Separator between options (default: space)
     """
 
-    # Basic formatting
-    indent: str = Field(default="    ", description="Indentation string")
-    line_width: int = Field(default=100, ge=0, description="Max line width (0=unlimited)")
-
-    # Whitespace control
     preserve_comments: bool = Field(default=True, description="Include comments in output")
     space_after_commas: bool = Field(default=True, description="Space after commas in lists")
-    space_around_operators: bool = Field(
-        default=True, description="Spaces around operators (=, <>, etc.)"
-    )
-    normalize_whitespace: bool = Field(
-        default=True, description="Normalize whitespace to single spaces"
-    )
-
-    # Option ordering
-    sort_options: bool = Field(
-        default=False, description="Sort options alphabetically (may break semantics)"
-    )
-
-    # Output mode
-    stable_mode: bool = Field(default=False, description="Enable deterministic output")
-
-    # Style preferences
     hex_uppercase: bool = Field(default=True, description="Uppercase hex bytes")
     option_separator: str = Field(default=" ", description="Separator between options")
 
@@ -77,74 +46,19 @@ class FormatterOptions(BaseModel):
         """
         Create compact formatting style.
 
-        Minimizes whitespace and line width for dense output.
+        Minimizes whitespace for dense output.
         """
-        return cls(
-            indent="",
-            line_width=0,
-            space_after_commas=False,
-            space_around_operators=False,
-            normalize_whitespace=True,
-            preserve_comments=False,
-            stable_mode=False,
-            option_separator="",
-        )
+        return cls(space_after_commas=False, preserve_comments=False, option_separator="")
 
     @classmethod
     def standard(cls) -> FormatterOptions:
         """
-        Create standard formatting style.
+        Create standard formatting style (the default).
 
-        Balanced readability and compactness (default style).
+        Balanced, readable output. The printer builds rules directly from the
+        AST, so this output is already deterministic and reproducible.
         """
-        return cls(
-            indent="    ",
-            line_width=100,
-            space_after_commas=True,
-            space_around_operators=True,
-            normalize_whitespace=True,
-            preserve_comments=True,
-            stable_mode=False,
-        )
-
-    @classmethod
-    def verbose(cls) -> FormatterOptions:
-        """
-        Create verbose formatting style.
-
-        Maximizes readability with extra spacing and longer lines.
-        """
-        return cls(
-            indent="    ",
-            line_width=120,
-            space_after_commas=True,
-            space_around_operators=True,
-            normalize_whitespace=True,
-            preserve_comments=True,
-            stable_mode=False,
-            option_separator=" ",
-        )
-
-    @classmethod
-    def stable(cls) -> FormatterOptions:
-        """
-        Create stable formatting style.
-
-        Canonical, deterministic output for reproducible formatting.
-        Ensures same input always produces same output.
-        """
-        return cls(
-            indent="    ",
-            line_width=100,
-            space_after_commas=True,
-            space_around_operators=True,
-            normalize_whitespace=True,
-            preserve_comments=True,
-            sort_options=False,  # Don't sort to preserve semantic order
-            stable_mode=True,
-            hex_uppercase=True,
-            option_separator=" ",
-        )
+        return cls()
 
     @classmethod
     def from_style(cls, style: FormatStyle) -> FormatterOptions:
@@ -159,12 +73,7 @@ class FormatterOptions(BaseModel):
         """
         if style == FormatStyle.COMPACT:
             return cls.compact()
-        if style == FormatStyle.STANDARD:
-            return cls.standard()
-        if style == FormatStyle.VERBOSE:
-            return cls.verbose()
-        # style == FormatStyle.STABLE
-        return cls.stable()
+        return cls.standard()
 
     def format_list_separator(self) -> str:
         """
@@ -174,17 +83,3 @@ class FormatterOptions(BaseModel):
             Comma with optional space
         """
         return ", " if self.space_after_commas else ","
-
-    def format_operator(self, operator: str) -> str:
-        """
-        Format an operator with optional spacing.
-
-        Args:
-            operator: The operator to format
-
-        Returns:
-            Formatted operator with optional surrounding spaces
-        """
-        if self.space_around_operators:
-            return f" {operator} "
-        return operator

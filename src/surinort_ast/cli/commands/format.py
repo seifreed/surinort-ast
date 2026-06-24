@@ -56,10 +56,6 @@ def fmt_command(
     ] = None,
     dialect: DialectOption = Dialect.SURICATA,
     output: OutputOption = None,
-    stable: Annotated[
-        bool,
-        typer.Option("--stable", "-s", help="Use stable/canonical formatting"),
-    ] = False,
     check: Annotated[
         bool,
         typer.Option("--check", "-c", help="Check if file is formatted (exit 1 if not)"),
@@ -76,7 +72,7 @@ def fmt_command(
 
         surinort fmt rules.txt
 
-        surinort fmt rules.txt --stable -o formatted.rules
+        surinort fmt rules.txt -o formatted.rules
 
         surinort fmt rules.txt --check
     """
@@ -107,7 +103,7 @@ def fmt_command(
         # Format rules
         formatted_lines = []
         for rule in rules:
-            formatted_lines.append(print_rule(rule, stable=stable))
+            formatted_lines.append(print_rule(rule))
 
         result = "\n".join(formatted_lines) + "\n"
 

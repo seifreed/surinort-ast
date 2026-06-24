@@ -251,15 +251,6 @@ class TestFromJsonCommand:
         assert result.exit_code == 0
         assert "Converted 1 rule(s) from JSON" in result.output
 
-    def test_stable_flag(self, tmp_path: Path) -> None:
-        """--stable flag passes through to print_rule."""
-        json_file = tmp_path / "r.json"
-        json_file.write_text(json.dumps({"rules": [_rule_dict()]}), encoding="utf-8")
-
-        result = self.runner.invoke(app, ["from-json", str(json_file), "--stable"])
-
-        assert result.exit_code == 0
-
     def test_output_file(self, tmp_path: Path) -> None:
         """--output writes converted rules to a file."""
         json_file = tmp_path / "r.json"
@@ -630,15 +621,6 @@ class TestFormatCommand:
 
         assert result.exit_code == 0
         assert "Formatted 1 rule(s)" in result.output
-
-    def test_stable_flag(self, tmp_path: Path) -> None:
-        """--stable passes stable=True to print_rule."""
-        rules_file = tmp_path / "r.rules"
-        rules_file.write_text(_VALID_RULE + "\n", encoding="utf-8")
-
-        result = self.runner.invoke(app, ["fmt", str(rules_file), "--stable"])
-
-        assert result.exit_code == 0
 
     def test_output_file(self, tmp_path: Path) -> None:
         """--output writes formatted rules to a file."""

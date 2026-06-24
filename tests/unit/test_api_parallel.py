@@ -300,24 +300,12 @@ class TestPrintRule:
         assert "alert" in printed
         assert "tcp" in printed
 
-    def test_print_stable_format(self):
-        """Test printing with stable formatting."""
+    def test_print_format(self):
+        """Test printing produces reparseable output."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
         rule = parse_rule(rule_text)
 
-        printed = print_rule(rule, stable=True)
-
-        assert printed
-        # Should be parseable
-        reparsed = parse_rule(printed)
-        assert reparsed.action == Action.ALERT
-
-    def test_print_standard_format(self):
-        """Test printing with standard formatting."""
-        rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        printed = print_rule(rule, stable=False)
+        printed = print_rule(rule)
 
         assert printed
         # Should be parseable

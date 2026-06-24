@@ -276,18 +276,6 @@ class TestRoundtripPorts:
 class TestFormatterOptions:
     """Test different formatter options."""
 
-    def test_stable_format(self):
-        """Test stable (canonical) formatting."""
-        rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'
-        rule = parse_rule(rule_text)
-
-        printer = TextPrinter(FormatterOptions.stable())
-        printed = printer.print_rule(rule)
-
-        # Should be able to parse back
-        rule2 = parse_rule(printed)
-        assert rule2.action == Action.ALERT
-
     def test_standard_format(self):
         """Test standard formatting."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test"; sid:1;)'

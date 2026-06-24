@@ -143,7 +143,6 @@ class StreamWriter(ABC):
     def text(
         path: Path | str,
         encoding: str = "utf-8",
-        stable: bool = False,
     ) -> StreamWriterText:
         """
         Create a text stream writer.
@@ -151,7 +150,6 @@ class StreamWriter(ABC):
         Args:
             path: Output file path
             encoding: File encoding
-            stable: Use stable/canonical formatting
 
         Returns:
             StreamWriterText instance
@@ -161,7 +159,7 @@ class StreamWriter(ABC):
             ...     for rule in input_stream:
             ...         writer.write(rule)
         """
-        return StreamWriterText(path, encoding=encoding, stable=stable)
+        return StreamWriterText(path, encoding=encoding)
 
     @staticmethod
     def json(
@@ -205,11 +203,6 @@ class StreamWriterText(StreamWriter):
         ...     for rule in input_stream:
         ...         writer.write(rule)
 
-        >>> # Stable formatting
-        >>> with StreamWriterText("output.rules", stable=True) as writer:
-        ...     for rule in input_stream:
-        ...         writer.write(rule)
-
         >>> # Custom header
         >>> with StreamWriterText("output.rules", header_comment="Generated rules") as writer:
         ...     for rule in input_stream:
@@ -220,7 +213,6 @@ class StreamWriterText(StreamWriter):
         self,
         path: Path | str,
         encoding: str = "utf-8",
-        stable: bool = False,
         header_comment: str | None = None,
         footer_comment: str | None = None,
     ):
@@ -230,17 +222,13 @@ class StreamWriterText(StreamWriter):
         Args:
             path: Output file path
             encoding: File encoding
-            stable: Use stable/canonical formatting
             header_comment: Optional header comment to write at start
             footer_comment: Optional footer comment to write at end
         """
         super().__init__(path, encoding)
-        self.stable = stable
         self.header_comment = header_comment
         self.footer_comment = footer_comment
-        self._printer = TextPrinter(
-            options=FormatterOptions.stable() if stable else FormatterOptions.standard()
-        )
+        self._printer = TextPrinter(options=FormatterOptions.standard())
 
     def _write_header(self) -> None:
         """Write optional header comment."""
