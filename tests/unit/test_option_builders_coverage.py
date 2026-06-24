@@ -118,6 +118,20 @@ class TestContentBuilderStickyBuffers:
         with pytest.raises(BuilderError, match="pattern must be set"):
             RuleBuilder().content_builder().done()
 
+    def test_failed_done_does_not_leak_sticky_buffer(self):
+        """A sticky buffer selected before a missing pattern must not leak.
+
+        Regression: sticky-buffer selectors pushed a BufferSelectOption to the
+        parent eagerly, so a done() that then failed its pattern check left a
+        dangling buffer (with no content attached) in the built rule.
+        """
+        builder = _base()
+        with pytest.raises(BuilderError, match="pattern must be set"):
+            builder.content_builder().http_uri().done()
+
+        rule = builder.build()
+        assert not any(isinstance(opt, BufferSelectOption) for opt in rule.options)
+
 
 class TestFlowBuilderDirectionsAndStates:
     """Each flow direction and state method is exercised individually."""

@@ -67,6 +67,7 @@ class ContentBuilder:
         self._pattern: bytes | None = None
         self._modifiers: list[ContentModifier] = []
         self._pending_modifiers: list[Option] = []
+        self._pending_buffers: list[Option] = []
 
     def pattern(self, pattern: bytes) -> ContentBuilder:
         """
@@ -123,10 +124,15 @@ class ContentBuilder:
         return self._add_modifier(EndswithOption())
 
     def _add_buffer(self, buffer_name: str) -> ContentBuilder:
-        """Append a sticky-buffer selection and return self for chaining."""
+        """Queue a sticky-buffer selection and return self for chaining.
+
+        The selection is deferred (not pushed to the parent immediately) so a
+        ``done()`` that fails its pattern precondition leaves the parent builder
+        untouched instead of leaking a dangling buffer with no content attached.
+        """
         from ..core.nodes import BufferSelectOption
 
-        self._parent._options.append(BufferSelectOption(buffer_name=buffer_name))
+        self._pending_buffers.append(BufferSelectOption(buffer_name=buffer_name))
         return self
 
     def http_uri(self) -> ContentBuilder:
@@ -171,6 +177,10 @@ class ContentBuilder:
 
         if self._pattern is None:
             raise BuilderError("Content pattern must be set before calling done()")
+
+        # Sticky buffers select the buffer the following content binds to, so
+        # they precede it (IDS rule ordering); flush them first.
+        self._parent._options.extend(self._pending_buffers)
 
         # Add content option with inline modifiers, then standalone modifiers after
         content_opt = ContentOption(pattern=self._pattern, modifiers=self._modifiers)
