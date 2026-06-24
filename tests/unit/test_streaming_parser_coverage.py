@@ -388,6 +388,39 @@ def test_stream_file_batched_error_rule_non_action_text_excluded(
     assert batch.error_count == 1
 
 
+def test_stream_file_batched_trailing_errors_only_batch_is_emitted(tmp_path: Path) -> None:
+    """A trailing batch holding only errors must still be emitted, not dropped.
+
+    When the final batch window contains no recoverable rules, the accumulated
+    errors are the only signal that the tail failed; the final-batch guard must
+    surface them rather than silently discarding them.
+    """
+    p = _write(tmp_path, "garbage line that is not an action )\n")
+
+    parser = StreamParser()
+    batches = list(parser.stream_file_batched(p, skip_errors=False))
+
+    assert len(batches) == 1
+    assert batches[0].success_count == 0
+    assert batches[0].error_count == 1
+    # The error's source line is reflected in the batch bounds.
+    assert batches[0].start_line == 1
+
+
+def test_stream_file_batched_valid_then_trailing_error_emits_two_batches(
+    tmp_path: Path,
+) -> None:
+    """With batch_size=1, a valid rule then a trailing non-action error yields two batches."""
+    content = _VALID_RULE + "\ngarbage not an action )\n"
+    p = _write(tmp_path, content)
+
+    parser = StreamParser()
+    batches = list(parser.stream_file_batched(p, batch_size=1, skip_errors=False))
+
+    assert sum(b.success_count for b in batches) == 1
+    assert sum(b.error_count for b in batches) == 1
+
+
 # ---------------------------------------------------------------------------
 # StreamParser.stream_file_batched: skip_errors=True drops error rules before accumulation
 # (line 400 — covered via the parser-level skip that leaves no error rules in the stream)

@@ -199,6 +199,20 @@ def _batch_line_bounds(rules: list[Rule]) -> tuple[int, int]:
     return min(lines), max(lines)
 
 
+def _final_batch_bounds(rules: list[Rule], errors: list[tuple[int, str]]) -> tuple[int, int]:
+    """Line bounds for a final batch, falling back to error lines when no rules.
+
+    A trailing batch may contain only errors (no recoverable rules); use the
+    error rows' line numbers so the batch still reports a meaningful span.
+    """
+    if rules:
+        return _batch_line_bounds(rules)
+    error_lines = [line for line, _ in errors if line]
+    if error_lines:
+        return min(error_lines), max(error_lines)
+    return 0, 0
+
+
 # ============================================================================
 # Streaming Parser
 # ============================================================================
@@ -442,9 +456,12 @@ class StreamParser:
                     batch_rules = []
                     batch_errors = []
 
-            # Emit final partial batch
-            if batch_rules:
-                start_line, end_line = _batch_line_bounds(batch_rules)
+            # Emit final partial batch. A trailing batch that holds only errors
+            # (no recoverable rules) must still be emitted, otherwise those
+            # errors — the only signal that a wholly-malformed tail failed — are
+            # silently dropped.
+            if batch_rules or batch_errors:
+                start_line, end_line = _final_batch_bounds(batch_rules, batch_errors)
 
                 yield StreamBatch(
                     rules=batch_rules,
