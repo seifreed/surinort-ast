@@ -283,13 +283,17 @@ class AttributeSelector(Selector):
         """
         if isinstance(node_value, bool):
             return ("true" if node_value else "false") == str(query_value).lower()
-        # Compare numbers numerically so 100 == 100.0, consistent with the
-        # >/</>=/<= operators; otherwise "100" != "100.0" would make = and >=
-        # disagree on equality.
-        try:
-            return float(node_value) == float(query_value)
-        except (ValueError, TypeError):
-            return str(node_value) == str(query_value)
+        # Compare numerically only when the node value is genuinely numeric, so a
+        # numeric attribute like SidOption.value matches both 100 and 100.0
+        # (consistent with >/</>=/<=). String-valued attributes (content, msg,
+        # flowbits names, ...) must compare textually — coercing them to float
+        # would make distinct strings like "1e3" and "1000" wrongly equal.
+        if isinstance(node_value, (int, float)):
+            try:
+                return float(node_value) == float(query_value)
+            except (ValueError, TypeError):
+                return False
+        return str(node_value) == str(query_value)
 
     def matches(self, node: ASTNode, context: Any = None) -> bool:
         """

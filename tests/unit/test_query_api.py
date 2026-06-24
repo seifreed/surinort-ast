@@ -102,6 +102,22 @@ class TestAttributeSelectors:
         assert len(results) == 1
         assert results[0].text == "Test message"
 
+    def test_string_attribute_not_coerced_to_number(self):
+        """String attributes must compare textually, not by float value.
+
+        Regression: '=' coerced both sides to float, so a content pattern of
+        "1e3" wrongly matched [pattern=1000] and msg "007" matched [text=7].
+        """
+        rule = parse_rule('alert tcp any any -> any 80 (msg:"007"; content:"1e3"; sid:100;)')
+
+        assert len(query(rule, "ContentOption[pattern=1000]")) == 0
+        assert len(query(rule, 'ContentOption[pattern="1e3"]')) == 1
+        assert len(query(rule, "MsgOption[text=7]")) == 0
+        assert len(query(rule, "MsgOption[text!=7]")) == 1
+        # Genuinely numeric attributes still compare numerically (100 == 100.0).
+        assert len(query(rule, "SidOption[value=100.0]")) == 1
+        assert len(query(rule, "SidOption[value=99]")) == 0
+
     def test_attribute_equality_action(self):
         """Test attribute selector on Rule action."""
         rule = parse_rule("alert tcp any any -> any 80 (sid:1;)")
