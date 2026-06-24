@@ -565,7 +565,13 @@ def _format_attr_value(value: object) -> str:
         return f"'{text}'"
     if '"' not in text:
         return f'"{text}"'
-    return "'" + text.replace("'", "") + "'"
+    # The selector grammar has no string-escape mechanism, so a value containing
+    # both quote characters cannot be represented. Fail loudly rather than emit a
+    # selector that silently drops the apostrophes and matches the wrong node.
+    raise ValueError(
+        "attribute value cannot contain both single and double quotes: "
+        f"{text!r} is not representable as a selector string"
+    )
 
 
 class Q:

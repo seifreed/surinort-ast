@@ -90,7 +90,7 @@ IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
 
 STRING: /"[^"]*"/ | /'[^']*'/
 
-NUMBER: /\d+(\.\d+)?/
+NUMBER: /-?\d+(\.\d+)?/
 
 %import common.WS
 // Note: We don't use %ignore WS because we need to detect it for descendant combinator

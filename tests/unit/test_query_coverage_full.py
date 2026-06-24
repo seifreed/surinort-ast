@@ -1086,13 +1086,39 @@ class TestFormatAttrValue:
         selector = Q("MsgOption").with_attr("text", "it's fine").build()
         assert '"it\'s fine"' in selector
 
-    def test_string_with_both_quotes_strips_single_quotes(self):
-        # Line 568: text has both quote types -> strip single quotes and wrap.
+    def test_string_with_both_quotes_raises(self):
+        # A value containing both quote characters is not representable in the
+        # selector grammar (no escapes), so the builder rejects it loudly rather
+        # than silently dropping the apostrophes and matching the wrong node.
         from surinort_ast.query import _format_attr_value
 
-        result = _format_attr_value('it\'s "quoted"')
-        assert "'" in result
-        assert '"' not in result or result.startswith("'")
+        with pytest.raises(ValueError, match="both single and double quotes"):
+            _format_attr_value('it\'s "quoted"')
+
+
+class TestNegativeNumberAttributeValues:
+    """Signed-int AST fields must be queryable by their negative values."""
+
+    def test_negative_literal_selector_matches(self):
+        from surinort_ast.query import query_all
+
+        rule = parse_rule('alert tcp any any -> any any (content:"x"; distance:-5; sid:1;)')
+        assert len(query_all(rule, "DistanceOption[value=-5]")) == 1
+
+    def test_builder_round_trips_negative_value(self):
+        from surinort_ast.query import Q, query_all
+
+        rule = parse_rule('alert tcp any any -> any any (content:"x"; distance:-5; sid:1;)')
+        selector = Q("DistanceOption").with_attr("value", -5).build()
+        assert selector == "DistanceOption[value=-5]"
+        assert len(query_all(rule, selector)) == 1
+
+    def test_negative_index_pseudo_still_rejected(self):
+        from surinort_ast.query import QueryError, query_all
+
+        rule = parse_rule('alert tcp any any -> any any (content:"a"; sid:1;)')
+        with pytest.raises(QueryError):
+            query_all(rule, "ContentOption:nth(-1)")
 
 
 # ===========================================================================

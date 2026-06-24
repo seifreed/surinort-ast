@@ -496,7 +496,7 @@ class SelectorTransformer(Transformer[Any, Any]):
         pseudo_type = func_token.value if func_token is not None else ""
 
         if number_token is not None:
-            if "." in number_token.value:
+            if "." in number_token.value or number_token.value.startswith("-"):
                 from . import InvalidSelectorError
 
                 raise InvalidSelectorError(
