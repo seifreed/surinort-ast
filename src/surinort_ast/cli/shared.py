@@ -296,7 +296,9 @@ def parse_rules_from_content(
         This function skips malformed rules, comments, and empty lines.
     """
     from ..api._internal import _get_parser
+    from ..parsing.helpers import normalize_rule_text
     from ..parsing.transformer import RuleTransformer
+    from ..streaming.parser import _iter_rule_blocks
 
     if parser is None:
         parser = _get_parser(dialect)
@@ -304,18 +306,21 @@ def parse_rules_from_content(
         transformer = RuleTransformer(dialect=dialect)
 
     rules: list[Rule] = []
-    for raw_line in content.splitlines():
-        line = raw_line.strip()
-        if line and not line.startswith("#"):
-            try:
-                tree = parser.parse(line)
-                rule = transformer.transform(tree)
-                rules.append(rule.model_copy(update={"raw_text": line}))
-            except LarkError as exc:
-                if on_error is not None:
-                    on_error(line, exc)
-                else:
-                    logger.debug("Skipping malformed rule from stream input: %s", exc)
+    # Reassemble multi-line rules and apply the same normalization the file path
+    # uses; parsing physical lines one by one silently dropped continued rules
+    # and rejected the ``...\";`` content quirk that real rulesets use.
+    numbered_lines = enumerate(content.splitlines(), start=1)
+    for _line_num, block in _iter_rule_blocks(numbered_lines):
+        normalized = normalize_rule_text(block.strip())
+        try:
+            tree = parser.parse(normalized)
+            rule = transformer.transform(tree)
+            rules.append(rule.model_copy(update={"raw_text": normalized}))
+        except LarkError as exc:
+            if on_error is not None:
+                on_error(normalized, exc)
+            else:
+                logger.debug("Skipping malformed rule from stream input: %s", exc)
 
     return rules
 

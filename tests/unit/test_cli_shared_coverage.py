@@ -117,3 +117,20 @@ class TestParseRulesFromContent:
         rules = parse_rules_from_content(f"{_RULE}\nbroken line here\n", Dialect.SURICATA)
 
         assert len(rules) == 1
+
+    def test_reassembles_multi_line_rule(self):
+        # A rule continued across physical lines must parse as one rule, matching
+        # the file path; parsing physical lines independently dropped it.
+        content = 'alert tcp any any -> any 80 (\n  msg:"x";\n  sid:1;)\n'
+        rules = parse_rules_from_content(content, Dialect.SURICATA)
+
+        assert len(rules) == 1
+        sid_values = [o.value for o in rules[0].options if type(o).__name__ == "SidOption"]
+        assert sid_values == [1]
+
+    def test_applies_normalization_for_trailing_quote_quirk(self):
+        # content ending in ...\"; is accepted from a file; stdin must match.
+        content = 'alert tcp any any -> any any (msg:"x"; content:"abc\\"; sid:1;)\n'
+        rules = parse_rules_from_content(content, Dialect.SURICATA)
+
+        assert len(rules) == 1
