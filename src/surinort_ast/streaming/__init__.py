@@ -10,7 +10,6 @@ large to fit comfortably in memory. Key features:
 - Stream processors for filtering, transforming, and validation
 - Parallel streaming with multiprocessing support
 - Progress tracking and error recovery
-- Checkpoint/resume capabilities
 
 Performance characteristics:
 - Constant memory usage regardless of file size

@@ -231,7 +231,6 @@ class StreamParser:
     - Batch streaming support
     - Progress tracking via callbacks
     - Error recovery with diagnostics
-    - Checkpoint/resume support
 
     Examples:
         >>> # Basic streaming
