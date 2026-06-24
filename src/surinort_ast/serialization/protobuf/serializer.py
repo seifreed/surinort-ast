@@ -1433,13 +1433,17 @@ class ProtobufSerializer:
         for rule in rules:
             pb_batch.rules.append(_serialize_rule(rule))
 
+        # Mark this as a collection unconditionally so the shape is recoverable
+        # without the metadata envelope: a single-element list round-trips back
+        # to a list rather than a scalar Rule, and an empty list (which has no
+        # rules and would otherwise serialize to empty bytes indistinguishable
+        # from a default bare Rule) round-trips to [] instead of raising.
+        pb_batch.is_collection = True
+
         if self.include_metadata:
             pb_batch.ast_version = __ast_version__
             pb_batch.timestamp = datetime.now(UTC).isoformat()
             pb_batch.count = len(rules)
-            # Mark this as a collection so a single-element list round-trips
-            # back to a list rather than a scalar Rule.
-            pb_batch.is_collection = True
 
         return pb_batch
 

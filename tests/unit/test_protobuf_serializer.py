@@ -102,6 +102,19 @@ class TestProtobufBasics:
 
         assert restored == rules
 
+    @pytest.mark.parametrize("include_metadata", [True, False])
+    def test_empty_list_roundtrips_to_empty_list(self, include_metadata):
+        """An empty list must round-trip to [].
+
+        Regression: with ``include_metadata=False`` an empty list carried no
+        ``rules`` and no collection marker, serializing to empty bytes that
+        ``from_protobuf`` mis-detected as a bare default Rule and raised
+        ``ProtobufError`` on its action lookup, instead of returning [].
+        """
+        serializer = ProtobufSerializer(include_metadata=include_metadata)
+
+        assert serializer.from_protobuf(serializer.to_protobuf([])) == []
+
     def test_binary_size_smaller_than_json(self):
         """Test that protobuf is more compact than JSON."""
         rule_text = 'alert tcp any any -> any 80 (msg:"Test Rule"; sid:1000; rev:1;)'
