@@ -44,7 +44,7 @@ from ...core.nodes import (
     WithinOption,
 )
 from ..helpers import is_marker, token_to_str
-from .options._helpers import generic_kv, parse_quoted_string
+from .options._helpers import generic_kv, parse_quoted_string, strip_outer_quotes
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +146,10 @@ def _parse_mixed_content(s: str) -> bytes:
             try:
                 result.extend(bytes.fromhex(hex_content))
             except ValueError as e:
-                logger.warning(f"Invalid hex content '{hex_str}': {e}")
+                # Propagate so content_value falls back to the raw string and
+                # records a WARNING diagnostic, rather than silently deleting
+                # the malformed segment (and its delimiters) from the pattern.
+                raise ValueError(f"Invalid hex content '{hex_str}': {e}") from e
 
             i = j + 1
         else:
@@ -357,7 +360,9 @@ class ContentTransformerMixin:
                 DiagnosticLevel.WARNING,
                 f"Invalid hex content, treating as raw bytes: {e}",
             )
-            return value_str.encode("utf-8", errors="replace")
+            # Preserve the literal pattern bytes (minus the surrounding quotes)
+            # so a malformed hex run is not lost or left wrapped in quotes.
+            return strip_outer_quotes(value_str).encode("utf-8", errors="replace")
 
     def _parse_content_value(self, value_str: str) -> bytes:
         """Parse content value string to bytes, dispatching by format."""

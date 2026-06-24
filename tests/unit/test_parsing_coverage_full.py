@@ -199,12 +199,20 @@ class TestParseMixedContent:
         result = _parse_mixed_content("|unclosed")
         assert result == b"|unclosed"
 
-    def test_invalid_hex_between_pipes_skipped(self) -> None:
-        # Lines 148-149: bytes.fromhex fails for invalid hex inside pipes
-        result = _parse_mixed_content("|GG|rest")
-        # Invalid hex segment emits a warning and is silently skipped;
-        # the ASCII portion after the bad segment is encoded normally.
-        assert result == b"rest"
+    def test_invalid_hex_between_pipes_raises(self) -> None:
+        # Invalid hex inside pipes must propagate so the caller preserves the
+        # original bytes instead of silently deleting the malformed segment.
+        with pytest.raises(ValueError, match="Invalid hex content"):
+            _parse_mixed_content("|GG|rest")
+
+    def test_invalid_hex_in_mixed_content_preserves_raw_bytes(self) -> None:
+        # Through a full parse, malformed hex falls back to the raw string and
+        # records a WARNING diagnostic rather than dropping the |...| segment.
+        rule = parse_rule('alert tcp any any -> any any (content:"abc|zz|def"; sid:1;)')
+        content = next(o for o in rule.options if type(o).__name__ == "ContentOption")
+        assert content.pattern == b"abc|zz|def"
+        warnings = [d for d in rule.diagnostics if d.level == DiagnosticLevel.WARNING]
+        assert any("Invalid hex content" in d.message for d in warnings)
 
 
 # ---------------------------------------------------------------------------
