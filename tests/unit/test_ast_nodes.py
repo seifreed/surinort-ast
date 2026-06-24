@@ -277,6 +277,18 @@ class TestContentOption:
         assert mod.name == "custom_kw"
         assert not isinstance(mod.name, ContentModifierType)
 
+    def test_custom_modifier_value_rejects_separators(self):
+        """A custom modifier prints as ',<name> <value>', so a comma/semicolon in
+        its value would re-split/terminate the option on reparse (no escape)."""
+        for bad in ("a,b", "a;b"):
+            with pytest.raises(ValidationError):
+                ContentModifier(name="custommod", value=bad)
+
+    def test_known_modifier_value_allows_comma(self):
+        """fast_pattern:3,7 is faithfully printed, so commas in a known-modifier
+        value must stay legal."""
+        assert ContentModifier(name="fast_pattern", value="3,7").value == "3,7"
+
     def test_content_serialization(self):
         """Content option can be created with bytes pattern."""
         content = ContentOption(pattern=b"\x00\x01\x02\xff")

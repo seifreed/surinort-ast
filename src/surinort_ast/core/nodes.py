@@ -333,6 +333,19 @@ class ContentModifier(BaseModel):
                 return value
         return value
 
+    @field_validator("value")
+    @classmethod
+    def _check_custom_value(cls, value: Any, info: Any) -> Any:
+        """A custom (non-enum) modifier prints as ``,<name> <value>``; a comma or
+        semicolon in the value re-splits/terminates the option on reparse and the
+        format has no escape. Known modifiers (enum name) print faithfully on
+        their own (e.g. ``fast_pattern:3,7``), so commas there are legitimate."""
+        name = info.data.get("name")
+        is_custom = name is not None and not isinstance(name, ContentModifierType)
+        if is_custom and isinstance(value, str) and ("," in value or ";" in value):
+            raise ValueError("custom content modifier value cannot contain ',' or ';'")
+        return value
+
     @property
     def name_str(self) -> str:
         """The modifier name as a string, whether it is a known enum or a literal."""

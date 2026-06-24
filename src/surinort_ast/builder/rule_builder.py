@@ -898,12 +898,33 @@ class RuleBuilder:
             raise BuilderError(f"Invalid IP range format: {range_str}")
         return IPRange(start=parts[0].strip(), end=parts[1].strip())
 
+    @staticmethod
+    def _split_top_level(inner: str) -> list[str]:
+        """Split a bracket interior on top-level commas only, so a nested group
+        like ``[a,b]`` survives as one element instead of being shredded across
+        the split (which produced malformed elements with literal brackets)."""
+        parts: list[str] = []
+        current: list[str] = []
+        depth = 0
+        for ch in inner:
+            if ch == "[":
+                depth += 1
+            elif ch == "]":
+                depth -= 1
+            if ch == "," and depth == 0:
+                parts.append("".join(current))
+                current = []
+            else:
+                current.append(ch)
+        parts.append("".join(current))
+        return parts
+
     def _parse_bracketed_address(self, addr_str: str) -> AddressExpr:
         """Parse a bracketed address: a range ``[a-b]`` or a list ``[a,b,c]``."""
         inner = addr_str[1:-1]
         if "-" in inner and "," not in inner:
             return self._parse_ip_range(inner)
-        elements = [self._parse_address(e.strip()) for e in inner.split(",")]
+        elements = [self._parse_address(e.strip()) for e in self._split_top_level(inner)]
         return AddressList(elements=elements)
 
     def _parse_port(self, port: int | str | PortExpr) -> PortExpr:
@@ -941,9 +962,9 @@ class RuleBuilder:
             inner = self._parse_port(port_str[1:])
             return PortNegation(expr=inner)
 
-        # Handle lists [80,443,8080:8090]
+        # Handle lists [80,443,8080:8090] (depth-aware so nested [a,b] survives)
         if port_str.startswith("[") and port_str.endswith("]"):
-            elements_str = port_str[1:-1].split(",")
+            elements_str = self._split_top_level(port_str[1:-1])
             elements = [self._parse_port(e.strip()) for e in elements_str]
             return PortList(elements=elements)
 

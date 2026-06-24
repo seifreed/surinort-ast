@@ -325,6 +325,34 @@ class TestParseAddressEdgeCases:
         rule6 = _base().source_ip("2001:db8::/128").sid(2).build()
         assert rule6 is not None
 
+    def test_nested_address_list_matches_parser(self) -> None:
+        """A nested list ``[a,[b,c]]`` must split on top-level commas only, so the
+        inner group stays one nested AddressList — matching the Lark parser.
+
+        Regression: a naive comma split shredded ``[b,c]`` across elements,
+        yielding malformed IPAddress values containing literal brackets.
+        """
+        from surinort_ast import parse_rule
+
+        builder = RuleBuilder()
+        built = builder._parse_address("[192.168.1.1,[10.0.0.1,10.0.0.2]]")
+        parsed = parse_rule(
+            "alert tcp [192.168.1.1,[10.0.0.1,10.0.0.2]] any -> any any (sid:1;)"
+        ).header.src_addr
+        assert built.node_type == "AddressList"
+        assert [e.node_type for e in built.elements] == ["IPAddress", "AddressList"]
+        # No element carries a literal bracket character.
+        flat = [built.elements[0].value, *(e.value for e in built.elements[1].elements)]
+        assert all("[" not in v and "]" not in v for v in flat)
+        assert flat == [e.value for e in [parsed.elements[0], *parsed.elements[1].elements]]
+
+    def test_nested_port_list_matches_parser(self) -> None:
+        """A nested port list ``[80,[443,8080]]`` must keep the inner group nested
+        instead of raising on a shredded ``[443`` token."""
+        port = RuleBuilder()._parse_port("[80,[443,8080]]")
+        assert port.node_type == "PortList"
+        assert [e.node_type for e in port.elements] == ["Port", "PortList"]
+
     def test_ip_range_with_multiple_dashes_raises(self) -> None:
         """An unbracketed string with more than one dash raises BuilderError (line 895).
 
