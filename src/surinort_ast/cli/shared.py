@@ -364,3 +364,15 @@ def load_rules(
         raise typer.Exit(1) from None
 
     return rules, content, file
+
+
+def count_rule_blocks(content: str) -> int:
+    """Count the rule blocks in raw input text.
+
+    Uses the canonical rule-boundary detector so the count matches what the
+    parser attempts; comparing it against the number of successfully parsed
+    rules reveals how many were dropped by error recovery.
+    """
+    from ..streaming.parser import _iter_rule_blocks
+
+    return sum(1 for _ in _iter_rule_blocks(enumerate(content.splitlines(), start=1)))

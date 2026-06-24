@@ -21,6 +21,7 @@ from ..shared import (
     OutputOption,
     cli_error_handler,
     console,
+    count_rule_blocks,
     err_console,
     load_rules,
     parsing_progress,
@@ -90,6 +91,18 @@ def fmt_command(
         # Read and parse input
         with parsing_progress("Formatting rules..."):
             rules, content, file = load_rules(file, dialect)
+
+        # Refuse to format when any rule failed to parse: emitting only the
+        # formatted survivors would silently drop the unparseable rules — and
+        # with --in-place that permanently destroys them in the user's file.
+        input_rule_count = count_rule_blocks(content)
+        if len(rules) < input_rule_count:
+            dropped = input_rule_count - len(rules)
+            err_console.print(
+                f"Error: {dropped} rule(s) could not be parsed; refusing to format "
+                "to avoid dropping them. Fix the rule(s) and retry."
+            )
+            raise typer.Exit(1) from None
 
         # Format rules
         formatted_lines = []

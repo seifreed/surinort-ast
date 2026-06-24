@@ -307,6 +307,27 @@ class TestFmtCommand:
         assert result.exit_code == 0
         assert rules_file.exists()
 
+    def test_fmt_in_place_refuses_when_rule_unparseable(self, tmp_path):
+        """--in-place must not silently drop rules that fail to parse.
+
+        Regression: error recovery dropped unparseable rules, and fmt rewrote
+        the file with only the survivors — permanently losing the bad rule.
+        """
+        rules_file = tmp_path / "rules.txt"
+        original = (
+            'alert tcp any any -> any 80 (msg:"good"; sid:1;)\n'
+            'alert tcp any any -> any 443 (msg:"broken no closing paren; sid:2;\n'
+            'alert udp any any -> any 53 (msg:"good2"; sid:3;)\n'
+        )
+        rules_file.write_text(original, encoding="utf-8")
+
+        result = self.runner.invoke(app, ["fmt", str(rules_file), "--in-place"])
+
+        assert result.exit_code == 1
+        assert "could not be parsed" in result.output
+        # The file must be left exactly as it was — no rule lost.
+        assert rules_file.read_text(encoding="utf-8") == original
+
     def test_fmt_in_place_from_stdin_error(self):
         """Fmt should error if --in-place used with stdin"""
         result = self.runner.invoke(
