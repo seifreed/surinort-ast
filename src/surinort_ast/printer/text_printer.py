@@ -128,8 +128,7 @@ def _escape_quoted(text: str) -> str:
 
 @_print_option_dispatch.register
 def _(option: MsgOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
-    quote = fmt_opts.get_quote_char()
-    return f"msg:{quote}{_escape_quoted(option.text)}{quote};"
+    return f'msg:"{_escape_quoted(option.text)}";'
 
 
 @_print_option_dispatch.register
@@ -176,10 +175,9 @@ def _(option: ContentOption, fmt_opts: FormatterOptions, printer: _TextPrinter) 
 
 @_print_option_dispatch.register
 def _(option: PcreOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
-    quote = fmt_opts.get_quote_char()
     flags = option.flags if option.flags else ""
     negation = "!" if option.negated else ""
-    return f"pcre:{negation}{quote}/{option.pattern}/{flags}{quote};"
+    return f'pcre:{negation}"/{option.pattern}/{flags}";'
 
 
 @_print_option_dispatch.register
@@ -542,7 +540,7 @@ class TextPrinter:
         Returns:
             Formatted content text
         """
-        quote = self.options.get_quote_char()
+        quote = '"'
 
         # Format the pattern
         pattern_str = self._format_content_pattern(content.pattern)

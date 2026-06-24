@@ -549,7 +549,6 @@ class TestPrintRulesConvenience:
 
         options = FormatterOptions(
             option_separator=" ",
-            quote_style="single",
         )
 
         printed = print_rules([rule], options)

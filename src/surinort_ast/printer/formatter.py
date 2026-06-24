@@ -42,7 +42,6 @@ class FormatterOptions(BaseModel):
         normalize_whitespace: Normalize whitespace to single spaces
         sort_options: Sort options alphabetically (breaks semantics, use carefully)
         stable_mode: Enable deterministic output (overrides other settings)
-        quote_style: Quote style for strings ('single' or 'double')
         hex_uppercase: Use uppercase for hex bytes (e.g., |41| vs |41|)
         option_separator: Separator between options (default: space)
     """
@@ -70,7 +69,6 @@ class FormatterOptions(BaseModel):
     stable_mode: bool = Field(default=False, description="Enable deterministic output")
 
     # Style preferences
-    quote_style: str = Field(default="double", pattern="^(single|double)$")
     hex_uppercase: bool = Field(default=True, description="Uppercase hex bytes")
     option_separator: str = Field(default=" ", description="Separator between options")
 
@@ -144,7 +142,6 @@ class FormatterOptions(BaseModel):
             preserve_comments=True,
             sort_options=False,  # Don't sort to preserve semantic order
             stable_mode=True,
-            quote_style="double",
             hex_uppercase=True,
             option_separator=" ",
         )
@@ -168,15 +165,6 @@ class FormatterOptions(BaseModel):
             return cls.verbose()
         # style == FormatStyle.STABLE
         return cls.stable()
-
-    def get_quote_char(self) -> str:
-        """
-        Get the quote character based on quote_style.
-
-        Returns:
-            Quote character (single or double)
-        """
-        return '"' if self.quote_style == "double" else "'"
 
     def format_list_separator(self) -> str:
         """

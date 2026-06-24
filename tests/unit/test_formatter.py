@@ -71,7 +71,6 @@ class TestFormatterOptionsInit:
         assert opts.stable_mode is False
 
         # Style preferences
-        assert opts.quote_style == "double"
         assert opts.hex_uppercase is True
         assert opts.option_separator == " "
 
@@ -86,7 +85,6 @@ class TestFormatterOptionsInit:
             normalize_whitespace=False,
             sort_options=True,
             stable_mode=True,
-            quote_style="single",
             hex_uppercase=False,
             option_separator="; ",
         )
@@ -99,7 +97,6 @@ class TestFormatterOptionsInit:
         assert opts.normalize_whitespace is False
         assert opts.sort_options is True
         assert opts.stable_mode is True
-        assert opts.quote_style == "single"
         assert opts.hex_uppercase is False
         assert opts.option_separator == "; "
 
@@ -118,22 +115,6 @@ class TestFormatterOptionsInit:
 
 class TestFormatterOptionsValidation:
     """Test FormatterOptions validation."""
-
-    def test_invalid_quote_style(self):
-        """Test that invalid quote_style is rejected."""
-        try:
-            FormatterOptions(quote_style="triple")
-            raise AssertionError("Should have raised validation error")
-        except PydanticValidationError:
-            pass  # Expected
-
-    def test_valid_quote_styles(self):
-        """Test that valid quote styles are accepted."""
-        single = FormatterOptions(quote_style="single")
-        assert single.quote_style == "single"
-
-        double = FormatterOptions(quote_style="double")
-        assert double.quote_style == "double"
 
     def test_negative_line_width_rejected(self):
         """Test that negative line_width is rejected."""
@@ -247,7 +228,6 @@ class TestStableStyle:
         assert opts.preserve_comments is True
         assert opts.sort_options is False
         assert opts.stable_mode is True
-        assert opts.quote_style == "double"
         assert opts.hex_uppercase is True
         assert opts.option_separator == " "
 
@@ -259,9 +239,6 @@ class TestStableStyle:
     def test_stable_deterministic_settings(self):
         """Test that stable style uses deterministic settings."""
         opts = FormatterOptions.stable()
-
-        # Fixed quote style
-        assert opts.quote_style == "double"
 
         # Fixed hex case
         assert opts.hex_uppercase is True
@@ -306,7 +283,6 @@ class TestFromStyle:
         expected = FormatterOptions.stable()
 
         assert opts.stable_mode == expected.stable_mode
-        assert opts.quote_style == expected.quote_style
         assert opts.hex_uppercase == expected.hex_uppercase
 
     def test_from_style_all_styles(self):
@@ -330,30 +306,6 @@ class TestFromStyle:
         # Should return standard style as fallback
         assert opts.indent == expected.indent
         assert opts.line_width == expected.line_width
-
-
-class TestGetQuoteChar:
-    """Test get_quote_char method."""
-
-    def test_double_quote_char(self):
-        """Test get_quote_char with double quote style."""
-        opts = FormatterOptions(quote_style="double")
-        assert opts.get_quote_char() == '"'
-
-    def test_single_quote_char(self):
-        """Test get_quote_char with single quote style."""
-        opts = FormatterOptions(quote_style="single")
-        assert opts.get_quote_char() == "'"
-
-    def test_quote_char_from_styles(self):
-        """Test get_quote_char from different style presets."""
-        # Stable uses double quotes
-        stable = FormatterOptions.stable()
-        assert stable.get_quote_char() == '"'
-
-        # Can be customized
-        custom = FormatterOptions(quote_style="single")
-        assert custom.get_quote_char() == "'"
 
 
 class TestFormatListSeparator:
@@ -542,12 +494,12 @@ class TestPydanticFeatures:
 
     def test_model_validate(self):
         """Test model validation from dict."""
-        data = {"indent": "\t", "line_width": 120, "quote_style": "single"}
+        data = {"indent": "\t", "line_width": 120, "hex_uppercase": False}
 
         opts = FormatterOptions.model_validate(data)
         assert opts.indent == "\t"
         assert opts.line_width == 120
-        assert opts.quote_style == "single"
+        assert opts.hex_uppercase is False
 
     def test_field_descriptions(self):
         """Test that fields have descriptions."""
