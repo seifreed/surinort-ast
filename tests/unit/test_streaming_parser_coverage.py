@@ -152,6 +152,31 @@ def test_iter_rule_blocks_blank_line_flushes_accumulated_block() -> None:
     assert blocks[1][0] == 3  # second block starts at line 3
 
 
+def test_iter_rule_blocks_backslash_continuation_joins_lines() -> None:
+    """A trailing backslash continues the rule onto the next line (odd-run only)."""
+    bs = chr(92)
+    lines = [
+        (1, 'alert tcp any any -> any 80 (msg:"A"; ' + bs),
+        (2, "sid:1;)"),
+    ]
+    blocks = list(_iter_rule_blocks(lines))
+    assert len(blocks) == 1
+    joined = blocks[0][1]
+    # The continuation marker is stripped and the lines are joined into one rule.
+    assert bs not in joined
+    assert joined.endswith("sid:1;)")
+
+
+def test_iter_rule_blocks_even_backslash_run_is_not_continuation() -> None:
+    """An even trailing run of backslashes is an escaped literal, not a continuation."""
+    bs = chr(92)
+    # content value ends with an escaped backslash pair, then the rule closes.
+    lines = [(1, 'alert tcp any any -> any any (content:"a' + bs * 2 + '"; sid:1;)')]
+    blocks = list(_iter_rule_blocks(lines))
+    assert len(blocks) == 1
+    assert blocks[0][1].count(bs) == 2
+
+
 # ---------------------------------------------------------------------------
 # _iter_rule_blocks: unbalanced-paren continuation branch (128->106)
 # ---------------------------------------------------------------------------

@@ -1409,6 +1409,22 @@ class TestMultilineAccumulation:
             assert not _is_error_rule(rules[0])
             assert _rule_sids(rules) == [7]
 
+    def test_odd_backslash_run_is_continuation(self):
+        """An odd run of 3+ backslashes ends in a continuation marker, not an escape.
+
+        ``\\\\\\`` is an escaped backslash pair plus a continuation backslash;
+        checking only the last two characters misclassified it as terminal.
+        """
+        parser = LarkRuleParser(strict=False)
+        bs = chr(92)
+        content = 'alert tcp any any -> any 80 (content:"ab' + bs * 3 + "\n" + 'cd"; sid:9;)\n'
+        with temp_file(content) as temp_path:
+            rules = parser.parse_file(temp_path)
+
+            assert len(rules) == 1
+            assert not _is_error_rule(rules[0])
+            assert _rule_sids(rules) == [9]
+
     def test_parens_inside_quoted_values_do_not_break_accumulation(self):
         """Parens inside msg/content/pcre must not affect rule boundaries."""
         parser = LarkRuleParser(strict=False)

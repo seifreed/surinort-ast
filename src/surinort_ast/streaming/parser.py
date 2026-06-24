@@ -121,7 +121,18 @@ def _iter_rule_blocks(lines: Iterable[tuple[int, str]]) -> Iterator[tuple[int, s
 
         if not current:
             first_line = line_num
+
+        # A trailing odd run of backslashes is an explicit line continuation
+        # (canonical IDS syntax): strip the marker and keep accumulating before
+        # testing for rule completion, matching LarkRuleParser.parse_file.
+        continuation = (len(line) - len(line.rstrip("\\"))) % 2 == 1
+        if continuation:
+            line = line[:-1].rstrip()
+
         current.append(line)
+
+        if continuation:
+            continue
 
         if line.endswith(")") and _line_starts_rule(current[0]):
             open_count, close_count = _count_unquoted_parens(" ".join(current))

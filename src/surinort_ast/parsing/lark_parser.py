@@ -421,10 +421,13 @@ class LarkRuleParser:
                 continue
 
             # Honor explicit backslash line continuation (canonical IDS syntax).
-            # A trailing backslash only counts as a continuation when it is not
-            # part of an escape sequence (e.g., `\)` is a literal close paren,
-            # not a continuation marker).
-            continuation = line.endswith("\\") and not line.endswith("\\\\")
+            # A trailing backslash continues the line only when the trailing run
+            # of backslashes is odd: the final one is the continuation marker and
+            # any preceding pairs are escaped literals (e.g. `\\` is one literal
+            # backslash, `\\\` is a literal backslash plus a continuation). Only
+            # checking the last two characters misclassifies odd runs of 3+.
+            trailing_backslashes = len(line) - len(line.rstrip("\\"))
+            continuation = trailing_backslashes % 2 == 1
             if continuation:
                 line = line[:-1].rstrip()
 
