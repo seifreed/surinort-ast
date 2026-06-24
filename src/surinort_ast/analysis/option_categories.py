@@ -28,14 +28,22 @@ CONTENT_MODIFIER_OPTIONS: frozenset[str] = frozenset(
 )
 
 # Options whose meaning depends on their position in the option sequence:
-# the content modifiers above plus sticky-buffer selection and Lua/LuaJIT
-# scripts. Reordering them, or removing a "duplicate", detaches them from the
-# content they qualify and silently changes detection semantics, so strategies
-# must treat their presence as order-significant.
+# the content modifiers above plus sticky-buffer selection, Lua/LuaJIT
+# scripts, and the dedicated byte-inspection nodes. A byte_jump advances the
+# match cursor, byte_extract defines a variable later options reference, and a
+# relative byte_test anchors to the preceding match, so two textually identical
+# byte ops can belong to different anchors. Reordering them, or removing a
+# "duplicate", detaches them from the content they qualify and silently changes
+# detection semantics, so strategies must treat their presence as
+# order-significant. (The keyword-tagged GenericOption forms are covered
+# separately by _STATEFUL_GENERIC_KEYWORDS in strategies.py.)
 POSITIONAL_OPTIONS: frozenset[str] = CONTENT_MODIFIER_OPTIONS | frozenset(
     {
         "BufferSelectOption",
         "LuaOption",
         "LuajitOption",
+        "ByteTestOption",
+        "ByteJumpOption",
+        "ByteExtractOption",
     }
 )

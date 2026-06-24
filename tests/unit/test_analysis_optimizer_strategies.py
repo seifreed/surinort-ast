@@ -22,6 +22,12 @@ from surinort_ast.analysis.strategies import (
     OptionReorderStrategy,
     RedundancyRemovalStrategy,
 )
+from surinort_ast.core.nodes import (
+    ByteJumpOption,
+    ByteTestOption,
+    ContentOption,
+    SidOption,
+)
 
 
 class TestOptimizationDataClass:
@@ -291,6 +297,26 @@ class TestOptionReorderStrategy:
         assert opts == []
         assert OptionReorderStrategy().estimate_gain(rule) == 0.0
 
+    def test_reorder_preserves_dedicated_byte_jump(self):
+        """A relative byte_jump advances the match cursor between two contents,
+        so moving it past them changes detection. It reaches the optimizer as a
+        dedicated node via the builder / JSON / protobuf paths (the parser emits
+        GenericOption) and must be treated as order-significant.
+        """
+        rule = parse_rule('alert tcp any any -> any any (content:"A"; sid:1;)')
+        opts = (
+            ContentOption(pattern=b"A"),
+            ByteJumpOption(bytes_to_extract=2, offset=0, flags=("relative",)),
+            ContentOption(pattern=b"B"),
+            SidOption(value=1),
+        )
+        rule = rule.model_copy(update={"options": opts})
+
+        optimized, changes = OptionReorderStrategy().apply(rule)
+
+        assert optimized is None
+        assert changes == []
+
 
 class TestFastPatternStrategy:
     """Test FastPatternStrategy."""
@@ -442,6 +468,35 @@ class TestRedundancyRemovalStrategy:
         # Nothing safe to remove -> rule left untouched, both nocase kept.
         assert optimized is None
         assert sum(1 for opt in rule.options if opt.node_type == "NocaseOption") == 2
+
+    def test_redundancy_preserves_dedicated_byte_ops(self):
+        """Dedicated ByteTestOption nodes must not be deduplicated.
+
+        Regression: a relative byte_test anchors to the preceding content
+        match, so two textually identical byte_test nodes belong to different
+        anchors. They reach the optimizer as dedicated nodes via the builder /
+        JSON / protobuf paths (the parser emits GenericOption), and were absent
+        from every order-significant guard, so one was dropped and detection
+        semantics silently changed.
+        """
+        rule = parse_rule('alert tcp any any -> any 80 (content:"A"; sid:1;)')
+        opts = (
+            ContentOption(pattern=b"A"),
+            ByteTestOption(
+                bytes_to_extract=1, operator=">", value=5, offset=0, flags=("relative",)
+            ),
+            ContentOption(pattern=b"B"),
+            ByteTestOption(
+                bytes_to_extract=1, operator=">", value=5, offset=0, flags=("relative",)
+            ),
+            SidOption(value=1),
+        )
+        rule = rule.model_copy(update={"options": opts})
+
+        optimized, _opts = RedundancyRemovalStrategy().apply(rule)
+
+        assert optimized is None
+        assert sum(1 for opt in rule.options if opt.node_type == "ByteTestOption") == 2
 
     def test_redundancy_estimate_gain(self):
         """Test estimating gain from removing duplicates."""
