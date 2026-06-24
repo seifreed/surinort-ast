@@ -242,6 +242,27 @@ def test_address_ip_ipv4_single_octet_out_of_range(transformer):
     assert "256" in transformer.diagnostics[0][1]
 
 
+def test_address_ip_mapped_ipv6_octet_out_of_range(transformer):
+    """An IPv4-mapped IPv6 with an embedded octet > 255 emits a WARNING."""
+    result = transformer.address_ip(create_token("::ffff:999.1.1.1"))
+
+    assert isinstance(result, IPAddress)
+    assert result.value == "::ffff:999.1.1.1"
+    assert result.version == 6
+    assert len(transformer.diagnostics) == 1
+    assert transformer.diagnostics[0][0] == DiagnosticLevel.WARNING
+    assert "999" in transformer.diagnostics[0][1]
+
+
+def test_address_ip_mapped_ipv6_valid_octets_no_warning(transformer):
+    """A valid IPv4-mapped IPv6 address emits no octet warning."""
+    result = transformer.address_ip(create_token("::ffff:192.168.1.1"))
+
+    assert result.value == "::ffff:192.168.1.1"
+    assert result.version == 6
+    assert transformer.diagnostics == []
+
+
 # ============================================================================
 # Test: IPv6 Addresses
 # ============================================================================

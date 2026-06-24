@@ -257,11 +257,18 @@ class AddressTransformerMixin:
         # This heuristic is reliable because the grammar ensures valid IP syntax
         version: int = 6 if ":" in ip_str else 4
 
+        location = token_to_location(ip_token, self.file_path)
         if version == 4:
-            self._check_ipv4_octets(ip_str, token_to_location(ip_token, self.file_path))
+            self._check_ipv4_octets(ip_str, location)
+        elif "." in ip_str:
+            # IPv4-mapped/embedded IPv6 (e.g. ::ffff:192.168.1.1): the embedded
+            # IPv4 is the dotted-quad after the final colon. The grammar cannot
+            # range-check it (its leading octet is absorbed by the hex run), so
+            # validate the octets here, mirroring the plain-IPv4 check.
+            self._check_ipv4_octets(ip_str.rsplit(":", 1)[-1], location)
 
         return IPAddress(
             value=ip_str,
             version=version,
-            location=token_to_location(ip_token, self.file_path),
+            location=location,
         )
