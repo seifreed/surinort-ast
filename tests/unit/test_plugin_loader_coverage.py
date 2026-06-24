@@ -182,7 +182,12 @@ class TestLoadDirectory:
         with pytest.raises(PluginLoadError):
             loader.load_directory(tmp_path, pattern="*_plugin.py", ignore_errors=False)
 
-        assert "Boom" in loader.get_failed_plugins()
+        # Recorded exactly once, under the plugin name. Regression: the strict
+        # path re-caught the already-recorded PluginLoadError in the outer
+        # handler and recorded a second, doubly-wrapped entry under the file name.
+        failed = loader.get_failed_plugins()
+        assert list(failed) == ["Boom"]
+        assert failed["Boom"] == "cannot build"
 
     def test_register_failure_strict_raises(self, tmp_path):
         body = (
@@ -205,7 +210,9 @@ class TestLoadDirectory:
         with pytest.raises(PluginLoadError):
             loader.load_directory(tmp_path, pattern="*_plugin.py", ignore_errors=False)
 
-        assert "failing" in loader.get_failed_plugins()
+        # Recorded exactly once, under the plugin name (no duplicate file-name entry).
+        failed = loader.get_failed_plugins()
+        assert list(failed) == ["failing"]
 
     def test_register_failure_ignored(self, tmp_path):
         body = (

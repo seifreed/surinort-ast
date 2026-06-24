@@ -277,6 +277,13 @@ class PluginLoader:
                     loaded_count += 1
                     logger.info(f"Loaded plugin '{plugin_name}' from file: {plugin_file.name}")
 
+            except PluginLoadError:
+                # A per-plugin failure (discovery or registration) under
+                # ignore_errors=False has already been recorded against the
+                # plugin's own name and raised by _record_plugin_failure; just
+                # propagate it rather than recording a duplicate entry under the
+                # file name with a doubly-wrapped message.
+                raise
             except Exception as e:
                 self._record_plugin_failure(
                     plugin_file.name,
