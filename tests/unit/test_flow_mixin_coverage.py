@@ -117,6 +117,25 @@ class TestFlowOptionUnknownValue:
         assert "establised" in warnings[0].message
 
 
+class TestFlowFragStates:
+    """only_frag/no_frag are valid Suricata flow states, not unknown values."""
+
+    @pytest.mark.parametrize("state", ["only_frag", "no_frag"])
+    def test_frag_state_is_recognized(self, state: str):
+        rule_text = f'alert tcp any any -> any any (msg:"Test"; flow:established,{state}; sid:1;)'
+        rule = parse_rule(rule_text)
+
+        flow_opt = first_option(rule, FlowOption)
+        assert flow_opt is not None
+        assert FlowState(state) in flow_opt.states
+        # No "Unknown flow value" diagnostic — the state is recognized.
+        assert not [
+            d
+            for d in rule.diagnostics
+            if d.level == DiagnosticLevel.WARNING and "Unknown flow value" in d.message
+        ]
+
+
 class TestFlowbitsOptionActionOnly:
     """Test flowbits option with action only (lines 166-170)."""
 

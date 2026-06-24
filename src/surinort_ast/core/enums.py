@@ -160,6 +160,8 @@ class FlowState(str, Enum):
     STATELESS = "stateless"
     ONLY_STREAM = "only_stream"
     NO_STREAM = "no_stream"
+    ONLY_FRAG = "only_frag"
+    NO_FRAG = "no_frag"
 
 
 __all__ = [

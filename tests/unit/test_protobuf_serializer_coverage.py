@@ -1230,6 +1230,21 @@ class TestFlowStateAndDirectionVariants:
         assert FlowState.STATELESS in flow.states
         assert FlowDirection.TO_CLIENT in flow.directions
 
+    def test_flow_only_frag_no_frag(self) -> None:
+        rule = _wrap(
+            [
+                FlowOption(
+                    states=(FlowState.ONLY_FRAG, FlowState.NO_FRAG),
+                    directions=(FlowDirection.TO_SERVER,),
+                ),
+                SidOption(value=1),
+            ]
+        )
+        restored = from_protobuf(to_protobuf(rule))
+        flow = next(o for o in restored.options if isinstance(o, FlowOption))
+        assert FlowState.ONLY_FRAG in flow.states
+        assert FlowState.NO_FRAG in flow.states
+
 
 # ---------------------------------------------------------------------------
 # Line 268 - _serialize_location called with loc=None

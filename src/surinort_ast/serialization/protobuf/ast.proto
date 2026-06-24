@@ -107,6 +107,8 @@ enum FlowState {
   STATELESS = 3;
   ONLY_STREAM = 4;
   NO_STREAM = 5;
+  ONLY_FRAG = 6;
+  NO_FRAG = 7;
 }
 
 // ============================================================================

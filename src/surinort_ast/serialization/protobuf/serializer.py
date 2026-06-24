@@ -220,6 +220,8 @@ _FLOW_STATE_TO_PB, _PB_TO_FLOW_STATE = _enum_mapping(
         FlowState.STATELESS: pb.STATELESS,
         FlowState.ONLY_STREAM: pb.ONLY_STREAM,
         FlowState.NO_STREAM: pb.NO_STREAM,
+        FlowState.ONLY_FRAG: pb.ONLY_FRAG,
+        FlowState.NO_FRAG: pb.NO_FRAG,
     }
 )
 
