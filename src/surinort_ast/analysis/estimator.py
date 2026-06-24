@@ -72,6 +72,17 @@ class PerformanceEstimator:
         "GenericOption": 5.0,
     }
 
+    # The parser emits these keywords as a lossless GenericOption while the
+    # builder/JSON/protobuf use the dedicated nodes. Cost the operation by what
+    # it does, not which representation it took, so estimate_cost is stable
+    # across parse paths instead of falling back to the generic 5.0.
+    GENERIC_KEYWORD_TYPES: ClassVar[dict[str, str]] = {
+        "byte_test": "ByteTestOption",
+        "byte_jump": "ByteJumpOption",
+        "byte_extract": "ByteExtractOption",
+        "tag": "TagOption",
+    }
+
     # Multipliers for content option modifiers
     CONTENT_MODIFIER_MULTIPLIERS: ClassVar[dict[str, float]] = {
         "nocase": 1.5,  # Case-insensitive matching is slower
@@ -170,6 +181,10 @@ class PerformanceEstimator:
             return self._estimate_content_cost(cast("ContentOption", option))
         if option_type == "PcreOption":
             return self._estimate_pcre_cost(cast("PcreOption", option))
+        if option_type == "GenericOption":
+            mapped = self.GENERIC_KEYWORD_TYPES.get(getattr(option, "keyword", "") or "")
+            if mapped is not None:
+                return self.BASE_COSTS[mapped]
         return base_cost
 
     def _estimate_content_cost(self, content: ContentOption) -> float:
