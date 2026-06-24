@@ -240,7 +240,9 @@ class PluginLoader:
                 try:
                     spec.loader.exec_module(module)
                     # Find plugin classes in module
-                    plugins_found = self._discover_plugins_in_module(module)
+                    plugins_found = self._discover_plugins_in_module(
+                        module, ignore_errors=ignore_errors
+                    )
                 except Exception:
                     # A module that fails to import or inspect is unusable; drop
                     # it from sys.modules so a later reload does not reuse the
@@ -290,12 +292,17 @@ class PluginLoader:
     # Plugin Discovery in Modules
     # ========================================================================
 
-    def _discover_plugins_in_module(self, module: Any) -> list[SurinortPlugin]:
+    def _discover_plugins_in_module(
+        self, module: Any, *, ignore_errors: bool
+    ) -> list[SurinortPlugin]:
         """
         Discover plugin classes in a module.
 
         Args:
             module: Python module to scan
+            ignore_errors: If True, a plugin class that fails to instantiate is
+                recorded as a failure and skipped; if False, the failure is
+                re-raised (consistent with the registration path).
 
         Returns:
             List of plugin instances found in module
@@ -321,7 +328,15 @@ class PluginLoader:
                     plugin = attr()
                     plugins.append(plugin)
                 except Exception as e:
-                    logger.warning(f"Failed to instantiate plugin {attr_name}: {e}")
+                    # Record the failure so get_failed_plugins() reports it,
+                    # rather than silently dropping the plugin; raises when
+                    # ignore_errors is False.
+                    self._record_plugin_failure(
+                        attr_name,
+                        e,
+                        ignore_errors=ignore_errors,
+                        message=f"Failed to instantiate plugin {attr_name}: {e}",
+                    )
 
         return plugins
 

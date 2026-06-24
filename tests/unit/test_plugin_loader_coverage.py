@@ -152,8 +152,37 @@ class TestLoadDirectory:
         _write_plugin(tmp_path, "boom_plugin.py", body)
         loader = PluginLoader(auto_load=False)
 
-        # Instantiation fails, so no plugin is discovered; load returns 0.
+        # Instantiation fails, so no plugin is loaded; load returns 0 but the
+        # failure is recorded (not silently dropped) so it is observable.
         assert loader.load_directory(tmp_path, pattern="*_plugin.py") == 0
+        assert "Boom" in loader.get_failed_plugins()
+
+    def test_instantiation_failure_strict_raises(self, tmp_path):
+        body = (
+            "from surinort_ast.plugins import AnalysisPlugin\n"
+            "class Boom(AnalysisPlugin):\n"
+            "    def __init__(self):\n"
+            "        raise RuntimeError('cannot build')\n"
+            "    @property\n"
+            "    def name(self):\n"
+            "        return 'boom'\n"
+            "    @property\n"
+            "    def version(self):\n"
+            "        return '1.0.0'\n"
+            "    def analyze(self, rule):\n"
+            "        return {}\n"
+            "    def register(self, registry):\n"
+            "        registry.register_analyzer(self.name, self)\n"
+        )
+        _write_plugin(tmp_path, "boom_plugin.py", body)
+        loader = PluginLoader(auto_load=False)
+
+        # With ignore_errors=False an instantiation failure must surface, just
+        # like a registration failure, rather than being swallowed.
+        with pytest.raises(PluginLoadError):
+            loader.load_directory(tmp_path, pattern="*_plugin.py", ignore_errors=False)
+
+        assert "Boom" in loader.get_failed_plugins()
 
     def test_register_failure_strict_raises(self, tmp_path):
         body = (
