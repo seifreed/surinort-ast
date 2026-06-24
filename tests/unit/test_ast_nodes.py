@@ -262,6 +262,19 @@ class TestContentOption:
         assert content.modifiers[0].name == ContentModifierType.NOCASE
         assert content.modifiers[1].value == 10
 
+    def test_modifier_known_name_string_coerced_to_enum(self):
+        """A known-modifier string converges on the enum (the documented
+        invariant), so builder/JSON callers match the parser instead of
+        serializing the modifier as a custom one."""
+        assert ContentModifier(name="nocase").name is ContentModifierType.NOCASE
+        assert ContentModifier(name="depth", value=10).name is ContentModifierType.DEPTH
+
+    def test_modifier_unknown_name_stays_string(self):
+        """An unrecognized inline modifier keeps its literal name."""
+        mod = ContentModifier(name="custom_kw")
+        assert mod.name == "custom_kw"
+        assert not isinstance(mod.name, ContentModifierType)
+
     def test_content_serialization(self):
         """Content option can be created with bytes pattern."""
         content = ContentOption(pattern=b"\x00\x01\x02\xff")

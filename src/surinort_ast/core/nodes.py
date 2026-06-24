@@ -319,6 +319,20 @@ class ContentModifier(BaseModel):
     name: ContentModifierType | str
     value: int | str | None = None
 
+    @field_validator("name", mode="before")
+    @classmethod
+    def _coerce_known_name(cls, value: Any) -> Any:
+        """Map a known-modifier string to its enum so every construction path
+        (parser, builder, JSON) converges on the documented invariant. Pydantic's
+        smart union would otherwise keep ``"nocase"`` a plain ``str``, making it
+        serialize as a custom modifier instead of ``CONTENT_MODIFIER_NOCASE``."""
+        if isinstance(value, str):
+            try:
+                return ContentModifierType(value)
+            except ValueError:
+                return value
+        return value
+
     @property
     def name_str(self) -> str:
         """The modifier name as a string, whether it is a known enum or a literal."""

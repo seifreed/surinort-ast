@@ -97,6 +97,28 @@ class TestMatchspace:
         assert negated.opaque is True
         assert negated.literals == frozenset()
 
+    def test_match_narrowing_predicates_are_opaque(self):
+        """flow/dsize/flowbits:isset narrow which packets a rule matches in a
+        dimension the model does not track; ignoring them let an earlier rule
+        falsely subsume a later one (false SHADOWING/CONFLICTING_ACTION)."""
+        for text in (
+            'alert tcp any any -> any any (flow:to_client; msg:"a"; sid:1;)',
+            'alert tcp any any -> any any (dsize:>100; msg:"a"; sid:2;)',
+            'alert tcp any any -> any any (flowbits:isset,x; msg:"a"; sid:3;)',
+        ):
+            assert ms.build_content_constraint(parse_rule(text)).opaque is True
+
+    def test_opposite_flow_not_shadowed(self):
+        """to_client and to_server rules match disjoint traffic, so neither
+        shadows the other even though their headers are both any -> any."""
+        report = detect_conflicts(
+            _rules(
+                'drop tcp any any -> any any (flow:to_client; msg:"a"; sid:3;)',
+                'alert tcp any any -> any any (flow:to_server; content:"x"; msg:"b"; sid:4;)',
+            )
+        )
+        assert not [c for c in report.conflicts if c.conflict_type == ConflictType.SHADOWING]
+
 
 # ---------------------------------------------------------------------------
 # Detectors

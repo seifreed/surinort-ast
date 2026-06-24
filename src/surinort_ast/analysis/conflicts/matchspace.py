@@ -34,7 +34,6 @@ from ...core.nodes import (
     IPAddress,
     IPCIDRRange,
     IPRange,
-    PcreOption,
     Port,
     PortExpr,
     PortList,
@@ -397,11 +396,32 @@ class ContentConstraint:
 
 
 _POSITIONAL_MODIFIER_NAMES = frozenset({"offset", "depth", "distance", "within"})
-_POSITIONAL_MODIFIER_TYPES = frozenset(
-    {"OffsetOption", "DepthOption", "DistanceOption", "WithinOption"}
-)
-_PAYLOAD_BYTE_KEYWORDS = frozenset(
-    {"byte_test", "byte_jump", "byte_extract", "byte_math", "isdataat"}
+
+# Options that do NOT narrow which packets a rule matches: pure metadata and
+# the content modifiers that refine *how* the preceding literal matches without
+# gating the traffic. Everything else (flow, flowbits, dsize/flags/urilen via
+# GenericOption, sticky buffers, byte ops, pcre, startswith/endswith, lua, ...)
+# constrains the match-space in a dimension this model does not track and must
+# therefore be treated as opaque so a rule is never proven to subsume another it
+# does not actually cover.
+_NON_NARROWING_OPTION_TYPES = frozenset(
+    {
+        "MsgOption",
+        "SidOption",
+        "RevOption",
+        "GidOption",
+        "ClasstypeOption",
+        "ReferenceOption",
+        "MetadataOption",
+        "PriorityOption",
+        "TagOption",
+        "ThresholdOption",
+        "DetectionFilterOption",
+        "FilestoreOption",
+        "NocaseOption",
+        "RawbytesOption",
+        "FastPatternOption",
+    }
 )
 
 
@@ -431,17 +451,11 @@ def build_content_constraint(rule: Rule) -> ContentConstraint:
                 opaque = True
             else:
                 literals.add(option.pattern)
-        elif isinstance(option, PcreOption):
-            opaque = True
-        elif option.node_type in _POSITIONAL_MODIFIER_TYPES:
-            # Standalone offset/depth/distance/within options position the
-            # preceding content match.
-            opaque = True
-        elif option.node_type == "GenericOption" and (
-            getattr(option, "keyword", "") in _PAYLOAD_BYTE_KEYWORDS
-        ):
-            # byte_test/byte_jump/byte_extract/byte_math/isdataat impose payload
-            # constraints beyond the content literals.
+        elif option.node_type not in _NON_NARROWING_OPTION_TYPES:
+            # Any matcher this model does not express as a bare required literal
+            # (pcre, flow direction, flowbits:isset, dsize/flags via GenericOption,
+            # standalone positional modifiers, byte ops, sticky buffers, lua, ...)
+            # narrows the match-space; treat the payload requirement as opaque.
             opaque = True
     return ContentConstraint(literals=frozenset(literals), opaque=opaque)
 
