@@ -11,6 +11,8 @@ from collections.abc import Sequence
 from enum import Enum
 from typing import TypeVar
 
+from pydantic import ValidationError
+
 from ..core.enums import Action, Dialect, Direction, Protocol
 from ..core.nodes import (
     AddressExpr,
@@ -867,18 +869,12 @@ class RuleBuilder:
                 prefix_len = int(parts[1])
             except ValueError as e:
                 raise BuilderError(f"Invalid CIDR prefix length: {parts[1]}") from e
-            # The IPCIDRRange model is version-less and bounds the prefix at 128
-            # (the IPv6 max), so an IPv4 network with a prefix in 33-128 would be
-            # stored as a structurally invalid node. Reject it at the boundary;
-            # IPv6 is detected by a colon in the network.
-            max_prefix = 128 if ":" in parts[0] else 32
-            if not 0 <= prefix_len <= max_prefix:
-                version = 6 if ":" in parts[0] else 4
-                raise BuilderError(
-                    f"CIDR prefix /{prefix_len} out of range for IPv{version} "
-                    f"(0-{max_prefix}): {addr_str}"
-                )
-            return IPCIDRRange(network=parts[0], prefix_len=prefix_len)
+            # IPCIDRRange enforces the version-aware prefix range (IPv4 /0-32,
+            # IPv6 /0-128); translate its validation error to a BuilderError.
+            try:
+                return IPCIDRRange(network=parts[0], prefix_len=prefix_len)
+            except ValidationError as e:
+                raise BuilderError(f"Invalid CIDR {addr_str}: {e}") from e
 
         # Handle a bare range (10.0.0.1-10.0.0.255). Lists are always bracketed
         # and a single IP never contains a dash, so an unbracketed dash denotes a

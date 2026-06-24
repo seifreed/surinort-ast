@@ -170,6 +170,21 @@ class IPCIDRRange(AddressExpr):
     network: str
     prefix_len: int = Field(ge=0, le=128)
 
+    @field_validator("prefix_len")
+    @classmethod
+    def validate_prefix_len(cls, v: int, info: Any) -> int:
+        """Reject a prefix length out of range for the network's IP version.
+
+        The field bound (0-128) covers IPv6; an IPv4 network (no colon) is
+        limited to /32, so a larger prefix would be a structurally invalid node.
+        """
+        network = info.data.get("network", "")
+        max_prefix = 128 if ":" in network else 32
+        if v > max_prefix:
+            version = 6 if ":" in network else 4
+            raise ValueError(f"CIDR prefix /{v} out of range for IPv{version} (0-{max_prefix})")
+        return v
+
 
 class IPRange(AddressExpr):
     """Explicit range: [10.0.0.1-10.0.0.255]"""

@@ -315,7 +315,7 @@ class TestParseAddressEdgeCases:
 
     def test_ipv6_cidr_prefix_above_128_raises(self) -> None:
         """An IPv6 CIDR prefix above 128 is invalid and must raise."""
-        with pytest.raises(BuilderError, match="out of range for IPv6"):
+        with pytest.raises(BuilderError, match="Invalid CIDR"):
             _base().source_ip("2001:db8::/129").sid(1).build()
 
     def test_valid_cidr_prefixes_build(self) -> None:

@@ -120,6 +120,12 @@ class TestNodeCreation:
         assert cidr.network == "192.168.1.0"
         assert cidr.prefix_len == 24
 
+    def test_ipv4_cidr_prefix_above_32_rejected(self):
+        """An IPv4 network cannot carry a prefix above /32."""
+        IPCIDRRange(network="10.0.0.0", prefix_len=32)  # boundary is valid
+        with pytest.raises(ValidationError, match="out of range for IPv4"):
+            IPCIDRRange(network="10.0.0.0", prefix_len=64)
+
     def test_ipv6_cidr_validation(self):
         """IPv6 CIDR prefix must be 0-128."""
         # Valid CIDR
