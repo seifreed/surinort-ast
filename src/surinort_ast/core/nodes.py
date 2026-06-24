@@ -412,6 +412,25 @@ class ReferenceOption(Option):
     ref_type: str
     ref_id: str
 
+    @field_validator("ref_type")
+    @classmethod
+    def _check_ref_type(cls, value: str) -> str:
+        # Printed as ``reference:<type>,<id>;`` — a comma or semicolon in the
+        # type re-splits/terminates the option on reparse, and the rule text
+        # format has no escape for them.
+        if "," in value or ";" in value:
+            raise ValueError("reference type cannot contain ',' or ';'")
+        return value
+
+    @field_validator("ref_id")
+    @classmethod
+    def _check_ref_id(cls, value: str) -> str:
+        # A semicolon terminates the option; commas are fine (the id is read to
+        # the terminator), so URLs with commas round-trip.
+        if ";" in value:
+            raise ValueError("reference id cannot contain ';'")
+        return value
+
 
 class MetadataOption(Option):
     """
@@ -423,6 +442,20 @@ class MetadataOption(Option):
 
     type: Literal["MetadataOption"] = "MetadataOption"
     entries: tuple[tuple[str, str], ...]
+
+    @field_validator("entries")
+    @classmethod
+    def _check_entries(cls, value: tuple[tuple[str, str], ...]) -> tuple[tuple[str, str], ...]:
+        # Printed as ``metadata:k1 v1, k2 v2;`` — entries are comma-separated and
+        # each key/value is space-separated, with ';' terminating the option. The
+        # format has no escape, so these delimiters cannot appear in a key (which
+        # also cannot contain the space that separates it from its value) or value.
+        for key, val in value:
+            if any(ch in key for ch in ",; \t\r\n"):
+                raise ValueError(f"metadata key {key!r} cannot contain whitespace, ',' or ';'")
+            if "," in val or ";" in val:
+                raise ValueError(f"metadata value {val!r} cannot contain ',' or ';'")
+        return value
 
 
 # JSON key used to tag base64-encoded binary content patterns that are not

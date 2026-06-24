@@ -32,10 +32,12 @@ from surinort_ast.core.nodes import (
     Header,
     IPAddress,
     IPCIDRRange,
+    MetadataOption,
     MsgOption,
     Port,
     PortRange,
     Protocol,
+    ReferenceOption,
     RevOption,
     Rule,
     SidOption,
@@ -282,6 +284,42 @@ class TestContentOption:
         # Verify the pattern is stored correctly
         assert content.pattern == b"\x00\x01\x02\xff"
         assert len(content.pattern) == 4
+
+
+class TestUnrepresentableOptionValues:
+    """Values that the rule text format cannot represent must be rejected at the
+    model boundary, so a builder/JSON-built node cannot print to corrupting text.
+
+    Regression: the printer emitted these structural separators raw, so the
+    printed rule re-parsed to a different AST (split metadata entries, truncated
+    reference, spilled GenericOption) or failed to parse.
+    """
+
+    def test_reference_id_rejects_semicolon(self):
+        with pytest.raises(ValidationError):
+            ReferenceOption(ref_type="url", ref_id="ex.com/a;b")
+
+    def test_reference_id_allows_comma(self):
+        # The id is read to the terminator, so commas (e.g. in URLs) round-trip.
+        assert ReferenceOption(ref_type="url", ref_id="ex.com/a,b").ref_id == "ex.com/a,b"
+
+    def test_reference_type_rejects_comma_and_semicolon(self):
+        for bad in ("a,b", "a;b"):
+            with pytest.raises(ValidationError):
+                ReferenceOption(ref_type=bad, ref_id="id")
+
+    def test_metadata_value_rejects_comma_and_semicolon(self):
+        for bad in ("Major, Critical", "a;b"):
+            with pytest.raises(ValidationError):
+                MetadataOption(entries=(("sev", bad),))
+
+    def test_metadata_value_allows_space(self):
+        assert MetadataOption(entries=(("k", "a b c"),)).entries[0][1] == "a b c"
+
+    def test_metadata_key_rejects_whitespace_and_separators(self):
+        for bad in ("a b", "a,b", "a;b"):
+            with pytest.raises(ValidationError):
+                MetadataOption(entries=((bad, "v"),))
 
 
 class TestFlowOption:
