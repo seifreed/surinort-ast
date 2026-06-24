@@ -297,6 +297,25 @@ class TestOptionReorderStrategy:
         assert opts == []
         assert OptionReorderStrategy().estimate_gain(rule) == 0.0
 
+    def test_reorder_preserves_unrecognized_sticky_buffer(self):
+        """A sticky-buffer selector the grammar does not promote to
+        BufferSelectOption (http_referer, ja3.hash, ssl_state, ip.hdr, ...)
+        parses as a bare GenericOption. It re-bases which buffer the following
+        content matches, so the reorder must not pull content across it.
+
+        Regression: only raw_data/dce_stub_data/http_param were guarded, so
+        content:"evil" after http_referer was sorted into the default payload
+        buffer — a rule matching different traffic.
+        """
+        for buffer_name in ("http_referer", "ja3.hash", "ssl_state", "ip.hdr"):
+            rule = parse_rule(
+                "alert http any any -> any any ("
+                f'content:"GET"; {buffer_name}; content:"evil"; sid:1;)'
+            )
+            optimized, opts = OptionReorderStrategy().apply(rule)
+            assert optimized is None, buffer_name
+            assert opts == [], buffer_name
+
     def test_reorder_preserves_dedicated_byte_jump(self):
         """A relative byte_jump advances the match cursor between two contents,
         so moving it past them changes detection. It reaches the optimizer as a

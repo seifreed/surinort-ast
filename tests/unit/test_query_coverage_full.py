@@ -405,6 +405,27 @@ class TestPseudoSelectorBranches:
         ctx.push_ancestor(sid_node)
         assert ps.matches(sid_node, ctx) is True
 
+    def test_result_set_pseudo_in_not_argument_rejected(self):
+        """A result-set pseudo inside :not()/:has() has no per-node scope and
+        used to silently return the wrong set (``:not(:first)`` excluded every
+        node). It must be rejected at parse time instead."""
+        rule = parse_rule(
+            'alert tcp any any -> any 80 (content:"a"; content:"b"; content:"c"; sid:1;)'
+        )
+        for selector in (
+            "ContentOption:not(:first)",
+            "ContentOption:not(:last)",
+            "ContentOption:not(:nth(0))",
+            "ContentOption:not(:within(2))",
+            "ContentOption:not(ContentOption:first)",
+            "Rule:has(:last)",
+        ):
+            with pytest.raises(QuerySyntaxError, match="Result-set pseudo"):
+                query(rule, selector)
+        # Per-node pseudos and plain selectors inside :not stay valid.
+        assert len(query(rule, "ContentOption:not(:first-child)")) == 3
+        assert len(query(rule, "ContentOption:not([pattern=a])")) == 2
+
     def test_not_with_chain_that_has_no_selectors_returns_true(self):
         # Line 694: chain.selectors is empty -> return True.
         rule = parse_rule("alert tcp any any -> any 80 (sid:1;)")

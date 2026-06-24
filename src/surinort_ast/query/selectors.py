@@ -842,6 +842,39 @@ def selector_contains_pseudo(selector: "Selector") -> bool:
     return False
 
 
+def argument_has_result_set_pseudo(selector: "Selector") -> bool:
+    """True if a result-set pseudo appears inside a ``:not()``/``:has()`` argument.
+
+    Result-set pseudos (:first/:last/:nth/:even/:odd/:within) select from the
+    ordered match set, which has no meaning inside a per-node ``:not``/``:has``
+    argument — the engine cannot scope them there. They must be rejected rather
+    than silently producing a wrong (e.g. empty) result.
+    """
+    from .parser import SelectorChain
+
+    if isinstance(selector, PseudoSelector):
+        argument = selector.argument
+        if isinstance(argument, SelectorChain):
+            return any(_contains_result_set_pseudo(member) for member in argument.selectors)
+        if isinstance(argument, Selector):
+            return _contains_result_set_pseudo(argument)
+        return False
+    if isinstance(selector, (CompoundSelector, UnionSelector)):
+        return any(argument_has_result_set_pseudo(member) for member in selector.selectors)
+    return False
+
+
+def _contains_result_set_pseudo(selector: "Selector") -> bool:
+    """True if ``selector`` is, contains, or nests a result-set pseudo-selector."""
+    if isinstance(selector, PseudoSelector):
+        if selector.pseudo_type in _RESULT_SET_PSEUDO:
+            return True
+        return argument_has_result_set_pseudo(selector)
+    if isinstance(selector, (CompoundSelector, UnionSelector)):
+        return any(_contains_result_set_pseudo(member) for member in selector.selectors)
+    return False
+
+
 # ============================================================================
 # Combinator Enum (Phase 2)
 # ============================================================================

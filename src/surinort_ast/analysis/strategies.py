@@ -93,6 +93,15 @@ def _is_order_significant(opt: Option) -> bool:
             return True
         if "relative" in (getattr(opt, "value", "") or ""):
             return True
+        # A bare (valueless) GenericOption is a sticky-buffer selector
+        # (http_referer, ja3.hash, ssl_state, ip.hdr, ...) or state marker that
+        # the grammar does not promote to BufferSelectOption. It re-bases which
+        # buffer following content binds to, so moving content across it changes
+        # detection. Valued predicates (dsize:>100, flags:S, ttl:64) are stateless
+        # and stay reorderable; the common stateless content modifiers (nocase,
+        # rawbytes, startswith) are dedicated nodes, not GenericOption.
+        if getattr(opt, "value", None) is None:
+            return True
     return False
 
 

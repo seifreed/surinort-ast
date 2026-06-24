@@ -553,7 +553,7 @@ def validate_selector_chain(chain: SelectorChain | UnionSelector) -> None:
     # the final ordered match set; they have no per-node meaning mid-chain. The
     # single-pass executor only narrows the final selector, so reject them on any
     # earlier selector rather than silently ignoring them.
-    from .selectors import split_result_set_pseudos
+    from .selectors import argument_has_result_set_pseudo, split_result_set_pseudos
 
     for selector in chain.selectors[:-1]:
         _, pseudos = split_result_set_pseudos(selector)
@@ -562,6 +562,16 @@ def validate_selector_chain(chain: SelectorChain | UnionSelector) -> None:
             raise InvalidSelectorError(
                 f"Result-set pseudo-selector ({names}) is only valid on the final "
                 "selector of a chain, not before a combinator"
+            )
+
+    # A result-set pseudo inside a :not()/:has() argument has no per-node scope;
+    # the executor cannot evaluate it there and would silently return the wrong
+    # set (e.g. ``:not(:first)`` excluded every node). Reject it explicitly.
+    for selector in chain.selectors:
+        if argument_has_result_set_pseudo(selector):
+            raise InvalidSelectorError(
+                "Result-set pseudo-selector (:first/:last/:nth/:even/:odd/:within) "
+                "is not valid inside a :not()/:has() argument"
             )
 
 
