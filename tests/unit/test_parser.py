@@ -169,6 +169,15 @@ class TestAddressParsing:
         assert isinstance(rule.header.src_addr.elements[0], IPCIDRRange)
         assert isinstance(rule.header.src_addr.elements[1], IPCIDRRange)
 
+    def test_parse_ipv4_mapped_ipv6(self, lark_parser: Lark, transformer: RuleTransformer):
+        """Parse IPv4-mapped IPv6 literals (valid Suricata address syntax)."""
+        rule_text = 'alert ip ::ffff:192.168.1.1 any -> any any (msg:"Test"; sid:1;)'
+        rule = transform_rule(rule_text, lark_parser, transformer)
+
+        assert isinstance(rule.header.src_addr, IPAddress)
+        assert rule.header.src_addr.value == "::ffff:192.168.1.1"
+        assert rule.header.src_addr.version == 6
+
 
 class TestPortParsing:
     """Test port expression parsing."""

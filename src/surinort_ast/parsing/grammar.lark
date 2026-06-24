@@ -371,8 +371,10 @@ VARIABLE: "$" /[A-Z_][A-Z0-9_]*/
 
 // IP Addresses (must come before WORD to avoid conflicts)
 IPV4: /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
-// IPv6: require at least one colon to distinguish from simple words
-IPV6: /[0-9a-fA-F]*:[0-9a-fA-F:]+/
+// IPv6: require at least one colon to distinguish from simple words. The
+// optional trailing dotted-quad supports IPv4-mapped/embedded forms such as
+// ::ffff:192.168.1.1, which are valid Suricata address literals.
+IPV6: /[0-9a-fA-F]*:[0-9a-fA-F:]+(?:\.\d{1,3}\.\d{1,3}\.\d{1,3})?/
 
 // Strings
 // ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 10000 chars)
