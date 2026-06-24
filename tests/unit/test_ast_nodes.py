@@ -135,6 +135,16 @@ class TestNodeCreation:
         with pytest.raises(ValidationError):
             IPCIDRRange(network="2001:db8::", prefix_len=129)
 
+    def test_ip_address_version_must_match_value(self):
+        """The version field must agree with the address value."""
+        IPAddress(value="192.168.1.1", version=4)
+        IPAddress(value="2001:db8::1", version=6)
+        IPAddress(value="::ffff:192.168.1.1", version=6)
+        with pytest.raises(ValidationError, match="inconsistent"):
+            IPAddress(value="192.168.1.1", version=6)
+        with pytest.raises(ValidationError, match="inconsistent"):
+            IPAddress(value="2001:db8::1", version=4)
+
     def test_sid_validation(self):
         """SID must be positive integer."""
         # Valid SID

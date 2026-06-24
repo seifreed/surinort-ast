@@ -162,6 +162,23 @@ class IPAddress(AddressExpr):
     value: str
     version: Literal[4, 6]
 
+    @field_validator("version")
+    @classmethod
+    def validate_version(cls, v: int, info: Any) -> int:
+        """Ensure version agrees with the address value (IPv6 contains a colon).
+
+        Keeps the redundant version field consistent with the value so a
+        directly-constructed node cannot hold a contradictory state.
+        """
+        value = info.data.get("value")
+        if value is not None:
+            expected = 6 if ":" in value else 4
+            if v != expected:
+                raise ValueError(
+                    f"IP version {v} inconsistent with address {value!r} (IPv{expected})"
+                )
+        return v
+
 
 class IPCIDRRange(AddressExpr):
     """CIDR range: 10.0.0.0/8"""
