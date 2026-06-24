@@ -369,8 +369,10 @@ comment: /#[^\n]*/
 // Variables
 VARIABLE: "$" /[A-Z_][A-Z0-9_]*/
 
-// IP Addresses (must come before WORD to avoid conflicts)
-IPV4: /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
+// IP Addresses (must come before WORD to avoid conflicts).
+// Octets are range-checked (0-255) so impossible literals such as
+// 999.999.999.999 are not accepted as valid addresses.
+IPV4: /(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}/
 // IPv6: require at least one colon to distinguish from simple words. The
 // optional trailing dotted-quad supports IPv4-mapped/embedded forms such as
 // ::ffff:192.168.1.1, which are valid Suricata address literals.

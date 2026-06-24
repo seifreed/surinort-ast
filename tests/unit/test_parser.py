@@ -178,6 +178,24 @@ class TestAddressParsing:
         assert rule.header.src_addr.value == "::ffff:192.168.1.1"
         assert rule.header.src_addr.version == 6
 
+    def test_parse_ipv4_boundary_octets(self, lark_parser: Lark, transformer: RuleTransformer):
+        """Octet boundaries 0 and 255 are valid and still parse."""
+        rule_text = 'alert ip 0.0.0.0 any -> 255.255.255.255 any (msg:"Test"; sid:1;)'
+        rule = transform_rule(rule_text, lark_parser, transformer)
+
+        assert isinstance(rule.header.src_addr, IPAddress)
+        assert rule.header.src_addr.value == "0.0.0.0"
+        assert rule.header.dst_addr.value == "255.255.255.255"
+
+    @pytest.mark.parametrize("addr", ["999.999.999.999", "256.1.1.1", "300.0.0.1"])
+    def test_parse_ipv4_out_of_range_octet_rejected(
+        self, addr: str, lark_parser: Lark, transformer: RuleTransformer
+    ) -> None:
+        """An octet above 255 is not a valid address and must not parse as one."""
+        rule_text = f'alert ip {addr} any -> any any (msg:"Test"; sid:1;)'
+        with pytest.raises(LarkError):
+            transform_rule(rule_text, lark_parser, transformer)
+
 
 class TestPortParsing:
     """Test port expression parsing."""
