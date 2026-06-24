@@ -308,6 +308,23 @@ class TestParseAddressEdgeCases:
         with pytest.raises(BuilderError, match="Invalid CIDR prefix length"):
             _base().source_ip("10.0.0.0/bad").sid(1).build()
 
+    def test_ipv4_cidr_prefix_above_32_raises(self) -> None:
+        """An IPv4 CIDR prefix above 32 is invalid and must raise, not build silently."""
+        with pytest.raises(BuilderError, match="out of range for IPv4"):
+            _base().source_ip("10.0.0.0/33").sid(1).build()
+
+    def test_ipv6_cidr_prefix_above_128_raises(self) -> None:
+        """An IPv6 CIDR prefix above 128 is invalid and must raise."""
+        with pytest.raises(BuilderError, match="out of range for IPv6"):
+            _base().source_ip("2001:db8::/129").sid(1).build()
+
+    def test_valid_cidr_prefixes_build(self) -> None:
+        """Boundary prefixes (IPv4 /32, IPv6 /128) remain valid."""
+        rule = _base().source_ip("10.0.0.0/32").sid(1).build()
+        assert rule is not None
+        rule6 = _base().source_ip("2001:db8::/128").sid(2).build()
+        assert rule6 is not None
+
     def test_ip_range_with_multiple_dashes_raises(self) -> None:
         """An unbracketed string with more than one dash raises BuilderError (line 895).
 
