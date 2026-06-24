@@ -274,6 +274,86 @@ class TestWalkerPattern:
         assert counter.count > 5
 
 
+class TestGenericVisitReachesEveryNode:
+    """generic_visit is the single default-traversal hook (see visitor.py).
+
+    Regression: ASTVisitor/ASTTransformer/ASTWalker specialized
+    visit_rule/visit_header/visit_address*/visit_port* did their own traversal,
+    silently shadowing an overridden generic_visit for those container types —
+    so a generic_visit-only counter under-counted and, worse, an ASTTransformer
+    rewriting via generic_visit silently no-op'd on Rule/Header/Address*/Port*.
+    """
+
+    def _rule(self, lark_parser, transformer):
+        text = 'alert tcp ![10.0.0.1,10.0.0.2] [80,443] -> any 80 (msg:"x"; sid:1;)'
+        return transformer.transform(lark_parser.parse(text))[0]
+
+    @staticmethod
+    def _total(node):
+        from surinort_ast.core.nodes import iter_child_nodes
+
+        return 1 + sum(
+            TestGenericVisitReachesEveryNode._total(child) for child in iter_child_nodes(node)
+        )
+
+    def test_visitor_generic_visit_sees_every_node(self, lark_parser, transformer):
+        rule = self._rule(lark_parser, transformer)
+
+        class Counter(ASTVisitor[int]):
+            def __init__(self):
+                self.count = 0
+
+            def generic_visit(self, node):
+                self.count += 1
+                return super().generic_visit(node)
+
+            def default_return(self):
+                return self.count
+
+        counter = Counter()
+        counter.visit(rule)
+        assert counter.count == self._total(rule)
+
+    def test_walker_generic_visit_sees_every_node(self, lark_parser, transformer):
+        rule = self._rule(lark_parser, transformer)
+
+        class Counter(ASTWalker):
+            def __init__(self):
+                self.count = 0
+
+            def generic_visit(self, node):
+                self.count += 1
+                super().generic_visit(node)
+
+        counter = Counter()
+        counter.walk(rule)
+        assert counter.count == self._total(rule)
+
+    def test_transformer_generic_visit_touches_container_nodes(self, lark_parser, transformer):
+        """A transformer rewriting via generic_visit must reach Rule/Header/
+        AddressList/AddressNegation/PortList — not silently skip them."""
+        from surinort_ast.core.nodes import iter_child_nodes
+
+        rule = self._rule(lark_parser, transformer)
+
+        class StripLocation(ASTTransformer):
+            def generic_visit(self, node):
+                rebuilt = super().generic_visit(node)
+                if rebuilt.location is not None:
+                    return rebuilt.model_copy(update={"location": None})
+                return rebuilt
+
+        out = StripLocation().visit(rule)
+
+        def remaining_locations(node):
+            here = [node.location] if node.location is not None else []
+            return here + [
+                loc for child in iter_child_nodes(node) for loc in remaining_locations(child)
+            ]
+
+        assert remaining_locations(out) == []
+
+
 class TestVisitorIntegration:
     """Test visitor integration with real rules."""
 

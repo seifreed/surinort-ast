@@ -98,43 +98,37 @@ class ASTVisitor(Generic[T]):
         # Subclasses using non-nullable T must override this method.
         return cast(T, None)
 
-    # Specialized visit methods for common nodes
+    # Per-type traversal hooks. Each delegates to generic_visit so that
+    # generic_visit is the single source of default traversal: a subclass
+    # overriding ONLY generic_visit observes every node type (these methods used
+    # to do their own traversal, silently shadowing such an override for
+    # Rule/Header/Address*/Port* — e.g. an ASTTransformer rewriting via
+    # generic_visit no-op'd on those container nodes). Subclasses may still
+    # override a single visit_<type> and call super().visit_<type>() for
+    # default child traversal.
     def visit_rule(self, node: Rule) -> T:
-        """Visit Rule node."""
-        self.visit(node.header)
-        for option in node.options:
-            self.visit(option)
-        return self.default_return()
+        """Visit Rule node (delegates to generic_visit)."""
+        return self.generic_visit(node)
 
     def visit_header(self, node: Header) -> T:
-        """Visit Header node."""
-        self.visit(node.src_addr)
-        self.visit(node.src_port)
-        self.visit(node.dst_addr)
-        self.visit(node.dst_port)
-        return self.default_return()
+        """Visit Header node (delegates to generic_visit)."""
+        return self.generic_visit(node)
 
     def visit_addresslist(self, node: AddressList) -> T:
-        """Visit AddressList node."""
-        for addr in node.elements:
-            self.visit(addr)
-        return self.default_return()
+        """Visit AddressList node (delegates to generic_visit)."""
+        return self.generic_visit(node)
 
     def visit_addressnegation(self, node: AddressNegation) -> T:
-        """Visit AddressNegation node."""
-        self.visit(node.expr)
-        return self.default_return()
+        """Visit AddressNegation node (delegates to generic_visit)."""
+        return self.generic_visit(node)
 
     def visit_portlist(self, node: PortList) -> T:
-        """Visit PortList node."""
-        for port in node.elements:
-            self.visit(port)
-        return self.default_return()
+        """Visit PortList node (delegates to generic_visit)."""
+        return self.generic_visit(node)
 
     def visit_portnegation(self, node: PortNegation) -> T:
-        """Visit PortNegation node."""
-        self.visit(node.expr)
-        return self.default_return()
+        """Visit PortNegation node (delegates to generic_visit)."""
+        return self.generic_visit(node)
 
 
 class ASTTransformer(ASTVisitor[ASTNode]):
@@ -214,71 +208,6 @@ class ASTTransformer(ASTVisitor[ASTNode]):
             return node.model_copy(update=updates)
         return node
 
-    def visit_rule(self, node: Rule) -> Rule:
-        """Transform Rule node."""
-        new_header = self._visit_child(node.header)
-        new_options = [self._visit_child(opt) for opt in node.options]
-
-        if new_header != node.header or new_options != list(node.options):
-            return node.model_copy(
-                update={
-                    "header": new_header,
-                    "options": tuple(new_options),
-                }
-            )
-        return node
-
-    def visit_header(self, node: Header) -> Header:
-        """Transform Header node."""
-        new_src_addr = self._visit_child(node.src_addr)
-        new_src_port = self._visit_child(node.src_port)
-        new_dst_addr = self._visit_child(node.dst_addr)
-        new_dst_port = self._visit_child(node.dst_port)
-
-        if (
-            new_src_addr != node.src_addr
-            or new_src_port != node.src_port
-            or new_dst_addr != node.dst_addr
-            or new_dst_port != node.dst_port
-        ):
-            return node.model_copy(
-                update={
-                    "src_addr": new_src_addr,
-                    "src_port": new_src_port,
-                    "dst_addr": new_dst_addr,
-                    "dst_port": new_dst_port,
-                }
-            )
-        return node
-
-    def visit_addresslist(self, node: AddressList) -> AddressList:
-        """Transform AddressList node."""
-        new_elements = [self._visit_child(addr) for addr in node.elements]
-        if new_elements != list(node.elements):
-            return node.model_copy(update={"elements": tuple(new_elements)})
-        return node
-
-    def visit_addressnegation(self, node: AddressNegation) -> AddressNegation:
-        """Transform AddressNegation node."""
-        new_expr = self._visit_child(node.expr)
-        if new_expr != node.expr:
-            return node.model_copy(update={"expr": new_expr})
-        return node
-
-    def visit_portlist(self, node: PortList) -> PortList:
-        """Transform PortList node."""
-        new_elements = [self._visit_child(port) for port in node.elements]
-        if new_elements != list(node.elements):
-            return node.model_copy(update={"elements": tuple(new_elements)})
-        return node
-
-    def visit_portnegation(self, node: PortNegation) -> PortNegation:
-        """Transform PortNegation node."""
-        new_expr = self._visit_child(node.expr)
-        if new_expr != node.expr:
-            return node.model_copy(update={"expr": new_expr})
-        return node
-
 
 class ASTWalker:
     """
@@ -321,14 +250,9 @@ class ASTWalker:
             self.walk(child)
 
     def visit_rule(self, node: Rule) -> None:
-        """Visit Rule node."""
-        self.walk(node.header)
-        for option in node.options:
-            self.walk(option)
+        """Visit Rule node (delegates to generic_visit)."""
+        self.generic_visit(node)
 
     def visit_header(self, node: Header) -> None:
-        """Visit Header node."""
-        self.walk(node.src_addr)
-        self.walk(node.src_port)
-        self.walk(node.dst_addr)
-        self.walk(node.dst_port)
+        """Visit Header node (delegates to generic_visit)."""
+        self.generic_visit(node)
