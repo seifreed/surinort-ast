@@ -66,10 +66,10 @@ def _to_location(finding: Finding) -> list[SarifLocation]:
     # the file path is unknown but we still have a region, fall back to a
     # synthetic URI so the location round-trips through SARIF 2.1.0 validators
     # (a null artifactLocation.uri is rejected by spec).
-    if loc.file_path is None and region is None:
+    if not loc.file_path and region is None:
         return []
 
-    uri = _path_to_uri(loc.file_path) if loc.file_path is not None else "unknown"
+    uri = _path_to_uri(loc.file_path) if loc.file_path else "unknown"
     physical = SarifPhysicalLocation(uri=uri, region=region)
     return [SarifLocation(physical_location=physical)]
 

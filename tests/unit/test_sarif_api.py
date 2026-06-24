@@ -108,6 +108,23 @@ def test_finding_with_empty_location_omits_physical_location() -> None:
     assert "locations" not in result or result["locations"] == []
 
 
+def test_finding_with_empty_string_path_and_no_region_omits_location() -> None:
+    """An empty-string file_path is as unusable as None: emit no artifact URI."""
+    from surinort_ast.analysis.findings import Finding, FindingLevel, FindingLocation
+    from surinort_ast.serialization.sarif import to_sarif_log
+
+    finding = Finding(
+        rule_id="R1",
+        level=FindingLevel.ERROR,
+        message="m",
+        category="c",
+        location=FindingLocation(file_path="", start_line=None),
+    )
+    result = to_sarif_log([finding])["runs"][0]["results"][0]
+    # Must not emit a bogus artifactLocation.uri of "." for an empty path.
+    assert "locations" not in result or result["locations"] == []
+
+
 def test_finding_with_line_only_keeps_region() -> None:
     from surinort_ast.analysis.findings import Finding, FindingLevel, FindingLocation
     from surinort_ast.serialization.sarif import to_sarif_log
