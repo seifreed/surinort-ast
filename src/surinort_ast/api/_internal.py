@@ -131,11 +131,12 @@ def _get_parser(dialect: Dialect = Dialect.SURICATA, track_locations: bool = Tru
     Performance Notes:
         - Parser instances are cached per (dialect, track_locations) combination
         - Grammar file is cached after first read (see _get_grammar())
-        - track_locations=False: ~10% faster parsing but no position info
 
     Note:
-        When track_locations=False, parsing is approximately 10% faster
-        but location information will not be available in the AST.
+        Node locations are derived from token positions in the transformer, which
+        the LALR lexer always populates. Lark's ``propagate_positions`` (which
+        aggregates those positions onto parse-tree ``meta``) is therefore never
+        read and is disabled — it costs ~20% of parse time for nothing.
     """
     # Cache key includes location tracking preference
     cache_key = (dialect, track_locations)
@@ -148,7 +149,9 @@ def _get_parser(dialect: Dialect = Dialect.SURICATA, track_locations: bool = Tru
             grammar,
             start="rule",
             parser="lalr",
-            propagate_positions=track_locations,
+            # Locations come from token positions in the transformer, not from
+            # tree meta, so position propagation is pure overhead.
+            propagate_positions=False,
             maybe_placeholders=False,
         )
 

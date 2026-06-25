@@ -143,7 +143,9 @@ class LarkRuleParser:
             grammar,
             start="start",
             parser="lalr",  # Fast LALR(1) parser
-            propagate_positions=True,  # Track positions for location info
+            # Locations come from token positions in the transformer, not from
+            # parse-tree meta, so propagating positions is pure overhead (~20%).
+            propagate_positions=False,
             maybe_placeholders=False,  # Strict parsing
             cache=True,  # Cache parser tables
         )
