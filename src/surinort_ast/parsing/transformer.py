@@ -219,15 +219,21 @@ class RuleTransformer(
         # passes only the protocol, expanded to an any/any TO any/any header.
         header = second if isinstance(second, Header) else Header.wildcard(second)
 
-        # Create rule with accumulated diagnostics
+        # Create rule with the diagnostics accumulated during its own option
+        # transformation, then clear them so the next rule built by this same
+        # transformer starts clean. This per-rule reset (rather than relying on
+        # transform() to reset) is what lets the transformer be embedded directly
+        # in the parser, where transform() is never called.
         location = header.location
+        diagnostics = tuple(self.diagnostics)
+        self.diagnostics = []
         return Rule(
             action=action,
             header=header,
             options=options,
             dialect=self.dialect,
             location=location,
-            diagnostics=self.diagnostics.copy(),
+            diagnostics=diagnostics,
         )
 
     @v_args(inline=True)
