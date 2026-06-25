@@ -486,7 +486,13 @@ Holding the whole corpus in memory is dominated by node `Location` objects:
   per-call wrapper (~2%) but rewrites 50+ transformer methods — poor risk/reward.
 - `model_construct` (skipping Pydantic validation) would speed node creation but
   bypasses the boundary validators that keep builder/JSON-built nodes
-  representable, so it is intentionally avoided.
+  representable, so it is intentionally avoided. (Measured: `model_construct` is
+  also ~1.8× *slower* than the validated path here — pydantic-core's Rust
+  constructor beats the pure-Python `model_construct`.)
+- Returning worker results as protobuf bytes to shrink the parallel transfer
+  was measured and rejected: the payload is ~3× smaller, but `from_protobuf` is
+  ~2× slower than the default deserialization, and the parent rebuilds every
+  result single-threaded — so it worsens the exact bottleneck it aimed to fix.
 
 ## Contributing
 
