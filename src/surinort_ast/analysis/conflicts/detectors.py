@@ -165,6 +165,11 @@ def detect_missing_dependency(index: RuleIndex, config: ConflictDetectorConfig) 
 
 def detect_conflicting_action(index: RuleIndex, config: ConflictDetectorConfig) -> list[Conflict]:
     conflicts: list[Conflict] = []
+    # A conflict needs two different action classes; if every rule shares one
+    # class (the common case — e.g. an all-``alert`` ruleset), no pair can
+    # conflict, so skip the O(n^2) candidate walk entirely.
+    if len({_action_class(p.rule.action) for p in index.prepared}) < 2:
+        return conflicts
     for a, b in candidate_pairs(index, hierarchy=config.protocol_hierarchy):
         if _action_class(a.rule.action) == _action_class(b.rule.action):
             continue
@@ -228,15 +233,15 @@ def detect_shadowing(index: RuleIndex, config: ConflictDetectorConfig) -> list[C
 
 
 def _shadows(earlier: PreparedRule, later: PreparedRule, hierarchy: bool) -> bool:
-    # Earlier must provably subsume later (no UNKNOWN -> never claim a rule is dead).
-    if match_subsumes(earlier, later, hierarchy) != Tri.TRUE:
-        return False
     earlier_action = earlier.rule.action
     later_action = later.rule.action
-    if _is_terminating(earlier_action):
-        return True
-    # Non-terminating (alert/log): only a redundant identical-action subset is dead.
-    return earlier_action == later_action
+    # Cheap precondition before the expensive match_subsumes: a non-terminating
+    # earlier rule can only shadow a later one with the identical action, so a
+    # non-terminating/different-action pair can be rejected without the algebra.
+    if not _is_terminating(earlier_action) and earlier_action != later_action:
+        return False
+    # Earlier must provably subsume later (no UNKNOWN -> never claim a rule is dead).
+    return match_subsumes(earlier, later, hierarchy) == Tri.TRUE
 
 
 def detect_overlapping(index: RuleIndex, config: ConflictDetectorConfig) -> list[Conflict]:
