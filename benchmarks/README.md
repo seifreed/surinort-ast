@@ -451,6 +451,11 @@ in this project's code is bounded by the remaining ~30%.
   the memory those objects occupy.
 - **`cache=True`** — the LALR tables are cached to disk, so a fresh process
   rebuilds the parser in ~7 ms instead of ~50 ms (cold-start only).
+- **Embedded transformer (bulk paths)** — `parse_file` builds the AST nodes
+  during parsing via `Lark(transformer=...)`, skipping the intermediate parse
+  tree. ~15–16% faster over a whole file (corpus ~2320 → ~2775 rules/s);
+  `parse_rule` keeps the cached parse-then-transform path since the per-call
+  parser build would dominate a single rule.
 
 ### Tuning for bulk parsing
 
