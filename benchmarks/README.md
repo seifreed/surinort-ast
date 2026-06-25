@@ -499,6 +499,25 @@ Holding the whole corpus in memory is dominated by node `Location` objects:
   ~2× slower than the default deserialization, and the parent rebuilds every
   result single-threaded — so it worsens the exact bottleneck it aimed to fix.
 
+## Serialization
+
+Over the parsed Suricata corpus (30,579 rules), per-operation throughput:
+
+| Operation | Rules/s | Bound by |
+|-----------|---------|----------|
+| `to_json` | ~34,000 | `model_dump` (Rust) |
+| `to_protobuf` | ~23,000 | protobuf encode + node walk |
+| `from_json` | ~7,000 | `validate_python` (Rust) |
+| `from_protobuf` | ~6,600 | Pydantic node construction |
+
+Deserialization is ~5× slower than serialization because it rebuilds and
+**validates** every node (the boundary validators run on untrusted input, so
+this is correct and not skippable). Two cheap wins were applied: `from_json`
+caches its `TypeAdapter`s instead of rebuilding them per call, and protobuf
+option serialization uses an exact-type dict dispatch instead of
+`singledispatch`'s MRO walk. Beyond that, serialization — like parsing — is
+bounded by pydantic-core (Rust) and the protobuf library.
+
 ## Contributing
 
 When adding benchmarks:
