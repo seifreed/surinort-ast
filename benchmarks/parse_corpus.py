@@ -16,13 +16,16 @@ https://www.gnu.org/licenses/gpl-3.0.html
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import sys
 import time
+import tracemalloc
 from pathlib import Path
 from typing import NamedTuple, TypedDict
 
 from surinort_ast import parse_file
+from surinort_ast.api.parsing import parse_file_streaming
 
 _CORPUS_ROOT = Path(__file__).resolve().parent.parent / "rules"
 
@@ -146,6 +149,70 @@ def measure() -> CorpusResult:
     }
 
 
+class MemoryStat(TypedDict):
+    config: str
+    rules: int
+    peak_mb: float
+    bytes_per_rule: int
+
+
+def _peak_mb_full(track_locations: bool, include_raw_text: bool) -> tuple[int, float]:
+    """Peak heap (MB) for holding the whole corpus as a list of Rule ASTs."""
+    gc.collect()
+    tracemalloc.start()
+    rules = [
+        rule
+        for path in _rule_files()
+        for rule in parse_file(
+            path, track_locations=track_locations, include_raw_text=include_raw_text
+        )
+    ]
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    count = len(rules)
+    del rules
+    gc.collect()
+    return count, peak / 1e6
+
+
+def _peak_mb_streaming() -> tuple[int, float]:
+    """Peak heap (MB) when streaming — only one rule is live at a time."""
+    gc.collect()
+    tracemalloc.start()
+    count = 0
+    for path in _rule_files():
+        for _ in parse_file_streaming(path, track_locations=False, include_raw_text=False):
+            count += 1
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    gc.collect()
+    return count, peak / 1e6
+
+
+def memory() -> list[MemoryStat]:
+    if not _rule_files():
+        raise SystemExit(f"No .rules files found under {_CORPUS_ROOT}")
+
+    parse_file(_rule_files()[0])  # warm the parser cache
+
+    measured: list[tuple[str, tuple[int, float]]] = [
+        ("full (locations + raw_text)", _peak_mb_full(True, True)),
+        ("full lean (no locations, no raw_text)", _peak_mb_full(False, False)),
+        ("streaming lean", _peak_mb_streaming()),
+    ]
+    stats: list[MemoryStat] = []
+    for label, (count, peak_mb) in measured:
+        stats.append(
+            {
+                "config": label,
+                "rules": count,
+                "peak_mb": round(peak_mb, 1),
+                "bytes_per_rule": round(peak_mb * 1e6 / count) if count else 0,
+            }
+        )
+    return stats
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--json", action="store_true", help="emit JSON instead of a table")
@@ -154,7 +221,25 @@ def main() -> int:
         action="store_true",
         help="parse the corpus under several configs and report relative throughput",
     )
+    ap.add_argument(
+        "--memory",
+        action="store_true",
+        help="report peak heap memory per config (full vs lean vs streaming)",
+    )
     args = ap.parse_args()
+
+    if args.memory:
+        mem = memory()
+        if args.json:
+            json.dump(mem, sys.stdout, indent=2)
+            sys.stdout.write("\n")
+            return 0
+        for m in mem:
+            print(
+                f"{m['config']:40s} {m['rules']:7d} rules  "
+                f"peak {m['peak_mb']:8.1f} MB  {m['bytes_per_rule']:6d} B/rule"
+            )
+        return 0
 
     if args.compare:
         stats = compare()
