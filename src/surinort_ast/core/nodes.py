@@ -630,6 +630,20 @@ class BufferSelectOption(Option):
     buffer_name: str
 
 
+def _coerce_byte_operand(value: Any) -> Any:
+    """Normalize a byte-op operand to its canonical type: a plain decimal (e.g.
+    ``"1000"``/``-5``) becomes an ``int``; a hex literal (``"0x78"``) or a
+    variable name (``"ids"``, from a prior byte_extract) stays a ``str``. This
+    keeps the operand lossless across the parser (raw token), builder (int), and
+    JSON/protobuf paths — a multi-byte hex value also exceeds int64."""
+    if isinstance(value, str):
+        try:
+            return int(value, 10)
+        except ValueError:
+            return value
+    return value
+
+
 class ByteTestOption(Option):
     """
     byte_test:4,>,1000,0;
@@ -637,17 +651,24 @@ class ByteTestOption(Option):
     Attributes:
         bytes_to_extract: Number of bytes
         operator: Comparison operator (>, <, =, etc.)
-        value: Value to compare against
-        offset: Offset from cursor
+        value: Value to compare against (int, hex literal, or a variable name)
+        offset: Offset from cursor (int or a variable name)
         flags: Additional flags
     """
 
     type: Literal["ByteTestOption"] = "ByteTestOption"
-    bytes_to_extract: int = Field(ge=1, le=10)
+    # Every numeric operand is int|str: the grammar's number token also accepts
+    # hex literals (0x78), and value/offset additionally accept a variable name.
+    bytes_to_extract: int | str
     operator: str
-    value: int
-    offset: int
+    value: int | str
+    offset: int | str
     flags: tuple[str, ...] = Field(default_factory=tuple)
+
+    @field_validator("bytes_to_extract", "value", "offset", mode="before")
+    @classmethod
+    def _normalize_operand(cls, value: Any) -> Any:
+        return _coerce_byte_operand(value)
 
 
 class ByteJumpOption(Option):
@@ -656,14 +677,19 @@ class ByteJumpOption(Option):
 
     Attributes:
         bytes_to_extract: Number of bytes
-        offset: Offset adjustment
+        offset: Offset adjustment (int, hex, or a variable name)
         flags: Additional flags
     """
 
     type: Literal["ByteJumpOption"] = "ByteJumpOption"
-    bytes_to_extract: int = Field(ge=1, le=10)
-    offset: int
+    bytes_to_extract: int | str
+    offset: int | str
     flags: tuple[str, ...] = Field(default_factory=tuple)
+
+    @field_validator("bytes_to_extract", "offset", mode="before")
+    @classmethod
+    def _normalize_operand(cls, value: Any) -> Any:
+        return _coerce_byte_operand(value)
 
 
 class ByteExtractOption(Option):
@@ -672,16 +698,21 @@ class ByteExtractOption(Option):
 
     Attributes:
         bytes_to_extract: Number of bytes
-        offset: Offset from cursor
+        offset: Offset from cursor (int or hex)
         var_name: Variable name
         flags: Additional flags
     """
 
     type: Literal["ByteExtractOption"] = "ByteExtractOption"
-    bytes_to_extract: int = Field(ge=1, le=10)
-    offset: int
+    bytes_to_extract: int | str
+    offset: int | str
     var_name: str
     flags: tuple[str, ...] = Field(default_factory=tuple)
+
+    @field_validator("bytes_to_extract", "offset", mode="before")
+    @classmethod
+    def _normalize_operand(cls, value: Any) -> Any:
+        return _coerce_byte_operand(value)
 
 
 class FastPatternOption(Option):

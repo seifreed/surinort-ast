@@ -38,10 +38,10 @@ from surinort_ast.core.enums import Dialect
 from surinort_ast.core.nodes import (
     AddressNegation,
     AnyAddress,
+    ByteTestOption,
     FastPatternOption,
     FilestoreOption,
     FlowbitsOption,
-    GenericOption,
 )
 from surinort_ast.parsing.lark_parser import LarkRuleParser
 from surinort_ast.parsing.mixins import DiagnosticReporter
@@ -336,43 +336,39 @@ class TestFastPatternOptionOnly:
 
 
 class TestByteTestOptionTreeBranches:
-    """Lines 747-761: byte_test_option Tree handling."""
+    """byte_test_option flag-param handling (the four required positional params
+    precede the flags). byte_test parses to a dedicated ByteTestOption."""
+
+    @staticmethod
+    def _params(flag: Any) -> list[list[Any]]:
+        # bytes, operator, value, offset, then the flag under test.
+        return [[_token("INT", "4"), ">", _token("INT", "1000"), _token("INT", "0"), flag]]
 
     def test_byte_test_flag_tree_node_with_data_byte_test_flag(self) -> None:
-        # Lines 749-757: Tree with data=="byte_test_flag" and Token children
-        child = _token("WORD", "relative")
-        tree_flag = Tree("byte_test_flag", [child])
-        t = _transformer()
-        result = t.byte_test_option([[tree_flag]])
-        assert isinstance(result, GenericOption)
-        assert result.keyword == "byte_test"
-        assert "relative" in result.value
+        # Tree with data=="byte_test_flag" and Token children → joined flag.
+        tree_flag = Tree("byte_test_flag", [_token("WORD", "relative")])
+        result = _transformer().byte_test_option(self._params(tree_flag))
+        assert isinstance(result, ByteTestOption)
+        assert "relative" in result.flags
 
-    def test_byte_test_flag_tree_with_non_token_child_hits_line_756(self) -> None:
-        # Line 756: child is NOT a Token (it is a Tree) inside byte_test_flag tree
-        # → flag_parts.append(str(child)) is executed (line 756)
+    def test_byte_test_flag_tree_with_non_token_child(self) -> None:
+        # A non-Token (Tree) child inside byte_test_flag → str(child).
         inner_child: Tree[Any] = Tree("inner_rule", [])
         tree_flag = Tree("byte_test_flag", [inner_child])
-        t = _transformer()
-        result = t.byte_test_option([[tree_flag]])
-        assert isinstance(result, GenericOption)
-        assert result.keyword == "byte_test"
+        result = _transformer().byte_test_option(self._params(tree_flag))
+        assert isinstance(result, ByteTestOption)
 
     def test_byte_test_option_with_non_flag_tree(self) -> None:
-        # Lines 758-759: Tree with different data (not byte_test_flag)
-        child = _token("WORD", "other")
-        tree_other = Tree("other_node", [child])
-        t = _transformer()
-        result = t.byte_test_option([[tree_other]])
-        assert isinstance(result, GenericOption)
-        assert result.keyword == "byte_test"
+        # Tree with different data (not byte_test_flag) → str(p).
+        tree_other = Tree("other_node", [_token("WORD", "other")])
+        result = _transformer().byte_test_option(self._params(tree_other))
+        assert isinstance(result, ByteTestOption)
 
     def test_byte_test_option_with_non_token_non_str_non_tree(self) -> None:
-        # Lines 760-761: integer param (else branch)
-        t = _transformer()
-        result = t.byte_test_option([[42]])
-        assert isinstance(result, GenericOption)
-        assert "42" in result.value
+        # Integer flag param (else branch) → str(42).
+        result = _transformer().byte_test_option(self._params(42))
+        assert isinstance(result, ByteTestOption)
+        assert "42" in result.flags
 
 
 class TestSignedOffsetEmpty:
@@ -392,37 +388,33 @@ class TestByteTestFlagEmpty:
         assert result == ""
 
 
-class TestFormatByteFlagParams:
-    """Lines 856-863, 870: _format_byte_flag_params Tree and long-tuple branches."""
+class TestByteFlagParamList:
+    """_byte_flag_param_list Tree and long-tuple branches (returns a positional
+    string list for byte_jump/byte_extract)."""
 
     def test_tree_with_single_child(self) -> None:
-        # Lines 860-861: Tree with exactly one child
-        child = _token("WORD", "relative")
-        tree = Tree("byte_jump_flag", [child])
-        result = ContentTransformerMixin._format_byte_flag_params([tree])
-        assert result == "relative"
+        tree = Tree("byte_jump_flag", [_token("WORD", "relative")])
+        result = ContentTransformerMixin._byte_flag_param_list([tree])
+        assert result == ["relative"]
 
     def test_tree_with_two_children(self) -> None:
-        # Lines 858-859: Tree with two children
         name = _token("WORD", "post_offset")
         value = _token("INT", "10")
         tree = Tree("byte_jump_flag", [name, value])
-        result = ContentTransformerMixin._format_byte_flag_params([tree])
-        assert result == "post_offset 10"
+        result = ContentTransformerMixin._byte_flag_param_list([tree])
+        assert result == ["post_offset 10"]
 
     def test_tree_with_no_children(self) -> None:
-        # Lines 862-863: Tree with no children → str(p)
         tree: Tree[Any] = Tree("byte_jump_flag", [])
-        result = ContentTransformerMixin._format_byte_flag_params([tree])
-        assert "byte_jump_flag" in result
+        result = ContentTransformerMixin._byte_flag_param_list([tree])
+        assert "byte_jump_flag" in result[0]
 
     def test_list_or_tuple_with_three_or_more_items(self) -> None:
-        # Line 870: tuple with len > 2
         a = _token("WORD", "a")
         b = _token("WORD", "b")
         c = _token("WORD", "c")
-        result = ContentTransformerMixin._format_byte_flag_params([(a, b, c)])
-        assert result == "a b c"
+        result = ContentTransformerMixin._byte_flag_param_list([(a, b, c)])
+        assert result == ["a b c"]
 
 
 class TestResolveByteFlag:

@@ -762,7 +762,7 @@ class TestSemanticPreservingOptimization:
             o.node_type if o.node_type != "GenericOption" else o.keyword for o in optimized.options
         ]
         # byte_test must remain immediately after the first content (index of A).
-        assert kinds.index("byte_test") == kinds.index("ContentOption") + 1
+        assert kinds.index("ByteTestOption") == kinds.index("ContentOption") + 1
 
     def test_lua_script_not_reordered(self):
         """A lua script keeps its position (it observes prior match state)."""

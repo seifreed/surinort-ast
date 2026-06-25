@@ -249,39 +249,41 @@ class TestPerformanceEstimator:
         assert cost > 0
 
     def test_byte_op_cost_independent_of_representation(self):
-        """A byte_test costs the same whether it reaches the estimator as the
-        parser's GenericOption (lossless raw form) or the builder/JSON dedicated
-        ByteTestOption.
+        """A byte op costs the same whether it reaches the estimator as the
+        dedicated node (now the parser's form too) or as a hand-/JSON-built
+        GenericOption keyed on the same keyword.
 
-        Regression: the GenericOption form fell through to the generic 5.0
+        Regression: a GenericOption byte_test fell through to the generic 5.0
         fallback instead of the operation's real 20.0 cost, so estimate_cost
-        diverged by parse path for the same logical rule.
+        depended on representation. tag is still parsed as a GenericOption, so
+        the keyword mapping stays live.
         """
-        from surinort_ast.core.enums import Action, Protocol
-        from surinort_ast.core.nodes import (
-            ByteTestOption,
-            Header,
-            Rule,
-            SidOption,
-        )
+        from surinort_ast.core.nodes import ByteTestOption, GenericOption
 
         estimator = PerformanceEstimator()
-        parsed = parse_rule("alert tcp any any -> any any (byte_test:4,>,1000,0,relative; sid:1;)")
-        built = Rule(
-            action=Action.ALERT,
-            header=Header.wildcard(Protocol.TCP),
-            options=(
-                ByteTestOption(
-                    bytes_to_extract=4, operator=">", value=1000, offset=0, flags=("relative",)
-                ),
-                SidOption(value=1),
-            ),
+        dedicated = parse_rule(
+            "alert tcp any any -> any any (byte_test:4,>,1000,0,relative; sid:1;)"
         )
-        assert parsed.options[0].node_type == "GenericOption"
-        assert built.options[0].node_type == "ByteTestOption"
-        assert estimator.estimate_cost(parsed) == estimator.estimate_cost(built)
-        generic_byte_test_cost = estimator._estimate_option_cost(parsed.options[0])
-        assert generic_byte_test_cost == estimator.BASE_COSTS["ByteTestOption"]
+        assert dedicated.options[0].node_type == "ByteTestOption"
+
+        generic_cost = estimator._estimate_option_cost(
+            GenericOption(
+                keyword="byte_test",
+                value="4,>,1000,0,relative",
+                raw="byte_test:4,>,1000,0,relative",
+            )
+        )
+        dedicated_cost = estimator._estimate_option_cost(
+            ByteTestOption(
+                bytes_to_extract=4, operator=">", value=1000, offset=0, flags=("relative",)
+            )
+        )
+        assert generic_cost == dedicated_cost == estimator.BASE_COSTS["ByteTestOption"]
+        # tag is still a GenericOption from the parser; it maps to TagOption cost.
+        tag_cost = estimator._estimate_option_cost(
+            GenericOption(keyword="tag", value="session,5,packets", raw="tag:session,5,packets")
+        )
+        assert tag_cost == estimator.BASE_COSTS["TagOption"]
 
     def test_metadata_options_low_cost(self):
         """Test that metadata options have very low cost."""

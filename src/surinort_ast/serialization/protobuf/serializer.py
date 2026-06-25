@@ -487,10 +487,11 @@ def _(opt: BufferSelectOption) -> Any:
 def _(opt: ByteTestOption) -> Any:
     pb_opt = pb.Option()
     _serialize_base(opt, pb_opt)
-    pb_opt.byte_test.bytes_to_extract = opt.bytes_to_extract
+    # Operands are lossless text (decimal, hex, or variable name).
+    pb_opt.byte_test.bytes_to_extract = str(opt.bytes_to_extract)
     pb_opt.byte_test.operator = opt.operator
-    pb_opt.byte_test.value = opt.value
-    pb_opt.byte_test.offset = opt.offset
+    pb_opt.byte_test.value = str(opt.value)
+    pb_opt.byte_test.offset = str(opt.offset)
     pb_opt.byte_test.flags.extend(opt.flags)
     return pb_opt
 
@@ -499,8 +500,8 @@ def _(opt: ByteTestOption) -> Any:
 def _(opt: ByteJumpOption) -> Any:
     pb_opt = pb.Option()
     _serialize_base(opt, pb_opt)
-    pb_opt.byte_jump.bytes_to_extract = opt.bytes_to_extract
-    pb_opt.byte_jump.offset = opt.offset
+    pb_opt.byte_jump.bytes_to_extract = str(opt.bytes_to_extract)
+    pb_opt.byte_jump.offset = str(opt.offset)
     pb_opt.byte_jump.flags.extend(opt.flags)
     return pb_opt
 
@@ -509,8 +510,8 @@ def _(opt: ByteJumpOption) -> Any:
 def _(opt: ByteExtractOption) -> Any:
     pb_opt = pb.Option()
     _serialize_base(opt, pb_opt)
-    pb_opt.byte_extract.bytes_to_extract = opt.bytes_to_extract
-    pb_opt.byte_extract.offset = opt.offset
+    pb_opt.byte_extract.bytes_to_extract = str(opt.bytes_to_extract)
+    pb_opt.byte_extract.offset = str(opt.offset)
     pb_opt.byte_extract.var_name = opt.var_name
     pb_opt.byte_extract.flags.extend(opt.flags)
     return pb_opt

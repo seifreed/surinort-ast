@@ -174,9 +174,16 @@ class TestByteOperationOffsetSigns:
     """Negative offsets in byte_test / byte_jump / byte_extract must keep their sign."""
 
     def _generic(self, rule, keyword):
-        return next(
-            o.value for o in rule.options if o.node_type == "GenericOption" and o.keyword == keyword
-        )
+        # byte_test/byte_jump/byte_extract parse to dedicated nodes; assert on
+        # the printed param string so the test stays representation-independent
+        # and verifies the operands/flags survive the round-trip.
+        import re
+
+        from surinort_ast import print_rule
+
+        match = re.search(rf"{keyword}:([^;]*);", print_rule(rule))
+        assert match is not None
+        return match.group(1)
 
     def test_byte_test_negative_offset(self):
         rule = parse_rule(
@@ -258,6 +265,61 @@ class TestByteOperationOffsetSigns:
             '(content:"x"; byte_test:2,&,1,0,relative,bitmask 0x8000; sid:1;)'
         )
         assert self._generic(rule, "byte_test") == "2,&,1,0,relative,bitmask 0x8000"
+
+
+class TestByteOpsDedicatedNodes:
+    """byte_test/byte_jump/byte_extract parse to dedicated typed nodes (the same
+    nodes the builder/JSON/protobuf use), and operands stay lossless across the
+    parser/print/JSON/protobuf paths — including hex and variable operands."""
+
+    @pytest.mark.parametrize(
+        "text,node_type",
+        [
+            (
+                "alert tcp any any -> any any (byte_test:4,>,1000,0,relative; sid:1;)",
+                "ByteTestOption",
+            ),
+            ("alert tcp any any -> any any (byte_test:1,!&,0x78,2; sid:1;)", "ByteTestOption"),
+            (
+                "alert tcp any any -> any any (byte_test:1,&,ids,0,relative; sid:1;)",
+                "ByteTestOption",
+            ),
+            (
+                "alert tcp any any -> any any (byte_jump:0x2,0x10,bitmask 0x03FF; sid:1;)",
+                "ByteJumpOption",
+            ),
+            (
+                "alert tcp any any -> any any (byte_extract:2,26,TotalDataCount,relative,little; sid:1;)",
+                "ByteExtractOption",
+            ),
+        ],
+    )
+    def test_parser_emits_dedicated_node_and_round_trips(self, text, node_type):
+        from surinort_ast import from_json, parse_rule, print_rule, to_json
+        from surinort_ast.serialization.protobuf import from_protobuf, to_protobuf
+
+        rule = parse_rule(text)
+        assert rule.options[0].node_type == node_type
+
+        def options(r):
+            return [o.model_dump(exclude={"location"}) for o in r.options]
+
+        assert options(parse_rule(print_rule(rule))) == options(rule)
+        assert options(from_json(to_json(rule))) == options(rule)
+        assert options(from_protobuf(to_protobuf(rule))) == options(rule)
+
+    def test_hex_value_stays_string_decimal_stays_int(self):
+        from surinort_ast import parse_rule
+
+        hex_bt = parse_rule("alert tcp any any -> any any (byte_test:1,!&,0x78,2; sid:1;)").options[
+            0
+        ]
+        assert hex_bt.value == "0x78"  # lossless hex literal
+        assert hex_bt.offset == 2  # plain decimal coerced to int
+        dec_bt = parse_rule("alert tcp any any -> any any (byte_test:4,>,1000,0; sid:1;)").options[
+            0
+        ]
+        assert dec_bt.value == 1000
 
 
 class TestContentNegation:

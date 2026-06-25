@@ -68,17 +68,12 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         byte_jump_opt = next(
-            (
-                opt
-                for opt in result.options
-                if hasattr(opt, "keyword") and opt.keyword == "byte_jump"
-            ),
-            None,
+            (opt for opt in result.options if opt.node_type == "ByteJumpOption"), None
         )
         assert byte_jump_opt is not None
-        assert "little" in byte_jump_opt.value
-        assert "relative" in byte_jump_opt.value
-        assert "post_offset" in byte_jump_opt.value
+        assert "little" in byte_jump_opt.flags
+        assert "relative" in byte_jump_opt.flags
+        assert "post_offset 10" in byte_jump_opt.flags
 
     def test_byte_test_with_bitmask_real(self):
         """Test byte_test with bitmask option"""
@@ -87,16 +82,10 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         byte_test_opt = next(
-            (
-                opt
-                for opt in result.options
-                if hasattr(opt, "keyword") and opt.keyword == "byte_test"
-            ),
-            None,
+            (opt for opt in result.options if opt.node_type == "ByteTestOption"), None
         )
         assert byte_test_opt is not None
-        # The parser captures bitmask value but not keyword
-        assert "0x8000" in byte_test_opt.value
+        assert "bitmask 0x8000" in byte_test_opt.flags
 
     def test_metadata_multiple_values_real(self):
         """Test metadata with multiple values per key"""
@@ -176,14 +165,10 @@ class TestRealisticTransformerCoverage:
         result = parser.parse(rule_text)
         assert result is not None
         byte_extract_opt = next(
-            (
-                opt
-                for opt in result.options
-                if hasattr(opt, "keyword") and opt.keyword == "byte_extract"
-            ),
-            None,
+            (opt for opt in result.options if opt.node_type == "ByteExtractOption"), None
         )
         assert byte_extract_opt is not None
+        assert byte_extract_opt.var_name == "extracted_val"
 
     def test_threshold_real(self):
         """Test threshold option"""

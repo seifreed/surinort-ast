@@ -30,6 +30,9 @@ from ...core.diagnostics import DiagnosticLevel
 from ...core.enums import ContentModifierType
 from ...core.nodes import (
     BufferSelectOption,
+    ByteExtractOption,
+    ByteJumpOption,
+    ByteTestOption,
     ContentModifier,
     ContentOption,
     DepthOption,
@@ -719,15 +722,12 @@ class ContentTransformerMixin:
     # Byte Operations
     # ========================================================================
 
-    def byte_test_option(self, items: Sequence[Any]) -> GenericOption:
+    def byte_test_option(self, items: Sequence[Any]) -> ByteTestOption:
         """
-        Transform byte_test option.
+        Transform byte_test option into a dedicated node.
 
         Args:
             items: List containing byte_test parameters
-
-        Returns:
-            GenericOption with keyword="byte_test" and formatted value string
 
         Usage:
             byte_test:bytes,operator,value,offset[,flags]
@@ -765,8 +765,16 @@ class ContentTransformerMixin:
             else:
                 processed_params.append(str(p))
 
-        value_str = ",".join(processed_params)
-        return generic_kv("byte_test", value_str)
+        # Grammar guarantees the four required positional params; value/offset
+        # are coerced to int/str by the node so a hex or variable operand stays
+        # lossless.
+        return ByteTestOption(
+            bytes_to_extract=processed_params[0],
+            operator=processed_params[1],
+            value=processed_params[2],
+            offset=processed_params[3],
+            flags=tuple(processed_params[4:]),
+        )
 
     def byte_test_params(self, items: Sequence[Token]) -> Sequence[Token]:
         """Pass through byte_test params."""
@@ -824,15 +832,12 @@ class ContentTransformerMixin:
         """
         return str(operator_token.value)
 
-    def byte_jump_option(self, items: Sequence[Any]) -> GenericOption:
+    def byte_jump_option(self, items: Sequence[Any]) -> ByteJumpOption:
         """
-        Transform byte_jump option.
+        Transform byte_jump option into a dedicated node.
 
         Args:
             items: List containing byte_jump parameters
-
-        Returns:
-            GenericOption with keyword="byte_jump" and formatted value string
 
         Usage:
             byte_jump:bytes,offset[,flags]
@@ -844,16 +849,23 @@ class ContentTransformerMixin:
             - Optional: endianness, relative/absolute, alignment
             - Special: post_offset with value (e.g., post_offset 10)
         """
-        params = items[0] if items else []
-        return generic_kv("byte_jump", self._format_byte_flag_params(params))
+        parts = self._byte_flag_param_list(items[0] if items else [])
+        # Grammar: byte_jump:<bytes>,<offset>[,<flags>]. Operands stay int/str
+        # (the node coerces a decimal to int, keeping hex/variables as text).
+        return ByteJumpOption(
+            bytes_to_extract=parts[0],
+            offset=parts[1],
+            flags=tuple(parts[2:]),
+        )
 
     @staticmethod
-    def _format_byte_flag_params(params: Sequence[Any]) -> str:
-        """Format byte_jump/byte_extract params, joining ``flag value`` pairs.
+    def _byte_flag_param_list(params: Sequence[Any]) -> list[str]:
+        """Render byte_jump/byte_extract params to a positional string list.
 
         Flags carrying a value (e.g. ``post_offset 10``, ``multiplier 2``) arrive
-        as a Tree or a ``[name, value]`` list and are rendered as ``name value``;
-        plain tokens and offset strings pass through. Result is comma-joined.
+        as a Tree or a ``[name, value]`` list and become ``"name value"``; plain
+        tokens and offset strings pass through. The first entries are the fixed
+        positional params (bytes, offset[, var_name]); the rest are flags.
         """
         processed_params: list[str] = []
         for p in params:
@@ -877,7 +889,7 @@ class ContentTransformerMixin:
                 processed_params.append(str(p.value))
             else:
                 processed_params.append(str(p))
-        return ",".join(processed_params)
+        return processed_params
 
     def byte_jump_params(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through byte_jump params."""
@@ -908,23 +920,26 @@ class ContentTransformerMixin:
         """Resolve a byte_jump flag and its optional (possibly negative) argument."""
         return self._resolve_byte_flag(items)
 
-    def byte_extract_option(self, items: Sequence[Any]) -> GenericOption:
+    def byte_extract_option(self, items: Sequence[Any]) -> ByteExtractOption:
         """
-        Transform byte_extract option.
+        Transform byte_extract option into a dedicated node.
 
         Args:
             items: List containing byte_extract parameters
-
-        Returns:
-            GenericOption with keyword="byte_extract" and formatted value string
 
         Usage:
             byte_extract:bytes,offset,name[,flags]
             byte_extract:4,0,extracted_value,relative
             byte_extract:4,0,var,multiplier 2,relative
         """
-        params = items[0] if items else []
-        return generic_kv("byte_extract", self._format_byte_flag_params(params))
+        parts = self._byte_flag_param_list(items[0] if items else [])
+        # Grammar: byte_extract:<bytes>,<offset>,<name>[,<flags>].
+        return ByteExtractOption(
+            bytes_to_extract=parts[0],
+            offset=parts[1],
+            var_name=parts[2],
+            flags=tuple(parts[3:]),
+        )
 
     def byte_extract_params(self, items: Sequence[Any]) -> Sequence[Any]:
         """Pass through byte_extract params."""
