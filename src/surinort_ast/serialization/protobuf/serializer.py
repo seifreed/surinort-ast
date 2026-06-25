@@ -347,6 +347,23 @@ def _serialize_option(opt: Option) -> Any:
     return pb_opt
 
 
+# Exact-type dispatch table for option serialization, built once from the
+# singledispatch registry. singledispatch resolves each call by walking the MRO
+# and consulting a weakref cache, which measured ~16% of to_protobuf; option
+# nodes are concrete final types, so a plain ``type(opt)`` dict lookup is
+# equivalent and much cheaper (singledispatch remains the fallback).
+_OPTION_SERIALIZERS: dict[type, Any] = {}
+
+
+def _dispatch_serialize_option(opt: Option) -> Any:
+    if not _OPTION_SERIALIZERS:
+        _OPTION_SERIALIZERS.update(
+            (typ, fn) for typ, fn in _serialize_option.registry.items() if typ is not object
+        )
+    serializer = _OPTION_SERIALIZERS.get(type(opt))
+    return serializer(opt) if serializer is not None else _serialize_option(opt)
+
+
 @_serialize_option.register
 def _(opt: MsgOption) -> Any:
     pb_opt = pb.Option()
@@ -722,7 +739,7 @@ def _serialize_rule(rule: Rule) -> Any:
     pb_rule.action = _ACTION_TO_PB[rule.action]
     pb_rule.header.CopyFrom(_serialize_header(rule.header))
     for option in rule.options:
-        pb_rule.options.append(_serialize_option(option))
+        pb_rule.options.append(_dispatch_serialize_option(option))
     pb_rule.dialect = _DIALECT_TO_PB[rule.dialect]
 
     if rule.origin:
