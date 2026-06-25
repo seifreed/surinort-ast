@@ -240,6 +240,14 @@ def _shadows(earlier: PreparedRule, later: PreparedRule, hierarchy: bool) -> boo
     # non-terminating/different-action pair can be rejected without the algebra.
     if not _is_terminating(earlier_action) and earlier_action != later_action:
         return False
+    # Cheap content gate that mirrors content_more_general(earlier, later) inside
+    # match_subsumes: earlier can subsume later only if its content requirement is
+    # empty or a non-opaque subset of later's. When that fails, match_subsumes can
+    # never be TRUE, so skip its expensive header-subset tri-state algebra. This
+    # is exact (not a heuristic): it is the same condition match_subsumes applies.
+    ec = earlier.content
+    if not ec.is_empty and (ec.opaque or not ec.literals <= later.content.literals):
+        return False
     # Earlier must provably subsume later (no UNKNOWN -> never claim a rule is dead).
     return match_subsumes(earlier, later, hierarchy) == Tri.TRUE
 
