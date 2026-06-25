@@ -464,6 +464,22 @@ in this project's code is bounded by the remaining ~30%.
   contention, not speed. Use `workers=4` with `include_raw_text=False` for the
   smallest payload; beyond that the process-pool overhead dominates.
 
+### Memory (`--memory`)
+
+Holding the whole corpus in memory is dominated by node `Location` objects:
+
+| Config | Peak heap | Per rule |
+|--------|-----------|----------|
+| full (locations + raw_text) | ~1065 MB | ~30 KB |
+| full lean (no locations, no raw_text) | ~539 MB | ~15 KB |
+| streaming lean | ~3.6 MB | ~100 B |
+
+- `track_locations=False` roughly **halves** retained memory — locations are
+  about half of a fully-tracked AST's footprint.
+- For bulk processing where you don't need every rule live at once, the
+  streaming API (`parse_file(..., stream=True)` / `parse_file_streaming`) keeps
+  only one rule in scope, cutting peak memory by ~300× (~1 GB → a few MB).
+
 ### Levers deliberately not pursued
 
 - Replacing `@v_args(inline=True)` with manual child unpacking would remove the
