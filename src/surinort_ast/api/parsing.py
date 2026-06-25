@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import os
 from collections.abc import Sequence
-from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -391,6 +390,12 @@ def _parse_file_parallel(
     batch_size: int,
 ) -> tuple[list[Rule], list[str]]:
     """Parse rules in parallel using process pool with batching."""
+    # Imported lazily: pulling in ProcessPoolExecutor (and the multiprocessing /
+    # tempfile / shutil chain behind it) costs ~25ms, which every sequential
+    # parse_rule/parse_file caller would otherwise pay at import time for a path
+    # they never use.
+    from concurrent.futures import ProcessPoolExecutor
+
     rules: list[Rule] = []
     errors: list[str] = []
 
