@@ -417,6 +417,61 @@ stats.print_stats(20)
 3. **Printing**: Moderate (less frequent)
 4. **Memory**: Important for large rulesets
 
+## Corpus Parsing: Analysis & Tuning
+
+`parse_corpus.py` measures the real bundled corpus (35,156 rules: 30,579
+Suricata + 4,016 Snort3 + 561 Snort2.9) end-to-end through `parse_file`:
+
+```bash
+python benchmarks/parse_corpus.py          # table
+python benchmarks/parse_corpus.py --json   # machine-readable
+```
+
+### Where the time goes (cProfile, warm parser)
+
+For a single rule, roughly:
+
+| Stage | Share | Owner |
+|-------|-------|-------|
+| Lark contextual lexer (`next_token`, `match`) | ~45% | library |
+| Lark LALR core (`feed_token`) | ~23% | library |
+| AST transformer (Pydantic node construction, tree walk) | ~29% | this project |
+| `v_args(inline=True)` per-call wrapper (`update_wrapper`) | ~2% | library |
+
+About two-thirds of parse time is inside Lark's lexer/parser, so the headroom
+in this project's code is bounded by the remaining ~30%.
+
+### Optimizations applied
+
+- **`propagate_positions=False`** — node locations come from token positions in
+  the transformer, never from Lark parse-tree `meta`; propagating positions was
+  pure overhead. ~22% faster parse+transform, byte-identical output.
+- **Functional `track_locations`** — `track_locations=False` now genuinely skips
+  building `Location` objects (it was previously a no-op), saving that work and
+  the memory those objects occupy.
+- **`cache=True`** — the LALR tables are cached to disk, so a fresh process
+  rebuilds the parser in ~7 ms instead of ~50 ms (cold-start only).
+
+### Tuning for bulk parsing
+
+- **Throughput is lexer-bound.** The fastest single-threaded path already drops
+  `propagate_positions`; pass `track_locations=False` and `include_raw_text=False`
+  when you don't need positions or the original text to save work and memory.
+- **Parallelism has a knee.** `parse_file(path, workers=N)` scales to roughly
+  1.8× around `workers=4` and then *regresses* (8 workers is slower than 4): the
+  results are full `Rule` objects serialized back through a single pipe and
+  rebuilt in the parent process, so more workers add inter-process transfer
+  contention, not speed. Use `workers=4` with `include_raw_text=False` for the
+  smallest payload; beyond that the process-pool overhead dominates.
+
+### Levers deliberately not pursued
+
+- Replacing `@v_args(inline=True)` with manual child unpacking would remove the
+  per-call wrapper (~2%) but rewrites 50+ transformer methods — poor risk/reward.
+- `model_construct` (skipping Pydantic validation) would speed node creation but
+  bypasses the boundary validators that keep builder/JSON-built nodes
+  representable, so it is intentionally avoided.
+
 ## Contributing
 
 When adding benchmarks:
