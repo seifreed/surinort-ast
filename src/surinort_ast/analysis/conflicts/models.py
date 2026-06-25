@@ -158,6 +158,11 @@ class ConflictReport:
         return "\n".join(lines)
 
 
+# Detectors that are off unless explicitly requested via ``enabled_detectors``
+# (see ConflictDetectorConfig.is_enabled).
+_OPT_IN_DETECTORS = frozenset({ConflictType.OVERLAPPING})
+
+
 @dataclass
 class ConflictDetectorConfig:
     """Configuration knobs for conflict detection."""
@@ -169,4 +174,12 @@ class ConflictDetectorConfig:
     external_flowbits: set[str] = field(default_factory=set)
 
     def is_enabled(self, conflict_type: ConflictType) -> bool:
-        return self.enabled_detectors is None or conflict_type in self.enabled_detectors
+        # When the caller does not pin an explicit detector set, run every
+        # detector except the opt-in ones. OVERLAPPING is opt-in because it is
+        # O(n^2) in both time and output — any two broad-header content rules
+        # trivially "overlap", so on a real ruleset it reports ~n^2/2 low-value
+        # conflicts and is unusable at scale. Pass it explicitly in
+        # ``enabled_detectors`` to run it (best on a small, pre-filtered set).
+        if self.enabled_detectors is None:
+            return conflict_type not in _OPT_IN_DETECTORS
+        return conflict_type in self.enabled_detectors

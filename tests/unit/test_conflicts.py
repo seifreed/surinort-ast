@@ -232,7 +232,8 @@ class TestDetectors:
             _rules(
                 'alert tcp any any -> any [80,443] (msg:"1"; content:"a"; sid:1000006; rev:1;)',
                 'alert tcp any any -> any [443,8080] (msg:"2"; content:"a"; sid:1000007; rev:1;)',
-            )
+            ),
+            ConflictDetectorConfig(enabled_detectors={ConflictType.OVERLAPPING}),
         )
         overlap = next(c for c in report.conflicts if c.conflict_type == ConflictType.OVERLAPPING)
         assert overlap.severity == Severity.MEDIUM
@@ -242,7 +243,8 @@ class TestDetectors:
             _rules(
                 'alert tcp any any -> $HOME_NET 80 (msg:"v"; sid:1000008; rev:1;)',
                 'alert tcp any any -> 192.168.1.0/24 80 (msg:"c"; sid:1000009; rev:1;)',
-            )
+            ),
+            ConflictDetectorConfig(enabled_detectors={ConflictType.OVERLAPPING}),
         )
         overlaps = [c for c in report.conflicts if c.conflict_type == ConflictType.OVERLAPPING]
         assert overlaps
