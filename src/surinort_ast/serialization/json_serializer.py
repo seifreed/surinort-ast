@@ -13,12 +13,30 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from functools import lru_cache
 from typing import Any
 
 from pydantic import TypeAdapter
 
 from surinort_ast.core.nodes import Rule
 from surinort_ast.version import __ast_version__
+
+
+@lru_cache(maxsize=1)
+def _rule_adapter() -> TypeAdapter[Rule]:
+    """Validator for a single Rule, built once and reused.
+
+    Constructing a ``TypeAdapter`` compiles the (large, discriminated-union)
+    validation schema; doing it per ``from_json`` call dominated deserialization,
+    so it is cached. Built lazily to keep it off the import path.
+    """
+    return TypeAdapter(Rule)
+
+
+@lru_cache(maxsize=1)
+def _rule_sequence_adapter() -> TypeAdapter[Sequence[Rule]]:
+    """Validator for a list of Rules, built once and reused (see _rule_adapter)."""
+    return TypeAdapter(Sequence[Rule])
 
 
 class JSONSerializer:
@@ -119,11 +137,9 @@ class JSONSerializer:
         if isinstance(parsed, dict) and "rules" in parsed and isinstance(parsed["rules"], list):
             # Multiple rules
             rules_data = parsed["rules"]
-            adapter: TypeAdapter[Sequence[Rule]] = TypeAdapter(Sequence[Rule])
-            return adapter.validate_python(rules_data)
+            return _rule_sequence_adapter().validate_python(rules_data)
         # Single rule
-        adapter_single: TypeAdapter[Rule] = TypeAdapter(Rule)
-        return adapter_single.validate_python(parsed)
+        return _rule_adapter().validate_python(parsed)
 
     def to_dict(self, rule: Rule | Sequence[Rule]) -> dict[str, Any]:
         """
