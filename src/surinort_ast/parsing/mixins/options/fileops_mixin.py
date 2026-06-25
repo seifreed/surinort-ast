@@ -17,7 +17,7 @@ from typing import Any
 
 from lark import Token, Tree
 
-from ....core.nodes import FilestoreOption, GenericOption
+from ....core.nodes import FilestoreOption, GenericOption, TagOption
 from ...helpers import token_to_str
 from ._helpers import generic_kv
 
@@ -100,7 +100,7 @@ class FileOperationsOptionsMixin:
     # Packet Tagging Options
     # ========================================================================
 
-    def tag_option(self, items: Sequence[Any]) -> GenericOption:
+    def tag_option(self, items: Sequence[Any]) -> TagOption | GenericOption:
         """
         Transform tag option (mark related packets).
 
@@ -108,7 +108,10 @@ class FileOperationsOptionsMixin:
             items: List containing tag parameters
 
         Returns:
-            GenericOption with keyword="tag" and value string
+            A typed ``TagOption`` for the canonical ``type,count,metric[,dir]``
+            shape, or a lossless ``GenericOption`` for any other atom layout
+            (e.g. ``tag:session,packets 5``, whose order the rigid model cannot
+            represent).
 
         Usage:
             tag:session,10,packets;
@@ -126,8 +129,18 @@ class FileOperationsOptionsMixin:
         Use Case:
             Capture related packets after alert triggers for forensic analysis.
         """
-        value_str = ",".join(_atom_text(item) for item in items)
-        return generic_kv("tag", value_str)
+        atoms = [_atom_text(item) for item in items]
+        # Canonical: type, integer count, metric, optional direction. Only then
+        # is the typed node lossless; anything else stays a raw GenericOption so
+        # print/JSON/protobuf all agree on the representation.
+        if len(atoms) in (3, 4) and atoms[1].isdigit() and int(atoms[1]) <= 2147483647:
+            return TagOption(
+                tag_type=atoms[0],
+                count=int(atoms[1]),
+                metric=atoms[2],
+                direction=atoms[3] if len(atoms) == 4 else None,
+            )
+        return generic_kv("tag", ",".join(atoms))
 
     def tag_atom(self, items: Sequence[Any]) -> str:
         """Collapse a tag_atom sub-tree to its token text."""

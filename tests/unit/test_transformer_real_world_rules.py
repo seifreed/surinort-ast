@@ -32,17 +32,17 @@ class TestRealisticTransformerCoverage:
 
     def test_tag_option_real(self):
         """Test tag option through real parsing"""
+        from surinort_ast.core.nodes import TagOption
+
         parser = LarkRuleParser(dialect=Dialect.SURICATA)
         rule_text = (
             'alert tcp any any -> any any (tag:session,10,seconds; msg:"test"; sid:1; rev:1;)'
         )
         result = parser.parse(rule_text)
         assert result is not None
-        tag_opt = next(
-            (opt for opt in result.options if hasattr(opt, "keyword") and opt.keyword == "tag"),
-            None,
-        )
+        tag_opt = next((opt for opt in result.options if isinstance(opt, TagOption)), None)
         assert tag_opt is not None
+        assert (tag_opt.tag_type, tag_opt.count, tag_opt.metric) == ("session", 10, "seconds")
 
     def test_detection_filter_real(self):
         """Test detection_filter with real parsing"""

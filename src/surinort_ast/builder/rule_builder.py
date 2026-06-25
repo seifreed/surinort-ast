@@ -676,7 +676,9 @@ class RuleBuilder:
         )
         return self
 
-    def tag(self, tag_type: str, count: int, metric: str) -> RuleBuilder:
+    def tag(
+        self, tag_type: str, count: int, metric: str, direction: str | None = None
+    ) -> RuleBuilder:
         """
         Add tag option.
 
@@ -684,11 +686,14 @@ class RuleBuilder:
             tag_type: Tag type (session, host)
             count: Count value
             metric: Metric (packets, seconds, bytes)
+            direction: Optional tagging direction (src, dst) for host tagging
 
         Returns:
             Self for chaining
         """
-        return self._add_option(TagOption(tag_type=tag_type, count=count, metric=metric))
+        return self._add_option(
+            TagOption(tag_type=tag_type, count=count, metric=metric, direction=direction)
+        )
 
     def filestore(self, direction: str | None = None, scope: str | None = None) -> RuleBuilder:
         """

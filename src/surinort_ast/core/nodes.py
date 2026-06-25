@@ -816,10 +816,14 @@ class TagOption(Option):
     # A tag count is a non-negative quantity stored as int32 in protobuf.
     count: int = Field(ge=0, le=2147483647)
     metric: str
+    # Optional tagging direction (src/dst), only meaningful for host tagging.
+    direction: str | None = None
 
-    @field_validator("tag_type", "metric")
+    @field_validator("tag_type", "metric", "direction")
     @classmethod
-    def _check_token(cls, value: str, info: Any) -> str:
+    def _check_token(cls, value: str | None, info: Any) -> str | None:
+        if value is None:
+            return None
         return _reject_token_delimiters(value, f"tag {info.field_name}")
 
 

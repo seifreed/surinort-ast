@@ -415,6 +415,7 @@ message TagOption {
   string tag_type = 1;
   int32 count = 2;
   string metric = 3;
+  string direction = 4;
 }
 
 message FilestoreOption {

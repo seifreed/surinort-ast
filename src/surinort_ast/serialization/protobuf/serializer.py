@@ -539,6 +539,8 @@ def _(opt: TagOption) -> Any:
     pb_opt.tag.tag_type = opt.tag_type
     pb_opt.tag.count = opt.count
     pb_opt.tag.metric = opt.metric
+    if opt.direction is not None:
+        pb_opt.tag.direction = opt.direction
     return pb_opt
 
 
@@ -1079,6 +1081,8 @@ def _deserialize_tag(pb_opt: Any, location: Location | None, comments: list[str]
         tag_type=pb_opt.tag.tag_type,
         count=pb_opt.tag.count,
         metric=pb_opt.tag.metric,
+        # proto3 leaves an unset string empty; restore the optional None.
+        direction=pb_opt.tag.direction or None,
         location=location,
         comments=comments,
     )

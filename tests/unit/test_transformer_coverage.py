@@ -612,22 +612,51 @@ class TestFlagsAndTagAtoms:
             ("alert tcp any any -> any any (flags:S; sid:1;)", "flags", "S"),
             ("alert tcp any any -> any any (flags:SA,12; sid:1;)", "flags", "SA,12"),
             ("alert tcp any any -> any any (flags:!A; sid:1;)", "flags", "!A"),
-            (
-                "alert tcp any any -> any any (tag:session,10,packets; sid:1;)",
-                "tag",
-                "session,10,packets",
-            ),
-            (
-                "alert tcp any any -> any any (tag:host,60,seconds,src; sid:1;)",
-                "tag",
-                "host,60,seconds,src",
-            ),
         ],
     )
     def test_atoms_preserved(self, rule_text, keyword, expected):
         option = self._option(rule_text, keyword)
         assert "Tree(" not in option.value
         assert option.value == expected
+
+    @pytest.mark.parametrize(
+        ("rule_text", "tag_type", "count", "metric", "direction"),
+        [
+            (
+                "alert tcp any any -> any any (tag:session,10,packets; sid:1;)",
+                "session",
+                10,
+                "packets",
+                None,
+            ),
+            (
+                "alert tcp any any -> any any (tag:host,60,seconds,src; sid:1;)",
+                "host",
+                60,
+                "seconds",
+                "src",
+            ),
+        ],
+    )
+    def test_canonical_tag_parses_typed(self, rule_text, tag_type, count, metric, direction):
+        from surinort_ast.core.nodes import TagOption
+        from surinort_ast.printer import print_rule
+
+        rule = parse_rule(rule_text)
+        tag = next(o for o in rule.options if isinstance(o, TagOption))
+        assert (tag.tag_type, tag.count, tag.metric, tag.direction) == (
+            tag_type,
+            count,
+            metric,
+            direction,
+        )
+        printed = print_rule(rule)
+        assert print_rule(parse_rule(printed)) == printed
+
+    def test_irregular_tag_stays_generic(self):
+        # Atoms whose order the rigid model cannot represent stay a GenericOption.
+        option = self._option("alert tcp any any -> any any (tag:session,packets 5; sid:1;)", "tag")
+        assert option.value == "session,packets,5"
 
     def test_flags_round_trips(self):
         from surinort_ast.printer import print_rule

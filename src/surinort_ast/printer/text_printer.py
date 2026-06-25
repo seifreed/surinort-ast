@@ -274,7 +274,10 @@ def _(option: FastPatternOption, fmt_opts: FormatterOptions, printer: _TextPrint
 
 @_print_option_dispatch.register
 def _(option: TagOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
-    return f"tag:{option.tag_type},{option.count},{option.metric};"
+    parts = [option.tag_type, str(option.count), option.metric]
+    if option.direction:
+        parts.append(option.direction)
+    return f"tag:{','.join(parts)};"
 
 
 @_print_option_dispatch.register
