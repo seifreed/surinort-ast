@@ -149,6 +149,9 @@ def _get_parser(dialect: Dialect = Dialect.SURICATA) -> Lark:
             parser="lalr",
             propagate_positions=False,
             maybe_placeholders=False,
+            # Cache the LALR tables to disk (keyed by grammar hash) so each new
+            # process rebuilds the parser in ~7ms instead of ~50ms.
+            cache=True,
         )
 
     return _PARSERS[dialect]
