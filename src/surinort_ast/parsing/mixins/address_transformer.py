@@ -36,10 +36,11 @@ from ...core.nodes import (
     IPCIDRRange,
     IPRange,
 )
-from ..helpers import strip_variable_marker, token_to_location
+from ..helpers import strip_variable_marker
+from ._location_aware import LocationAwareMixin
 
 
-class AddressTransformerMixin:
+class AddressTransformerMixin(LocationAwareMixin):
     """
     Mixin for transforming address-related AST nodes.
 
@@ -69,7 +70,6 @@ class AddressTransformerMixin:
     """
 
     # Declare expected attributes for type checking
-    file_path: str | None
     add_diagnostic: DiagnosticReporter
 
     def address_any(self, _: Any) -> AnyAddress:
@@ -100,7 +100,7 @@ class AddressTransformerMixin:
             marker, not part of the actual variable identifier.
         """
         name = strip_variable_marker(var_token)
-        return AddressVariable(name=name, location=token_to_location(var_token, self.file_path))
+        return AddressVariable(name=name, location=self._location_for(var_token))
 
     @v_args(inline=True)
     def address_negation(self, addr: Any) -> AddressNegation:
@@ -172,14 +172,14 @@ class AddressTransformerMixin:
             self.add_diagnostic(
                 DiagnosticLevel.WARNING,
                 f"IPv{ip_version} CIDR prefix length {prefix_len} out of range (0-{max_prefix})",
-                token_to_location(prefix_token, self.file_path),
+                self._location_for(prefix_token),
             )
             prefix_len = max(0, min(prefix_len, max_prefix))
 
         return IPCIDRRange(
             network=network,
             prefix_len=prefix_len,
-            location=token_to_location(ip_token, self.file_path),
+            location=self._location_for(ip_token),
         )
 
     @v_args(inline=True)
@@ -194,7 +194,7 @@ class AddressTransformerMixin:
         Returns:
             IPCIDRRange node representing the CIDR block
         """
-        self._check_ipv4_octets(str(ip_token.value), token_to_location(ip_token, self.file_path))
+        self._check_ipv4_octets(str(ip_token.value), self._location_for(ip_token))
         return self._build_cidr(ip_token, prefix_token, ip_version=4)
 
     @v_args(inline=True)
@@ -257,7 +257,7 @@ class AddressTransformerMixin:
         # This heuristic is reliable because the grammar ensures valid IP syntax
         version: int = 6 if ":" in ip_str else 4
 
-        location = token_to_location(ip_token, self.file_path)
+        location = self._location_for(ip_token)
         if version == 4:
             self._check_ipv4_octets(ip_str, location)
         elif "." in ip_str:

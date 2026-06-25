@@ -34,11 +34,11 @@ from ....core.nodes import (
     RevOption,
     SidOption,
 )
-from ...helpers import token_to_location
+from .._location_aware import LocationAwareMixin
 from ._helpers import parse_quoted_string_cached
 
 
-class MetadataOptionsMixin:
+class MetadataOptionsMixin(LocationAwareMixin):
     """
     Mixin for transforming rule metadata options.
 
@@ -59,7 +59,6 @@ class MetadataOptionsMixin:
     """
 
     # Declare expected attributes for type checking
-    file_path: str | None
     add_diagnostic: DiagnosticReporter
 
     # ========================================================================
@@ -85,7 +84,7 @@ class MetadataOptionsMixin:
             the rule detects. It appears in alerts and logs.
         """
         text = parse_quoted_string_cached(str(text_token.value))
-        return MsgOption(text=text, location=token_to_location(text_token, self.file_path))
+        return MsgOption(text=text, location=self._location_for(text_token))
 
     @v_args(inline=True)
     def sid_option(self, sid_token: Token) -> SidOption:
@@ -110,7 +109,7 @@ class MetadataOptionsMixin:
             Pydantic Field validators ensure SID >= 1 per IDS specifications.
         """
         sid = int(sid_token.value)
-        return SidOption(value=sid, location=token_to_location(sid_token, self.file_path))
+        return SidOption(value=sid, location=self._location_for(sid_token))
 
     @v_args(inline=True)
     def rev_option(self, rev_token: Token) -> RevOption:
@@ -134,7 +133,7 @@ class MetadataOptionsMixin:
             Pydantic Field validators ensure rev >= 1 per IDS specifications.
         """
         rev = int(rev_token.value)
-        return RevOption(value=rev, location=token_to_location(rev_token, self.file_path))
+        return RevOption(value=rev, location=self._location_for(rev_token))
 
     @v_args(inline=True)
     def gid_option(self, gid_token: Token) -> GidOption:
@@ -156,7 +155,7 @@ class MetadataOptionsMixin:
             - 100+: Custom generators
         """
         gid = int(gid_token.value)
-        return GidOption(value=gid, location=token_to_location(gid_token, self.file_path))
+        return GidOption(value=gid, location=self._location_for(gid_token))
 
     # ========================================================================
     # Classification Options
@@ -184,9 +183,7 @@ class MetadataOptionsMixin:
             - denial-of-service: DoS or DDoS attack
         """
         classtype = str(classtype_token.value)
-        return ClasstypeOption(
-            value=classtype, location=token_to_location(classtype_token, self.file_path)
-        )
+        return ClasstypeOption(value=classtype, location=self._location_for(classtype_token))
 
     @v_args(inline=True)
     def priority_option(self, priority_token: Token) -> PriorityOption:
@@ -210,9 +207,7 @@ class MetadataOptionsMixin:
             The Pydantic Field validator enforces only the lower bound (>= 1).
         """
         priority = int(priority_token.value)
-        return PriorityOption(
-            value=priority, location=token_to_location(priority_token, self.file_path)
-        )
+        return PriorityOption(value=priority, location=self._location_for(priority_token))
 
     # ========================================================================
     # Reference Options
@@ -247,7 +242,7 @@ class MetadataOptionsMixin:
         return ReferenceOption(
             ref_type=ref_type,
             ref_id=ref_id_str,
-            location=token_to_location(ref_type_token, self.file_path),
+            location=self._location_for(ref_type_token),
         )
 
     def reference_id(self, items: Sequence[Token]) -> str:

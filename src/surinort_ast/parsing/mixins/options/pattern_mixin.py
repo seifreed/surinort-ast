@@ -15,11 +15,11 @@ from collections.abc import Sequence
 from lark import Token
 
 from ....core.nodes import PcreOption
-from ...helpers import token_to_location
+from .._location_aware import LocationAwareMixin
 from ._helpers import parse_pcre_pattern_cached, strip_outer_quotes
 
 
-class PatternMatchingOptionsMixin:
+class PatternMatchingOptionsMixin(LocationAwareMixin):
     """
     Mixin for transforming pattern matching options.
 
@@ -44,7 +44,6 @@ class PatternMatchingOptionsMixin:
     """
 
     # Declare expected attributes for type checking
-    file_path: str | None
 
     def pcre_option(self, items: Sequence[Token]) -> PcreOption:
         """
@@ -93,5 +92,5 @@ class PatternMatchingOptionsMixin:
             pattern=pattern,
             flags=flags,
             negated=negated,
-            location=token_to_location(pattern_token, self.file_path),
+            location=self._location_for(pattern_token),
         )

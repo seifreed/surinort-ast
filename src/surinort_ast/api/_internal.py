@@ -27,7 +27,7 @@ from ..parsing.transformer import RuleTransformer
 # Global Caches
 # ============================================================================
 
-_PARSERS: dict[tuple[Dialect, bool], Lark] = {}
+_PARSERS: dict[Dialect, Lark] = {}
 
 # Backwards-compatible grammar cache handle for tests that clear `_GRAMMAR_CACHE`
 # directly. `_GrammarCache` uses the same underlying storage.
@@ -117,45 +117,41 @@ def _get_grammar() -> str:
     return _GrammarCache.get()
 
 
-def _get_parser(dialect: Dialect = Dialect.SURICATA, track_locations: bool = True) -> Lark:
+def _get_parser(dialect: Dialect = Dialect.SURICATA) -> Lark:
     """
     Get or create a Lark parser for the specified dialect.
 
     Args:
         dialect: IDS rule dialect
-        track_locations: Enable position tracking (default: True)
 
     Returns:
         Lark parser instance
 
     Performance Notes:
-        - Parser instances are cached per (dialect, track_locations) combination
+        - Parser instances are cached per dialect
         - Grammar file is cached after first read (see _get_grammar())
 
     Note:
-        Node locations are derived from token positions in the transformer, which
-        the LALR lexer always populates. Lark's ``propagate_positions`` (which
-        aggregates those positions onto parse-tree ``meta``) is therefore never
-        read and is disabled — it costs ~20% of parse time for nothing.
+        Node locations are derived from token positions in the transformer (which
+        the LALR lexer always populates) and gated there by its ``track_locations``
+        flag, so the parser itself is identical regardless of that preference.
+        Lark's ``propagate_positions`` (which aggregates positions onto parse-tree
+        ``meta``) is never read and is disabled — it costs ~20% of parse time for
+        nothing.
     """
-    # Cache key includes location tracking preference
-    cache_key = (dialect, track_locations)
-
-    if cache_key not in _PARSERS:
+    if dialect not in _PARSERS:
         # Use cached grammar to avoid repeated file reads
         grammar = _get_grammar()
 
-        _PARSERS[cache_key] = Lark(
+        _PARSERS[dialect] = Lark(
             grammar,
             start="rule",
             parser="lalr",
-            # Locations come from token positions in the transformer, not from
-            # tree meta, so position propagation is pure overhead.
             propagate_positions=False,
             maybe_placeholders=False,
         )
 
-    return _PARSERS[cache_key]
+    return _PARSERS[dialect]
 
 
 # ============================================================================
@@ -197,8 +193,8 @@ def _parse_batch_worker(
     results: list[tuple[int, Rule | None, str | None]] = []
 
     # Create parser and transformer once for entire batch
-    parser = _get_parser(dialect, track_locations=track_locations)
-    transformer = RuleTransformer(dialect=dialect)
+    parser = _get_parser(dialect)
+    transformer = RuleTransformer(dialect=dialect, track_locations=track_locations)
 
     for line_num, text in batch_tasks:
         try:

@@ -48,8 +48,8 @@ def parse_rule(
         text: Rule text to parse
         dialect: Rule dialect (Suricata, Snort2, Snort3)
         track_locations: Enable position tracking (default: True).
-                         Disable for ~10% performance improvement when
-                         location information is not needed.
+                         Disable to omit node positions, saving that work
+                         and the memory the Location objects occupy.
         include_raw_text: Store original rule text in Rule.raw_text (default: True).
                          Set to False for ~50% memory reduction when raw text not needed.
         parser: Optional custom parser implementation (must implement IParser protocol).
@@ -88,7 +88,7 @@ def parse_rule(
 
     Performance Notes:
         - include_raw_text=False: ~50% memory reduction
-        - track_locations=False: ~10% faster parsing
+        - track_locations=False: omits node positions, saving that work and memory
         - Custom parser injection enables optimization for specific use cases
     """
     # Use injected parser if provided (dependency injection pattern)
@@ -109,9 +109,9 @@ def parse_rule(
     # Default path: use built-in Lark parser
     try:
         normalized_text = normalize_rule_text(text.strip())
-        lark_parser = _get_parser(dialect, track_locations=track_locations)
+        lark_parser = _get_parser(dialect)
         tree = lark_parser.parse(normalized_text)
-        transformer = RuleTransformer(dialect=dialect)
+        transformer = RuleTransformer(dialect=dialect, track_locations=track_locations)
         result: Rule = transformer.transform(tree)
 
         # Add raw text only if requested (memory optimization). The stored
@@ -144,8 +144,8 @@ def parse_rules(
         texts: List of rule texts
         dialect: Rule dialect
         track_locations: Enable position tracking (default: True).
-                         Disable for ~10% performance improvement when
-                         location information is not needed.
+                         Disable to omit node positions, saving that work
+                         and the memory the Location objects occupy.
         include_raw_text: Store original rule text in Rule.raw_text (default: True).
                          Set to False for ~50% memory reduction when raw text not needed.
 
@@ -168,7 +168,7 @@ def parse_rules(
 
     Performance Notes:
         - include_raw_text=False: ~50% memory reduction
-        - track_locations=False: ~10% faster parsing
+        - track_locations=False: omits node positions, saving that work and memory
     """
     rules: list[Rule] = []
     errors: list[tuple[int, str]] = []
@@ -206,8 +206,8 @@ def parse_file(
         path: Path to file containing rules
         dialect: Rule dialect
         track_locations: Enable position tracking (default: True).
-                         Disable for ~10% performance improvement when
-                         location information is not needed.
+                         Disable to omit node positions, saving that work
+                         and the memory the Location objects occupy.
         workers: Number of parallel workers for parsing (default: 1).
                 Parallel processing is used when workers > 1.
                 When workers > 1, batch processing is automatically enabled.
@@ -259,7 +259,7 @@ def parse_file(
     Performance Notes:
         - Parallel batching (workers > 1): ~40% higher throughput
         - Lightweight mode (include_raw_text=False): ~50% memory reduction
-        - No location tracking (track_locations=False): ~10% faster parsing
+        - No location tracking (track_locations=False): omits positions, saving work and memory
         - Combined optimizations can yield 2-3x overall performance improvement
 
     Security Notes:

@@ -112,13 +112,14 @@ class RuleTransformer(
     """
 
     # Use __slots__ for memory efficiency
-    __slots__ = ("config", "diagnostics", "dialect", "file_path")
+    __slots__ = ("config", "diagnostics", "dialect", "file_path", "track_locations")
 
     def __init__(
         self,
         file_path: str | None = None,
         dialect: Dialect = Dialect.SURICATA,
         config: ParserConfig | None = None,
+        track_locations: bool = True,
     ):
         """
         Initialize transformer.
@@ -127,6 +128,8 @@ class RuleTransformer(
             file_path: Source file path for location tracking
             dialect: Target IDS dialect (Suricata, Snort2, Snort3)
             config: Parser configuration with resource limits
+            track_locations: When False, nodes are built without Location info,
+                saving the per-token work and the memory those objects occupy.
 
         Performance:
             Uses __slots__ for reduced memory overhead.
@@ -136,6 +139,7 @@ class RuleTransformer(
         self.dialect = dialect
         self.config = config or ParserConfig.default()
         self.diagnostics: list[Diagnostic] = []
+        self.track_locations = track_locations
 
     def transform(self, tree: Tree[Token]) -> Any:
         """Transform a parse tree, resetting per-rule state first.

@@ -23,11 +23,12 @@ if TYPE_CHECKING:
 from ....core.diagnostics import DiagnosticLevel
 from ....core.enums import FlowDirection, FlowState
 from ....core.nodes import FlowbitsOption, FlowOption, GenericOption
-from ...helpers import token_to_location, token_to_str
+from ...helpers import token_to_str
+from .._location_aware import LocationAwareMixin
 from ._helpers import generic_kv
 
 
-class FlowTrackingOptionsMixin:
+class FlowTrackingOptionsMixin(LocationAwareMixin):
     """
     Mixin for transforming flow tracking options.
 
@@ -48,7 +49,6 @@ class FlowTrackingOptionsMixin:
     """
 
     # Declare expected attributes for type checking
-    file_path: str | None
     add_diagnostic: DiagnosticReporter
 
     # ========================================================================
@@ -110,7 +110,7 @@ class FlowTrackingOptionsMixin:
             self.add_diagnostic(
                 DiagnosticLevel.WARNING,
                 f"Unknown flow value: {value}",
-                token_to_location(item, self.file_path),
+                self._location_for(item),
             )
 
         return FlowOption(directions=directions, states=states)

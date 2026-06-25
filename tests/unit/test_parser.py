@@ -460,3 +460,39 @@ class TestLocationTracking:
         span = msg.location.span
         assert span.start.column == span.start.offset + 1
         assert span.end.column == span.end.offset + 1
+
+    def test_track_locations_false_omits_locations(self):
+        """track_locations=False must actually drop every Location from the AST,
+        leaving the rest of the tree byte-identical to the tracked parse.
+
+        Regression: the flag was a no-op — the transformer always built
+        locations, so track_locations=False saved neither memory nor work.
+        """
+        from surinort_ast import parse_rule
+
+        text = 'alert tcp any 1024:2048 -> 10.0.0.0/24 80 (msg:"x"; content:"ab"; sid:1;)'
+        tracked = parse_rule(text, track_locations=True)
+        untracked = parse_rule(text, track_locations=False)
+
+        def any_location(value: object) -> bool:
+            if isinstance(value, dict):
+                if value.get("location") is not None:
+                    return True
+                return any(any_location(v) for v in value.values())
+            if isinstance(value, list):
+                return any(any_location(v) for v in value)
+            return False
+
+        def strip(value: object) -> object:
+            if isinstance(value, dict):
+                value.pop("location", None)
+                for v in value.values():
+                    strip(v)
+            elif isinstance(value, list):
+                for v in value:
+                    strip(v)
+            return value
+
+        assert any_location(tracked.model_dump(mode="json"))
+        assert not any_location(untracked.model_dump(mode="json"))
+        assert strip(tracked.model_dump(mode="json")) == strip(untracked.model_dump(mode="json"))

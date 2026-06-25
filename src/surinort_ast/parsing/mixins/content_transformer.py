@@ -47,6 +47,7 @@ from ...core.nodes import (
     WithinOption,
 )
 from ..helpers import is_marker, token_to_str
+from ._location_aware import LocationAwareMixin
 from .options._helpers import generic_kv, parse_quoted_string, strip_outer_quotes
 
 logger = logging.getLogger(__name__)
@@ -168,7 +169,7 @@ def _parse_mixed_content(s: str) -> bytes:
     return bytes(result)
 
 
-class ContentTransformerMixin:
+class ContentTransformerMixin(LocationAwareMixin):
     """
     Mixin for transforming content-related AST nodes.
 
@@ -208,7 +209,6 @@ class ContentTransformerMixin:
     """
 
     # Declare expected attributes for type checking
-    file_path: str | None
     add_diagnostic: DiagnosticReporter
 
     # ========================================================================

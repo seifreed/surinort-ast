@@ -35,10 +35,11 @@ from ...core.nodes import (
     PortRange,
     PortVariable,
 )
-from ..helpers import strip_variable_marker, token_to_location
+from ..helpers import strip_variable_marker
+from ._location_aware import LocationAwareMixin
 
 
-class PortTransformerMixin:
+class PortTransformerMixin(LocationAwareMixin):
     """
     Mixin for transforming port-related AST nodes.
 
@@ -68,7 +69,6 @@ class PortTransformerMixin:
     """
 
     # Declare expected attributes for type checking
-    file_path: str | None
     add_diagnostic: DiagnosticReporter
     config: Any  # ParserConfig instance
 
@@ -100,7 +100,7 @@ class PortTransformerMixin:
             marker, not part of the actual variable identifier.
         """
         name = strip_variable_marker(var_token)
-        return PortVariable(name=name, location=token_to_location(var_token, self.file_path))
+        return PortVariable(name=name, location=self._location_for(var_token))
 
     @v_args(inline=True)
     def port_negation(self, port: Any) -> PortNegation:
@@ -175,7 +175,7 @@ class PortTransformerMixin:
             self.add_diagnostic(
                 DiagnosticLevel.ERROR,
                 f"Port range start {start} out of range (0-65535)",
-                token_to_location(start_token, self.file_path),
+                self._location_for(start_token),
             )
             start = max(0, min(start, 65535))
 
@@ -183,7 +183,7 @@ class PortTransformerMixin:
             self.add_diagnostic(
                 DiagnosticLevel.ERROR,
                 f"Port range end {end} out of range (0-65535)",
-                token_to_location(end_token, self.file_path),
+                self._location_for(end_token),
             )
             end = max(0, min(end, 65535))
 
@@ -191,7 +191,7 @@ class PortTransformerMixin:
             self.add_diagnostic(
                 DiagnosticLevel.ERROR,
                 f"Port range start {start} > end {end}, swapping to create valid range",
-                token_to_location(start_token, self.file_path),
+                self._location_for(start_token),
             )
             start, end = end, start
 
@@ -212,7 +212,7 @@ class PortTransformerMixin:
             rule still parses.
         """
         end = int(end_token.value)
-        location = token_to_location(end_token, self.file_path)
+        location = self._location_for(end_token)
         if end < 0 or end > 65535:
             self.add_diagnostic(
                 DiagnosticLevel.ERROR,
@@ -242,7 +242,7 @@ class PortTransformerMixin:
             malformed input.
         """
         port_num = int(port_token.value)
-        location = token_to_location(port_token, self.file_path)
+        location = self._location_for(port_token)
 
         # Grammar ensures port is 0-65535, but validate for safety and clear error messages
         # This validation provides better diagnostics even though grammar enforces constraints
@@ -282,7 +282,7 @@ class PortTransformerMixin:
             name = str(item.value)
             if name.startswith("$"):
                 name = name[1:]
-            return PortVariable(name=name, location=token_to_location(item, self.file_path))
+            return PortVariable(name=name, location=self._location_for(item))
 
         # Otherwise, it's already transformed (Port or PortRange)
         return item
