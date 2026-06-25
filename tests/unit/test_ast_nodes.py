@@ -22,18 +22,26 @@ from surinort_ast.core.nodes import (
     AddressVariable,
     AnyAddress,
     AnyPort,
+    BufferSelectOption,
+    ByteExtractOption,
+    ByteTestOption,
+    ClasstypeOption,
     ContentModifier,
     ContentOption,
     Dialect,
     Direction,
+    FilestoreOption,
+    FlowbitsOption,
     FlowDirection,
     FlowOption,
     FlowState,
     Header,
     IPAddress,
     IPCIDRRange,
+    LuaOption,
     MetadataOption,
     MsgOption,
+    PcreOption,
     Port,
     PortRange,
     Protocol,
@@ -41,6 +49,8 @@ from surinort_ast.core.nodes import (
     RevOption,
     Rule,
     SidOption,
+    TagOption,
+    ThresholdOption,
 )
 from tests.unit._helpers import any_header
 
@@ -332,6 +342,46 @@ class TestUnrepresentableOptionValues:
         for bad in ("a b", "a,b", "a;b"):
             with pytest.raises(ValidationError):
                 MetadataOption(entries=((bad, "v"),))
+
+    def test_token_fields_reject_separators(self):
+        # Each is printed as a bare keyword/token argument, so ',' / ';' /
+        # whitespace would re-split or terminate the option on reparse.
+        for factory in (
+            lambda b: FlowbitsOption(action="set", name=b),
+            lambda b: FlowbitsOption(action=b, name="x"),
+            lambda b: ClasstypeOption(value=b),
+            lambda b: ThresholdOption(threshold_type=b, track="by_src", count=1, seconds=1),
+            lambda b: TagOption(tag_type="session", count=1, metric=b),
+            lambda b: FilestoreOption(direction=b),
+            lambda b: BufferSelectOption(buffer_name=b),
+            lambda b: LuaOption(script_name=b),
+            lambda b: ByteExtractOption(bytes_to_extract=4, offset=0, var_name=b),
+            lambda b: ByteTestOption(bytes_to_extract=4, operator=b, value=0, offset=0),
+        ):
+            for bad in ("a,b", "a;b", "a b"):
+                with pytest.raises(ValidationError):
+                    factory(bad)
+
+    def test_token_fields_allow_normal_values(self):
+        # Real values (no delimiters) must still construct.
+        assert FlowbitsOption(action="set", name="ET.evil").name == "ET.evil"
+        assert ClasstypeOption(value="trojan-activity").value == "trojan-activity"
+        assert FilestoreOption(direction="request", scope="file").scope == "file"
+        assert LuaOption(script_name="test.lua").script_name == "test.lua"
+
+    def test_byte_flags_allow_space_separated_argument(self):
+        # A flag may carry a space-separated argument (bitmask 0xc0), so flags
+        # are deliberately not delimiter-restricted.
+        opt = ByteTestOption(
+            bytes_to_extract=2, operator=">", value=0, offset=0, flags=("bitmask 0xc0",)
+        )
+        assert opt.flags == ("bitmask 0xc0",)
+
+    def test_pcre_flags_reject_redelimiters(self):
+        for bad in ("i;x", 'i"x', "i/x", "i x"):
+            with pytest.raises(ValidationError):
+                PcreOption(pattern="abc", flags=bad)
+        assert PcreOption(pattern="abc", flags="ismR").flags == "ismR"
 
 
 class TestFlowOption:

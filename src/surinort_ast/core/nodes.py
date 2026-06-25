@@ -11,6 +11,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import base64
+import string
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Union
 
@@ -396,11 +397,33 @@ class GidOption(Option):
     value: int = Field(ge=1, le=_UINT32_MAX)
 
 
+# Characters the rule-text printer cannot represent inside a bare keyword/token
+# argument: ',' and ';' delimit option arguments and terminate the option, and
+# whitespace separates tokens. The text format has no escape for them, so a node
+# field holding one prints to rule text that re-parses to a DIFFERENT AST (or
+# fails to parse). The parser can never produce such a value (it tokenizes these
+# fields between exactly these delimiters); only builder/JSON/protobuf
+# construction can, so this guards that boundary — mirroring the
+# ReferenceOption/MetadataOption value guards.
+_OPTION_TOKEN_DELIMITERS = frozenset(",;") | frozenset(string.whitespace)
+
+
+def _reject_token_delimiters(value: str, what: str) -> str:
+    if any(ch in _OPTION_TOKEN_DELIMITERS for ch in value):
+        raise ValueError(f"{what} cannot contain ',', ';' or whitespace")
+    return value
+
+
 class ClasstypeOption(Option):
     """classtype:trojan-activity;"""
 
     type: Literal["ClasstypeOption"] = "ClasstypeOption"
     value: str
+
+    @field_validator("value")
+    @classmethod
+    def _check_value(cls, value: str) -> str:
+        return _reject_token_delimiters(value, "classtype value")
 
 
 class PriorityOption(Option):
@@ -554,6 +577,18 @@ class PcreOption(Option):
     flags: str = ""
     negated: bool = False
 
+    @field_validator("flags")
+    @classmethod
+    def _check_flags(cls, value: str) -> str:
+        # Printed as ``pcre:"/<pattern>/<flags>";`` — flags sit after the closing
+        # delimiter, so a '/' or '"' re-delimits the regex, ';' terminates the
+        # option, and whitespace splits it. PCRE flags are contiguous letters and
+        # never contain these.
+        forbidden = frozenset('/";') | frozenset(string.whitespace)
+        if any(ch in forbidden for ch in value):
+            raise ValueError("pcre flags cannot contain '/', '\"', ';' or whitespace")
+        return value
+
 
 class FlowOption(Option):
     """
@@ -582,6 +617,11 @@ class FlowbitsOption(Option):
     action: str
     name: str
 
+    @field_validator("action", "name")
+    @classmethod
+    def _check_token(cls, value: str, info: Any) -> str:
+        return _reject_token_delimiters(value, f"flowbits {info.field_name}")
+
 
 class ThresholdOption(Option):
     """
@@ -600,6 +640,11 @@ class ThresholdOption(Option):
     count: int = Field(ge=1)
     seconds: int = Field(ge=1)
 
+    @field_validator("threshold_type", "track")
+    @classmethod
+    def _check_token(cls, value: str, info: Any) -> str:
+        return _reject_token_delimiters(value, f"threshold {info.field_name}")
+
 
 class DetectionFilterOption(Option):
     """
@@ -612,6 +657,11 @@ class DetectionFilterOption(Option):
     track: str
     count: int = Field(ge=1)
     seconds: int = Field(ge=1)
+
+    @field_validator("track")
+    @classmethod
+    def _check_track(cls, value: str) -> str:
+        return _reject_token_delimiters(value, "detection_filter track")
 
 
 class BufferSelectOption(Option):
@@ -629,6 +679,11 @@ class BufferSelectOption(Option):
     type: Literal["BufferSelectOption"] = "BufferSelectOption"
     buffer_name: str
 
+    @field_validator("buffer_name")
+    @classmethod
+    def _check_buffer_name(cls, value: str) -> str:
+        return _reject_token_delimiters(value, "buffer name")
+
 
 def _coerce_byte_operand(value: Any) -> Any:
     """Normalize a byte-op operand to its canonical type: a plain decimal (e.g.
@@ -640,7 +695,11 @@ def _coerce_byte_operand(value: Any) -> Any:
         try:
             return int(value, 10)
         except ValueError:
-            return value
+            pass
+        # Stays a str: a hex literal (0x78) or a variable name. Neither can hold
+        # an option/argument delimiter, which would corrupt the comma-joined
+        # byte_* text on reparse.
+        return _reject_token_delimiters(value, "byte operand")
     return value
 
 
@@ -669,6 +728,11 @@ class ByteTestOption(Option):
     @classmethod
     def _normalize_operand(cls, value: Any) -> Any:
         return _coerce_byte_operand(value)
+
+    @field_validator("operator")
+    @classmethod
+    def _check_operator(cls, value: str) -> str:
+        return _reject_token_delimiters(value, "byte_test operator")
 
 
 class ByteJumpOption(Option):
@@ -714,6 +778,11 @@ class ByteExtractOption(Option):
     def _normalize_operand(cls, value: Any) -> Any:
         return _coerce_byte_operand(value)
 
+    @field_validator("var_name")
+    @classmethod
+    def _check_var_name(cls, value: str) -> str:
+        return _reject_token_delimiters(value, "byte_extract var_name")
+
 
 class FastPatternOption(Option):
     """
@@ -748,6 +817,11 @@ class TagOption(Option):
     count: int = Field(ge=0, le=2147483647)
     metric: str
 
+    @field_validator("tag_type", "metric")
+    @classmethod
+    def _check_token(cls, value: str, info: Any) -> str:
+        return _reject_token_delimiters(value, f"tag {info.field_name}")
+
 
 class FilestoreOption(Option):
     """
@@ -761,6 +835,13 @@ class FilestoreOption(Option):
     type: Literal["FilestoreOption"] = "FilestoreOption"
     direction: str | None = None
     scope: str | None = None
+
+    @field_validator("direction", "scope")
+    @classmethod
+    def _check_token(cls, value: str | None, info: Any) -> str | None:
+        if value is None:
+            return None
+        return _reject_token_delimiters(value, f"filestore {info.field_name}")
 
 
 class LuaOption(Option):
@@ -779,6 +860,11 @@ class LuaOption(Option):
     script_name: str
     negated: bool = False
 
+    @field_validator("script_name")
+    @classmethod
+    def _check_script_name(cls, value: str) -> str:
+        return _reject_token_delimiters(value, "lua script name")
+
 
 class LuajitOption(Option):
     """
@@ -795,6 +881,11 @@ class LuajitOption(Option):
     type: Literal["LuajitOption"] = "LuajitOption"
     script_name: str
     negated: bool = False
+
+    @field_validator("script_name")
+    @classmethod
+    def _check_script_name(cls, value: str) -> str:
+        return _reject_token_delimiters(value, "luajit script name")
 
 
 class DepthOption(Option):
