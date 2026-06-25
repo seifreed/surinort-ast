@@ -682,7 +682,14 @@ class BufferSelectOption(Option):
     @field_validator("buffer_name")
     @classmethod
     def _check_buffer_name(cls, value: str) -> str:
-        return _reject_token_delimiters(value, "buffer name")
+        # Only ';' is unrepresentable here: it terminates the option, silently
+        # spilling the remainder into a separate GenericOption on reparse.
+        # Whitespace is intentionally allowed — the Snort3 "<buffer>:field <name>"
+        # selector (e.g. ``http_header:field user-agent``) is a valid buffer name
+        # that contains a space.
+        if ";" in value:
+            raise ValueError("buffer name cannot contain ';'")
+        return value
 
 
 def _coerce_byte_operand(value: Any) -> Any:

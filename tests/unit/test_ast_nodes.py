@@ -353,7 +353,6 @@ class TestUnrepresentableOptionValues:
             lambda b: ThresholdOption(threshold_type=b, track="by_src", count=1, seconds=1),
             lambda b: TagOption(tag_type="session", count=1, metric=b),
             lambda b: FilestoreOption(direction=b),
-            lambda b: BufferSelectOption(buffer_name=b),
             lambda b: LuaOption(script_name=b),
             lambda b: ByteExtractOption(bytes_to_extract=4, offset=0, var_name=b),
             lambda b: ByteTestOption(bytes_to_extract=4, operator=b, value=0, offset=0),
@@ -361,6 +360,17 @@ class TestUnrepresentableOptionValues:
             for bad in ("a,b", "a;b", "a b"):
                 with pytest.raises(ValidationError):
                     factory(bad)
+
+    def test_buffer_name_rejects_only_semicolon(self):
+        # A buffer name terminates on ';', but whitespace is valid — the Snort3
+        # "<buffer>:field <name>" selector (http_header:field user-agent) is a
+        # real buffer name containing a space, so it must not be rejected.
+        with pytest.raises(ValidationError):
+            BufferSelectOption(buffer_name="ht;tp")
+        assert (
+            BufferSelectOption(buffer_name="http_header:field user-agent").buffer_name
+            == "http_header:field user-agent"
+        )
 
     def test_token_fields_allow_normal_values(self):
         # Real values (no delimiters) must still construct.
