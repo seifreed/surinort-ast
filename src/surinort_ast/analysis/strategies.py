@@ -42,6 +42,11 @@ from .option_categories import POSITIONAL_OPTIONS
 #     to.
 # Stateless predicate keywords (dsize, ttl, flags, itype, urilen, ...) are
 # deliberately excluded so legitimate dedup/reorder still applies.
+#
+# Inline content modifiers that anchor where the literal must appear relative to
+# the preceding match; a ContentOption carrying any of these is position-bound
+# exactly like a standalone DistanceOption/WithinOption and must not be moved.
+_POSITIONAL_MODIFIER_NAMES: frozenset[str] = frozenset({"offset", "depth", "distance", "within"})
 _STATEFUL_GENERIC_KEYWORDS: frozenset[str] = frozenset(
     {
         "byte_test",
@@ -82,27 +87,41 @@ def _is_order_significant(opt: Option) -> bool:
       within and must not be moved;
     - a byte_* / isdataat GenericOption is position- and variable-stateful, and
       any GenericOption carrying a ``relative`` modifier is anchored to the
-      preceding match.
+      preceding match;
+    - a ContentOption carrying an inline offset/depth/distance/within modifier is
+      anchored to where the literal must appear (relative to the preceding match
+      for distance/within), so it is position-bound just like the standalone
+      DistanceOption/WithinOption forms the parser emits.
     """
     if opt.node_type in POSITIONAL_OPTIONS:
+        return True
+    if opt.node_type == "ContentOption" and any(
+        m.name_str in _POSITIONAL_MODIFIER_NAMES for m in (getattr(opt, "modifiers", ()) or ())
+    ):
         return True
     if opt.node_type == "PcreOption" and "R" in (getattr(opt, "flags", "") or ""):
         return True
     if opt.node_type == "GenericOption":
-        if (getattr(opt, "keyword", "") or "") in _STATEFUL_GENERIC_KEYWORDS:
-            return True
-        if "relative" in (getattr(opt, "value", "") or ""):
-            return True
-        # A bare (valueless) GenericOption is a sticky-buffer selector
-        # (http_referer, ja3.hash, ssl_state, ip.hdr, ...) or state marker that
-        # the grammar does not promote to BufferSelectOption. It re-bases which
-        # buffer following content binds to, so moving content across it changes
-        # detection. Valued predicates (dsize:>100, flags:S, ttl:64) are stateless
-        # and stay reorderable; the common stateless content modifiers (nocase,
-        # rawbytes, startswith) are dedicated nodes, not GenericOption.
-        if getattr(opt, "value", None) is None:
-            return True
+        return _generic_is_order_significant(opt)
     return False
+
+
+def _generic_is_order_significant(opt: Option) -> bool:
+    """Order-significance for a keyword-tagged GenericOption.
+
+    Besides the explicitly stateful keywords, any GenericOption carrying a
+    ``relative`` modifier is anchored to the preceding match, and a bare
+    (valueless) GenericOption is a sticky-buffer selector (http_referer,
+    ja3.hash, ssl_state, ip.hdr, ...) or state marker that the grammar does not
+    promote to BufferSelectOption — it re-bases which buffer following content
+    binds to, so moving content across it changes detection. Valued predicates
+    (dsize:>100, flags:S, ttl:64) are stateless and stay reorderable; the common
+    stateless content modifiers (nocase, rawbytes, startswith) are dedicated
+    nodes, not GenericOption.
+    """
+    keyword = getattr(opt, "keyword", "") or ""
+    value = getattr(opt, "value", None)
+    return keyword in _STATEFUL_GENERIC_KEYWORDS or "relative" in (value or "") or value is None
 
 
 class OptimizationStrategy(ABC):

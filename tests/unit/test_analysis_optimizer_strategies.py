@@ -22,9 +22,11 @@ from surinort_ast.analysis.strategies import (
     OptionReorderStrategy,
     RedundancyRemovalStrategy,
 )
+from surinort_ast.core.enums import ContentModifierType
 from surinort_ast.core.nodes import (
     ByteJumpOption,
     ByteTestOption,
+    ContentModifier,
     ContentOption,
     SidOption,
 )
@@ -335,6 +337,35 @@ class TestOptionReorderStrategy:
 
         assert optimized is None
         assert changes == []
+
+    def test_reorder_preserves_inline_positional_modifier(self):
+        """A content carrying an INLINE distance/within/offset/depth modifier is
+        anchored to the preceding match, so it must not be reordered.
+
+        Regression: ``_is_order_significant`` decided order-significance only from
+        node_type and never inspected a ContentOption's inline ``modifiers``, so a
+        ``content:"B",distance 0`` (reachable via builder/JSON, where positional
+        modifiers ride inline instead of as standalone DistanceOption) was sorted
+        ahead of a preceding pcre, silently re-anchoring it to a different match.
+        """
+        rule = parse_rule('alert tcp any any -> any any (content:"A"; sid:1;)')
+        positioned = ContentOption(
+            pattern=b"B",
+            modifiers=(ContentModifier(name=ContentModifierType.DISTANCE, value="0"),),
+        )
+        opts = (
+            ContentOption(pattern=b"A"),
+            ByteJumpOption(bytes_to_extract=2, offset=0, flags=("relative",)),
+            positioned,
+            SidOption(value=1),
+        )
+        rule = rule.model_copy(update={"options": opts})
+
+        optimized, changes = OptionReorderStrategy().apply(rule)
+
+        assert optimized is None
+        assert changes == []
+        assert OptionReorderStrategy().estimate_gain(rule) == 0.0
 
 
 class TestFastPatternStrategy:
