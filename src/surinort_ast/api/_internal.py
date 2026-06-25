@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from lark import Lark
 
@@ -157,7 +157,7 @@ def _get_parser(dialect: Dialect = Dialect.SURICATA) -> Lark:
     return _PARSERS[dialect]
 
 
-def build_embedded_parser(dialect: Dialect, track_locations: bool) -> Lark:
+def build_embedded_parser(dialect: Dialect, track_locations: bool) -> tuple[Lark, RuleTransformer]:
     """Build a parser with the transformer embedded so parsing produces ``Rule``
     nodes directly, skipping the intermediate Lark parse tree.
 
@@ -167,16 +167,23 @@ def build_embedded_parser(dialect: Dialect, track_locations: bool) -> Lark:
     per-rule diagnostics state; sharing it across concurrent callers would race.
     The ~6ms construction (LALR tables come from the on-disk cache) is amortised
     over the thousands of rules in a typical file.
+
+    The transformer is returned alongside the parser so the caller can reset its
+    diagnostics buffer before each rule: a rule that raises mid-transform never
+    reaches ``rule()`` (which clears the buffer), so its partial diagnostics
+    would otherwise leak into the next rule.
     """
-    return Lark(
+    transformer = RuleTransformer(dialect=dialect, track_locations=track_locations)
+    parser = Lark(
         _get_grammar(),
         start="rule",
         parser="lalr",
         propagate_positions=False,
         maybe_placeholders=False,
         cache=True,
-        transformer=RuleTransformer(dialect=dialect, track_locations=track_locations),
+        transformer=transformer,
     )
+    return parser, transformer
 
 
 # ============================================================================
@@ -217,9 +224,11 @@ def _parse_batch_worker(
     batch_tasks, dialect, track_locations, file_path, include_raw_text = args
     results: list[tuple[int, Rule | None, str | None]] = []
 
-    # Create parser and transformer once for entire batch
-    parser = _get_parser(dialect)
-    transformer = RuleTransformer(dialect=dialect, track_locations=track_locations)
+    # Embed the transformer in the parser so each rule is built during parsing,
+    # with no intermediate parse tree — ~15% faster across the batch. One parser
+    # (with its own transformer) per worker keeps the per-rule diagnostics state
+    # private to this process.
+    parser, transformer = build_embedded_parser(dialect, track_locations)
 
     for line_num, text in batch_tasks:
         try:
@@ -227,8 +236,11 @@ def _parse_batch_worker(
             # rules as the sequential path (see parse_rule) and stores the same
             # normalized raw_text for consistent round-tripping.
             normalized = normalize_rule_text(text.strip())
-            tree = parser.parse(normalized)
-            result: Rule = transformer.transform(tree)
+            # Start each rule with an empty diagnostics buffer so a previous rule
+            # that raised mid-transform can't leak its diagnostics into this one.
+            transformer.diagnostics = []
+            # The embedded transformer makes parse() return a Rule, not a Tree.
+            result = cast(Rule, parser.parse(normalized))
 
             # Conditionally include raw_text based on mode
             update_dict: dict[str, Any] = {

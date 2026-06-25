@@ -367,11 +367,14 @@ def _parse_file_sequential(
     # (no intermediate parse tree) — ~15% faster across a whole file. The parser
     # carries a fresh transformer unique to this call, so its per-rule state is
     # not shared with any concurrent caller.
-    parser = build_embedded_parser(dialect, track_locations)
+    parser, transformer = build_embedded_parser(dialect, track_locations)
 
     for line_num, line in tasks:
         try:
             normalized = normalize_rule_text(line.strip())
+            # Start each rule with an empty diagnostics buffer so a previous rule
+            # that raised mid-transform can't leak its diagnostics into this one.
+            transformer.diagnostics = []
             # The embedded transformer makes parse() return a Rule, not a Tree.
             rule = cast(Rule, parser.parse(normalized))
             update_dict: dict[str, Any] = {
