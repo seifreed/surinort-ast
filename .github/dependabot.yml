@@ -58,6 +58,10 @@ updates:
           - "patch"
     # Version requirements
     versioning-strategy: increase
+    ignore:
+      # pydantic-core is hard-pinned by pydantic (==2.46.4); bumping it on its
+      # own yields an unresolvable lockfile. It follows pydantic automatically.
+      - dependency-name: "pydantic-core"
 
   # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
