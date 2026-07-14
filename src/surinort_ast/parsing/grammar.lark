@@ -11,6 +11,7 @@ rule_file: (rule | comment)*
 // Full and short rule forms (Snort3 allows protocol-only headers)
 rule: action header "(" options ")" ";"?
     | action protocol "(" options ")" ";"?
+    | action "(" options ")" ";"?
 
 // ============================================================================
 // Header
@@ -22,14 +23,19 @@ action: ALERT -> alert
       | DROP -> drop
       | REJECT -> reject
       | SDROP -> sdrop
+      | BLOCK -> block
+      | REACT -> react
+      | REWRITE -> rewrite
 
 header: protocol address port direction address port
 
 protocol: "tcp" -> tcp
         | "tcp-pkt" -> tcp_pkt
+        | "tcp-stream" -> tcp_stream
         | "udp" -> udp
         | "icmp" -> icmp
         | "ip" -> ip
+        | "ipv6" -> ipv6
         | "file" -> file
         | "ssl" -> ssl
         | "http1" -> http1
@@ -39,6 +45,7 @@ protocol: "tcp" -> tcp
         | "dns" -> dns
         | "tls" -> tls
         | "ssh" -> ssh
+        | "telnet" -> telnet
         | "ftp" -> ftp
         | "ftp-data" -> ftp_data
         | "ftp_data" -> ftp_data
@@ -76,7 +83,7 @@ direction: "->" -> to
         | address_range
         | address_ip
 
-address_any: "any"
+address_any: ANY
 address_var: VARIABLE
 address_negation: "!" address
 address_list: "[" address ("," address)* "]"
@@ -96,7 +103,7 @@ address_ip: IPV4 | IPV6
      | port_range
      | port_single
 
-port_any: "any"
+port_any: ANY
 port_var: VARIABLE
 port_negation: "!" port
 port_list: "[" port_elem ("," port_elem)* "]"
@@ -163,7 +170,7 @@ priority_option: "priority" ":" INT
 reference_option: "reference" ":" WORD "," reference_id
 reference_id: REFERENCE_TAIL
 // ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 500 chars)
-REFERENCE_TAIL.2: /[^;]{1,500}/
+REFERENCE_TAIL.2: /(?:\\;|[^;]){1,500}/
 
 // Reference IDs can contain slashes, dots, query params, etc (like URLs)
 // Higher priority than PCRE_PATTERN to match URLs correctly
@@ -176,7 +183,8 @@ REFERENCE_ID.1: /[A-Za-z0-9]+[_.\/:\-?&=%#~@!+*(){}][A-Za-z0-9_.\/:\-?&=%#~@!+*(
 
 // Metadata - allow action keywords as regular words and multiple values
 metadata_option: "metadata" ":" metadata_entry ("," metadata_entry)*
-metadata_entry: (WORD | ALERT | LOG | PASS | DROP | REJECT | SDROP | INT | METADATA_VALUE)+
+metadata_entry: (WORD | ALERT | LOG | PASS | DROP | REJECT | SDROP | BLOCK | REACT | REWRITE | INT | METADATA_VALUE | SOID_VALUE)+
+SOID_VALUE.3: /\d+\|\d+/
 
 // Content matching
 // Support Snort3 inline modifiers: content:"test",depth 16,nocase
@@ -286,12 +294,12 @@ byte_test_operator: BYTE_TEST_OP | WORD
 // Byte test operators - must come before other terminals to match correctly.
 // Any operator may be negated with a leading "!"; longest alternatives first so
 // multi-character operators win over their prefixes.
-BYTE_TEST_OP.2: "!<=" | "!>=" | "<=" | ">=" | "!&" | "!=" | "!<" | "!>" | "!^" | "<" | ">" | "=" | "&" | "^"
+BYTE_TEST_OP.2: "!<=" | "!>=" | "<=" | ">=" | "!&" | "!=" | "!<" | "!>" | "!^" | "<" | ">" | "=" | "&" | "^" | "!"
 
 byte_jump_option: "byte_jump" ":" byte_jump_params
 byte_jump_params: number "," byte_jump_offset ("," byte_jump_flag)*
 byte_jump_offset: neg_sign? (number | WORD | REFERENCE_ID)
-byte_jump_flag: WORD (neg_sign? number)?  // Support "post_offset 10" / "bitmask 0x8000" flags
+byte_jump_flag: WORD (neg_sign? (number | WORD | REFERENCE_ID))?  // Support "post_offset 10" / "post_offset var"
 
 byte_extract_option: "byte_extract" ":" byte_extract_params
 byte_extract_params: number "," byte_extract_offset "," (WORD | REFERENCE_ID) ("," byte_extract_flag)*
@@ -310,9 +318,9 @@ BYTE_MATH_TAIL.1: /[^;)]{1,300}/
 buffer_select_option: BUFFER_NAME (":" BUFFER_SELECTOR)?
 
 BUFFER_NAME.2: "http." ("uri" | "header" | "header_names" | "method" | "cookie" | "raw_cookie" | "user_agent" | "host" | "raw_host" | "raw_uri" | "raw_header" | "client_body" | "stat_msg" | "stat_code")
-             | "http." ("uri.raw" | "request_body")
+             | "http." ("uri.raw" | "header.raw" | "host.raw" | "request_body")
              | "http_" ("uri" | "header" | "header_names" | "method" | "cookie" | "raw_cookie" | "user_agent" | "host" | "raw_host" | "raw_uri" | "raw_header" | "client_body" | "stat_msg" | "stat_code")
-             | "http_" ("uri_raw" | "request_body")
+             | "http_" ("uri_raw" | "header_test" | "request_body")
              | "file." ("data")
              | "file_" ("data")
              | "pkt." ("data")
@@ -323,7 +331,7 @@ BUFFER_NAME.2: "http." ("uri" | "header" | "header_names" | "method" | "cookie" 
              | "tls_" ("sni" | "cert_subject" | "cert_issuer")
              | "ssh." ("proto" | "software")
              | "ssh_" ("proto" | "software")
-BUFFER_SELECTOR.1: /[^;,\)]{1,500}/
+BUFFER_SELECTOR.1: /[^;\)]{1,500}/
 
 // Tag and filestore
 // Tag can include commas and spaces before numeric args (e.g., "tag:session,packets 5")
@@ -338,7 +346,7 @@ flags_option: "flags" ":" flags_atom ("," flags_atom)*
 flags_atom: FLAGS_VALUE | WORD | INT | GENERIC_VALUE
 // TCP flag specs with modifiers: A+, 12FS, FRS*, U+, !S handled via neg in atom text.
 // Letters limited to the 8 TCP flag chars + reserved-bit digits; trailing +, *, ! modifier.
-FLAGS_VALUE.4: /[0-9]*[SAFRPUCE]+[+*!]?|[0-9]+[+*!]?/
+FLAGS_VALUE.4: /[0-9]*[SAFRPUCE12]+[+*!]?|[0-9]+[+*!]?/
 
 // Lua scripting (Suricata/Snort)
 // lua:filename.lua; or lua:!filename.lua; (negation)
@@ -386,7 +394,7 @@ HEX_STRING: /\|(?:[0-9a-fA-F]{2}\s*){1,5000}\|/
 // ReDoS protection: Length-bounded to prevent catastrophic backtracking (max 5000 chars)
 // Simplified to avoid nested quantifier alternation
 PCRE_PATTERN: /\/(?:[^\/\\]|\\[^\n]){0,5000}\/[a-zA-Z]{0,20}/
-PCRE_QUOTED.2: /"[^;\n]{0,5000}"/
+PCRE_QUOTED.2: /"(?:\\;|[^;\n]){0,5000}"/
 
 // Numbers and words
 // HEX_INT must come before METADATA_VALUE and INT to match hex numbers correctly
@@ -397,6 +405,7 @@ METADATA_VALUE: /\d[a-zA-Z0-9_.-]+/
 INT: /\d+/
 // WORD must come after IP addresses to avoid conflicts
 WORD: /[a-zA-Z_][a-zA-Z0-9_.-]*/
+ANY.3: /any/i
 
 // Action keywords as high-priority terminals (match exactly in action context)
 // But can also be used as words in metadata context
@@ -406,6 +415,9 @@ PASS: "pass"
 DROP: "drop"
 REJECT: "reject"
 SDROP: "sdrop"
+BLOCK: "block"
+REACT: "react"
+REWRITE: "rewrite"
 
 // Whitespace and newlines
 %import common.WS

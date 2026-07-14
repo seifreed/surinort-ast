@@ -462,8 +462,12 @@ class ReferenceOption(Option):
     @classmethod
     def _check_ref_id(cls, value: str) -> str:
         # A semicolon terminates the option; commas are fine (the id is read to
-        # the terminator), so URLs with commas round-trip.
-        if ";" in value:
+        # the terminator), so URLs with commas round-trip. Escaped semicolons
+        # are valid Snort/Suricata text and print back safely.
+        if any(
+            char == ";" and (index == 0 or value[index - 1] != "\\")
+            for index, char in enumerate(value)
+        ):
             raise ValueError("reference id cannot contain ';'")
         return value
 

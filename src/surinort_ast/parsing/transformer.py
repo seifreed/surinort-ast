@@ -26,7 +26,7 @@ from lark import Token, Tree
 from lark.visitors import Transformer, v_args
 
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
-from ..core.enums import Dialect
+from ..core.enums import Dialect, Protocol
 from ..core.location import Location
 from ..core.nodes import Header, Rule
 from .helpers import token_to_location
@@ -190,11 +190,13 @@ class RuleTransformer(
         Forms:
             - action header (options)           [Standard form]
             - action protocol (options)         [Snort3 short form]
+            - action (options)                  [Snort builtin/preprocessor]
 
         Args:
             *args: Variable length args depending on form:
                    - Full: [action, header, options]
                    - Short: [action, protocol, options]
+                   - Headerless: [action, options]
 
         Returns:
             Rule node with complete rule structure
@@ -213,11 +215,17 @@ class RuleTransformer(
         # Unpack arguments
         action = args[0]
         second = args[1]
-        options = args[2] if len(args) > 2 else []
+        headerless = not isinstance(second, (Header, Protocol))
+        options = second if headerless else args[2] if len(args) > 2 else []
 
         # Full form passes a parsed header; short form (action protocol ...)
         # passes only the protocol, expanded to an any/any TO any/any header.
-        header = second if isinstance(second, Header) else Header.wildcard(second)
+        if isinstance(second, Header):
+            header = second
+        elif isinstance(second, Protocol):
+            header = Header.wildcard(second)
+        else:
+            header = Header.wildcard()
 
         # Create rule with the diagnostics accumulated during its own option
         # transformation, then clear them so the next rule built by this same

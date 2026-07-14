@@ -36,6 +36,9 @@ class Action(str, Enum):
     DROP = auto()
     REJECT = auto()
     SDROP = auto()
+    BLOCK = auto()
+    REACT = auto()
+    REWRITE = auto()
 
 
 class Protocol(str, Enum):
@@ -49,9 +52,11 @@ class Protocol(str, Enum):
     # Network layer
     TCP = "tcp"
     TCP_PKT = "tcp-pkt"
+    TCP_STREAM = "tcp-stream"
     UDP = "udp"
     ICMP = "icmp"
     IP = "ip"
+    IPV6 = "ipv6"
     FILE = "file"
 
     # Application layer (Suricata)
@@ -62,6 +67,7 @@ class Protocol(str, Enum):
     DNS = "dns"
     TLS = "tls"
     SSH = "ssh"
+    TELNET = "telnet"
     FTP = "ftp"
     FTP_DATA = "ftp-data"
     SMB = "smb"

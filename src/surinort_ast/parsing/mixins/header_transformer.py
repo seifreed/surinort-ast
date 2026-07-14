@@ -108,6 +108,18 @@ class HeaderTransformerMixin:
         """
         return Action.SDROP
 
+    def block(self, _: Any) -> Action:
+        """Transform 'block' action."""
+        return Action.BLOCK
+
+    def react(self, _: Any) -> Action:
+        """Transform 'react' action."""
+        return Action.REACT
+
+    def rewrite(self, _: Any) -> Action:
+        """Transform 'rewrite' action."""
+        return Action.REWRITE
+
     # ========================================================================
     # Protocols
     # ========================================================================
@@ -120,6 +132,10 @@ class HeaderTransformerMixin:
         """Transform 'tcp-pkt' protocol."""
         return Protocol.TCP_PKT
 
+    def tcp_stream(self, _: Any) -> Protocol:
+        """Transform 'tcp-stream' protocol."""
+        return Protocol.TCP_STREAM
+
     def udp(self, _: Any) -> Protocol:
         """Transform 'udp' protocol."""
         return Protocol.UDP
@@ -131,6 +147,10 @@ class HeaderTransformerMixin:
     def ip(self, _: Any) -> Protocol:
         """Transform 'ip' protocol."""
         return Protocol.IP
+
+    def ipv6(self, _: Any) -> Protocol:
+        """Transform 'ipv6' protocol."""
+        return Protocol.IPV6
 
     def file(self, _: Any) -> Protocol:
         """Transform 'file' protocol."""
@@ -175,6 +195,10 @@ class HeaderTransformerMixin:
     def ssh(self, _: Any) -> Protocol:
         """Transform 'ssh' protocol."""
         return Protocol.SSH
+
+    def telnet(self, _: Any) -> Protocol:
+        """Transform 'telnet' protocol."""
+        return Protocol.TELNET
 
     def ftp(self, _: Any) -> Protocol:
         """Transform 'ftp' protocol."""
