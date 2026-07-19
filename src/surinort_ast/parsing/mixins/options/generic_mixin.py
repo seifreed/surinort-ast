@@ -122,6 +122,10 @@ class GenericOptionsMixin:
 
         return GenericOption(keyword=keyword, value=value, raw=raw)
 
+    def pcrexform_option(self, items: Sequence[Any]) -> GenericOption:
+        value = unquote_if_quoted(token_to_str(items[0])) if items else ""
+        return GenericOption(keyword="pcrexform", value=value, raw=f"pcrexform:{value}")
+
     def option_value(self, items: Sequence[Token]) -> str:
         """
         Extract option value from tokens.

@@ -132,6 +132,7 @@ options: option (";" option)* ";"?
        | content_option
        | uricontent_option
        | pcre_option
+       | pcrexform_option
        | flow_option
        | flowbits_option
        | flowint_option
@@ -229,6 +230,7 @@ FAST_PATTERN_LENGTH_KW.4: "fast_pattern_length"
 
 // PCRE
 pcre_option: "pcre" ":" pcre_negation? (PCRE_PATTERN | PCRE_QUOTED | QUOTED_STRING)
+pcrexform_option: "pcrexform" ":" PCRE_QUOTED
 pcre_negation: "!"
 
 // Flow
@@ -277,7 +279,7 @@ endswith_option: "endswith"
 // Support both decimal and hexadecimal numbers in byte operations
 ?number: HEX_INT | INT
 
-isdataat_option: "isdataat" ":" neg_bang? (INT | WORD | REFERENCE_ID) ("," WORD)?
+isdataat_option: "isdataat" ":" neg_bang? (INT | WORD | REFERENCE_ID) ("," WORD)*
 
 urilen_option: "urilen" ":" URILEN_TAIL
 URILEN_TAIL.1: /[^;\)]{1,200}/
