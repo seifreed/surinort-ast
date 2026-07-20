@@ -89,9 +89,9 @@ dev = [
     "pytest-benchmark>=5.2.3",
     "hypothesis>=6.156.6",
     # Linting, formatting, typing
-    "ruff>=0.15.21",
+    "ruff>=0.15.22",
     "black>=26.1.0",
-    "mypy>=2.2.0",
+    "mypy>=2.3.0",
     # Security & dependency auditing
     "bandit>=1.9.4",
     "pip-audit>=2.10.1",
@@ -99,7 +99,7 @@ dev = [
     "build>=1.5.0",
     "twine>=6.2.0",
     "pre-commit>=4.5.1",
-    "mkdocs-material>=9.7.6",
+    "mkdocs-material>=9.7.7",
 ]
 
 [project.urls]
