@@ -1651,9 +1651,9 @@ twine==6.2.0 \
     --hash=sha256:418ebf08ccda9a8caaebe414433b0ba5e25eb5e4a927667122fbe8f829f985d8 \
     --hash=sha256:e5ed0d2fd70c9959770dce51c8f39c8945c574e18173a7b81802dab51b4b75cf
     # via surinort-ast (pyproject.toml)
-typer==0.26.8 \
-    --hash=sha256:3512ca79ac5c11113414b36e80281b872884477722440691c89d1112e321a49c \
-    --hash=sha256:c244a6bd558886fe3f8780efb6bdd28bb9aff005a94eedebaa5cb32926fe2f7e
+typer==0.27.0 \
+    --hash=sha256:629bd12ea5d13a17148125d9a264f949eb171fb3f120f9b04d85873cab054fa5 \
+    --hash=sha256:6f4b27631e47f077871b7dc30e933ec0131c1390fbe0e387ea5574b5bac9ccf1
     # via surinort-ast (pyproject.toml)
 typing-extensions==4.16.0 \
     --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8 \
