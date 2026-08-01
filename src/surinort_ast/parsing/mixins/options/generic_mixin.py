@@ -126,6 +126,10 @@ class GenericOptionsMixin:
         value = unquote_if_quoted(token_to_str(items[0])) if items else ""
         return GenericOption(keyword="pcrexform", value=value, raw=f"pcrexform:{value}")
 
+    def sd_pattern_option(self, items: Sequence[Any]) -> GenericOption:
+        value = token_to_str(items[0]) if items else ""
+        return GenericOption(keyword="sd_pattern", value=value, raw=f"sd_pattern:{value}")
+
     def option_value(self, items: Sequence[Token]) -> str:
         """
         Extract option value from tokens.

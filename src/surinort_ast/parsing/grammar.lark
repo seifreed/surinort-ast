@@ -133,6 +133,7 @@ options: option (";" option)* ";"?
        | uricontent_option
        | pcre_option
        | pcrexform_option
+       | sd_pattern_option
        | flow_option
        | flowbits_option
        | flowint_option
@@ -231,7 +232,9 @@ FAST_PATTERN_LENGTH_KW.4: "fast_pattern_length"
 // PCRE
 pcre_option: "pcre" ":" pcre_negation? (PCRE_PATTERN | PCRE_QUOTED | QUOTED_STRING)
 pcrexform_option: "pcrexform" ":" PCRE_QUOTED
+sd_pattern_option: "sd_pattern" ":" SD_PATTERN_TAIL
 pcre_negation: "!"
+SD_PATTERN_TAIL.1: /[^;]{1,1000}/
 
 // Flow
 flow_option: "flow" ":" flow_value ("," flow_value)*
