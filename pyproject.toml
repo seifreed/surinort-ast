@@ -98,7 +98,7 @@ dev = [
     # Build, publishing, hooks, docs
     "build>=1.5.0",
     "twine>=6.2.0",
-    "pre-commit>=4.5.1",
+    "pre-commit>=4.6.1",
     "mkdocs-material>=9.7.7",
 ]
 
