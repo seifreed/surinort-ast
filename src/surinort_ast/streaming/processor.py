@@ -334,7 +334,7 @@ class ValidateProcessor(StreamProcessor):
 
         # Update rule with diagnostics
         if diagnostics != list(rule.diagnostics):
-            rule = rule.model_copy(update={"diagnostics": diagnostics})
+            rule = rule.model_copy(update={"diagnostics": tuple(diagnostics)})
 
         # Filter if strict and has errors
         if self.strict:

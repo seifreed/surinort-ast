@@ -330,7 +330,7 @@ class LarkRuleParser:
                 existing_diagnostics = list(rule.diagnostics)
                 existing_diagnostics.extend(transformer.diagnostics)
                 # Create new Rule with updated diagnostics (immutable)
-                rule = rule.model_copy(update={"diagnostics": existing_diagnostics})
+                rule = rule.model_copy(update={"diagnostics": tuple(existing_diagnostics)})
 
             logger.debug(f"Successfully parsed rule: SID={extract_sid(rule)}")
 
