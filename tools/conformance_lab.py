@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import tempfile
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -26,6 +27,7 @@ class CaseResult:
     round_trip: bool | None
     error: str | None = None
     engine_validation: str = "not-run"
+    engine_validation_after_print: str = "not-run"
 
 
 def _dialect(path: Path) -> Dialect:
@@ -74,7 +76,8 @@ def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) 
                 )
                 continue
 
-            round_trip_rule = parse_rule(print_rule(rule), dialect=dialect, include_raw_text=False)
+            printed = print_rule(rule)
+            round_trip_rule = parse_rule(printed, dialect=dialect, include_raw_text=False)
             result = CaseResult(
                 str(path),
                 dialect.value,
@@ -84,7 +87,13 @@ def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) 
                 _same_ast(rule, round_trip_rule),
             )
             if verifier:
-                result.engine_validation = verifier.verify(path).status
+                with tempfile.TemporaryDirectory(prefix="surinort-conformance-") as directory:
+                    original_path = Path(directory) / "original.rules"
+                    printed_path = Path(directory) / "printed.rules"
+                    original_path.write_text(text + "\n", encoding="utf-8")
+                    printed_path.write_text(printed + "\n", encoding="utf-8")
+                    result.engine_validation = verifier.verify(original_path).status
+                    result.engine_validation_after_print = verifier.verify(printed_path).status
             results.append(result)
 
     unexpected = [
@@ -101,6 +110,10 @@ def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) 
         "round_trip_passed": sum(result.round_trip is True for result in results),
         "round_trip_rate": (
             sum(result.round_trip is True for result in results) / parsed if parsed else 1.0
+        ),
+        "engine_validation_passed": sum(result.engine_validation == "passed" for result in results),
+        "engine_validation_after_print_passed": sum(
+            result.engine_validation_after_print == "passed" for result in results
         ),
         "unexpected_failures": len(unexpected),
         "engine_command": engine_command,
