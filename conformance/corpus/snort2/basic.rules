@@ -1,0 +1,2 @@
+alert tcp any any -> any 80 (msg:"HTTP request"; content:"GET"; sid:2001; rev:1;)
+alert icmp any any -> any any (msg:"ICMP traffic"; sid:2002; rev:1;)

@@ -1,0 +1,2 @@
+alert tcp any any -> any 80 (msg:"HTTP request"; content:"GET"; sid:1001; rev:1;)
+alert udp any any -> any 53 (msg:"DNS request"; content:"example"; sid:1002; rev:1;)

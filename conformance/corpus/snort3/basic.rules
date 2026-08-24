@@ -1,0 +1,2 @@
+alert tcp any any -> any 443 (msg:"TLS request"; content:"ClientHello"; sid:3001; rev:1;)
+alert udp any any -> any 53 (msg:"DNS request"; sid:3002; rev:1;)
