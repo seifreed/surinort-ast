@@ -39,6 +39,14 @@ rejects a different AST major.
 - Major releases may remove or change public behavior after a deprecation note.
 - Heuristic analysis results are advisory; `engine_verified` and
   `behavior_verified` must not be inferred from AST round-tripping.
+- `EngineTarget` capability checks are tri-state: `True` means supported,
+  `False` requires a complete engine listing, and `None` means the target has
+  no evidence for that capability. Use `EngineTarget.with_keywords()` with a
+  complete output from the installed engine before treating unknown keywords
+  as errors.
+- `RulesetContext.from_suricata_yaml()` and `from_snort_config()` resolve
+  deployment variables for coverage analysis; unresolved variables remain
+  indeterminate instead of being reported as uncovered concrete ports.
 
 ## CLI and editor tooling
 
