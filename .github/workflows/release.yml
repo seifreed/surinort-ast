@@ -3,14 +3,14 @@
 # See LICENSE file for full terms
 #
 # PyPI Release Pipeline for surinort-ast
-# SLSA Level 3 compliant, security-hardened release workflow
+# Security-hardened release workflow
 #
 # Security Features:
 # - Pinned GitHub Actions to commit SHAs
 # - Trusted Publisher authentication (no token in secrets)
 # - Artifact signing with Sigstore
 # - SBOM generation with CycloneDX
-# - Provenance attestation for supply chain security
+# - Checksums and signed artifact records
 # - Release verification before publishing
 
 name: Release
@@ -243,7 +243,7 @@ jobs:
   # Create GitHub Release
   github-release:
     name: Create GitHub Release
-    needs: [validate, build, changelog, publish-pypi]
+    needs: [validate, build, changelog, publish-pypi, sign-artifacts]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -267,6 +267,12 @@ jobs:
           name: changelog
           path: .
 
+      - name: Download signed artifact records
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: signed-artifacts
+          path: signed-artifacts
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228  # v3.0.2
         with:
@@ -280,6 +286,7 @@ jobs:
             SHA256SUMS
             sbom.json
             sbom.xml
+            signed-artifacts/*.sigstore.json
           fail_on_unmatched_files: true
           generate_release_notes: true
 

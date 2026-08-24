@@ -3,7 +3,7 @@
 # See LICENSE file for full terms
 #
 # Comprehensive CI Pipeline for surinort-ast
-# SLSA Level 3 compliant, security-hardened configuration
+# Security-hardened configuration
 #
 # Security Features:
 # - Pinned GitHub Actions to commit SHAs (not tags)
@@ -13,7 +13,7 @@
 # - Dependency vulnerability scanning with Safety
 # - Secret scanning via pre-commit hooks
 # - Artifact signing and SBOM generation
-# - Provenance attestation for builds
+# - Reproducible build and artifact checks
 
 name: CI
 
