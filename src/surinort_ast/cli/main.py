@@ -17,6 +17,7 @@ from ..version import __version__
 from .commands import (
     analyze_command,
     conflicts_command,
+    diff_command,
     fmt_command,
     from_json_command,
     info_command,
@@ -68,6 +69,7 @@ app.command(name="to-json")(to_json_command)
 app.command(name="from-json")(from_json_command)
 app.command(name="stats")(stats_command)
 app.command(name="conflicts")(conflicts_command)
+app.command(name="diff")(diff_command)
 app.command(name="schema")(schema_command)
 
 # Plugin management subcommand group

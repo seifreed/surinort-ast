@@ -8,6 +8,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 """
 
 from .conflicts import conflicts_command
+from .diff import diff_command
 from .format import fmt_command
 from .from_json import from_json_command
 from .parse import parse_command
@@ -20,6 +21,7 @@ from .validate import validate_command
 __all__ = [
     "analyze_command",
     "conflicts_command",
+    "diff_command",
     "fmt_command",
     "from_json_command",
     "info_command",
