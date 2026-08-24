@@ -174,7 +174,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip==26.0.1
-          python -m pip install -e .[dev,serialization,benchmark]
+          python -m pip install -e '.[dev]'
 
       - name: Run tests with pytest
         run: |
@@ -217,7 +217,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip==26.0.1
-          python -m pip install -e .[dev,serialization,benchmark]
+          python -m pip install -e '.[dev]'
 
       - name: Run tests with coverage
         run: |
@@ -273,7 +273,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip==26.0.1
-          python -m pip install -e .[dev,serialization,benchmark]
+          python -m pip install -e '.[dev]'
 
       - name: Run slow tests
         run: |

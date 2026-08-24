@@ -68,13 +68,17 @@ jobs:
             echo "file=" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Require MkDocs configuration
+        if: ${{ steps.mkdocs-config.outputs.file == '' }}
+        run: |
+          echo "mkdocs.yml or mkdocs.yaml is required"
+          exit 1
+
       - name: Build documentation
-        if: ${{ steps.mkdocs-config.outputs.file != '' }}
         run: |
           mkdocs build --strict --verbose --config-file "${{ steps.mkdocs-config.outputs.file }}"
 
       - name: Verify documentation build
-        if: ${{ steps.mkdocs-config.outputs.file != '' }}
         run: |
           if [ ! -d "site" ]; then
             echo "site directory was not created"
@@ -85,7 +89,6 @@ jobs:
         shell: bash
 
       - name: Upload documentation artifacts
-        if: ${{ steps.mkdocs-config.outputs.file != '' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: documentation
@@ -145,7 +148,6 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
-        if: ${{ steps.mkdocs-config.outputs.file != '' }}
         run: |
           mkdocs gh-deploy --config-file "${{ steps.mkdocs-config.outputs.file }}" --force --message "Deploy documentation from {sha}"
 

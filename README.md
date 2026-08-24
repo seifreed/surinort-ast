@@ -72,12 +72,8 @@ pip install -e .
 
 ### Optional Extras
 
-```bash
-pip install "surinort-ast[all]"
-pip install "surinort-ast[serialization]"
-pip install "surinort-ast[analysis]"
-pip install "surinort-ast[cli-enhanced]"
-```
+The regular package includes the parser, CLI, analysis, and serialization
+modules. Install development tooling separately with `pip install -e '.[dev]'`.
 
 ---
 

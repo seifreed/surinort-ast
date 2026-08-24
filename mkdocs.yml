@@ -1,0 +1,10 @@
+site_name: surinort-ast
+site_description: Typed AST tooling for Suricata and Snort rules
+site_url: https://seifreed.github.io/surinort-ast/
+repo_url: https://github.com/seifreed/surinort-ast
+theme:
+  name: material
+nav:
+  - Home: index.md
+  - Changelog: changelog.md
+docs_dir: docs
