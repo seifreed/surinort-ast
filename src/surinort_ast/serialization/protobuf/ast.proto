@@ -71,6 +71,13 @@ enum Dialect {
   SNORT3 = 3;
 }
 
+enum RuleForm {
+  RULE_FORM_UNSPECIFIED = 0;
+  FULL = 1;
+  PROTOCOL_ONLY = 2;
+  HEADERLESS = 3;
+}
+
 enum DiagnosticLevel {
   DIAGNOSTIC_LEVEL_UNSPECIFIED = 0;
   ERROR = 1;
@@ -506,6 +513,7 @@ message Rule {
   optional SourceOrigin origin = 5;
   repeated Diagnostic diagnostics = 6;
   optional string raw_text = 7;
+  RuleForm form = 8;
   optional Location location = 10;
   repeated string comments = 11;
 }

@@ -36,6 +36,7 @@ from .core import (
     Direction,
     Protocol,
     Rule,
+    RuleForm,
 )
 
 # Exceptions
@@ -66,6 +67,7 @@ __all__ = [
     "ParseError",
     "Protocol",
     "Rule",
+    "RuleForm",
     "SerializationError",
     "SurinortASTError",
     "UnsupportedDialectError",

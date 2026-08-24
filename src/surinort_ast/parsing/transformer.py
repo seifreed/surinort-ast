@@ -26,7 +26,7 @@ from lark import Token, Tree
 from lark.visitors import Transformer, v_args
 
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
-from ..core.enums import Dialect, Protocol
+from ..core.enums import Dialect, Protocol, RuleForm
 from ..core.location import Location
 from ..core.nodes import Header, Rule
 from .helpers import token_to_location
@@ -222,10 +222,13 @@ class RuleTransformer(
         # passes only the protocol, expanded to an any/any TO any/any header.
         if isinstance(second, Header):
             header = second
+            form = RuleForm.FULL
         elif isinstance(second, Protocol):
             header = Header.wildcard(second)
+            form = RuleForm.PROTOCOL_ONLY
         else:
             header = Header.wildcard()
+            form = RuleForm.HEADERLESS
 
         # Create rule with the diagnostics accumulated during its own option
         # transformation, then clear them so the next rule built by this same
@@ -240,6 +243,7 @@ class RuleTransformer(
             header=header,
             options=options,
             dialect=self.dialect,
+            form=form,
             location=location,
             diagnostics=diagnostics,
         )

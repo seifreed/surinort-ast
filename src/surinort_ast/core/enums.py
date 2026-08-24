@@ -119,6 +119,14 @@ class Dialect(str, Enum):
     SNORT3 = "snort3"
 
 
+class RuleForm(str, Enum):
+    """Source-level form used to write a rule header."""
+
+    FULL = "full"
+    PROTOCOL_ONLY = "protocol_only"
+    HEADERLESS = "headerless"
+
+
 class DiagnosticLevel(str, Enum):
     """
     Diagnostic severity levels for parser errors and warnings.

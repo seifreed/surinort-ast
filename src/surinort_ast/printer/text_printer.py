@@ -14,7 +14,7 @@ from collections.abc import Sequence
 from functools import singledispatch
 from typing import Protocol
 
-from surinort_ast.core.enums import ContentModifierType
+from surinort_ast.core.enums import ContentModifierType, RuleForm
 from surinort_ast.core.nodes import (
     AddressExpr,
     AddressList,
@@ -398,8 +398,13 @@ class TextPrinter:
                 for line in comment.split("\n"):
                     parts.append(f"# {line}")
 
-        # Build rule line: action header (options)
-        rule_line = f"{rule.action.value} {self._print_header(rule.header)}"
+        # Preserve whether the source used a full, protocol-only, or headerless form.
+        if rule.form is RuleForm.HEADERLESS:
+            rule_line = rule.action.value
+        elif rule.form is RuleForm.PROTOCOL_ONLY:
+            rule_line = f"{rule.action.value} {rule.header.protocol.value}"
+        else:
+            rule_line = f"{rule.action.value} {self._print_header(rule.header)}"
 
         if rule.options:
             options_text = self._print_options(rule.options)

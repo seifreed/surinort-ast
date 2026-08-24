@@ -36,6 +36,7 @@ from .enums import (
     FlowDirection,
     FlowState,
     Protocol,
+    RuleForm,
 )
 from .location import Location
 
@@ -140,6 +141,7 @@ class Rule(ASTNode):
     # See DiscriminatedOption type alias at the end of this file
     options: tuple[DiscriminatedOption, ...]  # Forward reference
     dialect: Dialect = Dialect.SURICATA
+    form: RuleForm = RuleForm.FULL
 
     # Metadata
     origin: SourceOrigin | None = None

@@ -22,6 +22,7 @@ from .enums import (
     FlowDirection,
     FlowState,
     Protocol,
+    RuleForm,
 )
 
 # Location tracking
@@ -165,6 +166,7 @@ __all__ = [
     "ReferenceOption",
     "RevOption",
     "Rule",
+    "RuleForm",
     "RuleOption",
     "SidOption",
     "SourceOrigin",

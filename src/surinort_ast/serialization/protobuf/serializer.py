@@ -39,6 +39,7 @@ from surinort_ast.core.enums import (
     FlowDirection,
     FlowState,
     Protocol,
+    RuleForm,
 )
 from surinort_ast.core.location import Location, Position, Span
 from surinort_ast.core.nodes import (
@@ -178,6 +179,14 @@ _DIALECT_TO_PB, _PB_TO_DIALECT = _enum_mapping(
         Dialect.SURICATA: pb.SURICATA,
         Dialect.SNORT2: pb.SNORT2,
         Dialect.SNORT3: pb.SNORT3,
+    }
+)
+
+_FORM_TO_PB, _PB_TO_FORM = _enum_mapping(
+    {
+        RuleForm.FULL: pb.FULL,
+        RuleForm.PROTOCOL_ONLY: pb.PROTOCOL_ONLY,
+        RuleForm.HEADERLESS: pb.HEADERLESS,
     }
 )
 
@@ -741,6 +750,7 @@ def _serialize_rule(rule: Rule) -> Any:
     for option in rule.options:
         pb_rule.options.append(_dispatch_serialize_option(option))
     pb_rule.dialect = _DIALECT_TO_PB[rule.dialect]
+    pb_rule.form = _FORM_TO_PB[rule.form]
 
     if rule.origin:
         origin = _serialize_source_origin(rule.origin)
@@ -1286,6 +1296,7 @@ def _deserialize_rule(pb_rule: Any) -> Rule:
         header=_deserialize_header(pb_rule.header),
         options=[_deserialize_option(opt) for opt in pb_rule.options],
         dialect=_PB_TO_DIALECT[pb_rule.dialect],
+        form=_PB_TO_FORM.get(pb_rule.form, RuleForm.FULL),
         origin=_deserialize_source_origin(pb_rule.origin) if pb_rule.HasField("origin") else None,
         diagnostics=diagnostics,
         raw_text=pb_rule.raw_text if pb_rule.HasField("raw_text") else None,
