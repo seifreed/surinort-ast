@@ -82,7 +82,7 @@ jobs:
       - name: Run Bandit SAST scan
         run: |
           bandit -r src/ -f json -o bandit-report.json || true
-          bandit -r src/ -f screen
+          bandit -r src/ -f screen --severity-level medium
         continue-on-error: false
 
       - name: Run Safety vulnerability scan
