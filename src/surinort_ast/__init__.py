@@ -15,6 +15,7 @@ from .api import (
     coverage_report_to_sarif,
     diagnostics_to_sarif,
     from_json,
+    migrate_ast,
     optimization_results_to_sarif,
     parse_file,
     parse_file_streaming,
@@ -86,6 +87,7 @@ __all__ = [
     "diagnostics_to_sarif",
     # Core API functions
     "from_json",
+    "migrate_ast",
     "optimization_results_to_sarif",
     "parse_file",
     "parse_file_streaming",

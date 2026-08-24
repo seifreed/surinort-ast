@@ -26,6 +26,7 @@ from ..core.diagnostics import Diagnostic
 from ..core.nodes import Rule
 from ..exceptions import SerializationError
 from ..serialization.json_serializer import JSONSerializer
+from ..serialization.migration import migrate_ast
 from ..serialization.sarif import to_sarif_json
 
 
@@ -152,6 +153,7 @@ __all__ = [
     "coverage_report_to_sarif",
     "diagnostics_to_sarif",
     "from_json",
+    "migrate_ast",
     "optimization_results_to_sarif",
     "to_json",
     "to_json_schema",

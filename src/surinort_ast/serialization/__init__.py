@@ -14,6 +14,7 @@ from .json_serializer import (
     to_dict,
     to_json,
 )
+from .migration import migrate_ast
 from .sarif import to_sarif_json, to_sarif_log
 from .schema_generator import (
     SchemaGenerator,
@@ -32,6 +33,7 @@ __all__ = [
     "generate_envelope_schema",
     "generate_schema",
     "generate_schema_json",
+    "migrate_ast",
     "to_dict",
     "to_json",
     "to_sarif_json",
