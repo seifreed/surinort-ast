@@ -89,9 +89,9 @@ dev = [
     "pytest-benchmark>=5.2.3",
     "hypothesis>=6.165.7",
     # Linting, formatting, typing
-    "ruff>=0.16.3",
+    "ruff>=0.16.4",
     "black>=26.1.0",
-    "mypy>=2.3.0",
+    "mypy>=2.3.1",
     # Security & dependency auditing
     "bandit>=1.9.4",
     "pip-audit>=2.10.1",
