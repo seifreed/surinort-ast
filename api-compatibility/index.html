@@ -502,6 +502,10 @@ AST contract version and can change independently. Additive AST fields keep
 their protobuf defaults and JSON readers must tolerate omitted fields. A
 breaking serialized representation requires an AST major version and a
 migration note in <code>CHANGELOG.md</code>.</p>
+<p>Payloads from AST 3.x can be upgraded explicitly with
+<code>surinort_ast.migrate_ast(payload)</code>. It preserves bare and metadata-wrapped
+JSON shapes, adds defaults for fields introduced by the current schema, and
+rejects a different AST major.</p>
 <h2 id="compatibility-policy">Compatibility policy</h2>
 <ul>
 <li>Patch releases fix behavior without removing public names.</li>
@@ -519,6 +523,8 @@ engine's stdout for the original and candidate rulesets.</p>
 <p><code>surinort-lsp</code> implements stdio <code>initialize</code>, diagnostics on document changes,
 and rule hover. It is intentionally dependency-free so editor integrations can
 pin the package and choose their own client.</p>
+<p><code>surinort validate file1.rules file2.rules</code> validates a combined ruleset; the
+GitHub Action also expands recursive patterns such as <code>rules/**/*.rules</code>.</p>
 
 
 
