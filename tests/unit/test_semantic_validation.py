@@ -65,3 +65,17 @@ def test_engine_target_checks_actions_and_protocols() -> None:
 
     assert "unsupported_engine_action" in found
     assert "unsupported_engine_protocol" in found
+
+
+def test_engine_target_uses_canonical_multiword_option_names() -> None:
+    rule = parse_rule('alert tcp any any -> any 80 (http_uri; content:"x"; sid:1;)')
+    target = EngineTarget(
+        "suricata",
+        "8.x",
+        keywords=frozenset({"buffer_select", "content", "sid"}),
+        keyword_catalog_complete=True,
+    )
+
+    found = {diagnostic.code for diagnostic in validate_rule(rule, target=target)}
+
+    assert "unsupported_engine_keyword" not in found

@@ -10,6 +10,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 
 from ..analysis.targets import EngineTarget
@@ -66,7 +67,8 @@ def _option_keyword(option: object) -> str:
     keyword = getattr(option, "keyword", None)
     if isinstance(keyword, str) and keyword:
         return keyword.lower()
-    return getattr(option, "node_type", "").removesuffix("Option").lower()
+    node_name = getattr(option, "node_type", "").removesuffix("Option")
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", node_name).lower()
 
 
 def _is_variable_reference(value: object) -> bool:
