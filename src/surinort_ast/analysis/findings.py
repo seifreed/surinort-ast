@@ -130,7 +130,13 @@ def coverage_report_to_findings(report: CoverageReport) -> list[Finding]:
                 category="coverage",
                 description=gap.description,
                 help_text=gap.recommendation,
-                properties={"severity": gap.severity, "gap_type": gap.gap_type},
+                properties={
+                    "severity": gap.severity,
+                    "gap_type": gap.gap_type,
+                    "experimental": report.experimental,
+                    "confidence": report.confidence,
+                    "engine_verified": report.engine_verified,
+                },
             )
         )
 
@@ -142,7 +148,12 @@ def coverage_report_to_findings(report: CoverageReport) -> list[Finding]:
                 message="No coverage gaps detected",
                 category="coverage",
                 description="Coverage analyzer did not detect actionable gaps.",
-                properties={"total_rules": report.total_rules},
+                properties={
+                    "total_rules": report.total_rules,
+                    "experimental": report.experimental,
+                    "confidence": report.confidence,
+                    "engine_verified": report.engine_verified,
+                },
             )
         )
 
@@ -162,10 +173,17 @@ def optimization_results_to_findings(results: list[OptimizationResult]) -> list[
                     message=opt.description,
                     category="optimizer",
                     description=opt.description,
-                    help_text=f"Estimated gain: {opt.estimated_gain:+.1f}%",
+                    help_text=(
+                        f"Heuristic cost delta: {opt.estimated_gain:+.1f}%; "
+                        "engine verification is required"
+                    ),
                     properties={
                         "strategy": opt.strategy,
                         "estimated_gain": round(opt.estimated_gain, 3),
+                        "experimental": result.experimental,
+                        "confidence": result.confidence,
+                        "engine_verified": result.engine_verified,
+                        "behavior_verified": result.behavior_verified,
                     },
                 )
             )

@@ -83,6 +83,9 @@ class CoverageReport:
     action_distribution: dict[Action, int]
     content_types: dict[str, int]
     gaps: list[CoverageGap] = field(default_factory=list)
+    experimental: bool = True
+    confidence: str = "low"
+    engine_verified: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -101,6 +104,9 @@ class CoverageReport:
             },
             "content_types": self.content_types,
             "gaps": [gap.to_dict() for gap in self.gaps],
+            "experimental": self.experimental,
+            "confidence": self.confidence,
+            "engine_verified": self.engine_verified,
         }
 
     def _ranked(
@@ -124,6 +130,7 @@ class CoverageReport:
             "=" * 80,
             "",
             f"Total Rules: {self.total_rules:,}",
+            f"Evidence: heuristic (confidence={self.confidence}, engine_verified={self.engine_verified})",
             "",
             "Protocol Distribution:",
             "-" * 80,

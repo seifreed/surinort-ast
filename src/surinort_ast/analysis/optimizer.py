@@ -64,6 +64,10 @@ class OptimizationResult:
     optimizations: list[Optimization]
     total_improvement: float
     was_modified: bool
+    experimental: bool = True
+    confidence: str = "low"
+    engine_verified: bool = False
+    behavior_verified: bool = False
 
     @property
     def strategy_names(self) -> list[str]:
