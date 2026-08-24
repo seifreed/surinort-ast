@@ -16,6 +16,12 @@ The following modules are public extension points:
 - `surinort_ast.printer.SourcePrinter` for retained source blocks and
   `CanonicalPrinter` for normalized output.
 
+`parse_file()` keeps its historical `list[Rule]` return type. Use the additive
+`parse_source_file()` API when an editor or refactoring tool must retain the
+complete source text, rule spans, and unparsed file regions. Pass its result to
+`SourcePrinter.print_file()` to preserve unchanged bytes and replace only rules
+that were modified.
+
 Internal modules under `core`, `parsing`, `printer`, and `serialization` may
 change without preserving import paths. Use the top-level exports when possible.
 

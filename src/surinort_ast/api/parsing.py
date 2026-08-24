@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, cast
 from lark.exceptions import LarkError
 
 from ..core.enums import Dialect
-from ..core.nodes import Rule, SourceOrigin
+from ..core.nodes import Rule, SourceFile, SourceOrigin
 from ..core.path_security import sanitize_path_for_error
 from ..exceptions import ParseError
 from ..parsing.helpers import normalize_rule_text
@@ -312,6 +312,57 @@ def parse_file(
     return rules
 
 
+def parse_source_file(
+    path: Path | str,
+    dialect: Dialect = Dialect.SURICATA,
+    workers: int | None = None,
+    allowed_base: Path | None = None,
+    allow_symlinks: bool = False,
+    batch_size: int = 100,
+) -> SourceFile:
+    """Parse a file while retaining all source text and rule spans.
+
+    Unlike :func:`parse_file`, this opt-in API returns a ``SourceFile`` so a
+    source printer can preserve comments, blank lines, trailing text, and
+    malformed/unparsed regions outside successfully parsed rules.
+    """
+    file_path = _validate_file_path(
+        Path(path), allowed_base=allowed_base, allow_symlinks=allow_symlinks
+    )
+    try:
+        source = file_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        raise ParseError(f"Failed to read file {sanitize_path_for_error(file_path)}: {e}") from e
+
+    rules = parse_file(
+        file_path,
+        dialect=dialect,
+        workers=workers,
+        allowed_base=allowed_base,
+        allow_symlinks=allow_symlinks,
+        batch_size=batch_size,
+        include_raw_text=True,
+    )
+    spans_by_line = dict(_source_rule_spans(source))
+    matched_rules: list[Rule] = []
+    spans: list[tuple[int, int]] = []
+    for rule in rules:
+        if rule.origin is None or not isinstance(rule.origin.line_number, int):
+            continue
+        line_number = rule.origin.line_number
+        span = spans_by_line.get(line_number)
+        if span is None:
+            continue
+        matched_rules.append(rule)
+        spans.append(span)
+    return SourceFile(
+        source=source,
+        rules=tuple(matched_rules),
+        spans=tuple(spans),
+        original_rules=tuple(matched_rules),
+    )
+
+
 def _parse_file_streaming(
     file_path: Path,
     dialect: Dialect,
@@ -360,6 +411,49 @@ def _read_rule_lines(file_path: Path) -> list[tuple[int, str]]:
     from ..streaming.parser import _iter_rule_blocks
 
     return list(_iter_rule_blocks(enumerate(lines, start=1)))
+
+
+def _source_rule_spans(source: str) -> list[tuple[int, tuple[int, int]]]:
+    """Return ``(first_line, (start, end))`` spans for source rule blocks."""
+    from ..streaming.parser import _count_unquoted_parens, _line_starts_rule
+
+    spans: list[tuple[int, tuple[int, int]]] = []
+    current_start: int | None = None
+    current_line = 0
+    current_lines: list[str] = []
+    offset = 0
+    for line_number, raw_line in enumerate(source.splitlines(keepends=True), start=1):
+        line = raw_line.strip()
+        content_end = offset + len(raw_line.rstrip("\r\n"))
+        if not line:
+            if current_start is not None:
+                spans.append((current_line, (current_start, content_end)))
+                current_start = None
+                current_lines = []
+            offset += len(raw_line)
+            continue
+        if line.startswith("#"):
+            offset += len(raw_line)
+            continue
+        if current_start is not None and _line_starts_rule(line):
+            spans.append((current_line, (current_start, offset)))
+            current_start = None
+            current_lines = []
+        if current_start is None:
+            current_start = offset
+            current_line = line_number
+        current_lines.append(line)
+        continuation = (len(line) - len(line.rstrip("\\"))) % 2 == 1
+        if not continuation and line.endswith(")") and _line_starts_rule(current_lines[0]):
+            open_count, close_count = _count_unquoted_parens(" ".join(current_lines))
+            if open_count > 0 and open_count == close_count:
+                spans.append((current_line, (current_start, content_end)))
+                current_start = None
+                current_lines = []
+        offset += len(raw_line)
+    if current_start is not None:
+        spans.append((current_line, (current_start, len(source.rstrip("\r\n")))))
+    return spans
 
 
 def _source_comments_by_line(file_path: Path) -> dict[int, tuple[str, ...]]:

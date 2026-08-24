@@ -151,6 +151,35 @@ class Rule(ASTNode):
     raw_text: str | None = None  # Original rule text
 
 
+class SourceFile(BaseModel):
+    """Parsed rules plus original file text and source spans.
+
+    The legacy :func:`parse_file` API still returns ``list[Rule]``. This
+    container is opt-in for callers that need file-level trivia and exact
+    source-preserving output.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    source: str
+    rules: tuple[Rule, ...]
+    spans: tuple[tuple[int, int], ...]
+    original_rules: tuple[Rule, ...]
+
+    def render(self, replacements: tuple[str, ...]) -> str:
+        """Rebuild the file while retaining text outside parsed rule spans."""
+        if len(replacements) != len(self.spans):
+            raise ValueError("replacement count must match source span count")
+        chunks: list[str] = []
+        cursor = 0
+        for (start, end), replacement in zip(self.spans, replacements, strict=True):
+            chunks.append(self.source[cursor:start])
+            chunks.append(replacement)
+            cursor = end
+        chunks.append(self.source[cursor:])
+        return "".join(chunks)
+
+
 # ============================================================================
 # Address Expressions
 # ============================================================================

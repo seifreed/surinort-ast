@@ -21,6 +21,7 @@ from .api import (
     parse_file_streaming,
     parse_rule,
     parse_rules,
+    parse_source_file,
     print_rule,
     to_json,
     to_json_schema,
@@ -39,6 +40,7 @@ from .core import (
     Protocol,
     Rule,
     RuleForm,
+    SourceFile,
 )
 
 # Exceptions
@@ -73,6 +75,7 @@ __all__ = [
     "Rule",
     "RuleForm",
     "SerializationError",
+    "SourceFile",
     "SourcePrinter",
     "SurinortASTError",
     "UnsupportedDialectError",
@@ -93,6 +96,7 @@ __all__ = [
     "parse_file_streaming",
     "parse_rule",
     "parse_rules",
+    "parse_source_file",
     "print_rule",
     "to_json",
     "to_json_schema",

@@ -1,4 +1,11 @@
-from surinort_ast import CanonicalPrinter, SourcePrinter, parse_file, parse_rule
+from surinort_ast import (
+    Action,
+    CanonicalPrinter,
+    SourcePrinter,
+    parse_file,
+    parse_rule,
+    parse_source_file,
+)
 
 
 def test_source_printer_preserves_multiline_rule_and_canonical_printer_normalizes() -> None:
@@ -45,3 +52,27 @@ def test_source_printer_preserves_blank_trivia_before_rule(tmp_path) -> None:
     rule = parse_file(path)[0]
 
     assert SourcePrinter().print_rule(rule) == source.rstrip("\n")
+
+
+def test_source_file_preserves_full_text_and_replaces_changed_rules(tmp_path) -> None:
+    source = (
+        "# first\n\n"
+        'alert tcp any any -> any 80 (msg:"one"; sid:1;)\n\n'
+        "malformed tail\n"
+        'alert udp any any -> any 53 (msg:"two"; sid:2;)\n'
+        "# trailing\n"
+    )
+    path = tmp_path / "source.rules"
+    path.write_text(source, encoding="utf-8")
+
+    source_file = parse_source_file(path)
+    printer = SourcePrinter()
+
+    assert printer.print_file(source_file) == source
+    changed = source_file.rules[-1].model_copy(update={"action": Action.DROP})
+    changed_file = source_file.model_copy(update={"rules": (*source_file.rules[:-1], changed)})
+    rendered = printer.print_file(changed_file)
+    assert rendered != source
+    assert "# first\n\n" in rendered
+    assert "malformed tail\n" in rendered
+    assert "# trailing\n" in rendered
