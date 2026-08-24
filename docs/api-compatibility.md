@@ -36,8 +36,10 @@ migration note in `CHANGELOG.md`.
 ## CLI and editor tooling
 
 `surinort optimize` reports suggestions by default. Applying changes requires
-an explicit output target and `--engine-command`; this validates engine loading
-but does not prove equal alerts on traffic.
+an explicit output target, `--engine-verify`, and `--engine-command`; this
+validates engine loading but does not prove equal alerts on traffic. Add
+`--pcap` and a command containing both `{file}` and `{pcap}` to compare the
+engine's stdout for the original and candidate rulesets.
 
 `surinort-lsp` implements stdio `initialize`, diagnostics on document changes,
 and rule hover. It is intentionally dependency-free so editor integrations can

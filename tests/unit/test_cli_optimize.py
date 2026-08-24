@@ -31,6 +31,7 @@ def test_optimize_apply_requires_engine_and_verifies_before_write(tmp_path) -> N
             "optimize",
             str(source),
             "--apply",
+            "--engine-verify",
             "--output",
             str(target),
             "--engine-command",
@@ -52,3 +53,31 @@ def test_optimize_apply_rejects_missing_verification(tmp_path) -> None:
 
     assert result.exit_code == 1
     assert not target.exists()
+
+
+def test_optimize_apply_can_verify_behavior_with_pcap(tmp_path) -> None:
+    source = tmp_path / "rules.rules"
+    target = tmp_path / "optimized.rules"
+    pcap = tmp_path / "traffic.pcap"
+    source.write_text(RULE, encoding="utf-8")
+    pcap.write_bytes(b"pcap")
+    command = f"{sys.executable} -c pass {{file}} {{pcap}}"
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "optimize",
+            str(source),
+            "--apply",
+            "--engine-verify",
+            "--output",
+            str(target),
+            "--engine-command",
+            command,
+            "--pcap",
+            str(pcap),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert target.exists()

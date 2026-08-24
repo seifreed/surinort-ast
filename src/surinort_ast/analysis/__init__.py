@@ -21,7 +21,7 @@ from .conflicts import (
 from .context import RulesetContext
 from .coverage import CoverageAnalyzer, CoverageGap, CoverageReport
 from .diff import RuleDiff, semantic_diff
-from .engine import EngineVerification, EngineVerifier
+from .engine import BehavioralVerification, EngineVerification, EngineVerifier
 from .estimator import PerformanceEstimator
 from .findings import (
     Finding,
@@ -42,6 +42,7 @@ from .strategies import (
 from .targets import CapabilityRegistry, EngineTarget, default_capability_registry
 
 __all__ = [
+    "BehavioralVerification",
     "CapabilityRegistry",
     "Conflict",
     "ConflictDetector",

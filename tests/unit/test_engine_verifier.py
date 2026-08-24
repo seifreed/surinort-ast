@@ -27,3 +27,24 @@ def test_engine_verifier_reports_unavailable_and_validates_command(tmp_path) -> 
     assert result.status == "unavailable"
     with pytest.raises(ValueError, match="placeholder"):
         EngineVerifier("suricata -T")
+
+
+def test_engine_verifier_compares_behavior_output(tmp_path) -> None:
+    original = tmp_path / "original.rules"
+    candidate = tmp_path / "candidate.rules"
+    pcap = tmp_path / "traffic.pcap"
+    original.write_text("original", encoding="utf-8")
+    candidate.write_text("original", encoding="utf-8")
+    pcap.write_bytes(b"pcap")
+    command = (
+        f'{sys.executable} -c "import pathlib,sys; '
+        f'print(pathlib.Path(sys.argv[1]).read_text())" {{file}} {{pcap}}'
+    )
+    verifier = EngineVerifier(command)
+
+    passed = verifier.verify_behavior(original, candidate, pcap)
+    candidate.write_text("changed", encoding="utf-8")
+    mismatch = verifier.verify_behavior(original, candidate, pcap)
+
+    assert passed.passed
+    assert mismatch.status == "mismatch"

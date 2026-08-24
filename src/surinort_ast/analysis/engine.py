@@ -29,6 +29,20 @@ class EngineVerification:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class BehavioralVerification:
+    """Comparison of engine output for an original and candidate ruleset."""
+
+    status: str
+    original: EngineVerification
+    candidate: EngineVerification
+
+    @property
+    def passed(self) -> bool:
+        """Whether both runs succeeded and emitted identical output."""
+        return self.status == "passed"
+
+
 class EngineVerifier:
     """Execute a trusted engine command without invoking a shell.
 
@@ -48,7 +62,32 @@ class EngineVerifier:
 
     def verify(self, path: Path) -> EngineVerification:
         """Validate ``path`` and return a stable status instead of raising."""
+        return self._execute(path)
+
+    def verify_behavior(
+        self, original: Path, candidate: Path, pcap: Path
+    ) -> BehavioralVerification:
+        """Run both rulesets against ``pcap`` and compare their stdout."""
+        if "{pcap}" not in self.command:
+            raise ValueError("behavior command must include a {pcap} placeholder")
+        original_result = self._execute(original, pcap)
+        candidate_result = self._execute(candidate, pcap)
+        if not original_result.passed:
+            status = original_result.status
+        elif not candidate_result.passed:
+            status = candidate_result.status
+        elif original_result.stdout != candidate_result.stdout:
+            status = "mismatch"
+        else:
+            status = "passed"
+        return BehavioralVerification(status, original_result, candidate_result)
+
+    def _execute(self, path: Path, pcap: Path | None = None) -> EngineVerification:
+        if pcap is None and "{pcap}" in self.command:
+            raise ValueError("engine command containing {pcap} requires behavior verification")
         parts = [part.replace("{file}", str(path)) for part in self._parts]
+        if pcap is not None:
+            parts = [part.replace("{pcap}", str(pcap)) for part in parts]
         if shutil.which(parts[0]) is None:
             return EngineVerification(status="unavailable")
         try:
@@ -75,4 +114,4 @@ class EngineVerifier:
         )
 
 
-__all__ = ["EngineVerification", "EngineVerifier"]
+__all__ = ["BehavioralVerification", "EngineVerification", "EngineVerifier"]
