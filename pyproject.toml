@@ -115,6 +115,7 @@ Discussions = "https://github.com/seifreed/surinort-ast/discussions"
 
 [project.scripts]
 surinort = "surinort_ast.cli:app"
+surinort-lsp = "surinort_ast.lsp:main"
 
 # Plugin entry points for extensibility
 # Third-party plugins can register themselves here
