@@ -36,8 +36,10 @@ from .strategies import (
     OptionReorderStrategy,
     RedundancyRemovalStrategy,
 )
+from .targets import CapabilityRegistry, EngineTarget, default_capability_registry
 
 __all__ = [
+    "CapabilityRegistry",
     "Conflict",
     "ConflictDetector",
     "ConflictDetectorConfig",
@@ -46,6 +48,7 @@ __all__ = [
     "CoverageAnalyzer",
     "CoverageGap",
     "CoverageReport",
+    "EngineTarget",
     "FastPatternStrategy",
     "Finding",
     "FindingLevel",
@@ -58,6 +61,7 @@ __all__ = [
     "RuleOptimizer",
     "Severity",
     "coverage_report_to_findings",
+    "default_capability_registry",
     "detect_conflicts",
     "diagnostic_to_finding",
     "diagnostics_to_findings",
