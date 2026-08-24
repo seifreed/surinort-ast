@@ -6,6 +6,7 @@ import argparse
 import json
 import tempfile
 import time
+import tracemalloc
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -60,6 +61,7 @@ def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) 
     """Run conformance checks for every ``*.rules`` file below ``corpus``."""
     results: list[CaseResult] = []
     started = time.perf_counter()
+    tracemalloc.start()
     verifier = EngineVerifier(engine_command, timeout) if engine_command else None
 
     for path in sorted(corpus.rglob("*.rules")):
@@ -96,6 +98,9 @@ def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) 
                     result.engine_validation_after_print = verifier.verify(printed_path).status
             results.append(result)
 
+    elapsed_seconds = time.perf_counter() - started
+    _, peak_memory = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
     unexpected = [
         result
         for result in results
@@ -115,9 +120,18 @@ def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) 
         "engine_validation_after_print_passed": sum(
             result.engine_validation_after_print == "passed" for result in results
         ),
+        "printed": parsed,
+        "parse_exceptions": sum(result.error is not None for result in results),
+        "engine_timeouts": sum(
+            result.engine_validation == "timeout"
+            or result.engine_validation_after_print == "timeout"
+            for result in results
+        ),
+        "rules_per_second": len(results) / elapsed_seconds if elapsed_seconds else 0.0,
+        "peak_memory_mb": peak_memory / 1_000_000,
         "unexpected_failures": len(unexpected),
         "engine_command": engine_command,
-        "elapsed_seconds": round(time.perf_counter() - started, 6),
+        "elapsed_seconds": round(elapsed_seconds, 6),
         "cases": [asdict(result) for result in results],
     }
 

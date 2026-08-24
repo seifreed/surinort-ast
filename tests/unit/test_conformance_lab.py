@@ -12,6 +12,10 @@ def test_checked_in_conformance_corpus_round_trips() -> None:
     assert report["parse_rate"] == 6 / 7
     assert report["round_trip_rate"] == 1.0
     assert report["unexpected_failures"] == 0
+    assert report["printed"] == 6
+    assert report["parse_exceptions"] == 1
+    assert report["rules_per_second"] > 0
+    assert report["peak_memory_mb"] > 0
 
 
 def test_conformance_engine_checks_original_and_printed_rule(tmp_path) -> None:
