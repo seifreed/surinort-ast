@@ -114,8 +114,8 @@ class Header(ASTNode):
     def wildcard(cls, protocol: Protocol = Protocol.IP) -> Header:
         """Build a header matching any address and port in the ``TO`` direction.
 
-        Used where only the protocol is known: short-form rules
-        (``action protocol (...)``) and error-recovery placeholders.
+        Used for error-recovery placeholders and callers that explicitly need
+        a canonical wildcard header.
         """
         return cls(
             protocol=protocol,
