@@ -13,12 +13,17 @@ parse result per file, plus constructions that require an engine or deployment
 configuration and therefore cannot be proven by the AST alone.
 
 For differential behavior checks, provide a traffic fixture and an engine
-command containing both placeholders. The lab runs the original and printed
-rule against the same fixture and reports a mismatch as an unexpected failure:
+command containing both placeholders. The command must print a stable alert
+projection to stdout. The repository includes a Suricata adapter because
+Suricata writes alerts to EVE JSON rather than stdout:
 
 ```bash
 python tools/conformance_lab.py \
   --manifest conformance/manifest.json \
-  --engine-command 'suricata --runmode autofp -S {file} -r {pcap}' \
+  --engine-command 'python tools/suricata_behavior.py --rules {file} --pcap {pcap}' \
   --pcap fixtures/http.pcap
 ```
+
+The lab runs the original and printed rule against the same fixture and
+reports a mismatch in the normalized alert projection as an unexpected
+failure.
