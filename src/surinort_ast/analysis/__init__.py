@@ -18,6 +18,7 @@ from .conflicts import (
     detect_conflicts,
     filter_conflicts,
 )
+from .context import RulesetContext
 from .coverage import CoverageAnalyzer, CoverageGap, CoverageReport
 from .estimator import PerformanceEstimator
 from .findings import (
@@ -59,6 +60,7 @@ __all__ = [
     "PerformanceEstimator",
     "RedundancyRemovalStrategy",
     "RuleOptimizer",
+    "RulesetContext",
     "Severity",
     "coverage_report_to_findings",
     "default_capability_registry",

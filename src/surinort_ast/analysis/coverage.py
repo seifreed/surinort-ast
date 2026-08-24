@@ -24,8 +24,10 @@ from ..core.nodes import (
     PortList,
     PortNegation,
     PortRange,
+    PortVariable,
     Rule,
 )
+from .context import RulesetContext
 
 # ============================================================================
 # Data Classes
@@ -324,8 +326,9 @@ class CoverageAnalyzer:
         8443,  # HTTPS Alt
     ]
 
-    def __init__(self) -> None:
-        """Initialize the coverage analyzer."""
+    def __init__(self, context: RulesetContext | None = None) -> None:
+        """Initialize the coverage analyzer with optional engine variables."""
+        self.context = context
         self.protocol_coverage: Counter[Protocol] = Counter()
         self._port_rules: dict[int, list[Rule]] = defaultdict(list)
         # Covered port ranges (start, end), so coverage of a port inside a range
@@ -384,6 +387,7 @@ class CoverageAnalyzer:
             action_distribution=dict(self.action_coverage),
             content_types=dict(self.content_types),
             gaps=gaps,
+            confidence="medium" if self.context else "low",
         )
 
     def _analyze_rule(self, rule: Rule) -> None:
@@ -436,6 +440,10 @@ class CoverageAnalyzer:
         elif isinstance(port_expr, PortList):
             for element in port_expr.elements:
                 ports.update(self._extract_ports(element))
+        elif isinstance(port_expr, PortVariable) and self.context:
+            for start, end in self.context.resolve_port_intervals(port_expr.name) or ():
+                ports.add(start)
+                ports.add(end)
         elif isinstance(port_expr, PortNegation):
             # For negations, we can't determine specific ports
             pass
@@ -459,6 +467,8 @@ class CoverageAnalyzer:
         """
         if isinstance(port_expr, PortRange):
             return [(port_expr.start, port_expr.end)]
+        if isinstance(port_expr, PortVariable) and self.context:
+            return self.context.resolve_port_intervals(port_expr.name) or []
         if isinstance(port_expr, PortList):
             intervals: list[tuple[int, int]] = []
             for element in port_expr.elements:
