@@ -310,18 +310,17 @@ class TestPerformance:
                     if len(rules_text) >= 100:
                         break
 
+        parse_errors: list[tuple[str, str]] = []
+
         def parse_rules():
             """Parse all loaded rules."""
+            parse_errors.clear()
             for rule_text in rules_text:
                 try:
                     parse_tree = lark_parser.parse(rule_text)
                     transformer.transform(parse_tree)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    parse_errors.append((rule_text[:100], str(exc)[:200]))
 
-        # Benchmark if available, otherwise just run
-        try:
-            benchmark(parse_rules)
-        except Exception:
-            # pytest-benchmark not installed, just run once
-            parse_rules()
+        benchmark(parse_rules)
+        assert not parse_errors, f"Benchmark parse failed: {parse_errors[0]}"
