@@ -21,6 +21,9 @@ if TYPE_CHECKING:
     from .registry import PluginRegistry
 
 
+PLUGIN_API_VERSION = "1"
+
+
 # ============================================================================
 # Base Plugin Protocol
 # ============================================================================
@@ -65,6 +68,11 @@ class SurinortPlugin(Protocol):
             >>> plugin.version
             '1.2.3'
         """
+        ...
+
+    @property
+    def api_version(self) -> str:
+        """Plugin API contract version; legacy plugins default to ``"1"``."""
         ...
 
     def register(self, registry: PluginRegistry) -> None:
@@ -364,6 +372,7 @@ class PluginMetadata:
         requires_surinort: str = ">=1.0.0",
         capabilities: list[str] | None = None,
         dependencies: list[str] | None = None,
+        api_version: str = PLUGIN_API_VERSION,
     ):
         """
         Initialize plugin metadata.
@@ -384,6 +393,7 @@ class PluginMetadata:
         self.requires_surinort = requires_surinort
         self.capabilities = capabilities or []
         self.dependencies = dependencies or []
+        self.api_version = api_version
 
     def __repr__(self) -> str:
         """String representation."""
@@ -397,6 +407,7 @@ class PluginMetadata:
 # ============================================================================
 
 __all__ = [
+    "PLUGIN_API_VERSION",
     "AnalysisPlugin",
     "ParserPlugin",
     "PluginMetadata",

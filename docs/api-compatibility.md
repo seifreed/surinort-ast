@@ -76,6 +76,10 @@ The repository also ships a dependency-free VS Code client under
 `editors/vscode`; it starts `surinort-lsp`, publishes diagnostics, and exposes
 rule hover information.
 
+Plugins use API contract version `surinort_ast.plugins.PLUGIN_API_VERSION`.
+Plugins that omit `api_version` remain compatible as legacy version `1`
+plugins; a declared unsupported version is rejected by the loader.
+
 `surinort validate file1.rules file2.rules` validates a combined ruleset; the
 GitHub Action also expands recursive patterns such as `rules/**/*.rules`.
 Its optional `comment` input posts a SARIF count summary on pull requests and

@@ -96,6 +96,19 @@ class TestValidatePlugin:
         with pytest.raises(PluginValidationError, match="version"):
             loader._validate_plugin(HasName())
 
+    def test_unsupported_api_version(self):
+        class FuturePlugin:
+            name = "future"
+            version = "1.0.0"
+            api_version = "2"
+
+            def register(self, registry):
+                return None
+
+        loader = PluginLoader(auto_load=False)
+        with pytest.raises(PluginValidationError, match="unsupported API version"):
+            loader._validate_plugin(FuturePlugin())
+
 
 # ---------------------------------------------------------------------------
 # load_directory
