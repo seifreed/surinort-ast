@@ -5,7 +5,7 @@
 <h1 align="center">surinort-ast</h1>
 
 <p align="center">
-  <strong>Production-grade AST parser and analysis toolkit for Suricata/Snort rules</strong>
+  <strong>Typed AST parser and analysis toolkit for Suricata/Snort rules</strong>
 </p>
 
 <p align="center">
