@@ -211,7 +211,17 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
         )
     for option in rule.options:
         keyword = _option_keyword(option)
-        if target.supports(keyword) is False:
+        support = target.supports(keyword)
+        if option.node_type == "BufferSelectOption":
+            buffer_name = str(getattr(option, "buffer_name", "")).lower()
+            buffer_support = target.supports(buffer_name)
+            if buffer_support is True or support is True:
+                support = True
+            elif buffer_support is None and support is None:
+                support = None
+            else:
+                support = False
+        if support is False:
             diagnostics.append(
                 Diagnostic(
                     level=DiagnosticLevel.ERROR,

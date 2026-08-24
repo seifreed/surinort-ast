@@ -79,3 +79,17 @@ def test_engine_target_uses_canonical_multiword_option_names() -> None:
     found = {diagnostic.code for diagnostic in validate_rule(rule, target=target)}
 
     assert "unsupported_engine_keyword" not in found
+
+
+def test_engine_target_accepts_catalogued_sticky_buffer_name() -> None:
+    rule = parse_rule('alert tcp any any -> any 80 (http_uri; content:"x"; sid:1;)')
+    target = EngineTarget(
+        "suricata",
+        "8.x",
+        keywords=frozenset({"http_uri", "content", "sid"}),
+        keyword_catalog_complete=True,
+    )
+
+    found = {diagnostic.code for diagnostic in validate_rule(rule, target=target)}
+
+    assert "unsupported_engine_keyword" not in found
