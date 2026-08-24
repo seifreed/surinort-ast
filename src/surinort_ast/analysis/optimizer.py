@@ -27,7 +27,7 @@ class Optimization:
     Attributes:
         strategy: Name of optimization strategy
         description: Human-readable description
-        estimated_gain: Estimated performance improvement (percentage)
+        estimated_gain: Legacy relative cost delta from the heuristic model
         before: Rule text before optimization
         after: Rule text after optimization
         details: Additional details about the optimization
@@ -54,7 +54,7 @@ class OptimizationResult:
         original: Original rule
         optimized: Optimized rule (may be same as original)
         optimizations: List of optimizations applied
-        total_improvement: Total estimated improvement percentage
+        total_improvement: Legacy relative cost delta from the heuristic model
         was_modified: Whether any changes were made
     """
 
@@ -95,7 +95,7 @@ class RuleOptimizer:
         >>> result = optimizer.optimize(rule)
         >>>
         >>> if result.was_modified:
-        ...     print(f"Improvement: {result.total_improvement:.1f}%")
+        ...     print(f"Relative modeled cost delta: {result.total_improvement:.1f}")
         ...     for opt in result.optimizations:
         ...         print(f"  - {opt}")
     """
@@ -234,7 +234,7 @@ class RuleOptimizer:
 
         Example:
             >>> stats = optimizer.get_statistics(results)
-            >>> print(f"Average improvement: {stats['avg_improvement']:.1f}%")
+            >>> print(f"Average modeled cost delta: {stats['avg_improvement']:.1f}")
             >>> print(f"Rules modified: {stats['modified_count']}")
         """
         if not results:
@@ -270,17 +270,18 @@ class RuleOptimizer:
 
     def estimate_improvement(self, original: Rule, optimized: Rule) -> float:
         """
-        Estimate performance improvement between two rules.
+        Estimate relative modeled cost delta between two rules.
 
         Args:
             original: Original rule
             optimized: Optimized rule
 
         Returns:
-            Estimated improvement percentage
+            Relative cost delta from the heuristic model. This is not a
+            calibrated performance prediction.
 
         Example:
             >>> improvement = optimizer.estimate_improvement(original, optimized)
-            >>> print(f"Expected speedup: {improvement:.1f}%")
+            >>> print(f"Relative modeled cost delta: {improvement:.1f}")
         """
         return self.estimator.estimate_improvement(original, optimized)
