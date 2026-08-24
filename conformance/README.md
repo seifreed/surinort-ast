@@ -1,22 +1,13 @@
-# Conformance lab
+# Conformance Lab
 
-Run the checked-in corpus with:
-
-```bash
-python tools/conformance_lab.py --output conformance/report.json
-```
-
-The runner measures per-rule parse success and structural equality after
-`parse -> print -> parse`. Files below `conformance/corpus/<dialect>/` select
-the dialect. Files in an `invalid/` directory are expected to fail parsing.
-
-An installed engine can be used as an additional check with a command template:
+The checked-in corpus is a small, redistributable smoke corpus. Run it with:
 
 ```bash
-python tools/conformance_lab.py \
-  --engine-command 'suricata -T -S {file}'
+python tools/conformance_lab.py --manifest conformance/manifest.json
 ```
 
-Engine validation is reported as `passed`, `failed`, `timeout`, or
-`unavailable`; the parser conformance check remains independent of local engine
-availability.
+Larger corpora can be supplied with `--corpus` and described by a local JSON
+manifest. Keep externally sourced rules outside this repository unless their
+license permits redistribution. A manifest records the dialect and expected
+parse result per file, plus constructions that require an engine or deployment
+configuration and therefore cannot be proven by the AST alone.

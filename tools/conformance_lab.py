@@ -57,16 +57,53 @@ def _same_ast(left: Any, right: Any) -> bool:
     )
 
 
-def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) -> dict[str, Any]:
-    """Run conformance checks for every ``*.rules`` file below ``corpus``."""
+def _manifest_files(
+    manifest: Path,
+) -> tuple[list[tuple[Path, Dialect, bool]], list[dict[str, Any]]]:
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    entries = payload.get("files")
+    if not isinstance(entries, list):
+        raise ValueError("conformance manifest must contain a 'files' list")
+    files: list[tuple[Path, Dialect, bool]] = []
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+            raise ValueError("each conformance manifest file needs a string path")
+        path = (manifest.parent / entry["path"]).resolve()
+        dialect = Dialect(entry.get("dialect", Dialect.SURICATA.value))
+        expected_parse = bool(entry.get("expected_parse", True))
+        files.append((path, dialect, expected_parse))
+    unsupported = payload.get("unsupported", [])
+    if not isinstance(unsupported, list):
+        raise ValueError("conformance manifest 'unsupported' must be a list")
+    return files, unsupported
+
+
+def run(
+    corpus: Path,
+    engine_command: str | None = None,
+    timeout: float = 30.0,
+    manifest: Path | None = None,
+) -> dict[str, Any]:
+    """Run checks for a corpus, optionally using a reproducible manifest."""
     results: list[CaseResult] = []
     started = time.perf_counter()
     tracemalloc.start()
     verifier = EngineVerifier(engine_command, timeout) if engine_command else None
 
-    for path in sorted(corpus.rglob("*.rules")):
-        dialect = _dialect(path)
-        expected_parse = "invalid" not in path.parts and not path.stem.startswith("invalid")
+    unsupported: list[dict[str, Any]] = []
+    if manifest is not None:
+        files, unsupported = _manifest_files(manifest)
+    else:
+        files = [
+            (
+                path,
+                _dialect(path),
+                "invalid" not in path.parts and not path.stem.startswith("invalid"),
+            )
+            for path in sorted(corpus.rglob("*.rules"))
+        ]
+
+    for path, dialect, expected_parse in files:
         for line_number, text in _read_rule_lines(path):
             try:
                 rule = parse_rule(text, dialect=dialect, include_raw_text=False)
@@ -109,6 +146,8 @@ def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) 
     parsed = sum(result.parsed for result in results)
     return {
         "corpus": str(corpus),
+        "manifest": str(manifest) if manifest else None,
+        "unsupported_constructions": unsupported,
         "total_rules": len(results),
         "parsed": parsed,
         "parse_rate": parsed / len(results) if results else 1.0,
@@ -139,6 +178,11 @@ def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", type=Path, default=Path("conformance/corpus"))
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        help="Optional JSON manifest with per-file dialect/expectation metadata",
+    )
     parser.add_argument("--output", type=Path)
     parser.add_argument(
         "--engine-command",
@@ -146,7 +190,7 @@ def main() -> int:
     )
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args()
-    report = run(args.corpus, args.engine_command, args.timeout)
+    report = run(args.corpus, args.engine_command, args.timeout, args.manifest)
     rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.write_text(rendered, encoding="utf-8")

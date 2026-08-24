@@ -31,3 +31,23 @@ def test_conformance_engine_checks_original_and_printed_rule(tmp_path) -> None:
     assert report["engine_validation_passed"] == 1
     assert report["engine_validation_after_print_passed"] == 1
     assert report["cases"][0]["engine_validation_after_print"] == "passed"
+
+
+def test_manifest_controls_dialect_expectation_and_limits(tmp_path) -> None:
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    rule_file = corpus / "rules.rules"
+    rule_file.write_text('alert tcp any any -> any 80 (msg:"x"; sid:1;)\n', encoding="utf-8")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        '{"files": [{"path": "corpus/rules.rules", "dialect": "snort3", '
+        '"expected_parse": true}], "unsupported": [{"id": "engine_config", '
+        '"description": "Engine configuration directives are outside rule AST."}]}\n',
+        encoding="utf-8",
+    )
+
+    report = run(corpus, manifest=manifest)
+
+    assert report["manifest"] == str(manifest)
+    assert report["cases"][0]["dialect"] == "snort3"
+    assert report["unsupported_constructions"][0]["id"] == "engine_config"

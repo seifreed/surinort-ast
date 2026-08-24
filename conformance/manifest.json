@@ -1,0 +1,22 @@
+{
+  "files": [
+    {"path": "corpus/snort2/basic.rules", "dialect": "snort2"},
+    {"path": "corpus/snort3/basic.rules", "dialect": "snort3"},
+    {"path": "corpus/suricata/basic.rules", "dialect": "suricata"},
+    {
+      "path": "corpus/suricata/invalid.rules",
+      "dialect": "suricata",
+      "expected_parse": false
+    }
+  ],
+  "unsupported": [
+    {
+      "id": "engine_configuration",
+      "description": "Engine configuration and preprocessor directives are not rule AST nodes."
+    },
+    {
+      "id": "engine_runtime_semantics",
+      "description": "Alert behavior requires a real engine and traffic fixture; parsing cannot prove it."
+    }
+  ]
+}
