@@ -43,6 +43,23 @@ _BYTE_REFERENCE_FIELDS = {
     "ByteJumpOption": "offset",
 }
 _BYTE_COUNT_OPTIONS = {"ByteTestOption", "ByteJumpOption", "ByteExtractOption"}
+_BYTE_TEST_OPERATORS = {
+    "!",
+    "!=",
+    "!&",
+    "!<",
+    "!<=",
+    "!^",
+    "!>",
+    "!>=",
+    "&",
+    "<",
+    "<=",
+    "=",
+    ">",
+    ">=",
+    "^",
+}
 
 
 def _option_keyword(option: object) -> str:
@@ -77,6 +94,19 @@ def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:
                         message="Byte operation length must be greater than zero",
                         location=getattr(option, "location", None),
                         code="invalid_byte_length",
+                        phase="option-chain",
+                    )
+                )
+
+        if option_type == "ByteTestOption":
+            operator = getattr(option, "operator", None)
+            if operator not in _BYTE_TEST_OPERATORS:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"Unsupported byte_test operator '{operator}'",
+                        location=getattr(option, "location", None),
+                        code="invalid_byte_test_operator",
                         phase="option-chain",
                     )
                 )
@@ -186,6 +216,8 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     counts: dict[str, int] = {}
     previous_content = False
+    previous_content_negated = False
+    seen_content = False
     for option in rule.options:
         option_type = option.node_type
         if option_type in _SINGLETON_OPTIONS:
@@ -207,10 +239,34 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
                         phase="option-chain",
                     )
                 )
+            for modifier in getattr(option, "modifiers", ()):
+                if getattr(modifier, "name_str", "") in {"distance", "within"} and not seen_content:
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message="Inline distance/within requires a preceding content option",
+                            location=option.location,
+                            code="relative_modifier_without_content",
+                            phase="option-chain",
+                        )
+                    )
             previous_content = True
+            previous_content_negated = bool(getattr(option, "negated", False))
+            seen_content = True
             continue
         if option_type == "FastPatternOption":
             diagnostics.extend(_validate_fast_pattern(option, previous_content))
+            if previous_content_negated:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.WARNING,
+                        message="fast_pattern follows negated content and may not be usable by the engine",
+                        location=option.location,
+                        code="fast_pattern_on_negated_content",
+                        phase="option-chain",
+                        confidence="medium",
+                    )
+                )
         if option_type in _CONTENT_MODIFIERS:
             if not previous_content:
                 diagnostics.append(
@@ -239,6 +295,76 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
                     phase="option-chain",
                 )
             )
+    return diagnostics
+
+
+def _validate_buffer_semantics(rule: Rule) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    protocol = rule.header.protocol.value
+    selected_buffer: str | None = None
+    has_match = False
+    for option in rule.options:
+        option_type = option.node_type
+        if option_type == "BufferSelectOption":
+            if selected_buffer is not None and not has_match:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.WARNING,
+                        message=f"Sticky buffer '{selected_buffer}' is replaced without a content or pcre match",
+                        location=option.location,
+                        code="sticky_buffer_without_match",
+                        phase="option-chain",
+                        confidence="medium",
+                    )
+                )
+            selected_buffer = str(getattr(option, "buffer_name", "")).lower()
+            has_match = False
+            if protocol in {"udp", "icmp", "ip", "ipv6"} and selected_buffer.startswith(
+                ("http", "tls", "ssh", "ftp", "smtp", "imap", "smb")
+            ):
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"Buffer '{selected_buffer}' is incompatible with {protocol} header protocol",
+                        location=option.location,
+                        code="buffer_protocol_mismatch",
+                        phase="structure",
+                    )
+                )
+            continue
+        if option_type in {"ContentOption", "PcreOption"}:
+            has_match = True
+    if selected_buffer is not None and not has_match:
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.WARNING,
+                message=f"Sticky buffer '{selected_buffer}' has no content or pcre match",
+                code="sticky_buffer_without_match",
+                phase="option-chain",
+                confidence="medium",
+            )
+        )
+    return diagnostics
+
+
+def _validate_relative_patterns(rule: Rule) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    has_anchor = False
+    for option in rule.options:
+        if option.node_type in {"ContentOption", "ByteTestOption", "ByteJumpOption"}:
+            has_anchor = True
+        if option.node_type == "PcreOption" and "r" in str(getattr(option, "flags", "")).lower():
+            if not has_anchor:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message="Relative PCRE flag 'R' requires a preceding content or byte match",
+                        location=option.location,
+                        code="relative_pcre_without_anchor",
+                        phase="option-chain",
+                    )
+                )
+            has_anchor = True
     return diagnostics
 
 
@@ -302,6 +428,8 @@ def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagno
         diagnostics.extend(_validate_target_options(rule, target))
 
     diagnostics.extend(_validate_byte_operations(rule))
+    diagnostics.extend(_validate_buffer_semantics(rule))
+    diagnostics.extend(_validate_relative_patterns(rule))
 
     # Cross-rule checks (duplicate SIDs, shadowing, conflicting actions) require a
     # whole rule set and live in surinort_ast.analysis.conflicts and the streaming
