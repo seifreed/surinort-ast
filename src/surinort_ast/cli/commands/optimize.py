@@ -36,6 +36,8 @@ def _result_dict(result: Any) -> dict[str, Any]:
         "confidence": result.confidence,
         "engine_verified": result.engine_verified,
         "behavior_verified": result.behavior_verified,
+        "estimated_cost_class": result.estimated_cost_class,
+        "evidence": list(result.evidence),
     }
 
 

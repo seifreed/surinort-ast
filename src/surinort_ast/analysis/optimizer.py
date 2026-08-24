@@ -68,6 +68,8 @@ class OptimizationResult:
     confidence: str = "low"
     engine_verified: bool = False
     behavior_verified: bool = False
+    estimated_cost_class: str = "D"
+    evidence: tuple[str, ...] = ("relative AST heuristic",)
 
     @property
     def strategy_names(self) -> list[str]:
@@ -185,6 +187,7 @@ class RuleOptimizer:
             optimizations=all_optimizations,
             total_improvement=total_improvement,
             was_modified=len(all_optimizations) > 0,
+            estimated_cost_class=self.estimator.estimate_cost_class(current_rule),
         )
 
     def optimize_ruleset(

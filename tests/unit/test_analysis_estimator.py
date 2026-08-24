@@ -18,6 +18,14 @@ from surinort_ast.analysis.estimator import PerformanceEstimator
 class TestPerformanceEstimator:
     """Test PerformanceEstimator class."""
 
+    def test_cost_class_is_coarse_and_relative(self):
+        estimator = PerformanceEstimator()
+
+        assert estimator.cost_class(5) == "A"
+        assert estimator.cost_class(20) == "B"
+        assert estimator.cost_class(60) == "C"
+        assert estimator.cost_class(61) == "D"
+
     def test_estimator_initialization(self):
         """Test creating a performance estimator."""
         estimator = PerformanceEstimator()

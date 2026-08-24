@@ -184,6 +184,8 @@ def optimization_results_to_findings(results: list[OptimizationResult]) -> list[
                         "confidence": result.confidence,
                         "engine_verified": result.engine_verified,
                         "behavior_verified": result.behavior_verified,
+                        "estimated_cost_class": result.estimated_cost_class,
+                        "evidence": "; ".join(result.evidence),
                     },
                 )
             )

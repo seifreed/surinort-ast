@@ -26,3 +26,5 @@ def test_optimizer_findings_disclose_unverified_estimates() -> None:
     if result.optimizations:
         assert "engine verification is required" in (findings[0].help_text or "")
         assert findings[0].properties["experimental"] is True
+        assert result.estimated_cost_class in {"A", "B", "C", "D"}
+        assert result.evidence

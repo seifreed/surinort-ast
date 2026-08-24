@@ -279,6 +279,21 @@ class PerformanceEstimator:
 
         return ((original_cost - optimized_cost) / original_cost) * 100.0
 
+    @staticmethod
+    def cost_class(cost: float) -> str:
+        """Map an arbitrary relative cost to a coarse, non-calibrated class."""
+        if cost <= 5:
+            return "A"
+        if cost <= 20:
+            return "B"
+        if cost <= 60:
+            return "C"
+        return "D"
+
+    def estimate_cost_class(self, rule: Rule) -> str:
+        """Return a coarse relative cost class instead of a false percentage."""
+        return self.cost_class(self.estimate_cost(rule))
+
     def estimate_position_penalty(self, options: list[Option]) -> float:
         """
         Estimate penalty from suboptimal option ordering.
