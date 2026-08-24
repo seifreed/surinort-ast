@@ -84,3 +84,7 @@ plugins; a declared unsupported version is rejected by the loader.
 GitHub Action also expands recursive patterns such as `rules/**/*.rules`.
 Its optional `comment` input posts a SARIF count summary on pull requests and
 requires the consuming workflow to grant `pull-requests: write`.
+
+`apply_safe_fixes(rule)` returns a new rule and only removes exact duplicate
+inline content modifiers. Diagnostics with different duplicate values remain
+unchanged because selecting a value would require engine-specific semantics.

@@ -1,4 +1,4 @@
-from surinort_ast import parse_rule, validate_rule, validate_rules
+from surinort_ast import apply_safe_fixes, parse_rule, validate_rule, validate_rules
 from surinort_ast.analysis import EngineTarget
 
 
@@ -26,6 +26,22 @@ def test_duplicate_content_modifier_is_reported() -> None:
     assert "duplicate_content_modifier" in codes(
         'alert tcp any any -> any 80 (content:"x",nocase,nocase; sid:1;)'
     )
+
+
+def test_safe_fix_removes_only_exact_duplicate_content_modifiers() -> None:
+    rule = parse_rule('alert tcp any any -> any 80 (content:"x",nocase,nocase; sid:1;)')
+
+    fixed = apply_safe_fixes(rule)
+
+    content = next(option for option in fixed.options if option.node_type == "ContentOption")
+    assert [modifier.name_str for modifier in content.modifiers] == ["nocase"]
+    assert fixed != rule
+
+
+def test_safe_fix_leaves_different_duplicate_values_unchanged() -> None:
+    rule = parse_rule('alert tcp any any -> any 80 (content:"x",offset 1,offset 2; sid:1;)')
+
+    assert apply_safe_fixes(rule) == rule
 
 
 def test_flowbit_use_without_definition_is_ruleset_warning() -> None:

@@ -23,9 +23,10 @@ from .serialization import (
     to_json_schema,
     to_sarif,
 )
-from .validation import validate_rule, validate_rules
+from .validation import apply_safe_fixes, validate_rule, validate_rules
 
 __all__ = [
+    "apply_safe_fixes",
     "coverage_report_to_sarif",
     "diagnostics_to_sarif",
     "from_json",

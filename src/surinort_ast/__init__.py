@@ -12,6 +12,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 # Core API - most users should import from here
 # Note: Importing from api package (api/__init__.py) maintains backward compatibility
 from .api import (
+    apply_safe_fixes,
     coverage_report_to_sarif,
     diagnostics_to_sarif,
     from_json,
@@ -86,6 +87,7 @@ __all__ = [
     "__email__",
     "__license__",
     "__version__",
+    "apply_safe_fixes",
     "coverage_report_to_sarif",
     "diagnostics_to_sarif",
     # Core API functions
