@@ -19,6 +19,7 @@ from typing import Any
 import pytest
 from lark import Lark
 from lark.exceptions import LarkError
+from tools.conformance_lab import _same_ast
 
 from surinort_ast.core.nodes import Rule
 from surinort_ast.parsing.transformer import RuleTransformer
@@ -136,10 +137,7 @@ class TestSuricataGolden:
                     rule2 = transformer.transform(parse_tree2)[0]
 
                     # Verify basic equality
-                    if (
-                        rule1.action == rule2.action
-                        and rule1.header.protocol == rule2.header.protocol
-                    ):
+                    if _same_ast(rule1, rule2):
                         roundtrip_ok += 1
                     else:
                         roundtrip_errors.append((line_num, "Fields mismatch"))
@@ -157,7 +155,10 @@ class TestSuricataGolden:
         print(f"  Roundtrip OK: {roundtrip_ok}")
         print(f"  Success rate: {success_rate:.2f}%")
 
-        assert success_rate >= 90.0, f"Roundtrip success rate {success_rate:.2f}% below 90%"
+        assert not roundtrip_errors, (
+            f"Roundtrip structural mismatches in {len(roundtrip_errors)} of {tested} rules: "
+            f"{roundtrip_errors[:3]}"
+        )
 
 
 @pytest.mark.golden
