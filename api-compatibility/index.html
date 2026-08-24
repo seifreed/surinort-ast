@@ -523,6 +523,9 @@ engine's stdout for the original and candidate rulesets.</p>
 <p><code>surinort-lsp</code> implements stdio <code>initialize</code>, diagnostics on document changes,
 and rule hover. It is intentionally dependency-free so editor integrations can
 pin the package and choose their own client.</p>
+<p>The repository also ships a dependency-free VS Code client under
+<code>editors/vscode</code>; it starts <code>surinort-lsp</code>, publishes diagnostics, and exposes
+rule hover information.</p>
 <p><code>surinort validate file1.rules file2.rules</code> validates a combined ruleset; the
 GitHub Action also expands recursive patterns such as <code>rules/**/*.rules</code>.
 Its optional <code>comment</code> input posts a SARIF count summary on pull requests and
