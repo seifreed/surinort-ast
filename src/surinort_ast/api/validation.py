@@ -13,6 +13,25 @@ from __future__ import annotations
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
 from ..core.nodes import Rule
 
+_SINGLETON_OPTIONS = {
+    "SidOption": "sid",
+    "GidOption": "gid",
+    "RevOption": "rev",
+    "PriorityOption": "priority",
+    "DetectionFilterOption": "detection_filter",
+}
+_CONTENT_MODIFIERS = {
+    "DepthOption",
+    "OffsetOption",
+    "DistanceOption",
+    "WithinOption",
+    "NocaseOption",
+    "RawbytesOption",
+    "StartswithOption",
+    "EndswithOption",
+    "FastPatternOption",
+}
+
 
 def validate_rule(rule: Rule) -> list[Diagnostic]:
     """
@@ -64,6 +83,44 @@ def validate_rule(rule: Rule) -> list[Diagnostic]:
                 code="missing_rev",
             )
         )
+
+    # These options are singleton or positional in the engine rule language;
+    # accepting them silently produces a rule whose meaning depends on engine
+    # version and option order.
+    counts: dict[str, int] = {}
+    previous_content = False
+    for option in rule.options:
+        option_type = option.node_type
+        if option_type in _SINGLETON_OPTIONS:
+            counts[option_type] = counts.get(option_type, 0) + 1
+        if option_type == "ContentOption":
+            previous_content = True
+            continue
+        if option_type in _CONTENT_MODIFIERS:
+            if not previous_content:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"Option '{option_type.removesuffix('Option').lower()}' requires a preceding content option",
+                        location=option.location,
+                        code="content_modifier_without_content",
+                        hint="Place the modifier immediately after content or use an inline modifier.",
+                    )
+                )
+            continue
+        previous_content = False
+
+    for option_type, count in counts.items():
+        if count > 1:
+            keyword = _SINGLETON_OPTIONS[option_type]
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message=f"Option '{keyword}' may appear only once",
+                    code="duplicate_singleton_option",
+                    hint=f"Keep one {keyword} option in the rule.",
+                )
+            )
 
     # Cross-rule checks (duplicate SIDs, shadowing, conflicting actions) require a
     # whole rule set and live in surinort_ast.analysis.conflicts and the streaming
