@@ -13,6 +13,8 @@ The following modules are public extension points:
 - `surinort_ast.lsp` for the stdio language-server endpoint and its pure helper
   functions.
 - `surinort_ast.cli` for the `surinort` command.
+- `surinort_ast.printer.SourcePrinter` for retained source blocks and
+  `CanonicalPrinter` for normalized output.
 
 Internal modules under `core`, `parsing`, `printer`, and `serialization` may
 change without preserving import paths. Use the top-level exports when possible.

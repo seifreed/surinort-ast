@@ -48,6 +48,7 @@ from .exceptions import (
     UnsupportedDialectError,
     ValidationError,
 )
+from .printer import CanonicalPrinter, SourcePrinter
 from .version import (
     __ast_version__,
     __author__,
@@ -59,6 +60,7 @@ from .version import (
 __all__ = [
     # Enums
     "Action",
+    "CanonicalPrinter",
     # Core types
     "Diagnostic",
     "DiagnosticLevel",
@@ -70,6 +72,7 @@ __all__ = [
     "Rule",
     "RuleForm",
     "SerializationError",
+    "SourcePrinter",
     "SurinortASTError",
     "UnsupportedDialectError",
     "ValidationError",
