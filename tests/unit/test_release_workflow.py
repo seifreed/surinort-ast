@@ -30,3 +30,18 @@ def test_release_requires_a_verified_annotated_tag_before_building() -> None:
     assert "must be an annotated tag" in signed_tag_block
     assert "git/tags/${TAG_OBJECT}" in signed_tag_block
     assert ".verification.verified" in signed_tag_block
+
+
+def test_github_release_attaches_downloaded_provenance_bundles() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    download = workflow.index("- name: Download build provenance bundles")
+    release = workflow.index("- name: Create GitHub Release", download)
+    release_block = workflow[release : workflow.index("  # Sign release artifacts", release)]
+
+    assert download < release
+    assert (
+        'gh attestation download "../$file" --repo "$GITHUB_REPOSITORY"'
+        in workflow[download:release]
+    )
+    assert "provenance/*.jsonl" in release_block
