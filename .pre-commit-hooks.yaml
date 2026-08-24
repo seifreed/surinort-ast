@@ -1,0 +1,9 @@
+- id: surinort-validate
+  name: Validate IDS rules with surinort-ast
+  description: Parse and semantically validate staged Suricata and Snort rules
+  entry: surinort validate
+  language: python
+  language_version: python3
+  files: \.(?:rules|ruleset)$
+  types: [text]
+  pass_filenames: true
