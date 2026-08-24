@@ -10,6 +10,7 @@ from ..api import parse_rule, validate_rule, validate_rules
 from ..core.enums import DiagnosticLevel, Dialect
 from ..core.nodes import Rule, extract_sid
 from ..exceptions import ParseError
+from ..streaming.parser import _iter_rule_blocks
 
 
 def _diagnostic(
@@ -27,9 +28,7 @@ def _diagnostic(
 def _parse_document(text: str, dialect: Dialect) -> tuple[list[Rule], list[dict[str, Any]]]:
     rules: list[Rule] = []
     diagnostics: list[dict[str, Any]] = []
-    for line, raw in enumerate(text.splitlines(), start=0):
-        if not raw.strip() or raw.lstrip().startswith("#"):
-            continue
+    for line, raw in _iter_rule_blocks(enumerate(text.splitlines(), start=0)):
         try:
             rule = parse_rule(raw, dialect=dialect)
         except ParseError as exc:
@@ -41,7 +40,7 @@ def _parse_document(text: str, dialect: Dialect) -> tuple[list[Rule], list[dict[
                 _diagnostic(diagnostic.level, diagnostic.message, line, diagnostic.code)
             )
     for diagnostic in validate_rules(rules):
-        if diagnostic.code == "duplicate_sid":
+        if diagnostic.code in {"duplicate_sid", "flowbit_without_definition"}:
             diagnostics.append(
                 _diagnostic(diagnostic.level, diagnostic.message, 0, diagnostic.code)
             )
