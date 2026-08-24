@@ -10,7 +10,7 @@
 # - Trusted Publisher authentication (no token in secrets)
 # - Artifact signing with Sigstore
 # - SBOM generation with CycloneDX
-# - Checksums and signed artifact records
+# - Checksums, signed artifact records, and build provenance
 # - Release verification before publishing
 
 name: Release
@@ -116,6 +116,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      id-token: write
+      attestations: write
 
     steps:
       - name: Checkout code
@@ -152,6 +154,11 @@ jobs:
         run: |
           sha256sum dist/* > SHA256SUMS
           cat SHA256SUMS
+
+      - name: Attest release distributions
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45  # v2
+        with:
+          subject-path: 'dist/*'
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
