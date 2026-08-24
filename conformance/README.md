@@ -27,3 +27,13 @@ python tools/conformance_lab.py \
 The lab runs the original and printed rule against the same fixture and
 reports a mismatch in the normalized alert projection as an unexpected
 failure.
+
+For engine-load checks without a traffic fixture, use the engine's native
+rule-loading command. Snort++ can validate both Snort 3 and compatible Snort 2
+rule syntax:
+
+```bash
+python tools/conformance_lab.py \
+  --corpus conformance/corpus/snort3 \
+  --engine-command 'snort -R {file} -T'
+```
