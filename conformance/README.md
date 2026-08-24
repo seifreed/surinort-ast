@@ -12,6 +12,16 @@ license permits redistribution. A manifest records the dialect and expected
 parse result per file, plus constructions that require an engine or deployment
 configuration and therefore cannot be proven by the AST alone.
 
+The repository also includes `manifest.bundled.json` for the three tracked
+corpora. It reproduces the aggregate parser measurement without adding any
+external rules:
+
+```bash
+python tools/conformance_lab.py \
+  --manifest conformance/manifest.bundled.json \
+  --output conformance/bundled-report.json
+```
+
 For differential behavior checks, provide a traffic fixture and an engine
 command containing both placeholders. The command must print a stable alert
 projection to stdout. The repository includes a Suricata adapter because

@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "path": "../rules/suricata/suricata.rules",
+      "dialect": "suricata"
+    },
+    {
+      "path": "../rules/snort/snort29-community-rules/community-rules/community.rules",
+      "dialect": "snort2"
+    },
+    {
+      "path": "../rules/snort/snort3-community-rules/snort3-community-rules/snort3-community.rules",
+      "dialect": "snort3"
+    }
+  ],
+  "unsupported": []
+}

@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -16,6 +17,19 @@ def test_checked_in_conformance_corpus_round_trips() -> None:
     assert report["parse_exceptions"] == 1
     assert report["rules_per_second"] > 0
     assert report["peak_memory_mb"] > 0
+
+
+def test_bundled_manifest_points_to_tracked_corpora() -> None:
+    manifest = json.loads(Path("conformance/manifest.bundled.json").read_text(encoding="utf-8"))
+
+    assert [entry["dialect"] for entry in manifest["files"]] == [
+        "suricata",
+        "snort2",
+        "snort3",
+    ]
+    assert all(
+        (Path("conformance") / entry["path"]).resolve().is_file() for entry in manifest["files"]
+    )
 
 
 def test_conformance_engine_checks_original_and_printed_rule(tmp_path) -> None:
