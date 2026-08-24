@@ -643,6 +643,7 @@ class LarkRuleParser:
             location=error_node.location,
             code="PARSE_ERROR",
             hint="Check rule syntax for correctness",
+            phase="syntax",
         )
 
         # Create error rule

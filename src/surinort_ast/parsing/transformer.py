@@ -174,7 +174,14 @@ class RuleTransformer(
         Usage:
             Called by mixins to report warnings and errors during transformation.
         """
-        diag = Diagnostic(level=level, message=message, location=location, code=code, hint=hint)
+        diag = Diagnostic(
+            level=level,
+            message=message,
+            location=location,
+            code=code,
+            hint=hint,
+            phase="syntax",
+        )
         self.diagnostics.append(diag)
         logger.debug(f"Diagnostic: {diag}")
 
