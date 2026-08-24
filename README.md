@@ -86,6 +86,9 @@ surinort parse rules/local.rules
 # Validate with strict mode
 surinort validate rules/local.rules --strict
 
+# Validate several files as one ruleset
+surinort validate rules/*.rules rules/vendor/*.rules
+
 # Export parse findings to SARIF
 surinort parse rules/local.rules --format sarif -o parse-results.sarif
 ```
