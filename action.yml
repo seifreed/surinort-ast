@@ -3,7 +3,7 @@ description: Validate Suricata and Snort rule files and optionally verify them w
 author: seifreed
 inputs:
   rules:
-    description: Rule file to validate.
+    description: Rule file or recursive glob of rule files to validate.
     required: true
   dialect:
     description: Rule dialect (suricata, snort2, or snort3).
@@ -54,7 +54,25 @@ runs:
         SARIF: ${{ inputs.sarif }}
         SARIF_FILE: ${{ inputs.sarif-file }}
       run: |
-        args=("$RULES" --dialect "$DIALECT")
+        mapfile -t rule_files < <(python - "$RULES" <<'PY'
+        import glob
+        import sys
+        from pathlib import Path
+
+        pattern = sys.argv[1]
+        matches = sorted(glob.glob(pattern, recursive=True))
+        if not matches and Path(pattern).is_file():
+            matches = [pattern]
+        for match in matches:
+            if Path(match).is_file():
+                print(match)
+        PY
+        )
+        if [[ "${#rule_files[@]}" -eq 0 ]]; then
+          echo "No rule files matched: $RULES" >&2
+          exit 1
+        fi
+        args=("${rule_files[@]}" --dialect "$DIALECT")
         if [[ -n "$ENGINE" || -n "$ENGINE_VERSION" ]]; then
           if [[ -z "$ENGINE" || -z "$ENGINE_VERSION" ]]; then
             echo "engine and engine-version must be provided together" >&2
@@ -79,12 +97,21 @@ runs:
           echo "engine-command is required when engine-verify is true" >&2
           exit 1
         fi
-        python - <<'PY'
+        python - "$RULES" "$ENGINE_COMMAND" <<'PY'
+        import glob
         import os
+        import sys
         from pathlib import Path
         from surinort_ast.analysis import EngineVerifier
 
-        result = EngineVerifier(os.environ["ENGINE_COMMAND"]).verify(Path(os.environ["RULES"]))
-        print(f"Engine verification: {result.status}")
-        raise SystemExit(0 if result.passed else 1)
+        pattern, command = sys.argv[1:]
+        files = sorted(glob.glob(pattern, recursive=True)) or [pattern]
+        results = [
+            EngineVerifier(command).verify(Path(filename))
+            for filename in files
+            if Path(filename).is_file()
+        ]
+        for result in results:
+            print(f"Engine verification: {result.status}")
+        raise SystemExit(0 if results and all(result.passed for result in results) else 1)
         PY

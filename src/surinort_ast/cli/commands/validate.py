@@ -91,9 +91,12 @@ def _collect_diagnostics(
                 warning_count += 1
 
     for diagnostic in validate_rules(rules, target=target):
-        if diagnostic.code == "duplicate_sid":
+        if diagnostic.code in {"duplicate_sid", "flowbit_without_definition"}:
             all_diagnostics.append((0, diagnostic))
-            error_count += 1
+            if diagnostic.level == DiagnosticLevel.ERROR:
+                error_count += 1
+            elif diagnostic.level == DiagnosticLevel.WARNING:
+                warning_count += 1
 
     return all_diagnostics, error_count, warning_count
 
@@ -229,9 +232,9 @@ def _display_lua_warnings(lua_warnings: list[tuple[int, str]], target: Console) 
 
 
 def validate_command(
-    file: Annotated[
-        Path,
-        typer.Argument(help="Rule file to validate"),
+    files: Annotated[
+        list[Path],
+        typer.Argument(help="Rule files to validate"),
     ],
     dialect: DialectOption = Dialect.SURICATA,
     strict: Annotated[
@@ -280,7 +283,9 @@ def validate_command(
             # (non-streaming) parse silently drops unparseable lines whenever at
             # least one rule parses, which would let validation pass a file that
             # contains a malformed rule.
-            rules = list(parse_file(file, dialect=dialect, stream=True))
+            rules: list[Any] = []
+            for file in files:
+                rules.extend(parse_file(file, dialect=dialect, stream=True))
 
         # Validate all rules
         all_diagnostics, error_count, warning_count = _collect_diagnostics(rules, target=target)
@@ -289,7 +294,7 @@ def validate_command(
         lua_warnings = _check_lua_scripts(rules, lua_dir)
 
         _emit_validation_report(
-            file,
+            files[0],
             fmt,
             output,
             sarif_out,
