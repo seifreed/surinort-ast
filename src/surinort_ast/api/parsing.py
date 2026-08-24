@@ -11,7 +11,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 import os
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -306,6 +306,9 @@ def parse_file(
     if errors and not rules:
         raise ParseError("Failed to parse any rules:\n" + "\n".join(errors[:10]))
 
+    if include_raw_text:
+        rules = _attach_source_comments(rules, file_path)
+
     return rules
 
 
@@ -318,12 +321,19 @@ def _parse_file_streaming(
     """Delegate to streaming module for memory-efficient parsing."""
     from ..streaming import stream_parse_file
 
-    return stream_parse_file(
-        file_path,
-        dialect=dialect,
-        track_locations=track_locations,
-        include_raw_text=include_raw_text,
+    rules = cast(
+        Iterator[Rule],
+        stream_parse_file(
+            file_path,
+            dialect=dialect,
+            track_locations=track_locations,
+            include_raw_text=include_raw_text,
+        ),
     )
+    if not include_raw_text:
+        return rules
+    comments = _source_comments_by_line(file_path)
+    return (_attach_rule_comments(rule, comments) for rule in rules)
 
 
 def _read_rule_lines(file_path: Path) -> list[tuple[int, str]]:
@@ -350,6 +360,43 @@ def _read_rule_lines(file_path: Path) -> list[tuple[int, str]]:
     from ..streaming.parser import _iter_rule_blocks
 
     return list(_iter_rule_blocks(enumerate(lines, start=1)))
+
+
+def _source_comments_by_line(file_path: Path) -> dict[int, tuple[str, ...]]:
+    """Associate leading ``#`` comments with the following rule line."""
+    actions = {"alert", "drop", "pass", "reject", "log", "sdrop"}
+    comments: dict[int, tuple[str, ...]] = {}
+    pending: list[str] = []
+    for line_number, raw_line in enumerate(
+        file_path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            pending.append(line[1:].lstrip())
+            continue
+        if line.split(maxsplit=1)[0].lower() in actions:
+            if pending:
+                comments[line_number] = tuple(pending)
+            pending = []
+        else:
+            pending = []
+    return comments
+
+
+def _attach_source_comments(rules: list[Rule], file_path: Path) -> list[Rule]:
+    comments = _source_comments_by_line(file_path)
+    return [_attach_rule_comments(rule, comments) for rule in rules]
+
+
+def _attach_rule_comments(rule: Rule, comments: dict[int, tuple[str, ...]]) -> Rule:
+    if rule.origin is None or rule.origin.line_number is None:
+        return rule
+    source_comments = comments.get(rule.origin.line_number)
+    if source_comments is None:
+        return rule
+    return rule.model_copy(update={"comments": source_comments})
 
 
 def _parse_file_sequential(

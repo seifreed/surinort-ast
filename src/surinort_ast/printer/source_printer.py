@@ -28,7 +28,15 @@ class SourcePrinter:
 
     def print_rule(self, rule: Rule) -> str:
         """Print one rule without discarding retained source formatting."""
-        return rule.raw_text if rule.raw_text is not None else self.fallback.print_rule(rule)
+        if rule.raw_text is None:
+            return self.fallback.print_rule(rule)
+        if not rule.comments:
+            return rule.raw_text
+        prefix = "\n".join(
+            comment if comment.lstrip().startswith("#") else f"# {comment}"
+            for comment in rule.comments
+        )
+        return f"{prefix}\n{rule.raw_text}"
 
     def print_rules(self, rules: Sequence[Rule]) -> str:
         """Print multiple source blocks separated by newlines."""
