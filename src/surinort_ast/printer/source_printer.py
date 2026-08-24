@@ -33,7 +33,7 @@ class SourcePrinter:
         if not rule.comments:
             return rule.raw_text
         prefix = "\n".join(
-            comment if comment.lstrip().startswith("#") else f"# {comment}"
+            "" if comment == "" else comment if comment.lstrip().startswith("#") else f"# {comment}"
             for comment in rule.comments
         )
         return f"{prefix}\n{rule.raw_text}"

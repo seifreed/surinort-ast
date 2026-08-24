@@ -396,7 +396,7 @@ class TextPrinter:
                 # leave a bare continuation that could be mistaken for a
                 # new rule by downstream consumers.
                 for line in comment.split("\n"):
-                    parts.append(f"# {line}")
+                    parts.append("" if line == "" else f"# {line}")
 
         # Preserve whether the source used a full, protocol-only, or headerless form.
         if rule.form is RuleForm.HEADERLESS:

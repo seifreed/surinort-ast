@@ -35,3 +35,13 @@ def test_streaming_file_parser_keeps_leading_comments(tmp_path) -> None:
     rule = next(iter(parse_file(path, stream=True)))
 
     assert list(rule.comments) == ["stream note"]
+
+
+def test_source_printer_preserves_blank_trivia_before_rule(tmp_path) -> None:
+    source = '\n# note\n\nalert tcp any any -> any 80 (msg:"x"; sid:1;)\n'
+    path = tmp_path / "trivia.rules"
+    path.write_text(source, encoding="utf-8")
+
+    rule = parse_file(path)[0]
+
+    assert SourcePrinter().print_rule(rule) == source.rstrip("\n")

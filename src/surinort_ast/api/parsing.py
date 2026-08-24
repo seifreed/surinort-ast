@@ -375,6 +375,7 @@ def _source_comments_by_line(file_path: Path) -> dict[int, tuple[str, ...]]:
     for line_number, raw_line in enumerate(lines, start=1):
         line = raw_line.strip()
         if not line:
+            pending.append("")
             continue
         if line.startswith("#"):
             pending.append(line[1:].lstrip())
