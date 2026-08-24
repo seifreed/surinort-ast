@@ -185,6 +185,28 @@ def _validate_fast_pattern(option: object, has_content: bool) -> list[Diagnostic
 
 def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
+    if target.supports_action(rule.action.value) is False:
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message=f"Action '{rule.action.value}' is not listed for {target.engine} {target.version}",
+                location=rule.location,
+                code="unsupported_engine_action",
+                hint="Use a compatible engine target or replace the action.",
+                phase="version",
+            )
+        )
+    if target.supports_protocol(rule.header.protocol.value) is False:
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message=f"Protocol '{rule.header.protocol.value}' is not listed for {target.engine} {target.version}",
+                location=rule.header.location,
+                code="unsupported_engine_protocol",
+                hint="Use a compatible engine target or replace the protocol.",
+                phase="version",
+            )
+        )
     for option in rule.options:
         keyword = _option_keyword(option)
         if target.supports(keyword) is False:

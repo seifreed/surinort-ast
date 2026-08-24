@@ -1,4 +1,5 @@
 from surinort_ast import parse_rule, validate_rule, validate_rules
+from surinort_ast.analysis import EngineTarget
 
 
 def codes(rule_text: str) -> set[str]:
@@ -47,3 +48,20 @@ def test_relative_and_byte_operator_constraints_are_reported() -> None:
     assert "relative_modifier_without_content" in codes(
         'alert tcp any any -> any 80 (content:"x",within 5; sid:1;)'
     )
+
+
+def test_engine_target_checks_actions_and_protocols() -> None:
+    rule = parse_rule('drop udp any any -> any 53 (msg:"x"; sid:1;)')
+    target = EngineTarget(
+        "suricata",
+        "8.x",
+        keywords=frozenset({"msg", "sid"}),
+        actions=frozenset({"alert"}),
+        protocols=frozenset({"tcp"}),
+        keyword_catalog_complete=True,
+    )
+
+    found = {diagnostic.code for diagnostic in validate_rule(rule, target=target)}
+
+    assert "unsupported_engine_action" in found
+    assert "unsupported_engine_protocol" in found
