@@ -15,3 +15,18 @@ def test_release_verifies_provenance_before_uploading_distributions() -> None:
     assert 'gh attestation verify "$file"' in verification_block
     assert '--repo "$GITHUB_REPOSITORY"' in verification_block
     assert "--signer-workflow .github/workflows/release.yml" in verification_block
+
+
+def test_release_requires_a_verified_annotated_tag_before_building() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    tag_format = workflow.index("- name: Verify tag format")
+    signed_tag = workflow.index("- name: Verify signed release tag")
+    setup_python = workflow.index("- name: Set up Python", signed_tag)
+
+    assert tag_format < signed_tag < setup_python
+    signed_tag_block = workflow[signed_tag:setup_python]
+    assert 'git rev-parse "${VERSION}^{tag}"' in signed_tag_block
+    assert "must be an annotated tag" in signed_tag_block
+    assert "git/tags/${TAG_OBJECT}" in signed_tag_block
+    assert ".verification.verified" in signed_tag_block

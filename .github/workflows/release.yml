@@ -78,6 +78,23 @@ jobs:
             exit 1
           fi
 
+      - name: Verify signed release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG_OBJECT=$(git rev-parse "${VERSION}^{tag}" 2>/dev/null || true)
+          if [[ -z "$TAG_OBJECT" ]]; then
+            echo "Release tag $VERSION must be an annotated tag"
+            exit 1
+          fi
+          VERIFIED=$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${TAG_OBJECT}" --jq '.verification.verified')
+          if [[ "$VERIFIED" != "true" ]]; then
+            echo "Release tag $VERSION is not cryptographically verified"
+            exit 1
+          fi
+          echo "Signed release tag verified: $VERSION"
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
