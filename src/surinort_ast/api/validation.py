@@ -14,7 +14,7 @@ from collections.abc import Sequence
 
 from ..analysis.targets import EngineTarget
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
-from ..core.nodes import Rule, extract_sid
+from ..core.nodes import FlowbitsOption, Rule, extract_sid
 
 _SINGLETON_OPTIONS = {
     "SidOption": "sid",
@@ -34,6 +34,15 @@ _CONTENT_MODIFIERS = {
     "EndswithOption",
     "FastPatternOption",
 }
+_BYTE_REFERENCE_FIELDS = {
+    "DepthOption": "value",
+    "OffsetOption": "value",
+    "DistanceOption": "value",
+    "WithinOption": "value",
+    "ByteTestOption": "value",
+    "ByteJumpOption": "offset",
+}
+_BYTE_COUNT_OPTIONS = {"ByteTestOption", "ByteJumpOption", "ByteExtractOption"}
 
 
 def _option_keyword(option: object) -> str:
@@ -41,6 +50,107 @@ def _option_keyword(option: object) -> str:
     if isinstance(keyword, str) and keyword:
         return keyword.lower()
     return getattr(option, "node_type", "").removesuffix("Option").lower()
+
+
+def _is_variable_reference(value: object) -> bool:
+    """Return whether a byte-op string is a variable, not a numeric literal."""
+    if not isinstance(value, str):
+        return False
+    try:
+        int(value, 0)
+    except ValueError:
+        return True
+    return False
+
+
+def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    defined: set[str] = set()
+    for option in rule.options:
+        option_type = option.node_type
+        if option_type in _BYTE_COUNT_OPTIONS:
+            count = getattr(option, "bytes_to_extract", None)
+            if isinstance(count, int) and count < 1:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message="Byte operation length must be greater than zero",
+                        location=getattr(option, "location", None),
+                        code="invalid_byte_length",
+                        phase="option-chain",
+                    )
+                )
+
+        field_name = _BYTE_REFERENCE_FIELDS.get(option_type)
+        if field_name is not None:
+            value = getattr(option, field_name, None)
+            if _is_variable_reference(value) and value not in defined:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.WARNING,
+                        message=f"Byte-operation variable '{value}' is not defined earlier in the rule",
+                        location=getattr(option, "location", None),
+                        code="undefined_byte_variable",
+                        hint="Add byte_extract before using the variable, or verify the engine context.",
+                        phase="option-chain",
+                        confidence="medium",
+                    )
+                )
+
+        if option_type == "ByteExtractOption":
+            name = getattr(option, "var_name", None)
+            if isinstance(name, str):
+                if name in defined:
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message=f"Byte-operation variable '{name}' is extracted more than once",
+                            location=getattr(option, "location", None),
+                            code="duplicate_byte_variable",
+                            phase="option-chain",
+                        )
+                    )
+                defined.add(name)
+    return diagnostics
+
+
+def _validate_fast_pattern(option: object, has_content: bool) -> list[Diagnostic]:
+    if not has_content:
+        return [
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message="Option 'fast_pattern' requires a preceding content option",
+                location=getattr(option, "location", None),
+                code="fast_pattern_without_content",
+                hint="Place fast_pattern immediately after content.",
+                phase="option-chain",
+                fix={"action": "move_after_content"},
+            )
+        ]
+    diagnostics: list[Diagnostic] = []
+    offset = getattr(option, "offset", None)
+    length = getattr(option, "length", None)
+    if getattr(option, "only", False) and (offset is not None or length is not None):
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message="fast_pattern:only cannot include an offset or length",
+                location=getattr(option, "location", None),
+                code="fast_pattern_only_with_range",
+                phase="option-chain",
+            )
+        )
+    if (offset is None) != (length is None) or (length is not None and length < 1):
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message="fast_pattern offset and length must be supplied together with a positive length",
+                location=getattr(option, "location", None),
+                code="invalid_fast_pattern_range",
+                phase="option-chain",
+            )
+        )
+    return diagnostics
 
 
 def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnostic]:
@@ -56,6 +166,66 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
                     code="unsupported_engine_keyword",
                     hint="Use a compatible engine target or replace the keyword.",
                     phase="version",
+                )
+            )
+    return diagnostics
+
+
+def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    counts: dict[str, int] = {}
+    previous_content = False
+    for option in rule.options:
+        option_type = option.node_type
+        if option_type in _SINGLETON_OPTIONS:
+            counts[option_type] = counts.get(option_type, 0) + 1
+        if option_type == "ContentOption":
+            modifier_names = [
+                getattr(modifier, "name_str", "") for modifier in getattr(option, "modifiers", ())
+            ]
+            duplicate_modifiers = {
+                name for name in modifier_names if name and modifier_names.count(name) > 1
+            }
+            for name in sorted(duplicate_modifiers):
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"Content modifier '{name}' may appear only once per content option",
+                        location=option.location,
+                        code="duplicate_content_modifier",
+                        phase="option-chain",
+                    )
+                )
+            previous_content = True
+            continue
+        if option_type == "FastPatternOption":
+            diagnostics.extend(_validate_fast_pattern(option, previous_content))
+        if option_type in _CONTENT_MODIFIERS:
+            if not previous_content:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"Option '{option_type.removesuffix('Option').lower()}' requires a preceding content option",
+                        location=option.location,
+                        code="content_modifier_without_content",
+                        hint="Place the modifier immediately after content or use an inline modifier.",
+                        phase="option-chain",
+                        fix={"action": "move_after_content"},
+                    )
+                )
+            continue
+        previous_content = False
+
+    for option_type, count in counts.items():
+        if count > 1:
+            keyword = _SINGLETON_OPTIONS[option_type]
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message=f"Option '{keyword}' may appear only once",
+                    code="duplicate_singleton_option",
+                    hint=f"Keep one {keyword} option in the rule.",
+                    phase="option-chain",
                 )
             )
     return diagnostics
@@ -115,49 +285,12 @@ def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagno
             )
         )
 
-    # These options are singleton or positional in the engine rule language;
-    # accepting them silently produces a rule whose meaning depends on engine
-    # version and option order.
-    counts: dict[str, int] = {}
-    previous_content = False
-    for option in rule.options:
-        option_type = option.node_type
-        if option_type in _SINGLETON_OPTIONS:
-            counts[option_type] = counts.get(option_type, 0) + 1
-        if option_type == "ContentOption":
-            previous_content = True
-            continue
-        if option_type in _CONTENT_MODIFIERS:
-            if not previous_content:
-                diagnostics.append(
-                    Diagnostic(
-                        level=DiagnosticLevel.ERROR,
-                        message=f"Option '{option_type.removesuffix('Option').lower()}' requires a preceding content option",
-                        location=option.location,
-                        code="content_modifier_without_content",
-                        hint="Place the modifier immediately after content or use an inline modifier.",
-                        phase="option-chain",
-                        fix={"action": "move_after_content"},
-                    )
-                )
-            continue
-        previous_content = False
-
-    for option_type, count in counts.items():
-        if count > 1:
-            keyword = _SINGLETON_OPTIONS[option_type]
-            diagnostics.append(
-                Diagnostic(
-                    level=DiagnosticLevel.ERROR,
-                    message=f"Option '{keyword}' may appear only once",
-                    code="duplicate_singleton_option",
-                    hint=f"Keep one {keyword} option in the rule.",
-                    phase="option-chain",
-                )
-            )
+    diagnostics.extend(_validate_option_chain(rule))
 
     if target is not None:
         diagnostics.extend(_validate_target_options(rule, target))
+
+    diagnostics.extend(_validate_byte_operations(rule))
 
     # Cross-rule checks (duplicate SIDs, shadowing, conflicting actions) require a
     # whole rule set and live in surinort_ast.analysis.conflicts and the streaming
@@ -174,6 +307,8 @@ def validate_rules(rules: Sequence[Rule], target: EngineTarget | None = None) ->
     """Validate individual rules and cross-rule SID uniqueness."""
     diagnostics: list[Diagnostic] = []
     seen_sids: dict[int, int] = {}
+    flowbit_definitions: set[str] = set()
+    flowbit_uses: list[tuple[str, FlowbitsOption]] = []
     for index, rule in enumerate(rules, start=1):
         diagnostics.extend(validate_rule(rule, target=target))
         sid = extract_sid(rule)
@@ -192,6 +327,28 @@ def validate_rules(rules: Sequence[Rule], target: EngineTarget | None = None) ->
             )
         else:
             seen_sids[sid] = index
+        for option in rule.options:
+            if not isinstance(option, FlowbitsOption):
+                continue
+            action = option.action.lower()
+            name = option.name
+            if action in {"set", "toggle"}:
+                flowbit_definitions.add(name)
+            elif action in {"isset", "isnotset", "unset"}:
+                flowbit_uses.append((name, option))
+    for name, option in flowbit_uses:
+        if name not in flowbit_definitions:
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.WARNING,
+                    message=f"Flowbit '{name}' is used without a set/toggle in this ruleset",
+                    location=option.location,
+                    code="flowbit_without_definition",
+                    hint="Check included rules and engine configuration; the definition may be external.",
+                    phase="cross-rule",
+                    confidence="medium",
+                )
+            )
     return diagnostics
 
 
