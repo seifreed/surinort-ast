@@ -1,0 +1,64 @@
+name: Surinort AST
+description: Validate Suricata and Snort rule files and optionally verify them with an IDS engine.
+author: seifreed
+inputs:
+  rules:
+    description: Rule file to validate.
+    required: true
+  dialect:
+    description: Rule dialect (suricata, snort2, or snort3).
+    required: false
+    default: suricata
+  sarif:
+    description: Write a SARIF report for upload to code scanning.
+    required: false
+    default: 'true'
+  sarif-file:
+    description: Path for the SARIF report.
+    required: false
+    default: surinort-results.sarif
+  engine-command:
+    description: Optional command template containing {file} for engine validation.
+    required: false
+    default: ''
+outputs:
+  sarif-file:
+    description: Path to the generated SARIF report, when enabled.
+    value: ${{ steps.validate.outputs.sarif-file }}
+runs:
+  using: composite
+  steps:
+    - name: Install Surinort AST
+      shell: bash
+      run: python -m pip install --disable-pip-version-check "$GITHUB_ACTION_PATH"
+    - name: Validate rules
+      id: validate
+      shell: bash
+      env:
+        RULES: ${{ inputs.rules }}
+        DIALECT: ${{ inputs.dialect }}
+        SARIF: ${{ inputs.sarif }}
+        SARIF_FILE: ${{ inputs.sarif-file }}
+      run: |
+        if [[ "$SARIF" == "true" ]]; then
+          python -m surinort_ast.cli.main validate "$RULES" --dialect "$DIALECT" --format sarif --output "$SARIF_FILE"
+          echo "sarif-file=$SARIF_FILE" >> "$GITHUB_OUTPUT"
+        else
+          python -m surinort_ast.cli.main validate "$RULES" --dialect "$DIALECT"
+        fi
+    - name: Verify with IDS engine
+      if: ${{ inputs.engine-command != '' }}
+      shell: bash
+      env:
+        RULES: ${{ inputs.rules }}
+        ENGINE_COMMAND: ${{ inputs.engine-command }}
+      run: |
+        python - <<'PY'
+        import os
+        from pathlib import Path
+        from surinort_ast.analysis import EngineVerifier
+
+        result = EngineVerifier(os.environ["ENGINE_COMMAND"]).verify(Path(os.environ["RULES"]))
+        print(f"Engine verification: {result.status}")
+        raise SystemExit(0 if result.passed else 1)
+        PY

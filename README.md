@@ -181,6 +181,20 @@ The project CI now supports SARIF generation and upload:
 
 1. Generate `results.sarif` from real validation diagnostics.
 2. Upload SARIF as workflow artifact.
+
+The repository also provides a composite action for rule validation:
+
+```yaml
+- uses: seifreed/surinort-ast@main
+  with:
+    rules: rules/local.rules
+    dialect: suricata
+    sarif: true
+    engine-command: 'suricata -T -S {file}'
+```
+
+Upload the generated `${{ steps.surinort.outputs.sarif-file }}` with
+`github/codeql-action/upload-sarif` when code scanning annotations are desired.
 3. Upload SARIF to GitHub Code Scanning.
 
 Minimal workflow example:
