@@ -15,3 +15,21 @@ def test_engine_keyword_listing_can_populate_target() -> None:
 
     assert target.supports("content") is True
     assert target.supports("pcre") is False
+
+
+def test_target_models_aliases_deprecations_and_domains() -> None:
+    target = EngineTarget(
+        "suricata",
+        "8.x",
+        keywords=frozenset({"buffer_select"}),
+        actions=frozenset({"alert"}),
+        protocols=frozenset({"tcp"}),
+        aliases=(("sticky_buffer", "buffer_select"),),
+        deprecated_keywords=frozenset({"buffer_select"}),
+    )
+
+    assert target.canonical_keyword("sticky_buffer") == "buffer_select"
+    assert target.supports("sticky_buffer") is True
+    assert target.is_deprecated("sticky_buffer") is True
+    assert target.supports_action("alert") is True
+    assert target.supports_protocol("udp") is False

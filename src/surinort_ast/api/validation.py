@@ -168,6 +168,17 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
                     phase="version",
                 )
             )
+        elif target.is_deprecated(keyword):
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.WARNING,
+                    message=f"Keyword '{keyword}' is deprecated for {target.engine} {target.version}",
+                    location=option.location,
+                    code="deprecated_engine_keyword",
+                    phase="version",
+                    confidence="medium",
+                )
+            )
     return diagnostics
 
 

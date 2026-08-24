@@ -13,12 +13,36 @@ class EngineTarget:
     version: str
     keywords: frozenset[str] = frozenset()
     features: frozenset[str] = frozenset()
+    actions: frozenset[str] = frozenset()
+    protocols: frozenset[str] = frozenset()
+    aliases: tuple[tuple[str, str], ...] = ()
+    deprecated_keywords: frozenset[str] = frozenset()
 
     def supports(self, keyword: str) -> bool | None:
         """Return true/false when known, or ``None`` when not catalogued."""
         if not self.keywords:
             return None
-        return keyword in self.keywords
+        return self.canonical_keyword(keyword) in self.keywords
+
+    def canonical_keyword(self, keyword: str) -> str:
+        """Resolve an engine-specific alias to its canonical keyword."""
+        normalized = _normalize(keyword)
+        aliases = {_normalize(alias): _normalize(value) for alias, value in self.aliases}
+        return aliases.get(normalized, normalized)
+
+    def is_deprecated(self, keyword: str) -> bool:
+        """Return whether a known keyword is deprecated for this target."""
+        return self.canonical_keyword(keyword) in {
+            _normalize(item) for item in self.deprecated_keywords
+        }
+
+    def supports_action(self, action: str) -> bool | None:
+        """Return action support when the target publishes an action list."""
+        return _supports(self.actions, action)
+
+    def supports_protocol(self, protocol: str) -> bool | None:
+        """Return protocol support when the target publishes a protocol list."""
+        return _supports(self.protocols, protocol)
 
     def with_keywords(self, keywords: set[str] | frozenset[str]) -> EngineTarget:
         """Return a target populated from an engine keyword listing."""
@@ -49,6 +73,12 @@ def _major(version: str) -> str:
 
 def _normalize(engine: str) -> str:
     return engine.strip().lower()
+
+
+def _supports(values: frozenset[str], value: str) -> bool | None:
+    if not values:
+        return None
+    return _normalize(value) in {_normalize(item) for item in values}
 
 
 def default_capability_registry() -> CapabilityRegistry:
