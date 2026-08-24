@@ -23,6 +23,7 @@ from .commands import (
     info_command,
     list_plugins_command,
     load_command,
+    optimize_command,
     parse_command,
     schema_command,
     stats_command,
@@ -70,6 +71,7 @@ app.command(name="from-json")(from_json_command)
 app.command(name="stats")(stats_command)
 app.command(name="conflicts")(conflicts_command)
 app.command(name="diff")(diff_command)
+app.command(name="optimize")(optimize_command)
 app.command(name="schema")(schema_command)
 
 # Plugin management subcommand group

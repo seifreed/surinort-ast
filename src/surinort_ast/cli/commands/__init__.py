@@ -11,6 +11,7 @@ from .conflicts import conflicts_command
 from .diff import diff_command
 from .format import fmt_command
 from .from_json import from_json_command
+from .optimize import optimize_command
 from .parse import parse_command
 from .plugins import analyze_command, info_command, list_plugins_command, load_command
 from .schema import schema_command
@@ -27,6 +28,7 @@ __all__ = [
     "info_command",
     "list_plugins_command",
     "load_command",
+    "optimize_command",
     "parse_command",
     "schema_command",
     "stats_command",
