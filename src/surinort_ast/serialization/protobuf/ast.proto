@@ -148,6 +148,10 @@ message Diagnostic {
   string code = 3;
   optional Location location = 4;
   string hint = 5;
+  string phase = 6;
+  string confidence = 7;
+  string fix_json = 8;
+  bool safe_fix = 9;
 }
 
 // ============================================================================

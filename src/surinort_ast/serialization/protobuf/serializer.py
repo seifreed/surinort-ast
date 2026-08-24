@@ -25,6 +25,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Iterator, Sequence
 from datetime import UTC, datetime
 from functools import singledispatch
@@ -718,6 +719,11 @@ def _serialize_diagnostic(diag: Diagnostic) -> Any:
         pb_diag.code = diag.code
     if diag.hint is not None:
         pb_diag.hint = diag.hint
+    pb_diag.phase = diag.phase
+    pb_diag.confidence = diag.confidence
+    if diag.fix is not None:
+        pb_diag.fix_json = json.dumps(diag.fix, sort_keys=True)
+    pb_diag.safe_fix = diag.safe_fix
 
     if diag.location:
         _serialize_location(diag.location, pb_diag.location)
@@ -1271,6 +1277,10 @@ def _deserialize_diagnostic(pb_diag: Any) -> Diagnostic:
         code=pb_diag.code or None,
         hint=pb_diag.hint or None,
         location=_optional_location(pb_diag),
+        phase=pb_diag.phase or "structure",
+        confidence=pb_diag.confidence or "high",
+        fix=json.loads(pb_diag.fix_json) if pb_diag.fix_json else None,
+        safe_fix=pb_diag.safe_fix,
     )
 
 

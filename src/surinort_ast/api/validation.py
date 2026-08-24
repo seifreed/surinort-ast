@@ -55,6 +55,7 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
                     location=option.location,
                     code="unsupported_engine_keyword",
                     hint="Use a compatible engine target or replace the keyword.",
+                    phase="version",
                 )
             )
     return diagnostics
@@ -90,6 +91,7 @@ def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagno
                 level=DiagnosticLevel.WARNING,
                 message="Missing required option 'sid'",
                 code="missing_sid",
+                phase="structure",
             )
         )
 
@@ -99,6 +101,7 @@ def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagno
                 level=DiagnosticLevel.WARNING,
                 message="Missing required option 'msg'",
                 code="missing_msg",
+                phase="structure",
             )
         )
 
@@ -108,6 +111,7 @@ def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagno
                 level=DiagnosticLevel.INFO,
                 message="Missing recommended option 'rev'",
                 code="missing_rev",
+                phase="policy",
             )
         )
 
@@ -132,6 +136,8 @@ def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagno
                         location=option.location,
                         code="content_modifier_without_content",
                         hint="Place the modifier immediately after content or use an inline modifier.",
+                        phase="option-chain",
+                        fix={"action": "move_after_content"},
                     )
                 )
             continue
@@ -146,6 +152,7 @@ def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagno
                     message=f"Option '{keyword}' may appear only once",
                     code="duplicate_singleton_option",
                     hint=f"Keep one {keyword} option in the rule.",
+                    phase="option-chain",
                 )
             )
 
@@ -180,6 +187,7 @@ def validate_rules(rules: Sequence[Rule], target: EngineTarget | None = None) ->
                     message=f"SID {sid} is duplicated by rules {previous} and {index}",
                     code="duplicate_sid",
                     hint="Assign a unique SID to each rule.",
+                    phase="cross-rule",
                 )
             )
         else:

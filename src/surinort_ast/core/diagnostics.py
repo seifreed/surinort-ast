@@ -7,6 +7,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
@@ -33,6 +34,10 @@ class Diagnostic(BaseModel):
     location: Location | None = None
     code: str | None = None
     hint: str | None = None
+    phase: str = "structure"
+    confidence: str = "high"
+    fix: dict[str, Any] | None = None
+    safe_fix: bool = False
 
     def __str__(self) -> str:
         """Format: [level] message (at location)"""

@@ -605,6 +605,25 @@ class TestDiagnosticSerialization:
         assert restored.diagnostics[0].code == "E001"
         assert restored.diagnostics[0].hint == "check the rule"
 
+    def test_diagnostic_evidence_fields_roundtrip(self) -> None:
+        diag = Diagnostic(
+            level=DiagnosticLevel.ERROR,
+            message="invalid option chain",
+            code="E002",
+            phase="option-chain",
+            confidence="high",
+            fix={"action": "move_after_content"},
+            safe_fix=False,
+        )
+        rule = parse_rule('alert tcp any any -> any 80 (msg:"x"; sid:1;)')
+        restored = from_protobuf(to_protobuf(rule.model_copy(update={"diagnostics": (diag,)})))
+
+        result = restored.diagnostics[0]
+        assert result.phase == "option-chain"
+        assert result.confidence == "high"
+        assert result.fix == {"action": "move_after_content"}
+        assert result.safe_fix is False
+
     def test_diagnostic_with_location_roundtrip(self) -> None:
         diag = Diagnostic(
             level=DiagnosticLevel.WARNING,

@@ -10,6 +10,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -95,7 +96,13 @@ def diagnostic_to_finding(diag: Diagnostic, default_file_path: str | None = None
         location=location,
         description=diag.message,
         help_text=diag.hint,
-        properties={"source": "diagnostic"},
+        properties={
+            "source": "diagnostic",
+            "phase": diag.phase,
+            "confidence": diag.confidence,
+            "safe_fix": diag.safe_fix,
+            "fix": json.dumps(diag.fix, sort_keys=True) if diag.fix is not None else "",
+        },
     )
 
 
