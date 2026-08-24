@@ -1,6 +1,7 @@
 import pytest
 
-from surinort_ast import parse_rule, validate_rule
+from surinort_ast import parse_rule, validate_rule, validate_rules
+from surinort_ast.analysis import EngineTarget
 
 
 def codes(text: str) -> set[str | None]:
@@ -27,6 +28,24 @@ def test_content_modifier_after_content_is_valid() -> None:
     text = 'alert tcp any any -> any 80 (content:"x"; nocase; msg:"x"; sid:1; rev:1;)'
 
     assert "content_modifier_without_content" not in codes(text)
+
+
+def test_ruleset_validation_reports_duplicate_sids() -> None:
+    rules = [
+        parse_rule('alert tcp any any -> any 80 (msg:"a"; sid:1; rev:1;)'),
+        parse_rule('alert tcp any any -> any 443 (msg:"b"; sid:1; rev:1;)'),
+    ]
+
+    assert any(d.code == "duplicate_sid" for d in validate_rules(rules))
+
+
+def test_target_validation_reports_unknown_keyword() -> None:
+    rule = parse_rule('alert tcp any any -> any 80 (content:"x"; sid:1;)')
+    target = EngineTarget("test-engine", "1.x", frozenset({"sid"}))
+
+    diagnostics = validate_rule(rule, target=target)
+
+    assert any(d.code == "unsupported_engine_keyword" for d in diagnostics)
 
 
 @pytest.mark.parametrize("keyword", ["sid", "gid", "rev", "priority"])

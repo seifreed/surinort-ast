@@ -22,7 +22,7 @@ from .serialization import (
     to_json_schema,
     to_sarif,
 )
-from .validation import validate_rule
+from .validation import validate_rule, validate_rules
 
 __all__ = [
     "coverage_report_to_sarif",
@@ -42,4 +42,5 @@ __all__ = [
     "to_sarif",
     # Validation
     "validate_rule",
+    "validate_rules",
 ]

@@ -10,8 +10,11 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
+from ..analysis.targets import EngineTarget
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
-from ..core.nodes import Rule
+from ..core.nodes import Rule, extract_sid
 
 _SINGLETON_OPTIONS = {
     "SidOption": "sid",
@@ -33,7 +36,31 @@ _CONTENT_MODIFIERS = {
 }
 
 
-def validate_rule(rule: Rule) -> list[Diagnostic]:
+def _option_keyword(option: object) -> str:
+    keyword = getattr(option, "keyword", None)
+    if isinstance(keyword, str) and keyword:
+        return keyword.lower()
+    return getattr(option, "node_type", "").removesuffix("Option").lower()
+
+
+def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    for option in rule.options:
+        keyword = _option_keyword(option)
+        if target.supports(keyword) is False:
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message=f"Keyword '{keyword}' is not listed for {target.engine} {target.version}",
+                    location=option.location,
+                    code="unsupported_engine_keyword",
+                    hint="Use a compatible engine target or replace the keyword.",
+                )
+            )
+    return diagnostics
+
+
+def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagnostic]:
     """
     Validate a Rule AST and return diagnostics.
 
@@ -52,7 +79,7 @@ def validate_rule(rule: Rule) -> list[Diagnostic]:
     """
     diagnostics: list[Diagnostic] = []
 
-    # Check for recommended options
+    # Structure and option-chain checks.
     has_sid = any(opt.node_type == "SidOption" for opt in rule.options)
     has_msg = any(opt.node_type == "MsgOption" for opt in rule.options)
     has_rev = any(opt.node_type == "RevOption" for opt in rule.options)
@@ -122,6 +149,9 @@ def validate_rule(rule: Rule) -> list[Diagnostic]:
                 )
             )
 
+    if target is not None:
+        diagnostics.extend(_validate_target_options(rule, target))
+
     # Cross-rule checks (duplicate SIDs, shadowing, conflicting actions) require a
     # whole rule set and live in surinort_ast.analysis.conflicts and the streaming
     # ValidateProcessor, not in this single-rule validator.
@@ -133,6 +163,31 @@ def validate_rule(rule: Rule) -> list[Diagnostic]:
     return diagnostics
 
 
+def validate_rules(rules: Sequence[Rule], target: EngineTarget | None = None) -> list[Diagnostic]:
+    """Validate individual rules and cross-rule SID uniqueness."""
+    diagnostics: list[Diagnostic] = []
+    seen_sids: dict[int, int] = {}
+    for index, rule in enumerate(rules, start=1):
+        diagnostics.extend(validate_rule(rule, target=target))
+        sid = extract_sid(rule)
+        if sid is None:
+            continue
+        previous = seen_sids.get(sid)
+        if previous is not None:
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message=f"SID {sid} is duplicated by rules {previous} and {index}",
+                    code="duplicate_sid",
+                    hint="Assign a unique SID to each rule.",
+                )
+            )
+        else:
+            seen_sids[sid] = index
+    return diagnostics
+
+
 __all__ = [
     "validate_rule",
+    "validate_rules",
 ]

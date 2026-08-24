@@ -25,6 +25,7 @@ from .api import (
     to_json_schema,
     to_sarif,
     validate_rule,
+    validate_rules,
 )
 
 # Core types and enums
@@ -92,4 +93,5 @@ __all__ = [
     "to_json_schema",
     "to_sarif",
     "validate_rule",
+    "validate_rules",
 ]
