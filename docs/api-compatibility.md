@@ -54,7 +54,8 @@ unsupported AST majors.
   `False` requires a complete engine listing, and `None` means the target has
   no evidence for that capability. Use `EngineTarget.with_keywords()` with a
   complete output from the installed engine before treating unknown keywords
-  as errors.
+  as errors. `EngineTarget.from_keyword_listing()` accepts plain or tabular
+  `--list-keywords` output and marks the resulting keyword catalog complete.
 - `RulesetContext.from_suricata_yaml()` and `from_snort_config()` resolve
   deployment variables for coverage analysis; unresolved variables remain
   indeterminate instead of being reported as uncovered concrete ports.

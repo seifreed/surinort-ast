@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, replace
 
 
@@ -54,6 +55,32 @@ class EngineTarget:
             keyword_catalog_complete=True,
         )
 
+    @classmethod
+    def from_keyword_listing(
+        cls,
+        engine: str,
+        version: str,
+        listing: str,
+        *,
+        features: frozenset[str] = frozenset(),
+        actions: frozenset[str] = frozenset(),
+        protocols: frozenset[str] = frozenset(),
+    ) -> EngineTarget:
+        """Build a complete target from a line-oriented engine listing.
+
+        Listings may contain a header and descriptions; the first token of
+        each keyword row is captured. Unknown or empty lines are ignored.
+        """
+        return cls(
+            engine=engine,
+            version=version,
+            keywords=parse_keyword_listing(listing),
+            features=features,
+            actions=actions,
+            protocols=protocols,
+            keyword_catalog_complete=True,
+        )
+
 
 class CapabilityRegistry:
     """Small registry for engine/version capability snapshots."""
@@ -79,6 +106,22 @@ def _major(version: str) -> str:
 
 def _normalize(engine: str) -> str:
     return engine.strip().lower()
+
+
+def parse_keyword_listing(listing: str) -> frozenset[str]:
+    """Extract keyword names from a plain or tabular engine listing."""
+    keywords: set[str] = set()
+    ignored = {"keyword", "keywords", "name", "description", "supported"}
+    for raw_line in listing.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith(("#", "-", "=")):
+            continue
+        token = line.split(maxsplit=1)[0].rstrip(":")
+        if token.lower() in ignored:
+            continue
+        if re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]*", token):
+            keywords.add(token.lower())
+    return frozenset(keywords)
 
 
 def _supports(values: frozenset[str], value: str) -> bool | None:
@@ -110,4 +153,9 @@ def default_capability_registry() -> CapabilityRegistry:
     )
 
 
-__all__ = ["CapabilityRegistry", "EngineTarget", "default_capability_registry"]
+__all__ = [
+    "CapabilityRegistry",
+    "EngineTarget",
+    "default_capability_registry",
+    "parse_keyword_listing",
+]
