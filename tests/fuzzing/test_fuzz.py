@@ -201,7 +201,9 @@ class TestContentPatterns:
 
     @given(
         ascii_content=st.text(
-            alphabet=st.characters(min_codepoint=32, max_codepoint=126, blacklist_characters='"\\'),
+            alphabet=st.characters(
+                min_codepoint=32, max_codepoint=126, blacklist_characters='"\\;'
+            ),
             min_size=1,
             max_size=50,
         )
@@ -213,22 +215,17 @@ class TestContentPatterns:
 
         transformer = RuleTransformer()
 
-        try:
-            parse_tree = lark_parser.parse(rule_text)
-            rule = transformer.transform(parse_tree)[0]
+        parse_tree = lark_parser.parse(rule_text)
+        rule = transformer.transform(parse_tree)[0]
 
-            # Find content option
-            from surinort_ast.core.nodes import ContentOption
+        # Find content option
+        from surinort_ast.core.nodes import ContentOption
 
-            content_opt = next((o for o in rule.options if isinstance(o, ContentOption)), None)
+        content_opt = next((o for o in rule.options if isinstance(o, ContentOption)), None)
 
-            assert content_opt is not None
-            # Content should match (encoded as UTF-8)
-            assert content_opt.pattern == ascii_content.encode("utf-8")
-
-        except Exception:
-            # Some characters might cause issues, which is fine for fuzzing
-            pass
+        assert content_opt is not None
+        # Content should match (encoded as UTF-8)
+        assert content_opt.pattern == ascii_content.encode("utf-8")
 
 
 @pytest.mark.fuzzing
@@ -290,22 +287,17 @@ class TestSerializationInvariants:
 
         transformer = RuleTransformer()
 
-        try:
-            parse_tree = lark_parser.parse(rule_text)
-            rule = transformer.transform(parse_tree)[0]
+        parse_tree = lark_parser.parse(rule_text)
+        rule = transformer.transform(parse_tree)[0]
 
-            serializer = JSONSerializer(sort_keys=True)
+        serializer = JSONSerializer(include_metadata=False, sort_keys=True)
 
-            # Serialize twice
-            json1 = serializer.to_json(rule)
-            json2 = serializer.to_json(rule)
+        # Serialize twice
+        json1 = serializer.to_json(rule)
+        json2 = serializer.to_json(rule)
 
-            # Should be identical
-            assert json1 == json2
-
-        except Exception:
-            # Skip rules that fail to parse
-            pass
+        # Should be identical
+        assert json1 == json2
 
     @given(rule_text=simple_rule_text())
     @settings(max_examples=50, deadline=None)
@@ -315,20 +307,15 @@ class TestSerializationInvariants:
 
         transformer = RuleTransformer()
 
-        try:
-            parse_tree = lark_parser.parse(rule_text)
-            rule1 = transformer.transform(parse_tree)[0]
+        parse_tree = lark_parser.parse(rule_text)
+        rule1 = transformer.transform(parse_tree)[0]
 
-            serializer = JSONSerializer()
+        serializer = JSONSerializer()
 
-            # Roundtrip
-            json_str = serializer.to_json(rule1)
-            rule2 = serializer.from_json(json_str)
+        # Roundtrip
+        json_str = serializer.to_json(rule1)
+        rule2 = serializer.from_json(json_str)
 
-            # Key fields should match
-            assert rule1.action == rule2.action
-            assert rule1.header.protocol == rule2.header.protocol
-
-        except Exception:
-            # Skip rules that fail
-            pass
+        # Key fields should match
+        assert rule1.action == rule2.action
+        assert rule1.header.protocol == rule2.header.protocol
