@@ -49,6 +49,20 @@ def test_validate_format_sarif_contains_warning(tmp_path) -> None:
     assert any(item["ruleId"] == "SURINORT_MISSING_SID" for item in results)
 
 
+def test_validate_reports_duplicate_sids(tmp_path) -> None:
+    rules_file = tmp_path / "rules.rules"
+    rules_file.write_text(
+        'alert tcp any any -> any 80 (msg:"a"; sid:1; rev:1;)\n'
+        'alert tcp any any -> any 443 (msg:"b"; sid:1; rev:1;)\n',
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["validate", str(rules_file)])
+
+    assert result.exit_code == 1
+    assert "duplicate_sid" in result.stdout
+
+
 def test_stats_format_sarif(tmp_path) -> None:
     rules_file = tmp_path / "rules.rules"
     rules_file.write_text(

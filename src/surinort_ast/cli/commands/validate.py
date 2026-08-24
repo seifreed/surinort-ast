@@ -16,8 +16,9 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from ...analysis import EngineTarget, default_capability_registry
 from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
-from ...api import parse_file, to_sarif, validate_rule
+from ...api import parse_file, to_sarif, validate_rule, validate_rules
 from ...core.enums import DiagnosticLevel, Dialect
 from ..shared import (
     DialectOption,
@@ -72,20 +73,27 @@ def _check_lua_scripts(rules: list[Any], lua_dir: Path | None) -> list[tuple[int
     return lua_warnings
 
 
-def _collect_diagnostics(rules: list[Any]) -> tuple[list[tuple[int, Any]], int, int]:
+def _collect_diagnostics(
+    rules: list[Any], target: EngineTarget | None = None
+) -> tuple[list[tuple[int, Any]], int, int]:
     """Collect validation diagnostics from all rules."""
     all_diagnostics = []
     error_count = 0
     warning_count = 0
 
     for idx, rule in enumerate(rules, 1):
-        diagnostics = validate_rule(rule)
+        diagnostics = validate_rule(rule, target=target)
         for diag in diagnostics:
             all_diagnostics.append((idx, diag))
             if diag.level == DiagnosticLevel.ERROR:
                 error_count += 1
             elif diag.level == DiagnosticLevel.WARNING:
                 warning_count += 1
+
+    for diagnostic in validate_rules(rules, target=target):
+        if diagnostic.code == "duplicate_sid":
+            all_diagnostics.append((0, diagnostic))
+            error_count += 1
 
     return all_diagnostics, error_count, warning_count
 
@@ -109,7 +117,7 @@ def _display_diagnostics(all_diagnostics: list[tuple[int, Any]], target: Console
         }.get(diag.level, "white")
 
         table.add_row(
-            str(rule_idx),
+            "ruleset" if rule_idx == 0 else str(rule_idx),
             f"[{level_color}]{diag.level.value.upper()}[/{level_color}]",
             diag.code or "-",
             diag.message,
@@ -240,6 +248,12 @@ def validate_command(
     ] = "text",
     output: OutputOption = None,
     sarif_out: SarifOutOption = None,
+    engine: Annotated[
+        str | None, typer.Option("--engine", help="Engine name for capability validation")
+    ] = None,
+    engine_version: Annotated[
+        str | None, typer.Option("--engine-version", help="Engine version to validate against")
+    ] = None,
 ) -> None:
     """
     Validate IDS rules and report issues.
@@ -252,6 +266,13 @@ def validate_command(
     """
     with cli_error_handler():
         fmt = resolve_output_format(output_format, ("text", "sarif"))
+        if (engine is None) != (engine_version is None):
+            raise ValueError("--engine and --engine-version must be provided together")
+        target = None
+        if engine and engine_version:
+            target = default_capability_registry().resolve(engine, engine_version)
+            if target is None:
+                raise ValueError(f"unknown engine capability target: {engine} {engine_version}")
 
         with parsing_progress("Validating rules..."):
             # Use the streaming path so syntactically invalid rules surface as
@@ -262,7 +283,7 @@ def validate_command(
             rules = list(parse_file(file, dialect=dialect, stream=True))
 
         # Validate all rules
-        all_diagnostics, error_count, warning_count = _collect_diagnostics(rules)
+        all_diagnostics, error_count, warning_count = _collect_diagnostics(rules, target=target)
 
         # Optional Lua script existence checks
         lua_warnings = _check_lua_scripts(rules, lua_dir)
