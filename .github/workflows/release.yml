@@ -281,6 +281,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write  # Required to create release
+      attestations: read  # Required to download build provenance bundles
 
     steps:
       - name: Checkout code

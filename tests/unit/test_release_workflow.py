@@ -38,9 +38,11 @@ def test_github_release_attaches_downloaded_provenance_bundles() -> None:
 
     download = workflow.index("- name: Download build provenance bundles")
     release = workflow.index("- name: Create GitHub Release", download)
+    github_release = workflow.index("  github-release:")
     release_block = workflow[release : workflow.index("  # Sign release artifacts", release)]
 
     assert download < release
+    assert "attestations: read" in workflow[github_release:download]
     assert (
         'gh attestation download "../$file" --repo "$GITHUB_REPOSITORY"'
         in workflow[download:release]
