@@ -20,6 +20,7 @@ from .conflicts import (
 )
 from .context import RulesetContext
 from .coverage import CoverageAnalyzer, CoverageGap, CoverageReport
+from .diff import RuleDiff, semantic_diff
 from .estimator import PerformanceEstimator
 from .findings import (
     Finding,
@@ -59,6 +60,7 @@ __all__ = [
     "OptionReorderStrategy",
     "PerformanceEstimator",
     "RedundancyRemovalStrategy",
+    "RuleDiff",
     "RuleOptimizer",
     "RulesetContext",
     "Severity",
@@ -69,4 +71,5 @@ __all__ = [
     "diagnostics_to_findings",
     "filter_conflicts",
     "optimization_results_to_findings",
+    "semantic_diff",
 ]
