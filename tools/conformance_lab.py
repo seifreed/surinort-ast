@@ -141,7 +141,16 @@ def run(
     unexpected = [
         result
         for result in results
-        if result.parsed != result.expected_parse or result.round_trip is False
+        if result.parsed != result.expected_parse
+        or result.round_trip is False
+        or (
+            verifier is not None
+            and result.parsed
+            and (
+                result.engine_validation != "passed"
+                or result.engine_validation_after_print != "passed"
+            )
+        )
     ]
     parsed = sum(result.parsed for result in results)
     return {
@@ -158,6 +167,16 @@ def run(
         "engine_validation_passed": sum(result.engine_validation == "passed" for result in results),
         "engine_validation_after_print_passed": sum(
             result.engine_validation_after_print == "passed" for result in results
+        ),
+        "engine_validation_failures": sum(
+            verifier is not None and result.parsed and result.engine_validation != "passed"
+            for result in results
+        ),
+        "engine_validation_after_print_failures": sum(
+            verifier is not None
+            and result.parsed
+            and result.engine_validation_after_print != "passed"
+            for result in results
         ),
         "printed": parsed,
         "parse_exceptions": sum(result.error is not None for result in results),

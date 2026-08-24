@@ -33,6 +33,21 @@ def test_conformance_engine_checks_original_and_printed_rule(tmp_path) -> None:
     assert report["cases"][0]["engine_validation_after_print"] == "passed"
 
 
+def test_conformance_engine_rejection_is_unexpected_failure(tmp_path) -> None:
+    corpus = tmp_path / "corpus" / "suricata"
+    corpus.mkdir(parents=True)
+    (corpus / "basic.rules").write_text(
+        'alert tcp any any -> any 80 (msg:"x"; sid:1;)\n', encoding="utf-8"
+    )
+    command = f'{sys.executable} -c "import sys; sys.exit(2)" {{file}}'
+
+    report = run(corpus.parent.parent, engine_command=command)
+
+    assert report["engine_validation_failures"] == 1
+    assert report["engine_validation_after_print_failures"] == 1
+    assert report["unexpected_failures"] == 1
+
+
 def test_manifest_controls_dialect_expectation_and_limits(tmp_path) -> None:
     corpus = tmp_path / "corpus"
     corpus.mkdir()
