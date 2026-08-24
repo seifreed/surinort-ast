@@ -25,6 +25,10 @@ inputs:
     description: Path for the SARIF report.
     required: false
     default: surinort-results.sarif
+  baseline:
+    description: Optional SARIF baseline; existing findings do not fail validation.
+    required: false
+    default: ''
   engine-command:
     description: Optional command template containing {file} for engine validation.
     required: false
@@ -53,6 +57,7 @@ runs:
         ENGINE_VERSION: ${{ inputs.engine-version }}
         SARIF: ${{ inputs.sarif }}
         SARIF_FILE: ${{ inputs.sarif-file }}
+        BASELINE: ${{ inputs.baseline }}
       run: |
         mapfile -t rule_files < <(python - "$RULES" <<'PY'
         import glob
@@ -81,8 +86,22 @@ runs:
           args+=(--engine "$ENGINE" --engine-version "$ENGINE_VERSION")
         fi
         if [[ "$SARIF" == "true" ]]; then
+          set +e
           python -m surinort_ast.cli.main validate "${args[@]}" --format sarif --output "$SARIF_FILE"
+          validation_status=$?
+          set -e
           echo "sarif-file=$SARIF_FILE" >> "$GITHUB_OUTPUT"
+          if [[ -n "$BASELINE" ]]; then
+            if [[ ! -f "$BASELINE" ]]; then
+              echo "Baseline SARIF file not found: $BASELINE" >&2
+              exit 1
+            fi
+            set +e
+            python "$GITHUB_ACTION_PATH/tools/sarif_baseline.py" "$SARIF_FILE" "$BASELINE"
+            validation_status=$?
+            set -e
+          fi
+          exit "$validation_status"
         else
           python -m surinort_ast.cli.main validate "${args[@]}"
         fi
