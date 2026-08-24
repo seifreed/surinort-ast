@@ -48,6 +48,40 @@ def test_conformance_engine_rejection_is_unexpected_failure(tmp_path) -> None:
     assert report["unexpected_failures"] == 1
 
 
+def test_conformance_behavior_verification_compares_original_and_printed(tmp_path) -> None:
+    corpus = tmp_path / "corpus" / "suricata"
+    corpus.mkdir(parents=True)
+    (corpus / "basic.rules").write_text(
+        'alert tcp any any -> any 80 (msg:"x"; sid:1;)\n', encoding="utf-8"
+    )
+    pcap = tmp_path / "traffic.pcap"
+    pcap.write_bytes(b"pcap")
+    command = f"{sys.executable} -c 'print(\"same\")' {{file}} {{pcap}}"
+
+    report = run(corpus.parent.parent, engine_command=command, behavior_pcap=pcap)
+
+    assert report["behavior_validation_passed"] == 1
+    assert report["behavior_validation_failures"] == 0
+    assert report["unexpected_failures"] == 0
+
+
+def test_conformance_behavior_mismatch_is_unexpected_failure(tmp_path) -> None:
+    corpus = tmp_path / "corpus" / "suricata"
+    corpus.mkdir(parents=True)
+    (corpus / "basic.rules").write_text(
+        'alert tcp any any -> any 80 (msg:"x"; sid:1;)\n', encoding="utf-8"
+    )
+    pcap = tmp_path / "traffic.pcap"
+    pcap.write_bytes(b"pcap")
+    command = f"{sys.executable} -c 'import sys; print(sys.argv[1])' {{file}} {{pcap}}"
+
+    report = run(corpus.parent.parent, engine_command=command, behavior_pcap=pcap)
+
+    assert report["cases"][0]["behavior_validation"] == "mismatch"
+    assert report["behavior_validation_failures"] == 1
+    assert report["unexpected_failures"] == 1
+
+
 def test_manifest_controls_dialect_expectation_and_limits(tmp_path) -> None:
     corpus = tmp_path / "corpus"
     corpus.mkdir()
