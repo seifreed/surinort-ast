@@ -1,0 +1,44 @@
+{
+  "name": "surinort-ast",
+  "displayName": "Surinort AST",
+  "description": "Diagnostics and hover information for Suricata and Snort rules.",
+  "version": "0.1.0",
+  "publisher": "seifreed",
+  "license": "GPL-3.0-only",
+  "engines": {"vscode": "^1.85.0"},
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:suricata",
+    "onLanguage:snort2",
+    "onLanguage:snort3"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "suricata",
+        "aliases": ["Suricata rules"],
+        "extensions": [".rules", ".suricata"]
+      },
+      {
+        "id": "snort2",
+        "aliases": ["Snort 2 rules"],
+        "extensions": [".snort2.rules"]
+      },
+      {
+        "id": "snort3",
+        "aliases": ["Snort 3 rules"],
+        "extensions": [".snort3.rules"]
+      }
+    ],
+    "configuration": {
+      "title": "Surinort AST",
+      "properties": {
+        "surinortAst.lspCommand": {
+          "type": "string",
+          "default": "surinort-lsp",
+          "description": "Executable used to start the Surinort AST language server."
+        }
+      }
+    }
+  }
+}
