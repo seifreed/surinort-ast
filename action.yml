@@ -9,6 +9,14 @@ inputs:
     description: Rule dialect (suricata, snort2, or snort3).
     required: false
     default: suricata
+  engine:
+    description: Engine name for capability validation.
+    required: false
+    default: ''
+  engine-version:
+    description: Versioned engine target, for example 8.x or 3.x.
+    required: false
+    default: ''
   sarif:
     description: Write a SARIF report for upload to code scanning.
     required: false
@@ -21,6 +29,10 @@ inputs:
     description: Optional command template containing {file} for engine validation.
     required: false
     default: ''
+  engine-verify:
+    description: Run the configured engine command against the rule file.
+    required: false
+    default: 'false'
 outputs:
   sarif-file:
     description: Path to the generated SARIF report, when enabled.
@@ -37,22 +49,36 @@ runs:
       env:
         RULES: ${{ inputs.rules }}
         DIALECT: ${{ inputs.dialect }}
+        ENGINE: ${{ inputs.engine }}
+        ENGINE_VERSION: ${{ inputs.engine-version }}
         SARIF: ${{ inputs.sarif }}
         SARIF_FILE: ${{ inputs.sarif-file }}
       run: |
+        args=("$RULES" --dialect "$DIALECT")
+        if [[ -n "$ENGINE" || -n "$ENGINE_VERSION" ]]; then
+          if [[ -z "$ENGINE" || -z "$ENGINE_VERSION" ]]; then
+            echo "engine and engine-version must be provided together" >&2
+            exit 1
+          fi
+          args+=(--engine "$ENGINE" --engine-version "$ENGINE_VERSION")
+        fi
         if [[ "$SARIF" == "true" ]]; then
-          python -m surinort_ast.cli.main validate "$RULES" --dialect "$DIALECT" --format sarif --output "$SARIF_FILE"
+          python -m surinort_ast.cli.main validate "${args[@]}" --format sarif --output "$SARIF_FILE"
           echo "sarif-file=$SARIF_FILE" >> "$GITHUB_OUTPUT"
         else
-          python -m surinort_ast.cli.main validate "$RULES" --dialect "$DIALECT"
+          python -m surinort_ast.cli.main validate "${args[@]}"
         fi
     - name: Verify with IDS engine
-      if: ${{ inputs.engine-command != '' }}
+      if: ${{ inputs.engine-verify == 'true' }}
       shell: bash
       env:
         RULES: ${{ inputs.rules }}
         ENGINE_COMMAND: ${{ inputs.engine-command }}
       run: |
+        if [[ -z "$ENGINE_COMMAND" ]]; then
+          echo "engine-command is required when engine-verify is true" >&2
+          exit 1
+        fi
         python - <<'PY'
         import os
         from pathlib import Path

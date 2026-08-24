@@ -189,7 +189,10 @@ The repository also provides a composite action for rule validation:
   with:
     rules: rules/local.rules
     dialect: suricata
+    engine: suricata
+    engine-version: 8.x
     sarif: true
+    engine-verify: true
     engine-command: 'suricata -T -S {file}'
 ```
 
