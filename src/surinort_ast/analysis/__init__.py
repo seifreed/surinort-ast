@@ -21,6 +21,7 @@ from .conflicts import (
 from .context import RulesetContext
 from .coverage import CoverageAnalyzer, CoverageGap, CoverageReport
 from .diff import RuleDiff, semantic_diff
+from .engine import EngineVerification, EngineVerifier
 from .estimator import PerformanceEstimator
 from .findings import (
     Finding,
@@ -51,6 +52,8 @@ __all__ = [
     "CoverageGap",
     "CoverageReport",
     "EngineTarget",
+    "EngineVerification",
+    "EngineVerifier",
     "FastPatternStrategy",
     "Finding",
     "FindingLevel",

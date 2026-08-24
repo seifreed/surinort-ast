@@ -4,15 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import shlex
-import shutil
-import subprocess
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 from surinort_ast import parse_rule, print_rule
+from surinort_ast.analysis import EngineVerifier
 from surinort_ast.api.parsing import _read_rule_lines
 from surinort_ast.core.enums import Dialect
 from surinort_ast.exceptions import ParseError
@@ -56,23 +54,11 @@ def _same_ast(left: Any, right: Any) -> bool:
     )
 
 
-def _run_engine(command: str, path: Path, timeout: float) -> str:
-    parts = shlex.split(command.replace("{file}", str(path)))
-    if not parts or shutil.which(parts[0]) is None:
-        return "unavailable"
-    try:
-        completed = subprocess.run(
-            parts, check=False, capture_output=True, text=True, timeout=timeout
-        )
-    except subprocess.TimeoutExpired:
-        return "timeout"
-    return "passed" if completed.returncode == 0 else "failed"
-
-
 def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) -> dict[str, Any]:
     """Run conformance checks for every ``*.rules`` file below ``corpus``."""
     results: list[CaseResult] = []
     started = time.perf_counter()
+    verifier = EngineVerifier(engine_command, timeout) if engine_command else None
 
     for path in sorted(corpus.rglob("*.rules")):
         dialect = _dialect(path)
@@ -97,8 +83,8 @@ def run(corpus: Path, engine_command: str | None = None, timeout: float = 30.0) 
                 True,
                 _same_ast(rule, round_trip_rule),
             )
-            if engine_command:
-                result.engine_validation = _run_engine(engine_command, path, timeout)
+            if verifier:
+                result.engine_validation = verifier.verify(path).status
             results.append(result)
 
     unexpected = [
