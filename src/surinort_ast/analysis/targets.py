@@ -17,12 +17,14 @@ class EngineTarget:
     protocols: frozenset[str] = frozenset()
     aliases: tuple[tuple[str, str], ...] = ()
     deprecated_keywords: frozenset[str] = frozenset()
+    keyword_catalog_complete: bool = False
 
     def supports(self, keyword: str) -> bool | None:
         """Return true/false when known, or ``None`` when not catalogued."""
-        if not self.keywords:
-            return None
-        return self.canonical_keyword(keyword) in self.keywords
+        canonical = self.canonical_keyword(keyword)
+        if canonical in self.keywords:
+            return True
+        return False if self.keyword_catalog_complete else None
 
     def canonical_keyword(self, keyword: str) -> str:
         """Resolve an engine-specific alias to its canonical keyword."""
@@ -46,7 +48,11 @@ class EngineTarget:
 
     def with_keywords(self, keywords: set[str] | frozenset[str]) -> EngineTarget:
         """Return a target populated from an engine keyword listing."""
-        return replace(self, keywords=frozenset(keywords))
+        return replace(
+            self,
+            keywords=frozenset(keywords),
+            keyword_catalog_complete=True,
+        )
 
 
 class CapabilityRegistry:

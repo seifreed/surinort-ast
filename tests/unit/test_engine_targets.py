@@ -6,7 +6,7 @@ def test_registry_prefers_exact_version_then_major_snapshot() -> None:
 
     assert registry.resolve("Suricata", "8.0") is not None
     assert registry.resolve("snort", "3.1").supports("content") is True
-    assert registry.resolve("snort", "3.1").supports("unknown") is False
+    assert registry.resolve("snort", "3.1").supports("unknown") is None
     assert registry.resolve("other", "1.0") is None
 
 
@@ -15,6 +15,7 @@ def test_engine_keyword_listing_can_populate_target() -> None:
 
     assert target.supports("content") is True
     assert target.supports("pcre") is False
+    assert target.keyword_catalog_complete is True
 
 
 def test_target_models_aliases_deprecations_and_domains() -> None:
