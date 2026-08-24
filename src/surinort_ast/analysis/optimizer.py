@@ -42,8 +42,7 @@ class Optimization:
 
     def __str__(self) -> str:
         """Format optimization as readable string."""
-        gain_str = f"{self.estimated_gain:+.1f}%" if self.estimated_gain != 0 else "0%"
-        return f"{self.strategy}: {self.description} (estimated: {gain_str})"
+        return f"{self.strategy}: {self.description} (heuristic; engine verification required)"
 
 
 @dataclass
