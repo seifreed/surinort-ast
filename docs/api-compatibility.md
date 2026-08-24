@@ -54,3 +54,5 @@ pin the package and choose their own client.
 
 `surinort validate file1.rules file2.rules` validates a combined ruleset; the
 GitHub Action also expands recursive patterns such as `rules/**/*.rules`.
+Its optional `comment` input posts a SARIF count summary on pull requests and
+requires the consuming workflow to grant `pull-requests: write`.

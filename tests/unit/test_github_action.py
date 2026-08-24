@@ -13,6 +13,7 @@ def test_github_action_declares_validation_inputs_and_sarif_output() -> None:
         "sarif",
         "engine-command",
         "engine-verify",
+        "comment",
     ):
         assert f"  {input_name}:" in action
     assert "  sarif-file:" in action

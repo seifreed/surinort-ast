@@ -29,6 +29,10 @@ inputs:
     description: Optional SARIF baseline; existing findings do not fail validation.
     required: false
     default: ''
+  comment:
+    description: Comment the SARIF error and warning counts on pull requests.
+    required: false
+    default: 'false'
   engine-command:
     description: Optional command template containing {file} for engine validation.
     required: false
@@ -134,3 +138,19 @@ runs:
             print(f"Engine verification: {result.status}")
         raise SystemExit(0 if results and all(result.passed for result in results) else 1)
         PY
+    - name: Comment validation summary
+      if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        SARIF_FILE: ${{ inputs.sarif-file }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        if [[ ! -f "$SARIF_FILE" ]]; then
+          echo "SARIF is required when comment is true: $SARIF_FILE" >&2
+          exit 1
+        fi
+        errors=$(jq '[.runs[].results[] | select(.level == "error")] | length' "$SARIF_FILE")
+        warnings=$(jq '[.runs[].results[] | select(.level == "warning")] | length' "$SARIF_FILE")
+        body=$(printf '<!-- surinort-ast -->\n## Surinort AST\n\nErrors: %s\nWarnings: %s\n\nReport: %s' "$errors" "$warnings" "$SARIF_FILE")
+        gh pr comment "$PR_NUMBER" --body "$body"
