@@ -180,28 +180,41 @@ from surinort_ast import (
 
 ## CI and GitHub Code Scanning (SARIF)
 
-The project CI now supports SARIF generation and upload:
+The project CI supports SARIF generation and upload:
 
-1. Generate `results.sarif` from real validation diagnostics.
-2. Upload SARIF as workflow artifact.
+- Generate `results.sarif` from real validation diagnostics.
+- Upload SARIF as a workflow artifact.
 
 The repository also provides a composite action for rule validation:
 
 ```yaml
-- uses: seifreed/surinort-ast@main
-  with:
-    rules: rules/local.rules
-    dialect: suricata
-    engine: suricata
-    engine-version: 8.x
-    sarif: true
-    engine-verify: true
-    engine-command: 'suricata -T -S {file}'
+# Add `pull-requests: write` only when `comment` is enabled.
+permissions:
+  contents: read
+  pull-requests: write
+
+steps:
+  - name: Validate rules
+    id: surinort
+    uses: seifreed/surinort-ast@main
+    with:
+      rules: rules/**/*.rules
+      dialect: suricata
+      engine: suricata
+      engine-version: 8.x
+      sarif: true
+      engine-verify: true
+      engine-command: 'suricata -T -S {file}'
+      baseline: .github/surinort-baseline.sarif
+      comment: true
 ```
 
 Upload the generated `${{ steps.surinort.outputs.sarif-file }}` with
 `github/codeql-action/upload-sarif` when code scanning annotations are desired.
-3. Upload SARIF to GitHub Code Scanning.
+- Upload SARIF to GitHub Code Scanning.
+
+For editor integration, install the dependency-free client from
+`editors/vscode` after installing this package so `surinort-lsp` is available.
 
 Minimal workflow example:
 
