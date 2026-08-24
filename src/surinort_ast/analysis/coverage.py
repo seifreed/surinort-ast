@@ -85,6 +85,7 @@ class CoverageReport:
     action_distribution: dict[Action, int]
     content_types: dict[str, int]
     gaps: list[CoverageGap] = field(default_factory=list)
+    indeterminate_ports: list[str] = field(default_factory=list)
     experimental: bool = True
     confidence: str = "low"
     engine_verified: bool = False
@@ -106,6 +107,7 @@ class CoverageReport:
             },
             "content_types": self.content_types,
             "gaps": [gap.to_dict() for gap in self.gaps],
+            "indeterminate_ports": self.indeterminate_ports,
             "experimental": self.experimental,
             "confidence": self.confidence,
             "engine_verified": self.engine_verified,
@@ -337,6 +339,7 @@ class CoverageAnalyzer:
         self.direction_coverage: Counter[Direction] = Counter()
         self.action_coverage: Counter[Action] = Counter()
         self.content_types: Counter[str] = Counter()
+        self.indeterminate_ports: set[str] = set()
 
     def analyze(self, rules: list[Rule]) -> CoverageReport:
         """
@@ -361,6 +364,7 @@ class CoverageAnalyzer:
         self.direction_coverage = Counter()
         self.action_coverage = Counter()
         self.content_types = Counter()
+        self.indeterminate_ports = set()
 
         # Analyze each rule
         for rule in rules:
@@ -387,6 +391,7 @@ class CoverageAnalyzer:
             action_distribution=dict(self.action_coverage),
             content_types=dict(self.content_types),
             gaps=gaps,
+            indeterminate_ports=sorted(self.indeterminate_ports),
             confidence="medium" if self.context else "low",
         )
 
@@ -441,12 +446,19 @@ class CoverageAnalyzer:
             for element in port_expr.elements:
                 ports.update(self._extract_ports(element))
         elif isinstance(port_expr, PortVariable) and self.context:
-            for start, end in self.context.resolve_port_intervals(port_expr.name) or ():
+            intervals = self.context.resolve_port_intervals(port_expr.name)
+            if intervals is None:
+                self.indeterminate_ports.add(f"${port_expr.name}")
+            for start, end in intervals or ():
                 ports.add(start)
                 ports.add(end)
+        elif isinstance(port_expr, PortVariable):
+            self.indeterminate_ports.add(f"${port_expr.name}")
         elif isinstance(port_expr, PortNegation):
             # For negations, we can't determine specific ports
-            pass
+            self.indeterminate_ports.add("negated port expression")
+        else:
+            self.indeterminate_ports.add("any port expression")
         # AnyPort / PortVariable fall through: no specific ports can be extracted.
 
         return ports
@@ -468,12 +480,20 @@ class CoverageAnalyzer:
         if isinstance(port_expr, PortRange):
             return [(port_expr.start, port_expr.end)]
         if isinstance(port_expr, PortVariable) and self.context:
-            return self.context.resolve_port_intervals(port_expr.name) or []
+            resolved_intervals = self.context.resolve_port_intervals(port_expr.name)
+            if resolved_intervals is None:
+                self.indeterminate_ports.add(f"${port_expr.name}")
+            return resolved_intervals or []
+        if isinstance(port_expr, PortVariable):
+            self.indeterminate_ports.add(f"${port_expr.name}")
+            return []
         if isinstance(port_expr, PortList):
             intervals: list[tuple[int, int]] = []
             for element in port_expr.elements:
                 intervals.extend(self._extract_port_intervals(element))
             return intervals
+        if isinstance(port_expr, PortNegation):
+            self.indeterminate_ports.add("negated port expression")
         return []
 
     def _is_port_covered(self, port: int) -> bool:

@@ -29,3 +29,12 @@ def test_snort_variables_support_ranges(tmp_path: Path) -> None:
     context = RulesetContext.from_snort_config(config)
 
     assert context.resolve_port_intervals("WEB_PORTS") == [(80, 443)]
+
+
+def test_unresolved_port_variable_is_reported_as_indeterminate() -> None:
+    report = CoverageAnalyzer().analyze(
+        [parse_rule('alert tcp any any -> any $UNKNOWN (msg:"x"; sid:1;)')]
+    )
+
+    assert "$UNKNOWN" in report.indeterminate_ports
+    assert "$UNKNOWN" in report.to_dict()["indeterminate_ports"]
