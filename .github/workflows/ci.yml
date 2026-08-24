@@ -376,7 +376,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      id-token: write  # For provenance generation
 
     steps:
       - name: Checkout code
