@@ -367,9 +367,12 @@ def _source_comments_by_line(file_path: Path) -> dict[int, tuple[str, ...]]:
     actions = {"alert", "drop", "pass", "reject", "log", "sdrop"}
     comments: dict[int, tuple[str, ...]] = {}
     pending: list[str] = []
-    for line_number, raw_line in enumerate(
-        file_path.read_text(encoding="utf-8").splitlines(), start=1
-    ):
+    try:
+        lines = file_path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as e:
+        raise ParseError(f"Failed to read file {sanitize_path_for_error(file_path)}: {e}") from e
+
+    for line_number, raw_line in enumerate(lines, start=1):
         line = raw_line.strip()
         if not line:
             continue
