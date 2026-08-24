@@ -752,11 +752,14 @@ def _serialize_rule(rule: Rule) -> Any:
     pb_rule = pb.Rule()
 
     pb_rule.action = _ACTION_TO_PB[rule.action]
-    pb_rule.header.CopyFrom(_serialize_header(rule.header))
+    if rule.header is not None:
+        pb_rule.header.CopyFrom(_serialize_header(rule.header))
     for option in rule.options:
         pb_rule.options.append(_dispatch_serialize_option(option))
     pb_rule.dialect = _DIALECT_TO_PB[rule.dialect]
     pb_rule.form = _FORM_TO_PB[rule.form]
+    if rule.protocol is not None:
+        pb_rule.protocol = _PROTOCOL_TO_PB[rule.protocol]
 
     if rule.origin:
         origin = _serialize_source_origin(rule.origin)
@@ -1298,15 +1301,24 @@ def _deserialize_source_origin(pb_origin: Any | None) -> SourceOrigin | None:
 
 def _deserialize_rule(pb_rule: Any) -> Rule:
     """Deserialize Rule from protobuf message."""
+    form = _PB_TO_FORM.get(pb_rule.form, RuleForm.FULL)
+    header = _deserialize_header(pb_rule.header) if pb_rule.HasField("header") else None
+    protocol = _PB_TO_PROTOCOL.get(pb_rule.protocol) if pb_rule.HasField("protocol") else None
+    # Recover protocol-only payloads written before the explicit protocol field.
+    if form is RuleForm.PROTOCOL_ONLY and protocol is None and header is not None:
+        protocol = header.protocol
+    if form is not RuleForm.FULL:
+        header = None
     diagnostics = (
         [_deserialize_diagnostic(d) for d in pb_rule.diagnostics] if pb_rule.diagnostics else []
     )
     return Rule(
         action=_PB_TO_ACTION[pb_rule.action],
-        header=_deserialize_header(pb_rule.header),
+        header=header,
         options=[_deserialize_option(opt) for opt in pb_rule.options],
+        protocol=protocol,
         dialect=_PB_TO_DIALECT[pb_rule.dialect],
-        form=_PB_TO_FORM.get(pb_rule.form, RuleForm.FULL),
+        form=form,
         origin=_deserialize_source_origin(pb_rule.origin) if pb_rule.HasField("origin") else None,
         diagnostics=diagnostics,
         raw_text=pb_rule.raw_text if pb_rule.HasField("raw_text") else None,

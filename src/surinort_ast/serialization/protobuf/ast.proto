@@ -518,6 +518,7 @@ message Rule {
   repeated Diagnostic diagnostics = 6;
   optional string raw_text = 7;
   RuleForm form = 8;
+  optional Protocol protocol = 9;
   optional Location location = 10;
   repeated string comments = 11;
 }

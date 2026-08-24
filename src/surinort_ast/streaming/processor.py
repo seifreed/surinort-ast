@@ -399,7 +399,7 @@ class AggregateStats:
 
     total_rules: int = 0
     rules_by_action: dict[Action, int] = field(default_factory=dict)
-    rules_by_protocol: dict[Protocol, int] = field(default_factory=dict)
+    rules_by_protocol: dict[Protocol | str, int] = field(default_factory=dict)
     rules_with_errors: int = 0
     rules_with_warnings: int = 0
     unique_sids: set[int] = field(default_factory=set)
@@ -418,7 +418,8 @@ class AggregateStats:
                 action.value: count for action, count in self.rules_by_action.items()
             },
             "rules_by_protocol": {
-                protocol.value: count for protocol, count in self.rules_by_protocol.items()
+                protocol.value if isinstance(protocol, Protocol) else protocol: count
+                for protocol, count in self.rules_by_protocol.items()
             },
             "rules_with_errors": self.rules_with_errors,
             "rules_with_warnings": self.rules_with_warnings,
@@ -488,7 +489,13 @@ class AggregateProcessor(StreamProcessor):
         self.stats.rules_by_action[action] = self.stats.rules_by_action.get(action, 0) + 1
 
         # Count by protocol
-        protocol = rule.header.protocol
+        protocol = (
+            rule.header.protocol
+            if rule.header is not None
+            else rule.protocol
+            if rule.protocol is not None
+            else "unknown"
+        )
         self.stats.rules_by_protocol[protocol] = self.stats.rules_by_protocol.get(protocol, 0) + 1
 
         # Count diagnostics

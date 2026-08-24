@@ -27,10 +27,15 @@ their protobuf defaults and JSON readers must tolerate omitted fields. A
 breaking serialized representation requires an AST major version and a
 migration note in `CHANGELOG.md`.
 
+AST 4 represents rule forms losslessly: full rules have a `Header`,
+protocol-only rules have `header=None` and a separate `protocol`, and
+headerless rules have both fields set to `None`. Use `RuleForm` to branch on
+the source form instead of treating a wildcard header as a real match space.
+
 Payloads from AST 3.x can be upgraded explicitly with
 `surinort_ast.migrate_ast(payload)`. It preserves bare and metadata-wrapped
-JSON shapes, adds defaults for fields introduced by the current schema, and
-rejects a different AST major.
+JSON shapes, converts legacy wildcard headers according to `form`, and rejects
+unsupported AST majors.
 
 ## Compatibility policy
 

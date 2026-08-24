@@ -136,10 +136,12 @@ class Rule(ASTNode):
     """
 
     action: Action
-    header: Header
+    header: Header | None
     # Note: options type will be updated after all Option subclasses are defined
     # See DiscriminatedOption type alias at the end of this file
     options: tuple[DiscriminatedOption, ...]  # Forward reference
+    # Short-form rules carry only a protocol; headerless rules carry neither.
+    protocol: Protocol | None = None
     dialect: Dialect = Dialect.SURICATA
     form: RuleForm = RuleForm.FULL
 

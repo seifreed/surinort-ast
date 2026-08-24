@@ -64,7 +64,9 @@ def hover_for_text(
     except ParseError:
         return None
     sid = extract_sid(rule)
-    value = f"**{rule.action.value}** `{rule.header.protocol.value}`"
+    protocol = rule.header.protocol if rule.header is not None else rule.protocol
+    protocol_text = protocol.value if protocol is not None else "headerless"
+    value = f"**{rule.action.value}** `{protocol_text}`"
     if sid is not None:
         value += f"\n\nSID: `{sid}`"
     return {"contents": {"kind": "markdown", "value": value}}

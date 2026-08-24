@@ -44,7 +44,7 @@ def query_children(node: ASTNode) -> list[ASTNode]:
     """
     # Rule: header followed by options.
     if isinstance(node, Rule):
-        return [node.header, *node.options]
+        return [child for child in (node.header, *node.options) if child is not None]
 
     # Header: source/destination address and port slots in order.
     if isinstance(node, Header):
@@ -273,7 +273,8 @@ class QueryExecutor(ASTVisitor[list[ASTNode]]):
                 self.results.append(node)
 
             # Visit header and options
-            self.visit(node.header)
+            if node.header is not None:
+                self.visit(node.header)
             for option in node.options:
                 self.visit(option)
         return []

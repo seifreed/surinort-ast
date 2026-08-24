@@ -402,8 +402,12 @@ class TextPrinter:
         if rule.form is RuleForm.HEADERLESS:
             rule_line = rule.action.value
         elif rule.form is RuleForm.PROTOCOL_ONLY:
-            rule_line = f"{rule.action.value} {rule.header.protocol.value}"
+            if rule.protocol is None:
+                raise ValueError("protocol-only rule is missing its protocol")
+            rule_line = f"{rule.action.value} {rule.protocol.value}"
         else:
+            if rule.header is None:
+                raise ValueError("full rule is missing its header")
             rule_line = f"{rule.action.value} {self._print_header(rule.header)}"
 
         if rule.options:

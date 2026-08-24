@@ -130,21 +130,26 @@ class MinHashSignature:
         """
         features: set[str] = set()
 
-        # Header features
-        features.add(f"protocol:{rule.header.protocol.value}")
-        features.add(f"direction:{rule.header.direction.value}")
+        # Header features; short/headerless rules have no fabricated wildcard.
+        if rule.header is None:
+            if rule.protocol is not None:
+                features.add(f"protocol:{rule.protocol.value}")
+            features.add(f"form:{rule.form.value}")
+        else:
+            features.add(f"protocol:{rule.header.protocol.value}")
+            features.add(f"direction:{rule.header.direction.value}")
 
-        # Add port information (skip if 'any')
-        if not isinstance(rule.header.src_port, AnyPort):
-            features.add(f"src_port:{self._port_to_string(rule.header.src_port)}")
-        if not isinstance(rule.header.dst_port, AnyPort):
-            features.add(f"dst_port:{self._port_to_string(rule.header.dst_port)}")
+            # Add port information (skip if 'any')
+            if not isinstance(rule.header.src_port, AnyPort):
+                features.add(f"src_port:{self._port_to_string(rule.header.src_port)}")
+            if not isinstance(rule.header.dst_port, AnyPort):
+                features.add(f"dst_port:{self._port_to_string(rule.header.dst_port)}")
 
-        # Add address patterns (skip if 'any')
-        if not isinstance(rule.header.src_addr, AnyAddress):
-            features.add(f"src_addr:{self._addr_to_string(rule.header.src_addr)}")
-        if not isinstance(rule.header.dst_addr, AnyAddress):
-            features.add(f"dst_addr:{self._addr_to_string(rule.header.dst_addr)}")
+            # Add address patterns (skip if 'any')
+            if not isinstance(rule.header.src_addr, AnyAddress):
+                features.add(f"src_addr:{self._addr_to_string(rule.header.src_addr)}")
+            if not isinstance(rule.header.dst_addr, AnyAddress):
+                features.add(f"dst_addr:{self._addr_to_string(rule.header.dst_addr)}")
 
         # Extract option features
         for option in rule.options:

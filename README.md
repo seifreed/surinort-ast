@@ -220,7 +220,7 @@ Use the repository hook from a pre-commit configuration:
 ```yaml
 repos:
   - repo: https://github.com/seifreed/surinort-ast
-    rev: v3.0.5
+    rev: v4.0.0
     hooks:
       - id: surinort-validate
 ```

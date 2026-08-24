@@ -48,7 +48,7 @@ def prepare_rule(rule: Rule, index: int) -> PreparedRule:
         rule=rule,
         index=index,
         sid=extractors.extract_sid(rule),
-        oriented=oriented_headers(rule.header),
+        oriented=oriented_headers(rule.header) if rule.header is not None else [],
         content=build_content_constraint(rule),
         specificity=extractors.compute_specificity(rule),
     )

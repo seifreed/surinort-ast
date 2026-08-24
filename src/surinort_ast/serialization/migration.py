@@ -11,10 +11,8 @@ from surinort_ast.version import __ast_version__
 def migrate_ast(data: str | dict[str, Any], from_version: str | None = None) -> dict[str, Any]:
     """Migrate an AST 3.x JSON payload to the current schema.
 
-    The 3.1 schema only adds fields with defaults, so migration is deliberately
-    structural: it preserves all existing keys and adds the default ``form``
-    value to rules that predate that field. Metadata envelopes get the current
-    ``ast_version``.
+    AST 4 makes short and headerless forms lossless. Legacy wildcard headers
+    are converted back to ``protocol`` or ``None`` according to ``form``.
     """
     payload = json.loads(data) if isinstance(data, str) else data
     if not isinstance(payload, dict):
@@ -23,7 +21,9 @@ def migrate_ast(data: str | dict[str, Any], from_version: str | None = None) -> 
     source_version = payload.get("ast_version", from_version)
     if source_version is None:
         raise ValueError("AST version is required; pass from_version for bare payloads")
-    if not _same_major(source_version, __ast_version__):
+    if not _same_major(source_version, __ast_version__) and not _same_major(
+        source_version, "3.0.0"
+    ):
         raise ValueError(f"Unsupported AST migration: {source_version} -> {__ast_version__}")
 
     migrated = dict(payload)
@@ -48,7 +48,15 @@ def _migrate_rule(rule: Any) -> Any:
     if not isinstance(rule, dict):
         return rule
     migrated = dict(rule)
-    migrated.setdefault("form", "full")
+    form = migrated.setdefault("form", "full")
+    header = migrated.get("header")
+    if form == "protocol_only":
+        if "protocol" not in migrated and isinstance(header, dict):
+            migrated["protocol"] = header.get("protocol")
+        migrated["header"] = None
+    elif form == "headerless":
+        migrated["header"] = None
+        migrated["protocol"] = None
     return migrated
 
 

@@ -198,12 +198,13 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
                 phase="version",
             )
         )
-    if target.supports_protocol(rule.header.protocol.value) is False:
+    protocol = rule.header.protocol if rule.header is not None else rule.protocol
+    if protocol is not None and target.supports_protocol(protocol.value) is False:
         diagnostics.append(
             Diagnostic(
                 level=DiagnosticLevel.ERROR,
-                message=f"Protocol '{rule.header.protocol.value}' is not listed for {target.engine} {target.version}",
-                location=rule.header.location,
+                message=f"Protocol '{protocol.value}' is not listed for {target.engine} {target.version}",
+                location=rule.header.location if rule.header is not None else rule.location,
                 code="unsupported_engine_protocol",
                 hint="Use a compatible engine target or replace the protocol.",
                 phase="version",
@@ -334,7 +335,13 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
 
 def _validate_buffer_semantics(rule: Rule) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
-    protocol = rule.header.protocol.value
+    protocol = (
+        rule.header.protocol.value
+        if rule.header is not None
+        else rule.protocol.value
+        if rule.protocol is not None
+        else None
+    )
     selected_buffer: str | None = None
     has_match = False
     for option in rule.options:

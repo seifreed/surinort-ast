@@ -71,11 +71,19 @@ def _sid(rule: Rule) -> int | None:
 def semantic_diff(before: Rule, after: Rule) -> RuleDiff:
     """Compare headers and ordered option semantics, ignoring source metadata."""
     header_changes: list[str] = []
-    before_header = _semantic_value(before.header.model_dump(mode="json"))
-    after_header = _semantic_value(after.header.model_dump(mode="json"))
+    before_header = (
+        _semantic_value(before.header.model_dump(mode="json")) if before.header is not None else {}
+    )
+    after_header = (
+        _semantic_value(after.header.model_dump(mode="json")) if after.header is not None else {}
+    )
     for field in ("protocol", "src_addr", "src_port", "direction", "dst_addr", "dst_port"):
         if before_header.get(field) != after_header.get(field):
             header_changes.append(f"{field}: changed")
+    if before.protocol != after.protocol:
+        header_changes.append("protocol: changed")
+    if before.form != after.form:
+        header_changes.append("form: changed")
 
     before_options = [_option_value(option) for option in before.options]
     after_options = [_option_value(option) for option in after.options]
@@ -90,7 +98,7 @@ def semantic_diff(before: Rule, after: Rule) -> RuleDiff:
     if before_types != after_types and sorted(before_types) == sorted(after_types):
         detection_changes.append("option order changed")
 
-    changed = bool(header_changes or detection_changes or before.form != after.form)
+    changed = bool(header_changes or detection_changes)
     risk = []
     if changed:
         risk.append("behavioral equivalence is unverified")
