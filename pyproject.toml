@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "surinort-ast"
-version = "3.0.4"
+version = "3.0.5"
 description = "Production-grade Abstract Syntax Tree parser for IDS rules (Suricata/Snort) with comprehensive validation and serialization support"
 readme = "README.md"
 requires-python = ">=3.11"
