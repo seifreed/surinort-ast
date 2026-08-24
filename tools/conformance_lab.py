@@ -180,7 +180,7 @@ def run(
                 or result.engine_validation_after_print != "passed"
             )
         )
-        or (behavior_pcap is not None and result.behavior_validation != "passed")
+        or (behavior_pcap is not None and result.parsed and result.behavior_validation != "passed")
     ]
     parsed = sum(result.parsed for result in results)
     return {
@@ -212,7 +212,7 @@ def run(
             result.behavior_validation == "passed" for result in results
         ),
         "behavior_validation_failures": sum(
-            behavior_pcap is not None and result.behavior_validation != "passed"
+            behavior_pcap is not None and result.parsed and result.behavior_validation != "passed"
             for result in results
         ),
         "printed": parsed,
