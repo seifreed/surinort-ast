@@ -116,7 +116,21 @@ def run(
                 continue
 
             printed = print_rule(rule)
-            round_trip_rule = parse_rule(printed, dialect=dialect, include_raw_text=False)
+            try:
+                round_trip_rule = parse_rule(printed, dialect=dialect, include_raw_text=False)
+            except ParseError as exc:
+                results.append(
+                    CaseResult(
+                        str(path),
+                        dialect.value,
+                        line_number,
+                        expected_parse,
+                        True,
+                        False,
+                        f"Printed rule failed to parse: {exc}",
+                    )
+                )
+                continue
             result = CaseResult(
                 str(path),
                 dialect.value,

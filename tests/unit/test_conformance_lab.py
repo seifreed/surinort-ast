@@ -66,3 +66,20 @@ def test_manifest_controls_dialect_expectation_and_limits(tmp_path) -> None:
     assert report["manifest"] == str(manifest)
     assert report["cases"][0]["dialect"] == "snort3"
     assert report["unsupported_constructions"][0]["id"] == "engine_config"
+
+
+def test_conformance_reports_printed_rule_parse_failure(tmp_path, monkeypatch) -> None:
+    corpus = tmp_path / "corpus" / "suricata"
+    corpus.mkdir(parents=True)
+    (corpus / "basic.rules").write_text(
+        'alert tcp any any -> any 80 (msg:"x"; sid:1;)\n', encoding="utf-8"
+    )
+    monkeypatch.setattr("tools.conformance_lab.print_rule", lambda _rule: "invalid rule")
+
+    report = run(corpus.parent.parent)
+
+    assert report["round_trip_passed"] == 0
+    assert report["round_trip_rate"] == 0.0
+    assert report["parse_exceptions"] == 1
+    assert report["unexpected_failures"] == 1
+    assert "Printed rule failed to parse" in report["cases"][0]["error"]
