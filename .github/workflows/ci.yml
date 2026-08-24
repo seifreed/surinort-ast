@@ -466,7 +466,7 @@ jobs:
 
   # All jobs summary
   ci-success:
-    name: CI Pipeline Success
+    name: CI Success
     needs: [security, lint, test, coverage, conformance, benchmark, build, validate]
     runs-on: ubuntu-24.04
     timeout-minutes: 5

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 RELEASE_WORKFLOW = Path(".github/workflows/release.yml")
+CI_WORKFLOW = Path(".github/workflows/ci.yml")
 
 
 def test_release_verifies_provenance_before_uploading_distributions() -> None:
@@ -45,3 +46,11 @@ def test_github_release_attaches_downloaded_provenance_bundles() -> None:
         in workflow[download:release]
     )
     assert "provenance/*.jsonl" in release_block
+
+
+def test_ci_summary_matches_the_protected_branch_check_name() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "ci-success:" in workflow
+    summary = workflow[workflow.index("ci-success:") :]
+    assert "name: CI Success" in summary
