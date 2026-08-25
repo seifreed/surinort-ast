@@ -133,6 +133,7 @@ def _result_is_unexpected(result: CaseResult) -> bool:
 
 def _manifest_files(
     manifest: Path,
+    dialect_filter: Dialect | None = None,
 ) -> tuple[list[tuple[Path, Dialect, bool]], list[dict[str, Any]]]:
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     entries = payload.get("files")
@@ -144,6 +145,8 @@ def _manifest_files(
             raise ValueError("each conformance manifest file needs a string path")
         path = (manifest.parent / entry["path"]).resolve()
         dialect = Dialect(entry.get("dialect", Dialect.SURICATA.value))
+        if dialect_filter is not None and dialect is not dialect_filter:
+            continue
         expected_parse = bool(entry.get("expected_parse", True))
         files.append((path, dialect, expected_parse))
     unsupported = payload.get("unsupported", [])
@@ -158,6 +161,7 @@ def run(
     timeout: float = 30.0,
     manifest: Path | None = None,
     behavior_pcap: Path | None = None,
+    dialect_filter: Dialect | None = None,
 ) -> dict[str, Any]:
     """Run checks for a corpus, optionally using a reproducible manifest."""
     if behavior_pcap is not None:
@@ -172,7 +176,7 @@ def run(
 
     unsupported: list[dict[str, Any]] = []
     if manifest is not None:
-        files, unsupported = _manifest_files(manifest)
+        files, unsupported = _manifest_files(manifest, dialect_filter)
     else:
         files = [
             (

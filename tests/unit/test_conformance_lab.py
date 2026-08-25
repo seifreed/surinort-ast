@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 from tools.conformance_lab import run
+from tools.engine_matrix import load_matrix, run_matrix
 
 
 def test_checked_in_conformance_corpus_round_trips() -> None:
@@ -32,6 +33,43 @@ def test_bundled_manifest_points_to_tracked_corpora() -> None:
     assert all(
         (Path("conformance") / entry["path"]).resolve().is_file() for entry in manifest["files"]
     )
+
+
+def test_engine_matrix_runs_declared_entries(tmp_path) -> None:
+    matrix = tmp_path / "matrix.json"
+    manifest = tmp_path / "manifest.json"
+    corpus = tmp_path / "rules.rules"
+    corpus.write_text('alert tcp any any -> any 80 (msg:"x"; sid:1;)\n', encoding="utf-8")
+    manifest.write_text(
+        json.dumps({"files": [{"path": "rules.rules", "dialect": "suricata"}]}),
+        encoding="utf-8",
+    )
+    matrix.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "engines": [
+                    {
+                        "id": "fake-suricata",
+                        "engine": "suricata",
+                        "version": "test",
+                        "dialect": "suricata",
+                        "manifest": "manifest.json",
+                        "command": f"{sys.executable} -c pass {{file}}",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    entries = load_matrix(matrix)
+    report = run_matrix(matrix)
+
+    assert entries[0].version == "test"
+    assert report["total_rules"] == 1
+    assert report["unexpected_failures"] == 0
+    assert report["engines"][0]["report"]["engine_validation_passed"] == 1
 
 
 def test_conformance_engine_checks_original_and_printed_rule(tmp_path) -> None:

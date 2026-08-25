@@ -68,6 +68,10 @@ validates engine loading but does not prove equal alerts on traffic. Add
 `--pcap` and a command containing both `{file}` and `{pcap}` to compare the
 engine's stdout for the original and candidate rulesets.
 
+For a reproducible multi-engine run, use `tools/engine_matrix.py` with a
+versioned matrix manifest. Its report keeps engine, version, dialect, parse,
+round-trip, engine, and optional PCAP behavior results together.
+
 `surinort-lsp` implements stdio `initialize`, diagnostics on document changes,
 rule hover, keyword completion, document formatting, and safe duplicate-modifier
 quick fixes. It is intentionally dependency-free so editor integrations can pin
