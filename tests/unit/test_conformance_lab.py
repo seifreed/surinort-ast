@@ -62,6 +62,7 @@ def test_conformance_engine_rejection_is_unexpected_failure(tmp_path) -> None:
     assert report["engine_validation_failures"] == 1
     assert report["engine_validation_after_print_failures"] == 1
     assert report["unexpected_failures"] == 1
+    assert report["dialect_metrics"]["suricata"]["unexpected_failures"] == 1
 
 
 def test_conformance_behavior_verification_compares_original_and_printed(tmp_path) -> None:
@@ -150,3 +151,15 @@ def test_conformance_reports_printed_rule_parse_failure(tmp_path, monkeypatch) -
     assert report["parse_exceptions"] == 1
     assert report["unexpected_failures"] == 1
     assert "Printed rule failed to parse" in report["cases"][0]["error"]
+
+
+def test_conformance_error_keyword_ignores_quoted_colons(tmp_path) -> None:
+    corpus = tmp_path / "corpus" / "suricata"
+    corpus.mkdir(parents=True)
+    (corpus / "invalid.rules").write_text(
+        'alert tcp any any -> any 80 (content:"http:"; broken\n', encoding="utf-8"
+    )
+
+    report = run(corpus.parent.parent)
+
+    assert report["errors_by_keyword"] == {"content": 1}

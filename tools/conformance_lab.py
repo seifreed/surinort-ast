@@ -61,15 +61,40 @@ def _same_ast(left: Any, right: Any) -> bool:
     )
 
 
-_OPTION_KEYWORD_RE = re.compile(r"\b([a-z][a-z0-9_]*)\s*:", re.IGNORECASE)
+_OPTION_NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _TOKEN_RE = re.compile(r"Token\('[A-Z_]+',\s*'([^']+)'")
 
 
 def _error_keyword(source: str, error: str) -> str:
     """Best-effort keyword attribution for conformance error reports."""
-    options = _OPTION_KEYWORD_RE.findall(source)
+    options: list[str] = []
+    in_quote = False
+    escaped = False
+    index = 0
+    while index < len(source):
+        char = source[index]
+        if char == "\\" and in_quote:
+            escaped = not escaped
+            index += 1
+            continue
+        if char == '"' and not escaped:
+            in_quote = not in_quote
+            index += 1
+            continue
+        escaped = False
+        if not in_quote:
+            match = _OPTION_NAME_RE.match(source, index)
+            if match:
+                end = match.end()
+                while end < len(source) and source[end].isspace():
+                    end += 1
+                if end < len(source) and source[end] == ":":
+                    options.append(match.group(0))
+                index = match.end()
+                continue
+        index += 1
     if options:
-        return cast(str, options[-1]).lower()
+        return options[-1].lower()
     token = _TOKEN_RE.search(error)
     if token and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", token.group(1)):
         return cast(str, token.group(1)).lower()
@@ -89,12 +114,21 @@ def _summarize_results(
         metrics["total_rules"] += 1
         metrics["parsed"] += int(result.parsed)
         metrics["round_trip_passed"] += int(result.round_trip is True)
-        metrics["unexpected_failures"] += int(
-            result.parsed != result.expected_parse or result.round_trip is False
-        )
+        metrics["unexpected_failures"] += int(_result_is_unexpected(result))
         if result.error is not None and result.error_keyword is not None:
             errors_by_keyword[result.error_keyword] += 1
     return dialect_metrics, dict(sorted(errors_by_keyword.items()))
+
+
+def _result_is_unexpected(result: CaseResult) -> bool:
+    """Return whether a result violates its manifest or verification contract."""
+    if result.parsed != result.expected_parse or result.round_trip is False:
+        return True
+    if result.parsed and result.engine_validation not in {"not-run", "passed"}:
+        return True
+    if result.parsed and result.engine_validation_after_print not in {"not-run", "passed"}:
+        return True
+    return result.parsed and result.behavior_validation not in {"not-run", "passed"}
 
 
 def _manifest_files(
