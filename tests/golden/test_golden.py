@@ -61,7 +61,7 @@ def _assert_file_parses(
     rules_file: Path,
     lark_parser: Lark,
     transformer: RuleTransformer,
-    threshold: float = 95.0,
+    threshold: float = 100.0,
 ) -> None:
     """Parse a whole rules file and assert its success rate meets ``threshold``."""
     total_rules, parsed_successfully, parse_errors = _parse_all_lines(
@@ -97,7 +97,7 @@ class TestSuricataGolden:
         """
         Parse ALL Suricata rules from rules/suricata/suricata.rules.
 
-        Target: 95%+ success rate.
+        Target: 100% success rate for the supported bundled corpus.
         """
         _assert_file_parses("Suricata", suricata_rules_file, lark_parser, RuleTransformer())
 
@@ -170,7 +170,7 @@ class TestSnortGolden:
         """
         Parse ALL Snort 2.9 community rules.
 
-        Target: 95%+ success rate.
+        Target: 100% success rate for the supported bundled corpus.
         """
         _assert_file_parses("Snort 2.9", snort29_rules_file, lark_parser, RuleTransformer())
 
@@ -178,7 +178,7 @@ class TestSnortGolden:
         """
         Parse ALL Snort 3 community rules.
 
-        Target: 95%+ success rate.
+        Target: 100% success rate for the supported bundled corpus.
         """
         _assert_file_parses("Snort 3", snort3_rules_file, lark_parser, RuleTransformer())
 
@@ -245,9 +245,9 @@ class TestAllRulesGolden:
             for source, line_num, error in all_errors[:20]:
                 print(f"  {source} line {line_num}: {error}")
 
-        # Assert 95% overall success
-        overall_msg = f"Overall success rate {overall_success_rate:.2f}% below 95% threshold"
-        assert overall_success_rate >= 95.0, overall_msg
+        # Supported bundled rules must parse completely.
+        overall_msg = f"Overall success rate {overall_success_rate:.2f}% below 100% threshold"
+        assert overall_success_rate >= 100.0, overall_msg
         assert grand_total >= 35000, f"Expected at least 35,000 rules, found {grand_total}"
 
 

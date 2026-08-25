@@ -1,10 +1,14 @@
 {
   "name": "surinort-ast",
   "displayName": "Surinort AST",
-  "description": "Diagnostics and hover information for Suricata and Snort rules.",
-  "version": "0.1.0",
+  "description": "Diagnostics, completion, formatting, quick fixes, and hover information for Suricata and Snort rules.",
+  "version": "4.0.0",
   "publisher": "seifreed",
   "license": "GPL-3.0-only",
+  "homepage": "https://seifreed.github.io/surinort-ast/",
+  "repository": {"type": "git", "url": "https://github.com/seifreed/surinort-ast.git"},
+  "bugs": {"url": "https://github.com/seifreed/surinort-ast/issues"},
+  "categories": ["Linters", "Programming Languages"],
   "engines": {"vscode": "^1.85.0"},
   "main": "./extension.js",
   "activationEvents": [
@@ -13,6 +17,10 @@
     "onLanguage:snort3"
   ],
   "contributes": {
+    "commands": [
+      {"command": "surinortAst.validateWithEngine", "title": "Surinort AST: Validate With Engine"},
+      {"command": "surinortAst.showMatchSpace", "title": "Surinort AST: Show Match-Space Preview"}
+    ],
     "languages": [
       {
         "id": "suricata",
@@ -37,6 +45,11 @@
           "type": "string",
           "default": "surinort-lsp",
           "description": "Executable used to start the Surinort AST language server."
+        },
+        "surinortAst.engineCommand": {
+          "type": "string",
+          "default": "",
+          "description": "Optional local engine command containing {file}."
         }
       }
     }

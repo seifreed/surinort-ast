@@ -68,6 +68,8 @@ _BYTE_TEST_OPERATORS = {
     ">=",
     "^",
 }
+_FLOWBIT_ACTIONS = {"set", "isset", "isnotset", "toggle", "unset", "noalert"}
+_FLOWBIT_NAME_REQUIRED = {"set", "isset", "isnotset", "toggle", "unset"}
 
 
 def _option_keyword(option: object) -> str:
@@ -351,6 +353,59 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
     return diagnostics
 
 
+def _validate_flowbits(rule: Rule) -> list[Diagnostic]:
+    diagnostics: list[Diagnostic] = []
+    for option in rule.options:
+        if not isinstance(option, FlowbitsOption):
+            continue
+        action = option.action.lower()
+        name = option.name
+        if action in _FLOWBIT_NAME_REQUIRED and not name:
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message=f"flowbits:{action} requires a flowbit name",
+                    location=option.location,
+                    code="missing_flowbit_name",
+                    hint="Add the flowbit name after the action.",
+                    phase="option-chain",
+                )
+            )
+        if action == "noalert" and name:
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message="flowbits:noalert does not accept a flowbit name",
+                    location=option.location,
+                    code="unexpected_flowbit_name",
+                    hint="Use flowbits:noalert without a name.",
+                    phase="option-chain",
+                )
+            )
+        if action in {"set", "toggle", "unset"} and any(separator in name for separator in "&|"):
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message=f"flowbits:{action} accepts one flowbit name at a time",
+                    location=option.location,
+                    code="composite_flowbit_mutation",
+                    hint="Use a single name for mutating flowbits.",
+                    phase="option-chain",
+                )
+            )
+        if action and action not in _FLOWBIT_ACTIONS:
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message=f"Unsupported flowbits action '{option.action}'",
+                    location=option.location,
+                    code="invalid_flowbits_action",
+                    phase="option-chain",
+                )
+            )
+    return diagnostics
+
+
 def apply_safe_fixes(rule: Rule) -> Rule:
     """Return ``rule`` with only explicitly safe, idempotent fixes applied.
 
@@ -520,6 +575,7 @@ def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagno
         )
 
     diagnostics.extend(_validate_option_chain(rule))
+    diagnostics.extend(_validate_flowbits(rule))
 
     if target is not None:
         diagnostics.extend(_validate_target_options(rule, target))

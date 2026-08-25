@@ -279,7 +279,7 @@ jobs:
           python -m pip install -e .
 
       - name: Run conformance lab
-        run: python tools/conformance_lab.py --manifest conformance/manifest.json --output conformance/report.json
+        run: python tools/conformance_lab.py --manifest conformance/manifest.bundled.json --output conformance/report.json
 
       - name: Upload conformance report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1

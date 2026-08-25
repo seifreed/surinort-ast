@@ -8,6 +8,7 @@ function activate(context) {
   let input = Buffer.alloc(0);
   const pending = new Map();
   const diagnostics = vscode.languages.createDiagnosticCollection("surinort-ast");
+  const output = vscode.window.createOutputChannel("Surinort AST");
 
   function send(message) {
     const body = Buffer.from(JSON.stringify(message));
@@ -95,12 +96,127 @@ function activate(context) {
       }).then((result) => result ? new vscode.Hover(result.contents.value || result.contents) : undefined);
     },
   }));
+  context.subscriptions.push(vscode.languages.registerCompletionItemProvider(["suricata", "snort2", "snort3"], {
+    provideCompletionItems(document, position) {
+      return request("textDocument/completion", {
+        textDocument: { uri: document.uri.toString() },
+        position: { line: position.line, character: position.character },
+      }).then((items) => (items || []).map((item) => {
+        const completion = new vscode.CompletionItem(item.label, vscode.CompletionItemKind.Keyword);
+        completion.detail = item.detail;
+        return completion;
+      }));
+    },
+  }, ":", ";", " "));
+  context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(["suricata", "snort2", "snort3"], {
+    provideDocumentFormattingEdits(document) {
+      return request("textDocument/formatting", {
+        textDocument: { uri: document.uri.toString() },
+        options: { tabSize: 2, insertSpaces: true },
+      }).then((edits) => (edits || []).map((edit) => new vscode.TextEdit(
+        new vscode.Range(
+          edit.range.start.line,
+          edit.range.start.character,
+          edit.range.end.line,
+          edit.range.end.character,
+        ),
+        edit.newText,
+      )));
+    },
+  }));
+  context.subscriptions.push(vscode.languages.registerCodeActionsProvider(["suricata", "snort2", "snort3"], {
+    provideCodeActions(document, range) {
+      return request("textDocument/codeAction", {
+        textDocument: { uri: document.uri.toString() },
+        range: {
+          start: { line: range.start.line, character: range.start.character },
+          end: { line: range.end.line, character: range.end.character },
+        },
+        context: { diagnostics: [] },
+      }).then((actions) => (actions || []).map((action) => {
+        const codeAction = new vscode.CodeAction(action.title, vscode.CodeActionKind.QuickFix);
+        const edit = new vscode.WorkspaceEdit();
+        const change = action.edit && action.edit.range;
+        if (change) {
+          edit.replace(document.uri, new vscode.Range(
+            change.start.line,
+            change.start.character,
+            change.end.line,
+            change.end.character,
+          ), action.edit.newText || "");
+          codeAction.edit = edit;
+        }
+        return codeAction;
+      }));
+    },
+  }));
+  context.subscriptions.push(vscode.languages.registerDefinitionProvider(["suricata", "snort2", "snort3"], {
+    provideDefinition(document, position) {
+      return request("textDocument/definition", {
+        textDocument: { uri: document.uri.toString() },
+        position: { line: position.line, character: position.character },
+      }).then((locations) => (locations || []).map((location) => new vscode.Location(
+        vscode.Uri.parse(location.uri),
+        new vscode.Range(
+          location.range.start.line,
+          location.range.start.character,
+          location.range.end.line,
+          location.range.end.character,
+        ),
+      )));
+    },
+  }));
+  context.subscriptions.push(vscode.languages.registerReferenceProvider(["suricata", "snort2", "snort3"], {
+    provideReferences(document, position) {
+      return request("textDocument/references", {
+        textDocument: { uri: document.uri.toString() },
+        position: { line: position.line, character: position.character },
+        context: { includeDeclaration: true },
+      }).then((locations) => (locations || []).map((location) => new vscode.Location(
+        vscode.Uri.parse(location.uri),
+        new vscode.Range(
+          location.range.start.line,
+          location.range.start.character,
+          location.range.end.line,
+          location.range.end.character,
+        ),
+      )));
+    },
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("surinortAst.validateWithEngine", async () => {
+    const editor = vscode.window.activeTextEditor;
+    const command = vscode.workspace.getConfiguration("surinortAst").get("engineCommand", "");
+    if (!editor || !command) {
+      vscode.window.showErrorMessage("Configure surinortAst.engineCommand and open a rule file first.");
+      return;
+    }
+    const result = await request("surinort/engineValidate", {
+      textDocument: { uri: editor.document.uri.toString() },
+      command,
+    });
+    if (result && result.status === "passed") {
+      vscode.window.showInformationMessage("Surinort engine validation passed.");
+    } else {
+      vscode.window.showErrorMessage(`Surinort engine validation: ${result?.status || "error"}`);
+    }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("surinortAst.showMatchSpace", async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) return;
+    const result = await request("surinort/matchSpacePreview", {
+      textDocument: { uri: editor.document.uri.toString() },
+    });
+    output.clear();
+    output.appendLine(JSON.stringify(result, null, 2));
+    output.show(true);
+  }));
   context.subscriptions.push({
     dispose() {
       send({ jsonrpc: "2.0", id: nextId++, method: "shutdown", params: null });
       send({ jsonrpc: "2.0", method: "exit", params: null });
       server.kill();
       diagnostics.dispose();
+      output.dispose();
     },
   });
 }
