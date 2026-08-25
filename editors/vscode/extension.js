@@ -95,6 +95,60 @@ function activate(context) {
       }).then((result) => result ? new vscode.Hover(result.contents.value || result.contents) : undefined);
     },
   }));
+  context.subscriptions.push(vscode.languages.registerCompletionItemProvider(["suricata", "snort2", "snort3"], {
+    provideCompletionItems(document, position) {
+      return request("textDocument/completion", {
+        textDocument: { uri: document.uri.toString() },
+        position: { line: position.line, character: position.character },
+      }).then((items) => (items || []).map((item) => {
+        const completion = new vscode.CompletionItem(item.label, vscode.CompletionItemKind.Keyword);
+        completion.detail = item.detail;
+        return completion;
+      }));
+    },
+  }, ":", ";", " "));
+  context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(["suricata", "snort2", "snort3"], {
+    provideDocumentFormattingEdits(document) {
+      return request("textDocument/formatting", {
+        textDocument: { uri: document.uri.toString() },
+        options: { tabSize: 2, insertSpaces: true },
+      }).then((edits) => (edits || []).map((edit) => new vscode.TextEdit(
+        new vscode.Range(
+          edit.range.start.line,
+          edit.range.start.character,
+          edit.range.end.line,
+          edit.range.end.character,
+        ),
+        edit.newText,
+      )));
+    },
+  }));
+  context.subscriptions.push(vscode.languages.registerCodeActionsProvider(["suricata", "snort2", "snort3"], {
+    provideCodeActions(document, range) {
+      return request("textDocument/codeAction", {
+        textDocument: { uri: document.uri.toString() },
+        range: {
+          start: { line: range.start.line, character: range.start.character },
+          end: { line: range.end.line, character: range.end.character },
+        },
+        context: { diagnostics: [] },
+      }).then((actions) => (actions || []).map((action) => {
+        const codeAction = new vscode.CodeAction(action.title, vscode.CodeActionKind.QuickFix);
+        const edit = new vscode.WorkspaceEdit();
+        const change = action.edit && action.edit.range;
+        if (change) {
+          edit.replace(document.uri, new vscode.Range(
+            change.start.line,
+            change.start.character,
+            change.end.line,
+            change.end.character,
+          ), action.edit.newText || "");
+          codeAction.edit = edit;
+        }
+        return codeAction;
+      }));
+    },
+  }));
   context.subscriptions.push({
     dispose() {
       send({ jsonrpc: "2.0", id: nextId++, method: "shutdown", params: null });

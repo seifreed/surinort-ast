@@ -1,7 +1,7 @@
 {
   "name": "surinort-ast",
   "displayName": "Surinort AST",
-  "description": "Diagnostics and hover information for Suricata and Snort rules.",
+  "description": "Diagnostics, completion, formatting, quick fixes, and hover information for Suricata and Snort rules.",
   "version": "0.1.0",
   "publisher": "seifreed",
   "license": "GPL-3.0-only",
