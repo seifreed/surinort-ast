@@ -15,6 +15,8 @@ def test_checked_in_conformance_corpus_round_trips() -> None:
     assert report["unexpected_failures"] == 0
     assert report["printed"] == 6
     assert report["parse_exceptions"] == 1
+    assert sum(report["errors_by_keyword"].values()) == 1
+    assert report["dialect_metrics"]["suricata"]["total_rules"] == 3
     assert report["rules_per_second"] > 0
     assert report["peak_memory_mb"] > 0
 
@@ -130,6 +132,7 @@ def test_manifest_controls_dialect_expectation_and_limits(tmp_path) -> None:
     assert report["manifest"] == str(manifest)
     assert report["cases"][0]["dialect"] == "snort3"
     assert report["unsupported_constructions"][0]["id"] == "engine_config"
+    assert report["dialect_metrics"]["snort3"]["parsed"] == 1
 
 
 def test_conformance_reports_printed_rule_parse_failure(tmp_path, monkeypatch) -> None:

@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import tempfile
 import time
 import tracemalloc
+from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from surinort_ast import parse_rule, print_rule
 from surinort_ast.analysis import EngineVerifier
@@ -27,6 +29,7 @@ class CaseResult:
     parsed: bool
     round_trip: bool | None
     error: str | None = None
+    error_keyword: str | None = None
     engine_validation: str = "not-run"
     engine_validation_after_print: str = "not-run"
     behavior_validation: str = "not-run"
@@ -56,6 +59,42 @@ def _same_ast(left: Any, right: Any) -> bool:
         _strip_runtime_metadata(left.model_dump(mode="json"))
         == _strip_runtime_metadata(right.model_dump(mode="json"))
     )
+
+
+_OPTION_KEYWORD_RE = re.compile(r"\b([a-z][a-z0-9_]*)\s*:", re.IGNORECASE)
+_TOKEN_RE = re.compile(r"Token\('[A-Z_]+',\s*'([^']+)'")
+
+
+def _error_keyword(source: str, error: str) -> str:
+    """Best-effort keyword attribution for conformance error reports."""
+    options = _OPTION_KEYWORD_RE.findall(source)
+    if options:
+        return cast(str, options[-1]).lower()
+    token = _TOKEN_RE.search(error)
+    if token and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", token.group(1)):
+        return cast(str, token.group(1)).lower()
+    return "<unknown>"
+
+
+def _summarize_results(
+    results: list[CaseResult],
+) -> tuple[dict[str, dict[str, int]], dict[str, int]]:
+    dialect_metrics: dict[str, dict[str, int]] = {}
+    errors_by_keyword: Counter[str] = Counter()
+    for result in results:
+        metrics = dialect_metrics.setdefault(
+            result.dialect,
+            {"total_rules": 0, "parsed": 0, "round_trip_passed": 0, "unexpected_failures": 0},
+        )
+        metrics["total_rules"] += 1
+        metrics["parsed"] += int(result.parsed)
+        metrics["round_trip_passed"] += int(result.round_trip is True)
+        metrics["unexpected_failures"] += int(
+            result.parsed != result.expected_parse or result.round_trip is False
+        )
+        if result.error is not None and result.error_keyword is not None:
+            errors_by_keyword[result.error_keyword] += 1
+    return dialect_metrics, dict(sorted(errors_by_keyword.items()))
 
 
 def _manifest_files(
@@ -117,7 +156,14 @@ def run(
             except ParseError as exc:
                 results.append(
                     CaseResult(
-                        str(path), dialect.value, line_number, expected_parse, False, None, str(exc)
+                        str(path),
+                        dialect.value,
+                        line_number,
+                        expected_parse,
+                        False,
+                        None,
+                        str(exc),
+                        _error_keyword(text, str(exc)),
                     )
                 )
                 continue
@@ -135,6 +181,7 @@ def run(
                         True,
                         False,
                         f"Printed rule failed to parse: {exc}",
+                        _error_keyword(printed, str(exc)),
                     )
                 )
                 continue
@@ -183,10 +230,13 @@ def run(
         or (behavior_pcap is not None and result.parsed and result.behavior_validation != "passed")
     ]
     parsed = sum(result.parsed for result in results)
+    dialect_metrics, errors_by_keyword = _summarize_results(results)
     return {
         "corpus": str(corpus),
         "manifest": str(manifest) if manifest else None,
         "unsupported_constructions": unsupported,
+        "dialect_metrics": dialect_metrics,
+        "errors_by_keyword": errors_by_keyword,
         "total_rules": len(results),
         "parsed": parsed,
         "parse_rate": parsed / len(results) if results else 1.0,
