@@ -68,6 +68,17 @@ jobs:
             echo "file=" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Generate conformance dashboard snapshot
+        run: |
+          mkdir -p conformance/history
+          python -m pip install -e .
+          python tools/conformance_lab.py \
+            --manifest conformance/manifest.bundled.json \
+            --output conformance/history/bundled.json
+          python -m tools.conformance_dashboard \
+            --history-dir conformance/history \
+            --output docs/conformance-dashboard.md
+
       - name: Require MkDocs configuration
         if: ${{ steps.mkdocs-config.outputs.file == '' }}
         run: |
