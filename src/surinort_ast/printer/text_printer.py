@@ -396,14 +396,18 @@ class TextPrinter:
                 # leave a bare continuation that could be mistaken for a
                 # new rule by downstream consumers.
                 for line in comment.split("\n"):
-                    parts.append(f"# {line}")
+                    parts.append("" if line == "" else f"# {line}")
 
         # Preserve whether the source used a full, protocol-only, or headerless form.
         if rule.form is RuleForm.HEADERLESS:
             rule_line = rule.action.value
         elif rule.form is RuleForm.PROTOCOL_ONLY:
-            rule_line = f"{rule.action.value} {rule.header.protocol.value}"
+            if rule.protocol is None:
+                raise ValueError("protocol-only rule is missing its protocol")
+            rule_line = f"{rule.action.value} {rule.protocol.value}"
         else:
+            if rule.header is None:
+                raise ValueError("full rule is missing its header")
             rule_line = f"{rule.action.value} {self._print_header(rule.header)}"
 
         if rule.options:

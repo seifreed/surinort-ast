@@ -33,6 +33,7 @@ import contextlib
 # Core Plugin Interfaces
 # ============================================================================
 from .interface import (
+    PLUGIN_API_VERSION,
     AnalysisPlugin,
     ParserPlugin,
     PluginMetadata,
@@ -71,6 +72,7 @@ from .registry import (
 # ============================================================================
 
 __all__ = [
+    "PLUGIN_API_VERSION",
     "AnalysisPlugin",
     "ParserPlugin",
     "PluginAlreadyRegisteredError",

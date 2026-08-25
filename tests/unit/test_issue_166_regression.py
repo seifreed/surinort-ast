@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from surinort_ast import Dialect, parse_rule
-from surinort_ast.core.enums import Action, Protocol
+from surinort_ast.core.enums import Action
 from surinort_ast.core.nodes import (
     BufferSelectOption,
     ByteJumpOption,
@@ -103,7 +103,8 @@ def test_issue_166_preserves_new_structured_values() -> None:
     assert ("soid", "3|52528") in metadata.entries
 
     headerless_rule = parse_rule("alert (gid:2; sid:1;)", dialect=Dialect.SNORT3)
-    assert headerless_rule.header.protocol is Protocol.IP
+    assert headerless_rule.header is None
+    assert headerless_rule.protocol is None
 
     rewrite_rule = parse_rule(
         'rewrite tcp any any -> any any (replace:"AAAAAAAAAA"; sid:2;)',

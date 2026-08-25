@@ -210,10 +210,8 @@ class RuleTransformer(
 
         Short Form:
             The short form is a Snort3 convenience syntax where only the
-            protocol is specified. It's expanded to a full header with:
-            - Source: any any
-            - Direction: ->
-            - Destination: any any
+            protocol is specified. It is retained as a protocol-only rule;
+            no wildcard header is fabricated.
 
         Diagnostic Handling:
             Diagnostics accumulated during option transformation are attached
@@ -225,16 +223,19 @@ class RuleTransformer(
         headerless = not isinstance(second, (Header, Protocol))
         options = second if headerless else args[2] if len(args) > 2 else []
 
-        # Full form passes a parsed header; short form (action protocol ...)
-        # passes only the protocol, expanded to an any/any TO any/any header.
+        # Full form passes a parsed header. Short and headerless forms retain
+        # their source-level shape instead of inventing a wildcard header.
         if isinstance(second, Header):
             header = second
+            protocol = None
             form = RuleForm.FULL
         elif isinstance(second, Protocol):
-            header = Header.wildcard(second)
+            header = None
+            protocol = second
             form = RuleForm.PROTOCOL_ONLY
         else:
-            header = Header.wildcard()
+            header = None
+            protocol = None
             form = RuleForm.HEADERLESS
 
         # Create rule with the diagnostics accumulated during its own option
@@ -242,13 +243,16 @@ class RuleTransformer(
         # transformer starts clean. This per-rule reset (rather than relying on
         # transform() to reset) is what lets the transformer be embedded directly
         # in the parser, where transform() is never called.
-        location = header.location
+        location = (
+            header.location if header is not None else (options[0].location if options else None)
+        )
         diagnostics = tuple(self.diagnostics)
         self.diagnostics = []
         return Rule(
             action=action,
             header=header,
             options=options,
+            protocol=protocol,
             dialect=self.dialect,
             form=form,
             location=location,

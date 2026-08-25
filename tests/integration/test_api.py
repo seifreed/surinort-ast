@@ -158,17 +158,12 @@ class TestRealWorldScenarios:
         parsed_rules = []
 
         for rule_text in suricata_sample_rules[:50]:  # Process first 50
-            try:
-                parse_tree = lark_parser.parse(rule_text)
-                result = transformer.transform(parse_tree)
-                if isinstance(result, list) and len(result) > 0:
-                    parsed_rules.append(result[0])
-            except Exception:
-                # Skip rules that fail
-                pass
+            parse_tree = lark_parser.parse(rule_text)
+            result = transformer.transform(parse_tree)
+            assert isinstance(result, list) and result
+            parsed_rules.append(result[0])
 
-        # Should have parsed most rules
-        assert len(parsed_rules) >= 40  # At least 80% success
+        assert len(parsed_rules) == min(50, len(suricata_sample_rules))
 
         # All should be valid Rules
         assert all(isinstance(r, Rule) for r in parsed_rules)
@@ -246,12 +241,9 @@ class TestRealWorldScenarios:
 
         stats_collector = RuleStats()
         for _, line in iter_rule_lines(simple_rules_file):
-            try:
-                parse_tree = lark_parser.parse(line)
-                rule = transformer.transform(parse_tree)[0]
-                stats_collector.visit(rule)
-            except Exception:
-                pass
+            parse_tree = lark_parser.parse(line)
+            rule = transformer.transform(parse_tree)[0]
+            stats_collector.visit(rule)
 
         stats = stats_collector.stats
 

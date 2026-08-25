@@ -114,8 +114,8 @@ class Header(ASTNode):
     def wildcard(cls, protocol: Protocol = Protocol.IP) -> Header:
         """Build a header matching any address and port in the ``TO`` direction.
 
-        Used where only the protocol is known: short-form rules
-        (``action protocol (...)``) and error-recovery placeholders.
+        Used for error-recovery placeholders and callers that explicitly need
+        a canonical wildcard header.
         """
         return cls(
             protocol=protocol,
@@ -136,10 +136,12 @@ class Rule(ASTNode):
     """
 
     action: Action
-    header: Header
+    header: Header | None
     # Note: options type will be updated after all Option subclasses are defined
     # See DiscriminatedOption type alias at the end of this file
     options: tuple[DiscriminatedOption, ...]  # Forward reference
+    # Short-form rules carry only a protocol; headerless rules carry neither.
+    protocol: Protocol | None = None
     dialect: Dialect = Dialect.SURICATA
     form: RuleForm = RuleForm.FULL
 
@@ -147,6 +149,35 @@ class Rule(ASTNode):
     origin: SourceOrigin | None = None
     diagnostics: tuple[Diagnostic, ...] = Field(default_factory=tuple)
     raw_text: str | None = None  # Original rule text
+
+
+class SourceFile(BaseModel):
+    """Parsed rules plus original file text and source spans.
+
+    The legacy :func:`parse_file` API still returns ``list[Rule]``. This
+    container is opt-in for callers that need file-level trivia and exact
+    source-preserving output.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    source: str
+    rules: tuple[Rule, ...]
+    spans: tuple[tuple[int, int], ...]
+    original_rules: tuple[Rule, ...]
+
+    def render(self, replacements: tuple[str, ...]) -> str:
+        """Rebuild the file while retaining text outside parsed rule spans."""
+        if len(replacements) != len(self.spans):
+            raise ValueError("replacement count must match source span count")
+        chunks: list[str] = []
+        cursor = 0
+        for (start, end), replacement in zip(self.spans, replacements, strict=True):
+            chunks.append(self.source[cursor:start])
+            chunks.append(replacement)
+            cursor = end
+        chunks.append(self.source[cursor:])
+        return "".join(chunks)
 
 
 # ============================================================================

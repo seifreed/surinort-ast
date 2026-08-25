@@ -10,11 +10,19 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 
 from ..analysis.targets import EngineTarget
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
-from ..core.nodes import FlowbitsOption, Rule, extract_sid
+from ..core.nodes import (
+    ContentModifier,
+    ContentOption,
+    FlowbitsOption,
+    Rule,
+    RuleOption,
+    extract_sid,
+)
 
 _SINGLETON_OPTIONS = {
     "SidOption": "sid",
@@ -66,7 +74,12 @@ def _option_keyword(option: object) -> str:
     keyword = getattr(option, "keyword", None)
     if isinstance(keyword, str) and keyword:
         return keyword.lower()
-    return getattr(option, "node_type", "").removesuffix("Option").lower()
+    node_name = getattr(option, "node_type", "").removesuffix("Option")
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", node_name).lower()
+
+
+def _modifier_signature(modifier: ContentModifier) -> tuple[str, int | str | None]:
+    return modifier.name_str, modifier.value
 
 
 def _is_variable_reference(value: object) -> bool:
@@ -185,9 +198,42 @@ def _validate_fast_pattern(option: object, has_content: bool) -> list[Diagnostic
 
 def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
+    if target.supports_action(rule.action.value) is False:
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message=f"Action '{rule.action.value}' is not listed for {target.engine} {target.version}",
+                location=rule.location,
+                code="unsupported_engine_action",
+                hint="Use a compatible engine target or replace the action.",
+                phase="version",
+            )
+        )
+    protocol = rule.header.protocol if rule.header is not None else rule.protocol
+    if protocol is not None and target.supports_protocol(protocol.value) is False:
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message=f"Protocol '{protocol.value}' is not listed for {target.engine} {target.version}",
+                location=rule.header.location if rule.header is not None else rule.location,
+                code="unsupported_engine_protocol",
+                hint="Use a compatible engine target or replace the protocol.",
+                phase="version",
+            )
+        )
     for option in rule.options:
         keyword = _option_keyword(option)
-        if target.supports(keyword) is False:
+        support = target.supports(keyword)
+        if option.node_type == "BufferSelectOption":
+            buffer_name = str(getattr(option, "buffer_name", "")).lower()
+            buffer_support = target.supports(buffer_name)
+            if buffer_support is True or support is True:
+                support = True
+            elif buffer_support is None and support is None:
+                support = None
+            else:
+                support = False
+        if support is False:
             diagnostics.append(
                 Diagnostic(
                     level=DiagnosticLevel.ERROR,
@@ -223,13 +269,14 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
         if option_type in _SINGLETON_OPTIONS:
             counts[option_type] = counts.get(option_type, 0) + 1
         if option_type == "ContentOption":
-            modifier_names = [
-                getattr(modifier, "name_str", "") for modifier in getattr(option, "modifiers", ())
-            ]
+            modifiers = tuple(getattr(option, "modifiers", ()))
+            modifier_names = [modifier.name_str for modifier in modifiers]
             duplicate_modifiers = {
                 name for name in modifier_names if name and modifier_names.count(name) > 1
             }
             for name in sorted(duplicate_modifiers):
+                same_name = tuple(modifier for modifier in modifiers if modifier.name_str == name)
+                safe = len({_modifier_signature(modifier) for modifier in same_name}) == 1
                 diagnostics.append(
                     Diagnostic(
                         level=DiagnosticLevel.ERROR,
@@ -237,9 +284,15 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
                         location=option.location,
                         code="duplicate_content_modifier",
                         phase="option-chain",
+                        fix=(
+                            {"action": "remove_duplicate_content_modifier", "name": name}
+                            if safe
+                            else None
+                        ),
+                        safe_fix=safe,
                     )
                 )
-            for modifier in getattr(option, "modifiers", ()):
+            for modifier in modifiers:
                 if getattr(modifier, "name_str", "") in {"distance", "within"} and not seen_content:
                     diagnostics.append(
                         Diagnostic(
@@ -298,9 +351,53 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
     return diagnostics
 
 
+def apply_safe_fixes(rule: Rule) -> Rule:
+    """Return ``rule`` with only explicitly safe, idempotent fixes applied.
+
+    Currently this removes exact duplicate inline content modifiers. Duplicate
+    modifiers with different values are intentionally left unchanged because
+    choosing which value to keep would require engine-specific semantics.
+    """
+    safe_names = {
+        str(diagnostic.fix["name"])
+        for diagnostic in validate_rule(rule)
+        if diagnostic.safe_fix
+        and diagnostic.code == "duplicate_content_modifier"
+        and diagnostic.fix is not None
+        and diagnostic.fix.get("action") == "remove_duplicate_content_modifier"
+    }
+    if not safe_names:
+        return rule
+
+    changed = False
+    options: list[RuleOption] = []
+    for option in rule.options:
+        if not isinstance(option, ContentOption):
+            options.append(option)
+            continue
+        seen: set[tuple[str, int | str | None]] = set()
+        modifiers: list[ContentModifier] = []
+        for modifier in option.modifiers:
+            signature = _modifier_signature(modifier)
+            if modifier.name_str in safe_names and signature in seen:
+                changed = True
+                continue
+            seen.add(signature)
+            modifiers.append(modifier)
+        options.append(option.model_copy(update={"modifiers": tuple(modifiers)}))
+
+    return rule.model_copy(update={"options": tuple(options)}) if changed else rule
+
+
 def _validate_buffer_semantics(rule: Rule) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
-    protocol = rule.header.protocol.value
+    protocol = (
+        rule.header.protocol.value
+        if rule.header is not None
+        else rule.protocol.value
+        if rule.protocol is not None
+        else None
+    )
     selected_buffer: str | None = None
     has_match = False
     for option in rule.options:
@@ -492,6 +589,7 @@ def validate_rules(rules: Sequence[Rule], target: EngineTarget | None = None) ->
 
 
 __all__ = [
+    "apply_safe_fixes",
     "validate_rule",
     "validate_rules",
 ]

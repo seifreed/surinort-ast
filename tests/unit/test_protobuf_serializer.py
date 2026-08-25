@@ -13,7 +13,7 @@ from typing import Any
 import pytest
 
 from surinort_ast import parse_rule
-from surinort_ast.core.enums import Dialect
+from surinort_ast.core.enums import Dialect, RuleForm
 from surinort_ast.serialization.protobuf import (
     ProtobufError,
     ProtobufSerializer,
@@ -166,6 +166,21 @@ class TestRuleComponents:
             binary = to_protobuf(rule)
             restored = from_protobuf(binary)
             assert restored.header.protocol == rule.header.protocol
+
+    def test_short_and_headerless_forms_preserve_absent_headers(self):
+        for text, form, protocol in (
+            ('alert tcp (msg:"short"; sid:1;)', RuleForm.PROTOCOL_ONLY, "tcp"),
+            ('alert (msg:"headerless"; sid:2;)', RuleForm.HEADERLESS, None),
+        ):
+            rule = parse_rule(text, dialect=Dialect.SNORT3)
+            restored = from_protobuf(to_protobuf(rule))
+            assert restored.form is form
+            assert restored.header is None
+            if protocol is None:
+                assert restored.protocol is None
+            else:
+                assert restored.protocol is not None
+                assert restored.protocol.value == protocol
 
     def test_directions(self):
         """Test all direction types."""

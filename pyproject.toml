@@ -9,8 +9,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "surinort-ast"
-version = "3.0.5"
-description = "Production-grade Abstract Syntax Tree parser for IDS rules (Suricata/Snort) with comprehensive validation and serialization support"
+version = "4.0.0"
+description = "Typed Abstract Syntax Tree parser and analysis toolkit for IDS rules (Suricata/Snort)"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "GPL-3.0-or-later" }
@@ -39,7 +39,7 @@ keywords = [
     "malware-analysis"
 ]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
     "Intended Audience :: System Administrators",

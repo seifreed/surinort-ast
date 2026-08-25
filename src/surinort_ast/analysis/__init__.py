@@ -39,7 +39,12 @@ from .strategies import (
     OptionReorderStrategy,
     RedundancyRemovalStrategy,
 )
-from .targets import CapabilityRegistry, EngineTarget, default_capability_registry
+from .targets import (
+    CapabilityRegistry,
+    EngineTarget,
+    default_capability_registry,
+    parse_keyword_listing,
+)
 
 __all__ = [
     "BehavioralVerification",
@@ -75,5 +80,6 @@ __all__ = [
     "diagnostics_to_findings",
     "filter_conflicts",
     "optimization_results_to_findings",
+    "parse_keyword_listing",
     "semantic_diff",
 ]

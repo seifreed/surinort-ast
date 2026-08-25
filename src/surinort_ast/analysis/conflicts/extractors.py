@@ -53,6 +53,8 @@ def compute_specificity(rule: Rule) -> int:
     """
     score = 0
     header = rule.header
+    if header is None:
+        return content_count(rule) + (1 if has_pcre(rule) else 0)
     if not isinstance(header.src_addr, AnyAddress):
         score += 1
     if not isinstance(header.dst_addr, AnyAddress):

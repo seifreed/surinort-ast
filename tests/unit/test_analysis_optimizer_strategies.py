@@ -67,7 +67,8 @@ class TestOptimizationDataClass:
 
         assert "Reorder" in str_repr
         assert "Reordered options" in str_repr
-        assert "10.0%" in str_repr
+        assert "engine verification required" in str_repr
+        assert "%" not in str_repr
 
 
 class TestOptimizationResult:

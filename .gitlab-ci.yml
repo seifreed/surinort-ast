@@ -1,0 +1,22 @@
+stages:
+  - validate
+
+validate-rules:
+  image: python:3.14-slim
+  stage: validate
+  variables:
+    RULES_PATH: rules
+  before_script:
+    - python -m pip install --disable-pip-version-check .
+  script:
+    - |
+      python - "$RULES_PATH" <<'PY'
+      from pathlib import Path
+      import subprocess
+      import sys
+
+      files = sorted(Path(sys.argv[1]).rglob("*.rules"))
+      if not files:
+          raise SystemExit(f"No rule files found under {sys.argv[1]}")
+      raise SystemExit(subprocess.run(["surinort", "validate", *map(str, files)], check=False).returncode)
+      PY

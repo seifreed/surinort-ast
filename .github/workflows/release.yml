@@ -10,7 +10,7 @@
 # - Trusted Publisher authentication (no token in secrets)
 # - Artifact signing with Sigstore
 # - SBOM generation with CycloneDX
-# - Checksums and signed artifact records
+# - Checksums, signed artifact records, and build provenance
 # - Release verification before publishing
 
 name: Release
@@ -78,6 +78,23 @@ jobs:
             exit 1
           fi
 
+      - name: Verify signed release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG_OBJECT=$(git rev-parse "${VERSION}^{tag}" 2>/dev/null || true)
+          if [[ -z "$TAG_OBJECT" ]]; then
+            echo "Release tag $VERSION must be an annotated tag"
+            exit 1
+          fi
+          VERIFIED=$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${TAG_OBJECT}" --jq '.verification.verified')
+          if [[ "$VERIFIED" != "true" ]]; then
+            echo "Release tag $VERSION is not cryptographically verified"
+            exit 1
+          fi
+          echo "Signed release tag verified: $VERSION"
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
@@ -116,6 +133,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      id-token: write
+      attestations: write
 
     steps:
       - name: Checkout code
@@ -152,6 +171,21 @@ jobs:
         run: |
           sha256sum dist/* > SHA256SUMS
           cat SHA256SUMS
+
+      - name: Attest release distributions
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45  # v2
+        with:
+          subject-path: 'dist/*'
+
+      - name: Verify build provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for file in dist/*.whl dist/*.tar.gz; do
+            gh attestation verify "$file" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow .github/workflows/release.yml
+          done
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -247,6 +281,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write  # Required to create release
+      attestations: read  # Required to download build provenance bundles
 
     steps:
       - name: Checkout code
@@ -272,6 +307,18 @@ jobs:
           name: signed-artifacts
           path: signed-artifacts
 
+      - name: Download build provenance bundles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p provenance
+          for file in dist/*.whl dist/*.tar.gz; do
+            (
+              cd provenance
+              gh attestation download "../$file" --repo "$GITHUB_REPOSITORY"
+            )
+          done
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228  # v3.0.2
         with:
@@ -286,6 +333,7 @@ jobs:
             sbom.json
             sbom.xml
             signed-artifacts/*.sigstore.json
+            provenance/*.jsonl
           fail_on_unmatched_files: true
           generate_release_notes: true
 

@@ -31,7 +31,6 @@ def _result_dict(result: Any) -> dict[str, Any]:
         "sid": extract_sid(result.original),
         "changed": result.was_modified,
         "strategies": result.strategy_names,
-        "estimated_improvement": result.total_improvement,
         "experimental": result.experimental,
         "confidence": result.confidence,
         "engine_verified": result.engine_verified,
@@ -153,6 +152,6 @@ def optimize_command(
             for item in report:
                 console.print(
                     f"SID {item['sid']}: {', '.join(item['strategies']) or 'no change'} "
-                    f"(estimated {item['estimated_improvement']:+.1f}%, "
-                    f"confidence {item['confidence']})"
+                    f"(cost class {item['estimated_cost_class']}, "
+                    f"confidence {item['confidence']}; heuristic)"
                 )

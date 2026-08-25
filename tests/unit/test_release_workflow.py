@@ -1,0 +1,58 @@
+from pathlib import Path
+
+RELEASE_WORKFLOW = Path(".github/workflows/release.yml")
+CI_WORKFLOW = Path(".github/workflows/ci.yml")
+
+
+def test_release_verifies_provenance_before_uploading_distributions() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    attestation = workflow.index("actions/attest-build-provenance@")
+    verification = workflow.index("- name: Verify build provenance")
+    upload = workflow.index("- name: Upload build artifacts")
+
+    assert attestation < verification < upload
+    verification_block = workflow[verification:upload]
+    assert 'gh attestation verify "$file"' in verification_block
+    assert '--repo "$GITHUB_REPOSITORY"' in verification_block
+    assert "--signer-workflow .github/workflows/release.yml" in verification_block
+
+
+def test_release_requires_a_verified_annotated_tag_before_building() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    tag_format = workflow.index("- name: Verify tag format")
+    signed_tag = workflow.index("- name: Verify signed release tag")
+    setup_python = workflow.index("- name: Set up Python", signed_tag)
+
+    assert tag_format < signed_tag < setup_python
+    signed_tag_block = workflow[signed_tag:setup_python]
+    assert 'git rev-parse "${VERSION}^{tag}"' in signed_tag_block
+    assert "must be an annotated tag" in signed_tag_block
+    assert "git/tags/${TAG_OBJECT}" in signed_tag_block
+    assert ".verification.verified" in signed_tag_block
+
+
+def test_github_release_attaches_downloaded_provenance_bundles() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    download = workflow.index("- name: Download build provenance bundles")
+    release = workflow.index("- name: Create GitHub Release", download)
+    github_release = workflow.index("  github-release:")
+    release_block = workflow[release : workflow.index("  # Sign release artifacts", release)]
+
+    assert download < release
+    assert "attestations: read" in workflow[github_release:download]
+    assert (
+        'gh attestation download "../$file" --repo "$GITHUB_REPOSITORY"'
+        in workflow[download:release]
+    )
+    assert "provenance/*.jsonl" in release_block
+
+
+def test_ci_summary_matches_the_protected_branch_check_name() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "ci-success:" in workflow
+    summary = workflow[workflow.index("ci-success:") :]
+    assert "name: CI Success" in summary

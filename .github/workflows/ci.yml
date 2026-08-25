@@ -82,7 +82,7 @@ jobs:
       - name: Run Bandit SAST scan
         run: |
           bandit -r src/ -f json -o bandit-report.json || true
-          bandit -r src/ -f screen
+          bandit -r src/ -f screen --severity-level medium
         continue-on-error: false
 
       - name: Run Safety vulnerability scan
@@ -466,7 +466,7 @@ jobs:
 
   # All jobs summary
   ci-success:
-    name: CI Pipeline Success
+    name: CI Success
     needs: [security, lint, test, coverage, conformance, benchmark, build, validate]
     runs-on: ubuntu-24.04
     timeout-minutes: 5

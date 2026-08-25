@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shlex
 import shutil
 import subprocess
@@ -51,7 +52,12 @@ class EngineVerifier:
     """
 
     def __init__(self, command: str, timeout: float = 30.0) -> None:
-        parts = shlex.split(command)
+        parts = shlex.split(command, posix=os.name != "nt")
+        if os.name == "nt":
+            parts = [
+                part[1:-1] if len(part) >= 2 and part[0] == part[-1] and part[0] in "\"'" else part
+                for part in parts
+            ]
         if not parts or "{file}" not in command:
             raise ValueError("engine command must include a {file} placeholder")
         if timeout <= 0:

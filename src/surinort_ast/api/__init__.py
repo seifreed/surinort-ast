@@ -11,7 +11,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 # Import all public API functions from submodules
-from .parsing import parse_file, parse_file_streaming, parse_rule, parse_rules
+from .parsing import parse_file, parse_file_streaming, parse_rule, parse_rules, parse_source_file
 from .printing import print_rule
 from .serialization import (
     coverage_report_to_sarif,
@@ -23,9 +23,10 @@ from .serialization import (
     to_json_schema,
     to_sarif,
 )
-from .validation import validate_rule, validate_rules
+from .validation import apply_safe_fixes, validate_rule, validate_rules
 
 __all__ = [
+    "apply_safe_fixes",
     "coverage_report_to_sarif",
     "diagnostics_to_sarif",
     "from_json",
@@ -36,6 +37,7 @@ __all__ = [
     # Parsing
     "parse_rule",
     "parse_rules",
+    "parse_source_file",
     # Printing
     "print_rule",
     "to_json",

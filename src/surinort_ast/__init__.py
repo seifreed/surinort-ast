@@ -12,6 +12,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 # Core API - most users should import from here
 # Note: Importing from api package (api/__init__.py) maintains backward compatibility
 from .api import (
+    apply_safe_fixes,
     coverage_report_to_sarif,
     diagnostics_to_sarif,
     from_json,
@@ -21,6 +22,7 @@ from .api import (
     parse_file_streaming,
     parse_rule,
     parse_rules,
+    parse_source_file,
     print_rule,
     to_json,
     to_json_schema,
@@ -39,6 +41,7 @@ from .core import (
     Protocol,
     Rule,
     RuleForm,
+    SourceFile,
 )
 
 # Exceptions
@@ -73,6 +76,7 @@ __all__ = [
     "Rule",
     "RuleForm",
     "SerializationError",
+    "SourceFile",
     "SourcePrinter",
     "SurinortASTError",
     "UnsupportedDialectError",
@@ -83,6 +87,7 @@ __all__ = [
     "__email__",
     "__license__",
     "__version__",
+    "apply_safe_fixes",
     "coverage_report_to_sarif",
     "diagnostics_to_sarif",
     # Core API functions
@@ -93,6 +98,7 @@ __all__ = [
     "parse_file_streaming",
     "parse_rule",
     "parse_rules",
+    "parse_source_file",
     "print_rule",
     "to_json",
     "to_json_schema",

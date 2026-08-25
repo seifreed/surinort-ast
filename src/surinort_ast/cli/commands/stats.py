@@ -57,14 +57,21 @@ def _build_count_table(title: str, item_name: str, counts: Counter[Any], total: 
 
     for value, count in counts.most_common():
         percentage = (count / total) * 100
-        table.add_row(value.value, str(count), f"{percentage:.1f}%")
+        table.add_row(
+            value.value if hasattr(value, "value") else str(value), str(count), f"{percentage:.1f}%"
+        )
     return table
 
 
 def _display_stats(file: Path, dialect: Dialect, rules: list[Any], target: Console) -> None:
     action_counts = Counter(rule.action for rule in rules)
-    protocol_counts = Counter(rule.header.protocol for rule in rules)
-    direction_counts = Counter(rule.header.direction for rule in rules)
+    protocol_counts = Counter(
+        rule.header.protocol if rule.header is not None else rule.protocol or "unknown"
+        for rule in rules
+    )
+    direction_counts = Counter(
+        rule.header.direction if rule.header is not None else "unknown" for rule in rules
+    )
 
     target.print(
         Panel.fit(

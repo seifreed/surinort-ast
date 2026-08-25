@@ -16,6 +16,12 @@ The following modules are public extension points:
 - `surinort_ast.printer.SourcePrinter` for retained source blocks and
   `CanonicalPrinter` for normalized output.
 
+`parse_file()` keeps its historical `list[Rule]` return type. Use the additive
+`parse_source_file()` API when an editor or refactoring tool must retain the
+complete source text, rule spans, and unparsed file regions. Pass its result to
+`SourcePrinter.print_file()` to preserve unchanged bytes and replace only rules
+that were modified.
+
 Internal modules under `core`, `parsing`, `printer`, and `serialization` may
 change without preserving import paths. Use the top-level exports when possible.
 
@@ -27,10 +33,15 @@ their protobuf defaults and JSON readers must tolerate omitted fields. A
 breaking serialized representation requires an AST major version and a
 migration note in `CHANGELOG.md`.
 
+AST 4 represents rule forms losslessly: full rules have a `Header`,
+protocol-only rules have `header=None` and a separate `protocol`, and
+headerless rules have both fields set to `None`. Use `RuleForm` to branch on
+the source form instead of treating a wildcard header as a real match space.
+
 Payloads from AST 3.x can be upgraded explicitly with
 `surinort_ast.migrate_ast(payload)`. It preserves bare and metadata-wrapped
-JSON shapes, adds defaults for fields introduced by the current schema, and
-rejects a different AST major.
+JSON shapes, converts legacy wildcard headers according to `form`, and rejects
+unsupported AST majors.
 
 ## Compatibility policy
 
@@ -39,6 +50,15 @@ rejects a different AST major.
 - Major releases may remove or change public behavior after a deprecation note.
 - Heuristic analysis results are advisory; `engine_verified` and
   `behavior_verified` must not be inferred from AST round-tripping.
+- `EngineTarget` capability checks are tri-state: `True` means supported,
+  `False` requires a complete engine listing, and `None` means the target has
+  no evidence for that capability. Use `EngineTarget.with_keywords()` with a
+  complete output from the installed engine before treating unknown keywords
+  as errors. `EngineTarget.from_keyword_listing()` accepts plain or tabular
+  `--list-keywords` output and marks the resulting keyword catalog complete.
+- `RulesetContext.from_suricata_yaml()` and `from_snort_config()` resolve
+  deployment variables for coverage analysis; unresolved variables remain
+  indeterminate instead of being reported as uncovered concrete ports.
 
 ## CLI and editor tooling
 
@@ -56,7 +76,15 @@ The repository also ships a dependency-free VS Code client under
 `editors/vscode`; it starts `surinort-lsp`, publishes diagnostics, and exposes
 rule hover information.
 
+Plugins use API contract version `surinort_ast.plugins.PLUGIN_API_VERSION`.
+Plugins that omit `api_version` remain compatible as legacy version `1`
+plugins; a declared unsupported version is rejected by the loader.
+
 `surinort validate file1.rules file2.rules` validates a combined ruleset; the
 GitHub Action also expands recursive patterns such as `rules/**/*.rules`.
 Its optional `comment` input posts a SARIF count summary on pull requests and
 requires the consuming workflow to grant `pull-requests: write`.
+
+`apply_safe_fixes(rule)` returns a new rule and only removes exact duplicate
+inline content modifiers. Diagnostics with different duplicate values remain
+unchanged because selecting a value would require engine-specific semantics.

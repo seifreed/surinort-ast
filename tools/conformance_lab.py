@@ -29,6 +29,7 @@ class CaseResult:
     error: str | None = None
     engine_validation: str = "not-run"
     engine_validation_after_print: str = "not-run"
+    behavior_validation: str = "not-run"
 
 
 def _dialect(path: Path) -> Dialect:
@@ -83,8 +84,14 @@ def run(
     engine_command: str | None = None,
     timeout: float = 30.0,
     manifest: Path | None = None,
+    behavior_pcap: Path | None = None,
 ) -> dict[str, Any]:
     """Run checks for a corpus, optionally using a reproducible manifest."""
+    if behavior_pcap is not None:
+        if engine_command is None:
+            raise ValueError("behavior verification requires an engine command")
+        if "{pcap}" not in engine_command:
+            raise ValueError("behavior verification command must include a {pcap} placeholder")
     results: list[CaseResult] = []
     started = time.perf_counter()
     tracemalloc.start()
@@ -116,7 +123,21 @@ def run(
                 continue
 
             printed = print_rule(rule)
-            round_trip_rule = parse_rule(printed, dialect=dialect, include_raw_text=False)
+            try:
+                round_trip_rule = parse_rule(printed, dialect=dialect, include_raw_text=False)
+            except ParseError as exc:
+                results.append(
+                    CaseResult(
+                        str(path),
+                        dialect.value,
+                        line_number,
+                        expected_parse,
+                        True,
+                        False,
+                        f"Printed rule failed to parse: {exc}",
+                    )
+                )
+                continue
             result = CaseResult(
                 str(path),
                 dialect.value,
@@ -131,8 +152,16 @@ def run(
                     printed_path = Path(directory) / "printed.rules"
                     original_path.write_text(text + "\n", encoding="utf-8")
                     printed_path.write_text(printed + "\n", encoding="utf-8")
-                    result.engine_validation = verifier.verify(original_path).status
-                    result.engine_validation_after_print = verifier.verify(printed_path).status
+                    if behavior_pcap is not None:
+                        behavior = verifier.verify_behavior(
+                            original_path, printed_path, behavior_pcap
+                        )
+                        result.engine_validation = behavior.original.status
+                        result.engine_validation_after_print = behavior.candidate.status
+                        result.behavior_validation = behavior.status
+                    else:
+                        result.engine_validation = verifier.verify(original_path).status
+                        result.engine_validation_after_print = verifier.verify(printed_path).status
             results.append(result)
 
     elapsed_seconds = time.perf_counter() - started
@@ -141,7 +170,17 @@ def run(
     unexpected = [
         result
         for result in results
-        if result.parsed != result.expected_parse or result.round_trip is False
+        if result.parsed != result.expected_parse
+        or result.round_trip is False
+        or (
+            verifier is not None
+            and result.parsed
+            and (
+                result.engine_validation != "passed"
+                or result.engine_validation_after_print != "passed"
+            )
+        )
+        or (behavior_pcap is not None and result.parsed and result.behavior_validation != "passed")
     ]
     parsed = sum(result.parsed for result in results)
     return {
@@ -159,6 +198,23 @@ def run(
         "engine_validation_after_print_passed": sum(
             result.engine_validation_after_print == "passed" for result in results
         ),
+        "engine_validation_failures": sum(
+            verifier is not None and result.parsed and result.engine_validation != "passed"
+            for result in results
+        ),
+        "engine_validation_after_print_failures": sum(
+            verifier is not None
+            and result.parsed
+            and result.engine_validation_after_print != "passed"
+            for result in results
+        ),
+        "behavior_validation_passed": sum(
+            result.behavior_validation == "passed" for result in results
+        ),
+        "behavior_validation_failures": sum(
+            behavior_pcap is not None and result.parsed and result.behavior_validation != "passed"
+            for result in results
+        ),
         "printed": parsed,
         "parse_exceptions": sum(result.error is not None for result in results),
         "engine_timeouts": sum(
@@ -170,6 +226,7 @@ def run(
         "peak_memory_mb": peak_memory / 1_000_000,
         "unexpected_failures": len(unexpected),
         "engine_command": engine_command,
+        "behavior_pcap": str(behavior_pcap) if behavior_pcap else None,
         "elapsed_seconds": round(elapsed_seconds, 6),
         "cases": [asdict(result) for result in results],
     }
@@ -188,9 +245,14 @@ def main() -> int:
         "--engine-command",
         help="Optional command template, for example 'suricata -T -S {file}'",
     )
+    parser.add_argument(
+        "--pcap",
+        type=Path,
+        help="Optional traffic fixture for differential behavior verification",
+    )
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args()
-    report = run(args.corpus, args.engine_command, args.timeout, args.manifest)
+    report = run(args.corpus, args.engine_command, args.timeout, args.manifest, args.pcap)
     rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.write_text(rendered, encoding="utf-8")

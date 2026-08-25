@@ -2,6 +2,7 @@ import pytest
 
 from surinort_ast import parse_rule, print_rule
 from surinort_ast.core.enums import Dialect, RuleForm
+from surinort_ast.serialization.json_serializer import JSONSerializer
 
 
 @pytest.mark.parametrize(
@@ -29,4 +30,19 @@ def test_rule_form_survives_print_round_trip(text: str, form: RuleForm, printed:
 
     assert rule.form is form
     assert print_rule(rule) == printed
-    assert parse_rule(print_rule(rule), dialect=Dialect.SNORT3).form is form
+    restored = parse_rule(print_rule(rule), dialect=Dialect.SNORT3)
+    assert restored.form is form
+    if form is RuleForm.FULL:
+        assert rule.header is not None
+        assert rule.protocol is None
+    elif form is RuleForm.PROTOCOL_ONLY:
+        assert rule.header is None
+        assert rule.protocol.value == "tcp"
+    else:
+        assert rule.header is None
+        assert rule.protocol is None
+
+    serialized = JSONSerializer().from_dict(JSONSerializer().to_dict(rule))
+    assert serialized.form is form
+    assert serialized.header == rule.header
+    assert serialized.protocol == rule.protocol

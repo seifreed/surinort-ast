@@ -5,7 +5,7 @@
 <h1 align="center">surinort-ast</h1>
 
 <p align="center">
-  <strong>Production-grade AST parser and analysis toolkit for Suricata/Snort rules</strong>
+  <strong>Typed AST parser and analysis toolkit for Suricata/Snort rules</strong>
 </p>
 
 <p align="center">
@@ -212,6 +212,21 @@ steps:
 Upload the generated `${{ steps.surinort.outputs.sarif-file }}` with
 `github/codeql-action/upload-sarif` when code scanning annotations are desired.
 - Upload SARIF to GitHub Code Scanning.
+
+### Pre-commit and GitLab CI
+
+Use the repository hook from a pre-commit configuration:
+
+```yaml
+repos:
+  - repo: https://github.com/seifreed/surinort-ast
+    rev: v4.0.0
+    hooks:
+      - id: surinort-validate
+```
+
+The repository also includes `.gitlab-ci.yml`, which validates every `*.rules`
+file under `RULES_PATH` (default: `rules`) with the same CLI.
 
 For editor integration, install the dependency-free client from
 `editors/vscode` after installing this package so `surinort-lsp` is available.

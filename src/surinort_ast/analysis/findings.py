@@ -180,13 +180,9 @@ def optimization_results_to_findings(results: list[OptimizationResult]) -> list[
                     message=opt.description,
                     category="optimizer",
                     description=opt.description,
-                    help_text=(
-                        f"Heuristic cost delta: {opt.estimated_gain:+.1f}%; "
-                        "engine verification is required"
-                    ),
+                    help_text="Heuristic optimizer suggestion; engine verification is required",
                     properties={
                         "strategy": opt.strategy,
-                        "estimated_gain": round(opt.estimated_gain, 3),
                         "experimental": result.experimental,
                         "confidence": result.confidence,
                         "engine_verified": result.engine_verified,

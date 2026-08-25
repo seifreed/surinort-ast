@@ -13,7 +13,6 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from lark import Lark
-from lark.exceptions import LarkError
 
 from surinort_ast.core.nodes import IPCIDRRange, Port, Rule
 from surinort_ast.parsing.transformer import RuleTransformer
@@ -78,19 +77,13 @@ class TestPropertyBasedParsing:
     def test_parse_generated_rules(self, lark_parser: Lark, rule_text: str):
         """Generated rules should parse successfully."""
         transformer = RuleTransformer()
+        parse_tree = lark_parser.parse(rule_text)
+        result = transformer.transform(parse_tree)
 
-        try:
-            parse_tree = lark_parser.parse(rule_text)
-            result = transformer.transform(parse_tree)
-
-            # Should return a list with at least one rule
-            assert isinstance(result, list)
-            assert len(result) >= 1
-            assert isinstance(result[0], Rule)
-
-        except LarkError as e:
-            # If parsing fails, it's a bug or grammar issue
-            pytest.fail(f"Generated rule failed to parse: {rule_text}\nError: {e}")
+        # Should return a list with at least one rule
+        assert isinstance(result, list)
+        assert len(result) >= 1
+        assert isinstance(result[0], Rule)
 
     @given(rule_text=simple_rule_text())
     @settings(max_examples=100, deadline=None)
@@ -99,25 +92,21 @@ class TestPropertyBasedParsing:
         transformer = RuleTransformer()
         printer = TextPrinter()
 
-        try:
-            # First parse
-            parse_tree1 = lark_parser.parse(rule_text)
-            rule1 = transformer.transform(parse_tree1)[0]
+        # First parse
+        parse_tree1 = lark_parser.parse(rule_text)
+        rule1 = transformer.transform(parse_tree1)[0]
 
-            # Print
-            printed = printer.print_rule(rule1)
+        # Print
+        printed = printer.print_rule(rule1)
 
-            # Second parse
-            parse_tree2 = lark_parser.parse(printed)
-            rule2 = transformer.transform(parse_tree2)[0]
+        # Second parse
+        parse_tree2 = lark_parser.parse(printed)
+        rule2 = transformer.transform(parse_tree2)[0]
 
-            # Key fields should match
-            assert rule1.action == rule2.action
-            assert rule1.header.protocol == rule2.header.protocol
-            assert rule1.header.direction == rule2.header.direction
-
-        except Exception as e:
-            pytest.fail(f"Roundtrip failed for: {rule_text}\nError: {e}")
+        # Key fields should match
+        assert rule1.action == rule2.action
+        assert rule1.header.protocol == rule2.header.protocol
+        assert rule1.header.direction == rule2.header.direction
 
     @given(sid=st.integers(min_value=1, max_value=9999999))
     @settings(max_examples=100, deadline=None)
@@ -240,15 +229,10 @@ class TestParserRobustness:
         rule_text = f'alert{spaces}tcp{spaces}any{spaces}any{spaces}->{spaces}any{spaces}80{spaces}(msg:"Test"; sid:1;)'
 
         transformer = RuleTransformer()
-
-        try:
-            parse_tree = lark_parser.parse(rule_text)
-            result = transformer.transform(parse_tree)
-            assert isinstance(result, list)
-            assert len(result) >= 1
-
-        except Exception as e:
-            pytest.fail(f"Parser failed with extra whitespace: {e}")
+        parse_tree = lark_parser.parse(rule_text)
+        result = transformer.transform(parse_tree)
+        assert isinstance(result, list)
+        assert len(result) >= 1
 
     @given(msg_length=st.integers(min_value=1, max_value=500))
     @settings(deadline=None)
@@ -258,21 +242,16 @@ class TestParserRobustness:
         rule_text = f'alert tcp any any -> any 80 (msg:"{long_msg}"; sid:1;)'
 
         transformer = RuleTransformer()
+        parse_tree = lark_parser.parse(rule_text)
+        result = transformer.transform(parse_tree)
+        assert isinstance(result, list)
 
-        try:
-            parse_tree = lark_parser.parse(rule_text)
-            result = transformer.transform(parse_tree)
-            assert isinstance(result, list)
+        # Verify message length
+        from surinort_ast.core.nodes import MsgOption
 
-            # Verify message length
-            from surinort_ast.core.nodes import MsgOption
-
-            msg_opt = next((o for o in result[0].options if isinstance(o, MsgOption)), None)
-            assert msg_opt is not None
-            assert len(msg_opt.text) == msg_length
-
-        except Exception as e:
-            pytest.fail(f"Parser failed with long message: {e}")
+        msg_opt = next((o for o in result[0].options if isinstance(o, MsgOption)), None)
+        assert msg_opt is not None
+        assert len(msg_opt.text) == msg_length
 
 
 @pytest.mark.fuzzing

@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from .interface import SurinortPlugin
 
+from .interface import PLUGIN_API_VERSION
 from .registry import get_registry
 
 logger = logging.getLogger(__name__)
@@ -393,6 +394,13 @@ class PluginLoader:
         if not (hasattr(plugin, "version") or hasattr(type(plugin), "version")):
             raise PluginValidationError(
                 f"Plugin {type(plugin).__name__} missing required property: version"
+            )
+
+        api_version = getattr(plugin, "api_version", PLUGIN_API_VERSION)
+        if api_version != PLUGIN_API_VERSION:
+            raise PluginValidationError(
+                f"Plugin {type(plugin).__name__} requires unsupported API version "
+                f"{api_version!r}; current version is {PLUGIN_API_VERSION!r}"
             )
 
         logger.debug(f"Validated plugin: {type(plugin).__name__}")

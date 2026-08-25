@@ -1,8 +1,8 @@
 """
 Performance estimation for IDS rules.
 
-Estimates the computational cost of rule evaluation based on option types
-and complexity. Used to quantify optimization improvements.
+Estimates a relative computational cost of rule evaluation based on option
+types and complexity. It is a heuristic model, not an engine benchmark.
 
 Copyright (c) Marc Rivero López
 Licensed under GPLv3
@@ -258,18 +258,19 @@ class PerformanceEstimator:
 
     def estimate_improvement(self, original: Rule, optimized: Rule) -> float:
         """
-        Calculate estimated performance improvement percentage.
+        Calculate the relative cost delta from the heuristic model.
 
-        Args:
-            original: Original rule
-            optimized: Optimized rule
+            Args:
+                original: Original rule
+                optimized: Optimized rule
 
-        Returns:
-            Improvement percentage (positive = better, negative = worse)
+            Returns:
+                Relative cost delta in percent (positive = lower modeled cost).
+                This is not a calibrated performance prediction.
 
-        Example:
-            >>> improvement = estimator.estimate_improvement(original, optimized)
-            >>> print(f"Expected improvement: {improvement:.1f}%")
+            Example:
+                >>> improvement = estimator.estimate_improvement(original, optimized)
+                >>> print(f"Relative modeled cost delta: {improvement:.1f}")
         """
         original_cost = self.estimate_cost(original)
         optimized_cost = self.estimate_cost(optimized)

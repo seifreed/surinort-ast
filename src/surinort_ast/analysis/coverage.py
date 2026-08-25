@@ -397,14 +397,19 @@ class CoverageAnalyzer:
 
     def _analyze_rule(self, rule: Rule) -> None:
         """Analyze a single rule for coverage metrics."""
+        self.action_coverage[rule.action] += 1
+        if rule.header is None:
+            self.indeterminate_ports.add("headerless rule")
+            content_type = self._classify_content_type(rule)
+            if content_type:
+                self.content_types[content_type] += 1
+            return
+
         # Protocol coverage
         self.protocol_coverage[rule.header.protocol] += 1
 
         # Direction coverage
         self.direction_coverage[rule.header.direction] += 1
-
-        # Action coverage
-        self.action_coverage[rule.action] += 1
 
         # Port coverage - extract all ports from src and dst
         src_ports = self._extract_ports(rule.header.src_port)
