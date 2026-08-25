@@ -17,6 +17,10 @@
     "onLanguage:snort3"
   ],
   "contributes": {
+    "commands": [
+      {"command": "surinortAst.validateWithEngine", "title": "Surinort AST: Validate With Engine"},
+      {"command": "surinortAst.showMatchSpace", "title": "Surinort AST: Show Match-Space Preview"}
+    ],
     "languages": [
       {
         "id": "suricata",
@@ -41,6 +45,11 @@
           "type": "string",
           "default": "surinort-lsp",
           "description": "Executable used to start the Surinort AST language server."
+        },
+        "surinortAst.engineCommand": {
+          "type": "string",
+          "default": "",
+          "description": "Optional local engine command containing {file}."
         }
       }
     }

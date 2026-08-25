@@ -5,11 +5,14 @@ from __future__ import annotations
 import json
 import re
 import sys
+import tempfile
+from pathlib import Path
 from typing import Any, BinaryIO, cast
 
+from ..analysis import CoverageAnalyzer, EngineVerifier
 from ..api import apply_safe_fixes, parse_rule, validate_rule, validate_rules
 from ..core.enums import Action, DiagnosticLevel, Dialect, Protocol
-from ..core.nodes import Rule, extract_sid
+from ..core.nodes import FlowbitsOption, Rule, extract_sid
 from ..exceptions import ParseError
 from ..printer import CanonicalPrinter
 from ..streaming.parser import _iter_rule_blocks
@@ -209,6 +212,70 @@ def code_actions_for_text(
     return []
 
 
+def _word_at(text: str, line: int, character: int) -> str | None:
+    lines = text.splitlines()
+    if line < 0 or line >= len(lines):
+        return None
+    for match in re.finditer(r"[A-Za-z_][A-Za-z0-9_.-]*", lines[line]):
+        if match.start() <= character <= match.end():
+            return match.group(0)
+    return None
+
+
+def _flowbit_occurrences(text: str, dialect: Dialect) -> list[dict[str, Any]]:
+    occurrences: list[dict[str, Any]] = []
+    for line, raw in _iter_rule_blocks(enumerate(text.splitlines(), start=0)):
+        try:
+            rule = parse_rule(raw, dialect=dialect)
+        except ParseError:
+            continue
+        for option in rule.options:
+            if not isinstance(option, FlowbitsOption):
+                continue
+            names = tuple(filter(None, re.split(r"[&|]", option.name)))
+            for name in names:
+                occurrences.append({"line": line, "name": name, "action": option.action})
+    return occurrences
+
+
+def flowbit_locations(
+    text: str,
+    line: int,
+    character: int,
+    definitions_only: bool = False,
+    dialect: Dialect = Dialect.SURICATA,
+) -> list[dict[str, Any]]:
+    """Return flowbit rule locations matching the symbol under the cursor."""
+    name = _word_at(text, line, character)
+    if name is None:
+        return []
+    return [
+        occurrence
+        for occurrence in _flowbit_occurrences(text, dialect)
+        if occurrence["name"] == name
+        and (not definitions_only or occurrence["action"].lower() in {"set", "toggle"})
+    ]
+
+
+def match_space_preview(text: str, dialect: Dialect = Dialect.SURICATA) -> dict[str, Any]:
+    """Return a coverage-backed, explicitly heuristic match-space preview."""
+    rules, diagnostics = _parse_document(text, dialect)
+    report = CoverageAnalyzer().analyze(rules)
+    return {"heuristic": True, "coverage": report.to_dict(), "diagnostics": diagnostics}
+
+
+def engine_validation_for_text(text: str, command: str, timeout: float = 30.0) -> dict[str, Any]:
+    """Validate the current document with a configured local engine command."""
+    try:
+        verifier = EngineVerifier(command, timeout)
+        with tempfile.TemporaryDirectory(prefix="surinort-lsp-") as directory:
+            path = Path(directory) / "document.rules"
+            path.write_text(text, encoding="utf-8")
+            return verifier.verify(path).to_dict()
+    except (OSError, ValueError) as exc:
+        return {"status": "error", "returncode": None, "stdout": "", "stderr": str(exc)}
+
+
 def _read_message(stream: BinaryIO) -> dict[str, Any] | None:
     headers: dict[str, str] = {}
     while True:
@@ -231,7 +298,7 @@ def _write_message(stream: BinaryIO, message: dict[str, Any]) -> None:
     stream.flush()
 
 
-def serve(reader: BinaryIO, writer: BinaryIO) -> None:
+def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
     """Serve LSP messages until EOF or an ``exit`` notification."""
     documents: dict[str, str] = {}
     while True:
@@ -252,6 +319,8 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:
                             "completionProvider": {"triggerCharacters": [":", ";", " "]},
                             "documentFormattingProvider": True,
                             "codeActionProvider": True,
+                            "definitionProvider": True,
+                            "referencesProvider": True,
                             "textDocumentSync": 1,
                         }
                     },
@@ -312,6 +381,41 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:
             _write_message(
                 writer, {"jsonrpc": "2.0", "id": request_id, "result": code_action_result}
             )
+        elif method in {"textDocument/definition", "textDocument/references"}:
+            params = message.get("params", {})
+            document = params.get("textDocument", {})
+            position = params.get("position", params.get("range", {}).get("start", {}))
+            locations = flowbit_locations(
+                documents.get(document.get("uri", ""), ""),
+                position.get("line", 0),
+                position.get("character", 0),
+                definitions_only=method.endswith("definition"),
+            )
+            locations_result = [
+                {
+                    "uri": document.get("uri", ""),
+                    "range": {
+                        "start": {"line": item["line"], "character": 0},
+                        "end": {"line": item["line"], "character": 999},
+                    },
+                }
+                for item in locations
+            ]
+            _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": locations_result})
+        elif method == "surinort/matchSpacePreview":
+            params = message.get("params", {})
+            document = params.get("textDocument", {})
+            preview_result = match_space_preview(documents.get(document.get("uri", ""), ""))
+            _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": preview_result})
+        elif method == "surinort/engineValidate":
+            params = message.get("params", {})
+            document = params.get("textDocument", {})
+            engine_result = engine_validation_for_text(
+                documents.get(document.get("uri", ""), ""),
+                str(params.get("command", "")),
+                float(params.get("timeout", 30.0)),
+            )
+            _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": engine_result})
         elif method == "shutdown":
             _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": None})
         elif method == "exit":
@@ -327,9 +431,12 @@ __all__ = [
     "code_actions_for_text",
     "completion_items",
     "diagnostics_for_text",
+    "engine_validation_for_text",
+    "flowbit_locations",
     "format_document",
     "formatting_edits_for_text",
     "hover_for_text",
     "main",
+    "match_space_preview",
     "serve",
 ]
