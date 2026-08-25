@@ -19,3 +19,19 @@ are installed. Publish a report only after running it with the exact engine
 builds and configuration used for the release. For optimizer behavior checks,
 add a `pcap` path and a command containing both `{file}` and `{pcap}`; the
 conformance report then compares the original and printed ruleset output.
+
+For an optimized ruleset, compare the original and candidate files over a
+fixture battery:
+
+```bash
+python -m tools.optimizer_behavior_lab \
+  --original rules/original.rules \
+  --candidate rules/optimized.rules \
+  --pcap traffic/one.pcap \
+  --pcap traffic/two.pcap \
+  --engine-command 'suricata -T -S {file} --pcap {pcap}' \
+  --output optimizer-behavior-report.json
+```
+
+The report is evidence only for the supplied engine build, configuration, and
+PCAPs. It must not be generalized into a universal semantic-equivalence claim.
