@@ -51,6 +51,27 @@ def test_flowbit_use_without_definition_is_ruleset_warning() -> None:
     assert "flowbit_without_definition" in {diagnostic.code for diagnostic in diagnostics}
 
 
+def test_flowbits_require_names_for_mutations_and_checks() -> None:
+    assert "missing_flowbit_name" in codes("alert tcp any any -> any 80 (flowbits:set; sid:1;)")
+    assert "missing_flowbit_name" in codes("alert tcp any any -> any 80 (flowbits:isset; sid:1;)")
+    assert not codes("alert tcp any any -> any 80 (flowbits:noalert; sid:1;)") & {
+        "missing_flowbit_name",
+        "unexpected_flowbit_name",
+    }
+
+
+def test_flowbits_reject_invalid_mutation_shapes() -> None:
+    assert "composite_flowbit_mutation" in codes(
+        "alert tcp any any -> any 80 (flowbits:set,a&b; sid:1;)"
+    )
+    assert "unexpected_flowbit_name" in codes(
+        "alert tcp any any -> any 80 (flowbits:noalert,name; sid:1;)"
+    )
+    assert "invalid_flowbits_action" in codes(
+        "alert tcp any any -> any 80 (flowbits:unknown,name; sid:1;)"
+    )
+
+
 def test_sticky_buffer_and_protocol_constraints_are_reported() -> None:
     assert "buffer_protocol_mismatch" in codes(
         'alert udp any any -> any 53 (http_uri; content:"x"; sid:1;)'
