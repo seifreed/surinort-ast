@@ -113,6 +113,11 @@ jobs:
             exit 1
           fi
           echo "Version verified: $CLEAN_VERSION"
+          VSCODE_VERSION=$(jq -r '.version' editors/vscode/package.json)
+          if [[ "$VSCODE_VERSION" != "$CLEAN_VERSION" ]]; then
+            echo "VS Code version mismatch: $VSCODE_VERSION != $CLEAN_VERSION"
+            exit 1
+          fi
 
   # Run full test suite before release
   test:
@@ -156,9 +161,16 @@ jobs:
         run: |
           python -m build --sdist --wheel --outdir dist/
 
+      - name: Package VS Code extension
+        run: |
+          npm install --global @vscode/vsce@3.9.2
+          cd editors/vscode
+          vsce package --no-dependencies \
+            --out "../../dist/surinort-ast-${{ needs.validate.outputs.version }}.vsix"
+
       - name: Verify distributions
         run: |
-          twine check dist/*
+          twine check dist/*.whl dist/*.tar.gz
           ls -lh dist/
 
       - name: Generate SBOM
@@ -181,7 +193,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for file in dist/*.whl dist/*.tar.gz; do
+          for file in dist/*.whl dist/*.tar.gz dist/*.vsix; do
             gh attestation verify "$file" \
               --repo "$GITHUB_REPOSITORY" \
               --signer-workflow .github/workflows/release.yml
@@ -267,6 +279,9 @@ jobs:
           name: release-distributions
           path: .
 
+      - name: Remove non-PyPI artifacts
+        run: rm -f dist/*.vsix
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
         with:
@@ -312,7 +327,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p provenance
-          for file in dist/*.whl dist/*.tar.gz; do
+          for file in dist/*.whl dist/*.tar.gz dist/*.vsix; do
             (
               cd provenance
               gh attestation download "../$file" --repo "$GITHUB_REPOSITORY"
@@ -367,7 +382,7 @@ jobs:
       - name: Sign artifacts with Sigstore
         run: |
           cd dist/
-          for file in *.whl *.tar.gz; do
+          for file in *.whl *.tar.gz *.vsix; do
             python -m sigstore sign "$file"
           done
           ls -la

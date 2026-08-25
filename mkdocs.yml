@@ -9,5 +9,6 @@ nav:
   - API Compatibility: api-compatibility.md
   - Engine Validation: engine-validation.md
   - Conformance Dashboard: conformance-dashboard.md
+  - Adoption: adoption.md
   - Changelog: changelog.md
 docs_dir: docs
