@@ -16,7 +16,7 @@
         <link rel="prev" href="..">
       
       
-        <link rel="next" href="../changelog/">
+        <link rel="next" href="../engine-validation/">
       
       
         
@@ -369,6 +369,87 @@
   
   
     <li class="md-nav__item">
+      <a href="../engine-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../conformance-dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conformance Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adoption/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adoption
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../changelog/" class="md-nav__link">
         
   
@@ -538,12 +619,17 @@ an explicit output target, <code>--engine-verify</code>, and <code>--engine-comm
 validates engine loading but does not prove equal alerts on traffic. Add
 <code>--pcap</code> and a command containing both <code>{file}</code> and <code>{pcap}</code> to compare the
 engine's stdout for the original and candidate rulesets.</p>
+<p>For a reproducible multi-engine run, use <code>tools/engine_matrix.py</code> with a
+versioned matrix manifest. Its report keeps engine, version, dialect, parse,
+round-trip, engine, and optional PCAP behavior results together.</p>
 <p><code>surinort-lsp</code> implements stdio <code>initialize</code>, diagnostics on document changes,
-and rule hover. It is intentionally dependency-free so editor integrations can
-pin the package and choose their own client.</p>
+rule hover, keyword completion, document formatting, and safe duplicate-modifier
+quick fixes. It is intentionally dependency-free so editor integrations can pin
+the package and choose their own client.</p>
 <p>The repository also ships a dependency-free VS Code client under
 <code>editors/vscode</code>; it starts <code>surinort-lsp</code>, publishes diagnostics, and exposes
-rule hover information.</p>
+rule hover information. Clients may use the additional standard LSP requests
+directly until the extension registers those providers.</p>
 <p>Plugins use API contract version <code>surinort_ast.plugins.PLUGIN_API_VERSION</code>.
 Plugins that omit <code>api_version</code> remain compatible as legacy version <code>1</code>
 plugins; a declared unsupported version is rejected by the loader.</p>

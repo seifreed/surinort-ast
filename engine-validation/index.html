@@ -10,26 +10,28 @@
       
       
       
-        <link rel="canonical" href="https://seifreed.github.io/surinort-ast/">
+        <link rel="canonical" href="https://seifreed.github.io/surinort-ast/engine-validation/">
       
       
+        <link rel="prev" href="../api-compatibility/">
       
-        <link rel="next" href="api-compatibility/">
+      
+        <link rel="next" href="../conformance-dashboard/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>surinort-ast</title>
+        <title>Engine Validation - surinort-ast</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
       
 
@@ -48,7 +50,7 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -66,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#surinort-ast" class="md-skip">
+        <a href="#engine-validation" class="md-skip">
           Skip to content
         </a>
       
@@ -82,7 +84,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="surinort-ast" class="md-header__button md-logo" aria-label="surinort-ast" data-md-component="logo">
+    <a href=".." title="surinort-ast" class="md-header__button md-logo" aria-label="surinort-ast" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +104,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Engine Validation
             
           </span>
         </div>
@@ -192,7 +194,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="surinort-ast" class="md-nav__button md-logo" aria-label="surinort-ast" data-md-component="logo">
+    <a href=".." title="surinort-ast" class="md-nav__button md-logo" aria-label="surinort-ast" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -219,37 +221,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Home
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -265,48 +240,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quick start
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#scope" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scope
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -318,7 +251,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api-compatibility/" class="md-nav__link">
+      <a href="../api-compatibility/" class="md-nav__link">
         
   
   
@@ -342,10 +275,19 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="engine-validation/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -361,6 +303,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -372,7 +315,7 @@
   
   
     <li class="md-nav__item">
-      <a href="conformance-dashboard/" class="md-nav__link">
+      <a href="../conformance-dashboard/" class="md-nav__link">
         
   
   
@@ -399,7 +342,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adoption/" class="md-nav__link">
+      <a href="../adoption/" class="md-nav__link">
         
   
   
@@ -426,7 +369,7 @@
   
   
     <li class="md-nav__item">
-      <a href="changelog/" class="md-nav__link">
+      <a href="../changelog/" class="md-nav__link">
         
   
   
@@ -466,36 +409,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quick start
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#scope" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scope
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -514,19 +427,34 @@
   
 
 
-<h1 id="surinort-ast">surinort-ast</h1>
-<p><code>surinort-ast</code> parses Suricata, Snort 2, and Snort 3 rules into a typed AST
-that can be queried, transformed, serialized, and printed again.</p>
-<h2 id="quick-start">Quick start</h2>
-<pre><code class="language-bash">pip install surinort-ast
-surinort parse rules.rules
+<h1 id="engine-validation">Engine Validation</h1>
+<p>The parser and printer can be checked against real Suricata and Snort
+installations with the versioned matrix runner:</p>
+<pre><code class="language-bash">python -m tools.engine_matrix \
+  --matrix conformance/engine-matrix.example.json \
+  --output engine-matrix-report.json
 </code></pre>
-<p>The <a href="https://github.com/seifreed/surinort-ast#readme">README</a> contains the
-full Python API and CLI reference.</p>
-<h2 id="scope">Scope</h2>
-<p>The parser and printers are intended for source-to-source tooling. Analysis
-reports are heuristic and should be checked with the target IDS engine before
-changing a production ruleset.</p>
+<p>Each entry must identify an engine, concrete version label, dialect, manifest,
+and command containing <code>{file}</code>. The command is executed without a shell. A
+missing binary, rejected original rule, rejected printed rule, timeout, or
+behavior mismatch is recorded as an unexpected failure.</p>
+<p>The example matrix is a declaration template, not evidence that those engines
+are installed. Publish a report only after running it with the exact engine
+builds and configuration used for the release. For optimizer behavior checks,
+add a <code>pcap</code> path and a command containing both <code>{file}</code> and <code>{pcap}</code>; the
+conformance report then compares the original and printed ruleset output.</p>
+<p>For an optimized ruleset, compare the original and candidate files over a
+fixture battery:</p>
+<pre><code class="language-bash">python -m tools.optimizer_behavior_lab \
+  --original rules/original.rules \
+  --candidate rules/optimized.rules \
+  --pcap traffic/one.pcap \
+  --pcap traffic/two.pcap \
+  --engine-command 'suricata -T -S {file} --pcap {pcap}' \
+  --output optimizer-behavior-report.json
+</code></pre>
+<p>The report is evidence only for the supplied engine build, configuration, and
+PCAPs. It must not be generalized into a universal semantic-equivalence claim.</p>
 
 
 
@@ -576,10 +504,10 @@ changing a production ruleset.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": [], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

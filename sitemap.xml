@@ -5,11 +5,23 @@
          <lastmod>2026-08-25</lastmod>
     </url>
     <url>
+         <loc>https://seifreed.github.io/surinort-ast/adoption/</loc>
+         <lastmod>2026-08-25</lastmod>
+    </url>
+    <url>
          <loc>https://seifreed.github.io/surinort-ast/api-compatibility/</loc>
          <lastmod>2026-08-25</lastmod>
     </url>
     <url>
          <loc>https://seifreed.github.io/surinort-ast/changelog/</loc>
+         <lastmod>2026-08-25</lastmod>
+    </url>
+    <url>
+         <loc>https://seifreed.github.io/surinort-ast/conformance-dashboard/</loc>
+         <lastmod>2026-08-25</lastmod>
+    </url>
+    <url>
+         <loc>https://seifreed.github.io/surinort-ast/engine-validation/</loc>
          <lastmod>2026-08-25</lastmod>
     </url>
 </urlset>
