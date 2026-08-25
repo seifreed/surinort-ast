@@ -494,6 +494,11 @@ that module. The <code>surinort_ast.api</code> module exposes the same functiona
 <li><code>surinort_ast.printer.SourcePrinter</code> for retained source blocks and
   <code>CanonicalPrinter</code> for normalized output.</li>
 </ul>
+<p><code>parse_file()</code> keeps its historical <code>list[Rule]</code> return type. Use the additive
+<code>parse_source_file()</code> API when an editor or refactoring tool must retain the
+complete source text, rule spans, and unparsed file regions. Pass its result to
+<code>SourcePrinter.print_file()</code> to preserve unchanged bytes and replace only rules
+that were modified.</p>
 <p>Internal modules under <code>core</code>, <code>parsing</code>, <code>printer</code>, and <code>serialization</code> may
 change without preserving import paths. Use the top-level exports when possible.</p>
 <h2 id="versioning">Versioning</h2>
@@ -502,10 +507,14 @@ AST contract version and can change independently. Additive AST fields keep
 their protobuf defaults and JSON readers must tolerate omitted fields. A
 breaking serialized representation requires an AST major version and a
 migration note in <code>CHANGELOG.md</code>.</p>
+<p>AST 4 represents rule forms losslessly: full rules have a <code>Header</code>,
+protocol-only rules have <code>header=None</code> and a separate <code>protocol</code>, and
+headerless rules have both fields set to <code>None</code>. Use <code>RuleForm</code> to branch on
+the source form instead of treating a wildcard header as a real match space.</p>
 <p>Payloads from AST 3.x can be upgraded explicitly with
 <code>surinort_ast.migrate_ast(payload)</code>. It preserves bare and metadata-wrapped
-JSON shapes, adds defaults for fields introduced by the current schema, and
-rejects a different AST major.</p>
+JSON shapes, converts legacy wildcard headers according to <code>form</code>, and rejects
+unsupported AST majors.</p>
 <h2 id="compatibility-policy">Compatibility policy</h2>
 <ul>
 <li>Patch releases fix behavior without removing public names.</li>
@@ -513,6 +522,15 @@ rejects a different AST major.</p>
 <li>Major releases may remove or change public behavior after a deprecation note.</li>
 <li>Heuristic analysis results are advisory; <code>engine_verified</code> and
   <code>behavior_verified</code> must not be inferred from AST round-tripping.</li>
+<li><code>EngineTarget</code> capability checks are tri-state: <code>True</code> means supported,
+  <code>False</code> requires a complete engine listing, and <code>None</code> means the target has
+  no evidence for that capability. Use <code>EngineTarget.with_keywords()</code> with a
+  complete output from the installed engine before treating unknown keywords
+  as errors. <code>EngineTarget.from_keyword_listing()</code> accepts plain or tabular
+  <code>--list-keywords</code> output and marks the resulting keyword catalog complete.</li>
+<li><code>RulesetContext.from_suricata_yaml()</code> and <code>from_snort_config()</code> resolve
+  deployment variables for coverage analysis; unresolved variables remain
+  indeterminate instead of being reported as uncovered concrete ports.</li>
 </ul>
 <h2 id="cli-and-editor-tooling">CLI and editor tooling</h2>
 <p><code>surinort optimize</code> reports suggestions by default. Applying changes requires
@@ -526,10 +544,16 @@ pin the package and choose their own client.</p>
 <p>The repository also ships a dependency-free VS Code client under
 <code>editors/vscode</code>; it starts <code>surinort-lsp</code>, publishes diagnostics, and exposes
 rule hover information.</p>
+<p>Plugins use API contract version <code>surinort_ast.plugins.PLUGIN_API_VERSION</code>.
+Plugins that omit <code>api_version</code> remain compatible as legacy version <code>1</code>
+plugins; a declared unsupported version is rejected by the loader.</p>
 <p><code>surinort validate file1.rules file2.rules</code> validates a combined ruleset; the
 GitHub Action also expands recursive patterns such as <code>rules/**/*.rules</code>.
 Its optional <code>comment</code> input posts a SARIF count summary on pull requests and
 requires the consuming workflow to grant <code>pull-requests: write</code>.</p>
+<p><code>apply_safe_fixes(rule)</code> returns a new rule and only removes exact duplicate
+inline content modifiers. Diagnostics with different duplicate values remain
+unchanged because selecting a value would require engine-specific semantics.</p>
 
 
 
