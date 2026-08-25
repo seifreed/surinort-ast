@@ -69,12 +69,14 @@ validates engine loading but does not prove equal alerts on traffic. Add
 engine's stdout for the original and candidate rulesets.
 
 `surinort-lsp` implements stdio `initialize`, diagnostics on document changes,
-and rule hover. It is intentionally dependency-free so editor integrations can
-pin the package and choose their own client.
+rule hover, keyword completion, document formatting, and safe duplicate-modifier
+quick fixes. It is intentionally dependency-free so editor integrations can pin
+the package and choose their own client.
 
 The repository also ships a dependency-free VS Code client under
 `editors/vscode`; it starts `surinort-lsp`, publishes diagnostics, and exposes
-rule hover information.
+rule hover information. Clients may use the additional standard LSP requests
+directly until the extension registers those providers.
 
 Plugins use API contract version `surinort_ast.plugins.PLUGIN_API_VERSION`.
 Plugins that omit `api_version` remain compatible as legacy version `1`
