@@ -63,6 +63,9 @@ jobs:
             | sha256sum --check --strict
           python tools/extract_conformance_archive.py \
             /tmp/external-corpus.tar.gz external-corpus
+          rules_count=$(find external-corpus -type f -name '*.rules' | wc -l)
+          test "$rules_count" -gt 0
+          echo "Discovered $rules_count rule file(s)"
 
       - name: Run external conformance lab
         env:
