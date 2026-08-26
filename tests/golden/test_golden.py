@@ -290,7 +290,7 @@ class TestGoldenSubsets:
             f"\nFirst {rule_count} rules: {parsed} parsed, {errors} errors ({success_rate:.2f}% success)"
         )
 
-        assert success_rate >= 95.0
+        assert success_rate >= 100.0
 
 
 @pytest.mark.golden
