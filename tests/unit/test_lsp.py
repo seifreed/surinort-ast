@@ -1,6 +1,8 @@
 import io
 import json
 
+import surinort_ast.lsp.server as lsp_server
+from surinort_ast.core.enums import Dialect
 from surinort_ast.lsp import (
     code_actions_for_text,
     completion_items,
@@ -130,3 +132,53 @@ def test_lsp_transport_exposes_navigation_and_preview() -> None:
     assert b'"id":1' in output
     assert b'"id":2' in output and b'"line":0' in output
     assert b'"id":3' in output and b'"heuristic":true' in output
+
+
+def test_lsp_transport_retains_document_dialect(monkeypatch) -> None:
+    seen: list[Dialect] = []
+
+    def fake_diagnostics(text: str, dialect: Dialect = Dialect.SURICATA) -> list[dict[str, object]]:
+        del text
+        seen.append(dialect)
+        return []
+
+    monkeypatch.setattr(lsp_server, "diagnostics_for_text", fake_diagnostics)
+
+    def message(payload: dict[str, object]) -> bytes:
+        body = json.dumps(payload, separators=(",", ":")).encode()
+        return f"Content-Length: {len(body)}\r\n\r\n".encode() + body
+
+    reader = io.BytesIO(
+        b"".join(
+            [
+                message({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
+                message(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "textDocument/didOpen",
+                        "params": {
+                            "textDocument": {
+                                "uri": "file:///rule.snort3.rules",
+                                "languageId": "snort3",
+                                "text": "alert tcp (sid:1;)\n",
+                            }
+                        },
+                    }
+                ),
+                message(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "textDocument/didChange",
+                        "params": {
+                            "textDocument": {"uri": "file:///rule.snort3.rules"},
+                            "contentChanges": [{"text": "alert tcp (sid:2;)\n"}],
+                        },
+                    }
+                ),
+            ]
+        )
+    )
+
+    serve(reader, io.BytesIO())
+
+    assert seen == [Dialect.SNORT3, Dialect.SNORT3]

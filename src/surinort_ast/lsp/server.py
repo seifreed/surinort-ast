@@ -292,6 +292,17 @@ def _read_message(stream: BinaryIO) -> dict[str, Any] | None:
     return cast(dict[str, Any], json.loads(stream.read(length).decode("utf-8")))
 
 
+def _document_dialect(language_id: object) -> Dialect:
+    try:
+        return Dialect(str(language_id))
+    except ValueError:
+        return Dialect.SURICATA
+
+
+def _document_state(documents: dict[str, tuple[str, Dialect]], uri: str) -> tuple[str, Dialect]:
+    return documents.get(uri, ("", Dialect.SURICATA))
+
+
 def _write_message(stream: BinaryIO, message: dict[str, Any]) -> None:
     body = json.dumps(message, separators=(",", ":")).encode("utf-8")
     stream.write(f"Content-Length: {len(body)}\r\n\r\n".encode("ascii") + body)
@@ -300,7 +311,7 @@ def _write_message(stream: BinaryIO, message: dict[str, Any]) -> None:
 
 def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
     """Serve LSP messages until EOF or an ``exit`` notification."""
-    documents: dict[str, str] = {}
+    documents: dict[str, tuple[str, Dialect]] = {}
     while True:
         message = _read_message(reader)
         if message is None:
@@ -333,31 +344,41 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
             text = document.get("text")
             if text is None:
                 text = params.get("contentChanges", [{}])[-1].get("text", "")
-            documents[uri] = text
+            _, previous_dialect = _document_state(documents, uri)
+            dialect = (
+                _document_dialect(document.get("languageId"))
+                if method == "textDocument/didOpen"
+                else previous_dialect
+            )
+            documents[uri] = (str(text), dialect)
             _write_message(
                 writer,
                 {
                     "jsonrpc": "2.0",
                     "method": "textDocument/publishDiagnostics",
-                    "params": {"uri": uri, "diagnostics": diagnostics_for_text(text)},
+                    "params": {
+                        "uri": uri,
+                        "diagnostics": diagnostics_for_text(str(text), dialect),
+                    },
                 },
             )
         elif method == "textDocument/hover":
             params = message.get("params", {})
             document = params.get("textDocument", {})
             position = params.get("position", {})
-            result = hover_for_text(
-                documents.get(document.get("uri", ""), ""), position.get("line", 0)
-            )
+            text, dialect = _document_state(documents, document.get("uri", ""))
+            result = hover_for_text(text, position.get("line", 0), dialect)
             _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": result})
         elif method == "textDocument/completion":
             params = message.get("params", {})
             document = params.get("textDocument", {})
             position = params.get("position", {})
+            text, dialect = _document_state(documents, document.get("uri", ""))
             completion_result = completion_items(
-                documents.get(document.get("uri", ""), ""),
+                text,
                 position.get("line", 0),
                 position.get("character", 0),
+                dialect,
             )
             _write_message(
                 writer, {"jsonrpc": "2.0", "id": request_id, "result": completion_result}
@@ -365,9 +386,8 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
         elif method == "textDocument/formatting":
             params = message.get("params", {})
             document = params.get("textDocument", {})
-            formatting_result = formatting_edits_for_text(
-                documents.get(document.get("uri", ""), "")
-            )
+            text, dialect = _document_state(documents, document.get("uri", ""))
+            formatting_result = formatting_edits_for_text(text, dialect)
             _write_message(
                 writer, {"jsonrpc": "2.0", "id": request_id, "result": formatting_result}
             )
@@ -375,9 +395,8 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
             params = message.get("params", {})
             document = params.get("textDocument", {})
             start = params.get("range", {}).get("start", {})
-            code_action_result = code_actions_for_text(
-                documents.get(document.get("uri", ""), ""), start.get("line", 0)
-            )
+            text, dialect = _document_state(documents, document.get("uri", ""))
+            code_action_result = code_actions_for_text(text, start.get("line", 0), dialect)
             _write_message(
                 writer, {"jsonrpc": "2.0", "id": request_id, "result": code_action_result}
             )
@@ -385,11 +404,13 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
             params = message.get("params", {})
             document = params.get("textDocument", {})
             position = params.get("position", params.get("range", {}).get("start", {}))
+            text, dialect = _document_state(documents, document.get("uri", ""))
             locations = flowbit_locations(
-                documents.get(document.get("uri", ""), ""),
+                text,
                 position.get("line", 0),
                 position.get("character", 0),
                 definitions_only=method.endswith("definition"),
+                dialect=dialect,
             )
             locations_result = [
                 {
@@ -405,13 +426,15 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
         elif method == "surinort/matchSpacePreview":
             params = message.get("params", {})
             document = params.get("textDocument", {})
-            preview_result = match_space_preview(documents.get(document.get("uri", ""), ""))
+            text, dialect = _document_state(documents, document.get("uri", ""))
+            preview_result = match_space_preview(text, dialect)
             _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": preview_result})
         elif method == "surinort/engineValidate":
             params = message.get("params", {})
             document = params.get("textDocument", {})
+            text, _ = _document_state(documents, document.get("uri", ""))
             engine_result = engine_validation_for_text(
-                documents.get(document.get("uri", ""), ""),
+                text,
                 str(params.get("command", "")),
                 float(params.get("timeout", 30.0)),
             )
