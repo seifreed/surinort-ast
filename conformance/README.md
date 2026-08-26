@@ -51,3 +51,12 @@ python tools/conformance_lab.py \
   --corpus conformance/corpus/snort3 \
   --engine-command 'snort -R {file} -T'
 ```
+
+Snort2 does not support Snort3's `-R` rules-file option. Use the checked-in
+config-template wrapper instead:
+
+```bash
+python tools/conformance_lab.py \
+  --corpus conformance/corpus/snort2 \
+  --engine-command 'python tools/snort2_engine.py --config conformance/engines/snort2-2.9.20.conf --rules {file}'
+```
