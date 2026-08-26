@@ -196,7 +196,7 @@ permissions:
 steps:
   - name: Validate rules
     id: surinort
-    uses: seifreed/surinort-ast@v4.0.0
+    uses: seifreed/surinort-ast@740b7c6c9fb74af6c927f31c0ae05e28d1d94139
     with:
       rules: rules/**/*.rules
       dialect: suricata
@@ -211,6 +211,7 @@ steps:
 
 Upload the generated `${{ steps.surinort.outputs.sarif-file }}` with
 `github/codeql-action/upload-sarif` when code scanning annotations are desired.
+Replace the commit pin with `@v4.0.0` after that public release tag exists.
 - Upload SARIF to GitHub Code Scanning.
 
 ### Pre-commit and GitLab CI
