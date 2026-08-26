@@ -53,7 +53,7 @@ def test_github_release_attaches_downloaded_provenance_bundles() -> None:
 def test_release_publishes_and_signs_the_versioned_vscode_artifact() -> None:
     workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
-    build = workflow[workflow.index("  build:") : workflow.index("  # Publish to PyPI")]
+    build = workflow[workflow.index("  build:") : workflow.index("  # Generate release notes")]
     pypi = workflow[workflow.index("  publish-pypi:") : workflow.index("  # Create GitHub Release")]
     signing = workflow[
         workflow.index("  sign-artifacts:") : workflow.index("  # Post-release verification")
