@@ -50,6 +50,25 @@ def test_github_release_attaches_downloaded_provenance_bundles() -> None:
     assert "provenance/*.jsonl" in release_block
 
 
+def test_github_release_does_not_upload_sigstore_bundles_twice() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    release = workflow[workflow.index("- name: Create GitHub Release") :]
+    files = release[
+        release.index("          files: |") : release.index("          fail_on_unmatched_files:")
+    ]
+
+    file_patterns = [
+        line.strip()
+        for line in files.splitlines()
+        if line.strip() and not line.strip().endswith("files: |")
+    ]
+
+    assert "dist/*" not in file_patterns
+    assert {"dist/*.whl", "dist/*.tar.gz", "dist/*.vsix"} <= set(file_patterns)
+    assert file_patterns.count("signed-artifacts/*.sigstore.json") == 1
+
+
 def test_release_publishes_and_signs_the_versioned_vscode_artifact() -> None:
     workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
