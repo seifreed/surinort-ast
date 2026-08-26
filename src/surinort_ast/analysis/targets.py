@@ -19,6 +19,7 @@ class EngineTarget:
     aliases: tuple[tuple[str, str], ...] = ()
     deprecated_keywords: frozenset[str] = frozenset()
     keyword_catalog_complete: bool = False
+    feature_catalog_complete: bool = False
 
     def supports(self, keyword: str) -> bool | None:
         """Return true/false when known, or ``None`` when not catalogued."""
@@ -39,6 +40,12 @@ class EngineTarget:
             _normalize(item) for item in self.deprecated_keywords
         }
 
+    def supports_feature(self, feature: str) -> bool | None:
+        """Return feature support when the target publishes a feature catalog."""
+        if not self.feature_catalog_complete:
+            return None
+        return _normalize(feature) in {_normalize(item) for item in self.features}
+
     def supports_action(self, action: str) -> bool | None:
         """Return action support when the target publishes an action list."""
         return _supports(self.actions, action)
@@ -53,6 +60,14 @@ class EngineTarget:
             self,
             keywords=frozenset(keywords),
             keyword_catalog_complete=True,
+        )
+
+    def with_features(self, features: set[str] | frozenset[str]) -> EngineTarget:
+        """Return a target populated from a complete feature listing."""
+        return replace(
+            self,
+            features=frozenset(features),
+            feature_catalog_complete=True,
         )
 
     @classmethod
@@ -144,11 +159,30 @@ def default_capability_registry() -> CapabilityRegistry:
             "sid",
         }
     )
+    common_features = frozenset({"byte-ops", "flowbits", "pcre"})
     return CapabilityRegistry(
         (
-            EngineTarget("suricata", "8.x", common, frozenset({"app-layer", "sticky-buffer"})),
-            EngineTarget("snort", "2.x", common, frozenset()),
-            EngineTarget("snort", "3.x", common, frozenset({"sticky-buffer"})),
+            EngineTarget(
+                "suricata",
+                "8.x",
+                common,
+                common_features | frozenset({"app-layer", "sticky-buffer"}),
+                feature_catalog_complete=True,
+            ),
+            EngineTarget(
+                "snort",
+                "2.x",
+                common,
+                common_features,
+                feature_catalog_complete=True,
+            ),
+            EngineTarget(
+                "snort",
+                "3.x",
+                common,
+                common_features | frozenset({"sticky-buffer"}),
+                feature_catalog_complete=True,
+            ),
         )
     )
 
