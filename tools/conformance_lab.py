@@ -19,7 +19,6 @@ from surinort_ast import parse_rule, print_rule
 from surinort_ast.analysis import EngineVerifier
 from surinort_ast.api.parsing import _read_rule_lines
 from surinort_ast.core.enums import Dialect
-from surinort_ast.exceptions import ParseError
 from surinort_ast.version import __version__
 
 
@@ -33,6 +32,7 @@ class CaseResult:
     round_trip: bool | None
     error: str | None = None
     error_keyword: str | None = None
+    exception_type: str | None = None
     engine_validation: str = "not-run"
     engine_validation_after_print: str = "not-run"
     behavior_validation: str = "not-run"
@@ -176,7 +176,7 @@ def _display_path(path: Path, corpus: Path) -> str:
     return path.name
 
 
-def run(
+def run(  # noqa: PLR0912, PLR0915
     corpus: Path,
     engine_command: str | None = None,
     timeout: float = 30.0,
@@ -223,7 +223,7 @@ def run(
         for line_number, text in _read_rule_lines(path):
             try:
                 rule = parse_rule(text, dialect=dialect, include_raw_text=False)
-            except ParseError as exc:
+            except Exception as exc:
                 results.append(
                     CaseResult(
                         str(path),
@@ -234,14 +234,31 @@ def run(
                         None,
                         str(exc),
                         _error_keyword(text, str(exc)),
+                        type(exc).__name__,
                     )
                 )
                 continue
 
-            printed = print_rule(rule)
+            try:
+                printed = print_rule(rule)
+            except Exception as exc:
+                results.append(
+                    CaseResult(
+                        str(path),
+                        dialect.value,
+                        line_number,
+                        expected_parse,
+                        True,
+                        False,
+                        f"Rule printing failed: {exc}",
+                        _error_keyword(text, str(exc)),
+                        type(exc).__name__,
+                    )
+                )
+                continue
             try:
                 round_trip_rule = parse_rule(printed, dialect=dialect, include_raw_text=False)
-            except ParseError as exc:
+            except Exception as exc:
                 results.append(
                     CaseResult(
                         str(path),
@@ -252,6 +269,7 @@ def run(
                         False,
                         f"Printed rule failed to parse: {exc}",
                         _error_keyword(printed, str(exc)),
+                        type(exc).__name__,
                     )
                 )
                 continue
@@ -301,6 +319,9 @@ def run(
     ]
     parsed = sum(result.parsed for result in results)
     dialect_metrics, errors_by_keyword = _summarize_results(results)
+    exception_types = Counter(
+        result.exception_type for result in results if result.exception_type is not None
+    )
     return {
         "package_version": __version__,
         "corpus": str(corpus),
@@ -339,6 +360,7 @@ def run(
         ),
         "printed": parsed,
         "parse_exceptions": sum(result.error is not None for result in results),
+        "exception_types": dict(sorted(exception_types.items())),
         "engine_timeouts": sum(
             result.engine_validation == "timeout"
             or result.engine_validation_after_print == "timeout"
