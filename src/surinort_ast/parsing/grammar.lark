@@ -206,7 +206,7 @@ content_value: CONTENT_STRING | HEX_STRING
 neg_sign: "-"
 // Snort3 content modifiers - keywords first, then catch-all
 content_modifier: DEPTH_KW content_modifier_value                   -> cm_depth
-                | OFFSET_KW content_modifier_value                  -> cm_offset
+                | OFFSET_KW neg_sign? content_modifier_value         -> cm_offset
                 | DISTANCE_KW neg_sign? content_modifier_value      -> cm_distance
                 | WITHIN_KW content_modifier_value                  -> cm_within
                 | FAST_PATTERN_OFFSET_KW content_modifier_value     -> cm_fast_pattern_offset
@@ -271,8 +271,8 @@ nocase_option: "nocase"
 rawbytes_option: "rawbytes"
 depth_option: "depth" ":" (INT | WORD | REFERENCE_ID)
             | "depth" (INT | WORD | REFERENCE_ID)         // Snort3 inline style
-offset_option: "offset" ":" (INT | WORD | REFERENCE_ID)
-             | "offset" (INT | WORD | REFERENCE_ID)
+offset_option: "offset" ":" neg_sign? (INT | WORD | REFERENCE_ID)
+             | "offset" neg_sign? (INT | WORD | REFERENCE_ID)
 distance_option: "distance" ":" neg_sign? (INT | WORD | REFERENCE_ID)
                | "distance" neg_sign? (INT | WORD | REFERENCE_ID)
 within_option: "within" ":" (INT | WORD | REFERENCE_ID)

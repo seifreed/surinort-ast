@@ -443,7 +443,11 @@ class ContentTransformerMixin(LocationAwareMixin):
         Returns:
             ContentModifier for OFFSET
         """
-        value = _token_to_int_or_str(args[1])
+        if len(args) == 3:
+            token_value = _token_to_int_or_str(args[2])
+            value = -token_value if isinstance(token_value, int) else f"-{token_value}"
+        else:
+            value = _token_to_int_or_str(args[1])
         return ContentModifier(name=ContentModifierType.OFFSET, value=value)
 
     def cm_distance(self, args: list[Any]) -> ContentModifier:
@@ -629,7 +633,7 @@ class ContentTransformerMixin(LocationAwareMixin):
         return DepthOption(value=_token_to_int_or_str(depth_token))
 
     @v_args(inline=True)
-    def offset_option(self, offset_token: Token) -> OffsetOption:
+    def offset_option(self, *items: Any) -> OffsetOption:
         """
         Transform offset modifier (standalone option).
 
@@ -642,7 +646,12 @@ class ContentTransformerMixin(LocationAwareMixin):
         Usage:
             offset:N - Skip first N bytes before searching
         """
-        return OffsetOption(value=_token_to_int_or_str(offset_token))
+        if len(items) == 2 and is_marker(items[0], "neg_sign"):
+            token_value = _token_to_int_or_str(items[1])
+            value = -token_value if isinstance(token_value, int) else f"-{token_value}"
+        else:
+            value = _token_to_int_or_str(items[-1])
+        return OffsetOption(value=value)
 
     def distance_option(self, items: list[Any]) -> DistanceOption:
         """

@@ -340,3 +340,59 @@ def test_engine_target_applies_versioned_priority_ranges() -> None:
             target=snort3,
         )
     }
+
+
+def test_snort_byte_operations_use_versioned_ranges() -> None:
+    snort2 = EngineTarget("snort", "2.9.20")
+    snort3 = EngineTarget("snort", "3.12.2.0")
+
+    zero_jump = parse_rule("alert tcp any any -> any 80 (byte_jump:0,0; sid:1;)")
+    assert "invalid_byte_length" in {
+        diagnostic.code for diagnostic in validate_rule(zero_jump, target=snort2)
+    }
+    assert "invalid_byte_length" not in {
+        diagnostic.code for diagnostic in validate_rule(zero_jump, target=snort3)
+    }
+
+    wide_offset = parse_rule("alert tcp any any -> any 80 (byte_test:1,>,1,65536; sid:1;)")
+    assert "engine_byte_offset_out_of_range" in {
+        diagnostic.code for diagnostic in validate_rule(wide_offset, target=snort3)
+    }
+
+    long_string = parse_rule("alert tcp any any -> any 80 (byte_extract:11,0,value,string; sid:1;)")
+    assert "engine_byte_length_out_of_range" in {
+        diagnostic.code for diagnostic in validate_rule(long_string, target=snort3)
+    }
+
+    invalid_math = parse_rule(
+        "alert tcp any any -> any 80 "
+        "(byte_math:bytes 1,offset 0,oper +,rvalue 0,result value; sid:1;)"
+    )
+    assert "engine_byte_rvalue_out_of_range" in {
+        diagnostic.code for diagnostic in validate_rule(invalid_math, target=snort3)
+    }
+
+
+def test_snort_content_ranges_allow_negative_offset_but_require_match_length() -> None:
+    target = EngineTarget("snort", "3.12.2.0")
+
+    negative_offset = parse_rule(
+        'alert tcp any any -> any 80 (content:"x",offset -1; sid:1;)',
+        dialect=Dialect.SNORT3,
+    )
+    assert "invalid_relative_modifier_range" not in {
+        diagnostic.code for diagnostic in validate_rule(negative_offset, target=target)
+    }
+
+    negative_standalone_offset = parse_rule(
+        'alert tcp any any -> any 80 (content:"x"; offset -1; sid:2;)',
+        dialect=Dialect.SNORT3,
+    )
+    assert "invalid_relative_modifier_range" not in {
+        diagnostic.code for diagnostic in validate_rule(negative_standalone_offset, target=target)
+    }
+
+    short_within = parse_rule('alert tcp any any -> any 80 (content:"abcd",within 3; sid:1;)')
+    assert "modifier_shorter_than_content" in {
+        diagnostic.code for diagnostic in validate_rule(short_within, target=target)
+    }
