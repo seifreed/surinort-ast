@@ -136,7 +136,7 @@ def test_engine_target_rejects_options_with_missing_catalogued_features() -> Non
     target = EngineTarget(
         "snort",
         "2.9.x",
-        keywords=frozenset({"buffer_select", "flowbits", "byte_test", "sid"}),
+        keywords=frozenset({"buffer_select", "content", "flowbits", "byte_test", "sid"}),
         features=frozenset({"byte-ops", "flowbits", "pcre"}),
         feature_catalog_complete=True,
         keyword_catalog_complete=True,

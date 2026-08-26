@@ -59,7 +59,7 @@ unsupported AST majors.
   Feature requirements such as `sticky-buffer`, `flowbits`, `byte-ops`, and
   `pcre` use the same tri-state behavior through `with_features()` and
   `feature_catalog_complete`; only a complete feature catalog produces an
-  unsupported-feature error.
+  `unsupported_engine_feature` error.
 - `RulesetContext.from_suricata_yaml()` and `from_snort_config()` resolve
   deployment variables for coverage analysis; unresolved variables remain
   indeterminate instead of being reported as uncovered concrete ports.
