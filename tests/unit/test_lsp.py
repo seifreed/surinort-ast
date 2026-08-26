@@ -2,6 +2,7 @@ import io
 import json
 
 import surinort_ast.lsp.server as lsp_server
+from surinort_ast.analysis import EngineTarget
 from surinort_ast.core.enums import Dialect
 from surinort_ast.lsp import (
     code_actions_for_text,
@@ -59,6 +60,26 @@ def test_lsp_hovers_keyword_documentation_at_cursor() -> None:
     assert hover is not None
     assert "content" in hover["contents"]["value"]
     assert "snort3" in hover["contents"]["value"]
+
+
+def test_lsp_hovers_and_validates_against_engine_version() -> None:
+    target = EngineTarget("suricata", "8.0.6")
+    hover = hover_for_text(
+        'alert tcp any any -> any 80 (content:"x"; sid:1;)',
+        0,
+        Dialect.SURICATA,
+        32,
+        target,
+    )
+    diagnostics = diagnostics_for_text(
+        "alert tcp any any -> any 80 (priority:256; sid:1;)",
+        Dialect.SURICATA,
+        target,
+    )
+
+    assert hover is not None
+    assert "suricata 8.0.6" in hover["contents"]["value"]
+    assert "engine_priority_out_of_range" in {item["code"] for item in diagnostics}
 
 
 def test_lsp_formats_rules_and_offers_safe_quick_fix() -> None:
@@ -154,9 +175,14 @@ def test_lsp_transport_exposes_navigation_and_preview() -> None:
 def test_lsp_transport_retains_document_dialect(monkeypatch) -> None:
     seen: list[Dialect] = []
 
-    def fake_diagnostics(text: str, dialect: Dialect = Dialect.SURICATA) -> list[dict[str, object]]:
+    def fake_diagnostics(
+        text: str,
+        dialect: Dialect = Dialect.SURICATA,
+        target: EngineTarget | None = None,
+    ) -> list[dict[str, object]]:
         del text
         seen.append(dialect)
+        assert target is None
         return []
 
     monkeypatch.setattr(lsp_server, "diagnostics_for_text", fake_diagnostics)
@@ -199,3 +225,50 @@ def test_lsp_transport_retains_document_dialect(monkeypatch) -> None:
     serve(reader, io.BytesIO())
 
     assert seen == [Dialect.SNORT3, Dialect.SNORT3]
+
+
+def test_lsp_transport_passes_versioned_capability_target() -> None:
+    text = "alert tcp any any -> any 80 (priority:256; sid:1;)\n"
+
+    def message(payload: dict[str, object]) -> bytes:
+        body = json.dumps(payload, separators=(",", ":")).encode()
+        return f"Content-Length: {len(body)}\r\n\r\n".encode() + body
+
+    reader = io.BytesIO(
+        b"".join(
+            [
+                message(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "initialize",
+                        "params": {
+                            "initializationOptions": {
+                                "engine": "suricata",
+                                "engineVersion": "8.0.6",
+                            }
+                        },
+                    }
+                ),
+                message(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "textDocument/didOpen",
+                        "params": {
+                            "textDocument": {
+                                "uri": "file:///rule.rules",
+                                "languageId": "suricata",
+                                "text": text,
+                            }
+                        },
+                    }
+                ),
+                message({"jsonrpc": "2.0", "id": 2, "method": "shutdown", "params": None}),
+            ]
+        )
+    )
+    writer = io.BytesIO()
+
+    serve(reader, writer)
+
+    assert b'"engine_priority_out_of_range"' in writer.getvalue()
