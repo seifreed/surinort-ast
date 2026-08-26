@@ -16,6 +16,7 @@ def test_release_verifies_provenance_before_uploading_distributions() -> None:
     assert 'gh attestation verify "$file"' in verification_block
     assert '--repo "$GITHUB_REPOSITORY"' in verification_block
     assert "--signer-workflow .github/workflows/release.yml" in verification_block
+    assert "sbom.json sbom.xml" in verification_block
 
 
 def test_release_requires_a_verified_annotated_tag_before_building() -> None:
@@ -51,6 +52,7 @@ def test_github_release_attaches_downloaded_provenance_bundles() -> None:
         'gh attestation download "../$file" --repo "$GITHUB_REPOSITORY"'
         in workflow[download:release]
     )
+    assert "sbom.json sbom.xml" in workflow[download:release]
     assert "provenance/*.jsonl" in release_block
 
 
@@ -86,7 +88,9 @@ def test_release_publishes_and_signs_the_versioned_vscode_artifact() -> None:
     assert "surinort-ast-${{ needs.validate.outputs.version }}.vsix" in build
     assert "twine check dist/*.whl dist/*.tar.gz" in build
     assert "rm -f dist/*.vsix" in pypi
-    assert "for file in *.whl *.tar.gz *.vsix; do" in signing
+    assert "for file in dist/*.whl dist/*.tar.gz dist/*.vsix sbom.json sbom.xml; do" in signing
+    assert 'cp "$file.sigstore.json" signed-artifacts/' in signing
+    assert "path: signed-artifacts/*.sigstore.json" in signing
 
 
 def test_release_publishes_vscode_extension_to_marketplace() -> None:
@@ -103,6 +107,20 @@ def test_release_publishes_vscode_extension_to_marketplace() -> None:
     summary = workflow[workflow.index("  release-success:") :]
     assert "publish-vscode" in summary
     assert "needs.publish-vscode.result" in summary
+
+
+def test_public_release_verifies_signed_and_attested_sboms() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    checklist = Path("docs/release-verification.md").read_text(encoding="utf-8")
+
+    public = workflow[workflow.index("  verify-public-assets:") :]
+
+    assert "(cd release-assets && sha256sum --check --strict SHA256SUMS)" in public
+    assert "release-assets/sbom.json release-assets/sbom.xml" in public
+    assert 'test -s "$file.sigstore.json"' in public
+    assert 'gh attestation verify "$file"' in public
+    assert '(cd "${DIR}" && sha256sum --check --strict SHA256SUMS)' in checklist
+    assert '"${DIR}"/sbom.json "${DIR}"/sbom.xml' in checklist
 
 
 def test_ci_summary_matches_the_protected_branch_check_name() -> None:

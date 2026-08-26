@@ -15,9 +15,9 @@ TAG_OBJECT=$(jq -r '.object.sha' <<<"${TAG_REF}")
 test "$(gh api "repos/${REPO}/git/tags/${TAG_OBJECT}" --jq '.verification.verified')" = true
 
 gh release download "${TAG}" --repo "${REPO}" --dir "${DIR}"
-sed "s#  dist/#  ${DIR}/#" "${DIR}/SHA256SUMS" | sha256sum --check --strict
+(cd "${DIR}" && sha256sum --check --strict SHA256SUMS)
 
-for file in "${DIR}"/*.whl "${DIR}"/*.tar.gz "${DIR}"/*.vsix; do
+for file in "${DIR}"/*.whl "${DIR}"/*.tar.gz "${DIR}"/*.vsix "${DIR}"/sbom.json "${DIR}"/sbom.xml; do
   sigstore verify identity "${file}" \
     --bundle "${file}.sigstore.json" \
     --cert-identity "https://github.com/${REPO}/.github/workflows/release.yml@refs/tags/${TAG}" \
@@ -33,8 +33,8 @@ test -s "${DIR}/sbom.xml"
 ```
 
 The tag check rejects lightweight or unverified tags. The checksum, Sigstore,
-and attestation checks must pass for every wheel, source archive, and VS Code
-extension. A release is not considered verified when an expected artifact,
+and attestation checks must pass for every wheel, source archive, VS Code
+extension, and published SBOM. A release is not considered verified when an expected artifact,
 signature bundle, checksum, SBOM, or provenance record is missing.
 
 The current repository contains release workflow support for this procedure;
