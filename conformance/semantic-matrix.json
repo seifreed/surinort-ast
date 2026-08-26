@@ -297,6 +297,176 @@
       ]
     },
     {
+      "id": "valid-startswith",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (content:\"x\",startswith; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "valid-endswith",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (content:\"x\",endswith; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "offset-zero-boundary",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (content:\"x\"; offset:0; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "offset-engine-limit",
+      "category": "engine-differences",
+      "rule": "alert tcp any any -> any 80 (content:\"x\"; offset:1048576; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_relative_modifier_range"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_relative_modifier_range"]}
+      ]
+    },
+    {
+      "id": "distance-negative-engine-limit",
+      "category": "engine-differences",
+      "rule": "alert tcp any any -> any 80 (content:\"x\"; distance:-1048576; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_relative_modifier_range"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_relative_modifier_range"]}
+      ]
+    },
+    {
+      "id": "within-content-boundary",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (content:\"x\"; within:1; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "depth-content-boundary",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (content:\"x\"; depth:1; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "relative-byte-test-with-anchor",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (content:\"x\"; byte_test:1,>,1,0,relative; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "relative-byte-jump-with-anchor",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (content:\"x\"; byte_jump:1,0,relative; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "relative-byte-extract-with-anchor",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (content:\"x\"; byte_extract:1,0,value,relative; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "relative-byte-math-with-anchor",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (content:\"x\"; byte_math:bytes 1,offset 0,oper +,rvalue 1,result total,relative; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "valid-flowbit-composite",
+      "category": "flowbits",
+      "rule": "alert tcp any any -> any 80 (flowbits:set,a&b; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "invalid-flowbit-action",
+      "category": "flowbits",
+      "rule": "alert tcp any any -> any 80 (flowbits:unknown,name; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["invalid_flowbits_action"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_flowbits_action"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_flowbits_action"]}
+      ]
+    },
+    {
+      "id": "invalid-flowbit-name",
+      "category": "flowbits",
+      "rule": "alert tcp any any -> any 80 (flowbits:set,a|b; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["invalid_flowbit_operator"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_flowbit_operator"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_flowbit_operator"]}
+      ]
+    },
+    {
+      "id": "fast-pattern-without-content",
+      "category": "incompatibility",
+      "rule": "alert tcp any any -> any 80 (fast_pattern; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["content_modifier_without_content", "fast_pattern_without_content"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["content_modifier_without_content", "fast_pattern_without_content"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["content_modifier_without_content", "fast_pattern_without_content"]}
+      ]
+    },
+    {
+      "id": "duplicate-content-modifier",
+      "category": "multiplicity",
+      "rule": "alert tcp any any -> any 80 (content:\"x\",nocase,nocase; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["duplicate_content_modifier"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["duplicate_content_modifier"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["duplicate_content_modifier"]}
+      ]
+    },
+    {
+      "id": "qualified-sticky-buffer",
+      "category": "sticky-buffers",
+      "rule": "alert http any any -> any any (http_header:field user-agent; content:\"x\"; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
       "id": "valid-baseline",
       "category": "baseline",
       "rule": "alert tcp any any -> any 80 (content:\"x\"; msg:\"x\"; sid:1; rev:1;)",
