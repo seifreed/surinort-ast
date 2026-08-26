@@ -60,9 +60,15 @@ def test_flowbits_require_names_for_mutations_and_checks() -> None:
     }
 
 
-def test_flowbits_reject_invalid_mutation_shapes() -> None:
-    assert "composite_flowbit_mutation" in codes(
+def test_flowbits_validate_composite_operators() -> None:
+    assert "invalid_flowbit_operator" not in codes(
         "alert tcp any any -> any 80 (flowbits:set,a&b; sid:1;)"
+    )
+    assert "invalid_flowbit_operator" in codes(
+        "alert tcp any any -> any 80 (flowbits:set,a|b; sid:1;)"
+    )
+    assert "invalid_flowbit_operator" not in codes(
+        "alert tcp any any -> any 80 (flowbits:isset,a|b; sid:1;)"
     )
     assert "unexpected_flowbit_name" in codes(
         "alert tcp any any -> any 80 (flowbits:noalert,name; sid:1;)"
@@ -70,6 +76,31 @@ def test_flowbits_reject_invalid_mutation_shapes() -> None:
     assert "invalid_flowbits_action" in codes(
         "alert tcp any any -> any 80 (flowbits:unknown,name; sid:1;)"
     )
+
+
+def test_flowbits_expand_composite_names_for_cross_rule_checks() -> None:
+    diagnostics = validate_rules(
+        [
+            parse_rule("alert tcp any any -> any 80 (flowbits:set,a&b; sid:1;)"),
+            parse_rule("alert tcp any any -> any 80 (flowbits:isset,b; sid:2;)"),
+        ]
+    )
+
+    assert "flowbit_without_definition" not in {diagnostic.code for diagnostic in diagnostics}
+
+
+def test_flowbits_are_versioned_per_engine() -> None:
+    rule = parse_rule("alert tcp any any -> any 80 (flowbits:toggle,seen; sid:1;)")
+
+    suricata = {
+        diagnostic.code for diagnostic in validate_rule(rule, EngineTarget("suricata", "8.0.6"))
+    }
+    snort3 = {
+        diagnostic.code for diagnostic in validate_rule(rule, EngineTarget("snort", "3.12.2.0"))
+    }
+
+    assert "deprecated_engine_flowbit_action" in suricata
+    assert "unsupported_engine_flowbit_action" in snort3
 
 
 def test_sticky_buffer_and_protocol_constraints_are_reported() -> None:
