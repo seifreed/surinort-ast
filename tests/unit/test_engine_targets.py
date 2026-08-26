@@ -1,4 +1,15 @@
-from surinort_ast.analysis import EngineTarget, default_capability_registry, parse_keyword_listing
+from pathlib import Path
+
+import pytest
+
+from surinort_ast.analysis import (
+    CapabilityRegistry,
+    EngineTarget,
+    default_capability_registry,
+    parse_keyword_listing,
+)
+from surinort_ast.api import parse_file, validate_rules
+from surinort_ast.core.enums import Dialect
 
 
 def test_registry_prefers_exact_version_then_major_snapshot() -> None:
@@ -108,10 +119,6 @@ def test_capability_registry_rejects_non_object_json(tmp_path) -> None:
 
 
 def test_checked_in_capability_snapshot_has_concrete_complete_catalogs() -> None:
-    from pathlib import Path
-
-    from surinort_ast.analysis import CapabilityRegistry
-
     registry = CapabilityRegistry.from_json(Path("conformance/capabilities/4.0.0-local.json"))
 
     suricata = registry.resolve("suricata", "8.0.6")
@@ -121,3 +128,40 @@ def test_checked_in_capability_snapshot_has_concrete_complete_catalogs() -> None
     assert len(suricata.keywords) >= 300
     assert len(snort3.keywords) >= 100
     assert snort3.supports("base64_data") is True
+
+
+@pytest.mark.parametrize(
+    ("path", "dialect", "engine", "version", "expected_rules"),
+    [
+        (
+            "rules/suricata/suricata.rules",
+            Dialect.SURICATA,
+            "suricata",
+            "8.0.6",
+            30579,
+        ),
+        (
+            "rules/snort/snort3-community-rules/snort3-community-rules/snort3-community.rules",
+            Dialect.SNORT3,
+            "snort",
+            "3.12.2.0",
+            4017,
+        ),
+    ],
+)
+def test_checked_in_capability_snapshot_covers_real_engine_corpus(
+    path: str,
+    dialect: Dialect,
+    engine: str,
+    version: str,
+    expected_rules: int,
+) -> None:
+    registry = CapabilityRegistry.from_json(Path("conformance/capabilities/4.0.0-local.json"))
+    target = registry.resolve(engine, version)
+    assert target is not None
+
+    rules = list(parse_file(Path(path), dialect=dialect, stream=True))
+    diagnostics = validate_rules(rules, target=target)
+
+    assert len(rules) == expected_rules
+    assert not any(item.code == "unsupported_engine_keyword" for item in diagnostics)
