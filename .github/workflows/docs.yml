@@ -75,6 +75,7 @@ jobs:
           fi
 
       - name: Generate conformance dashboard snapshot
+        if: ${{ github.event_name != 'pull_request' }}
         run: |
           mkdir -p conformance/history
           python -m pip install -e .
