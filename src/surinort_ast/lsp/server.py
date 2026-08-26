@@ -52,6 +52,21 @@ _OPTION_COMPLETIONS = (
     "tls_sni",
 )
 
+_KEYWORD_DOCUMENTATION = {
+    "content": "Matches bytes in the current detection buffer. Position modifiers attach to this match.",
+    "pcre": "Evaluates a PCRE pattern against the current detection buffer.",
+    "flowbits": "Sets, tests, or clears state shared by rules on the same flow.",
+    "byte_extract": "Extracts bytes into a named variable for later rule options.",
+    "byte_test": "Reads bytes and compares the value with an operator.",
+    "byte_jump": "Reads bytes and advances the detection cursor by the decoded value.",
+    "detection_filter": "Limits alert generation by tracking a count over a time window.",
+    "http_uri": "Selects the normalized HTTP URI sticky buffer.",
+    "http_header": "Selects the normalized HTTP header sticky buffer.",
+    "sid": "The rule signature identifier; it must be unique within a ruleset.",
+    "gid": "The generator identifier associated with the rule source.",
+    "rev": "The revision number of the rule definition.",
+}
+
 
 def _diagnostic(
     level: DiagnosticLevel, message: str, line: int, code: str | None
@@ -93,12 +108,25 @@ def diagnostics_for_text(text: str, dialect: Dialect = Dialect.SURICATA) -> list
 
 
 def hover_for_text(
-    text: str, line: int, dialect: Dialect = Dialect.SURICATA
+    text: str,
+    line: int,
+    dialect: Dialect = Dialect.SURICATA,
+    character: int | None = None,
 ) -> dict[str, Any] | None:
-    """Return a compact rule summary for an LSP hover request."""
+    """Return keyword documentation or a compact rule summary for hover."""
     lines = text.splitlines()
     if line < 0 or line >= len(lines) or not lines[line].strip():
         return None
+    if character is not None:
+        keyword = _word_at(text, line, character)
+        documentation = _KEYWORD_DOCUMENTATION.get((keyword or "").lower())
+        if documentation is not None:
+            return {
+                "contents": {
+                    "kind": "markdown",
+                    "value": f"**{keyword}** ({dialect.value})\n\n{documentation}",
+                }
+            }
     try:
         rule = parse_rule(lines[line], dialect=dialect)
     except ParseError:
@@ -116,7 +144,6 @@ def completion_items(
     text: str, line: int, character: int, dialect: Dialect = Dialect.SURICATA
 ) -> list[dict[str, Any]]:
     """Return keyword completions for the current rule context."""
-    del dialect
     lines = text.splitlines()
     if line < 0 or line >= len(lines):
         return []
@@ -132,11 +159,20 @@ def completion_items(
             *(protocol.value for protocol in Protocol),
         )
     )
-    return [
-        {"label": value, "kind": 14, "detail": "Surinort rule keyword"}
-        for value in candidates
-        if value.startswith(prefix)
-    ]
+    items: list[dict[str, Any]] = []
+    for value in candidates:
+        if not value.startswith(prefix):
+            continue
+        item: dict[str, Any] = {
+            "label": value,
+            "kind": 14,
+            "detail": f"Surinort {dialect.value} keyword",
+        }
+        documentation = _KEYWORD_DOCUMENTATION.get(value)
+        if documentation is not None:
+            item["documentation"] = {"kind": "markdown", "value": documentation}
+        items.append(item)
+    return items
 
 
 def format_document(text: str, dialect: Dialect = Dialect.SURICATA) -> str:
@@ -367,7 +403,12 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
             document = params.get("textDocument", {})
             position = params.get("position", {})
             text, dialect = _document_state(documents, document.get("uri", ""))
-            result = hover_for_text(text, position.get("line", 0), dialect)
+            result = hover_for_text(
+                text,
+                position.get("line", 0),
+                dialect,
+                position.get("character", 0),
+            )
             _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": result})
         elif method == "textDocument/completion":
             params = message.get("params", {})
