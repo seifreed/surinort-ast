@@ -196,12 +196,12 @@ permissions:
 steps:
   - name: Validate rules
     id: surinort
-    uses: seifreed/surinort-ast@main
+    uses: seifreed/surinort-ast@v4.0.0
     with:
       rules: rules/**/*.rules
       dialect: suricata
       engine: suricata
-      engine-version: 8.x
+      engine-version: 8.0.6
       sarif: true
       engine-verify: true
       engine-command: 'suricata -T -S {file}'
