@@ -46,6 +46,15 @@ evidence than the smoke test, but it is still not universal equivalence or a
 production traffic corpus; the report records those limitations and hashes the
 referenced, non-redistributed PCAPs.
 
+The bundled-scale optimizer result is recorded in
+`conformance/history/4.0.0-optimizer-bundled-public-pcap.json`. It runs the
+optimizer over all 30,579 bundled Suricata rules, confirms that both the
+original and printed rulesets load in Suricata 8.0.6, and compares alert
+projections over the same ten public PCAPs with 10/10 equal results. The
+snapshot is evidence for this bundled corpus and engine build only; it does
+not establish universal optimizer equivalence or a production performance
+benchmark.
+
 For an optimized ruleset, compare the original and candidate files over a
 fixture battery:
 
