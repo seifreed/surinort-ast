@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from surinort_ast import parse_rule, validate_rule
-from surinort_ast.analysis import EngineTarget
+from surinort_ast.analysis import CapabilityRegistry, EngineTarget
 from surinort_ast.core.enums import Dialect
 from surinort_ast.exceptions import ParseError
 from surinort_ast.version import __version__
@@ -20,10 +20,33 @@ def _strings(value: object, field: str) -> list[str]:
     return value
 
 
-def _target(value: object) -> EngineTarget:
+def _target(value: object, base_dir: Path) -> EngineTarget:
     if not isinstance(value, dict):
         raise ValueError("semantic matrix targets must be objects")
-    return EngineTarget.from_dict(value)
+    capability_file = value.get("capability_file")
+    if capability_file is None:
+        return EngineTarget.from_dict(value)
+    if not isinstance(capability_file, str) or not capability_file:
+        raise ValueError("semantic matrix capability_file must be a non-empty string")
+    path = (base_dir / capability_file).resolve()
+    if not path.is_file():
+        raise ValueError(f"semantic matrix capability file does not exist: {path}")
+    requested = EngineTarget.from_dict(value)
+    registry = CapabilityRegistry.from_json(path)
+    target = next(
+        (
+            item
+            for item in registry.targets()
+            if item.engine.strip().lower() == requested.engine.strip().lower()
+            and item.version == requested.version
+        ),
+        None,
+    )
+    if target is None:
+        raise ValueError(
+            f"semantic matrix capability target is missing: {requested.engine} {requested.version}"
+        )
+    return target
 
 
 def run(manifest: Path) -> dict[str, Any]:
@@ -61,7 +84,7 @@ def run(manifest: Path) -> dict[str, Any]:
         for raw_target in targets:
             if not isinstance(raw_target, dict):
                 raise ValueError(f"semantic case {case_id} target must be an object")
-            target = _target(raw_target)
+            target = _target(raw_target, manifest.parent)
             try:
                 dialect = Dialect(raw_target.get("dialect", case_dialect.value))
             except ValueError as exc:

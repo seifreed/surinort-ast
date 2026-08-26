@@ -72,8 +72,16 @@ def test_checked_in_semantic_matrix_has_no_unexpected_diagnostics() -> None:
     report = run(Path("conformance/semantic-matrix.json"))
 
     assert report["failures"] == 0
-    assert report["case_count"] == 24
-    assert report["target_case_count"] == 72
+    assert report["case_count"] == 25
+    assert report["target_case_count"] == 75
+    capability_case = [
+        item for item in report["cases"] if item["id"] == "engine-keyword-capability"
+    ]
+    assert {item["engine"]: item["actual_diagnostics"] for item in capability_case} == {
+        "suricata": ["unsupported_engine_keyword"],
+        "snort2": ["unsupported_engine_keyword"],
+        "snort": [],
+    }
 
 
 def test_semantic_matrix_allows_a_target_specific_dialect(tmp_path: Path) -> None:
