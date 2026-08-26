@@ -15,6 +15,8 @@ def test_external_conformance_workflow_verifies_and_publishes_corpus_metrics() -
     assert "--proto '=https' --tlsv1.2" in workflow
     assert "sha256sum --check --strict" in workflow
     assert "tools/extract_conformance_archive.py" in workflow
+    assert "find external-corpus -type f -name '*.rules'" in workflow
+    assert 'test "$rules_count" -gt 0' in workflow
     assert "--summary-only" in workflow
     assert "--output external-conformance-report.json" in workflow
     assert "set +e" in workflow
