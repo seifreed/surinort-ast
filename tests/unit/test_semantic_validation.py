@@ -249,14 +249,27 @@ def test_engine_target_rejects_options_with_missing_catalogued_features() -> Non
     }
 
 
-def test_engine_target_applies_snort_priority_range_only() -> None:
-    rule = parse_rule("alert tcp any any -> any 80 (priority:256; sid:1;)")
-    snort = EngineTarget("snort", "2.9.x")
-    suricata = EngineTarget("suricata", "8.0.0")
+def test_engine_target_applies_versioned_priority_ranges() -> None:
+    snort2_rule = parse_rule("alert tcp any any -> any 80 (priority:256; sid:1;)")
+    snort3_rule = parse_rule("alert tcp any any -> any 80 (priority:2147483648; sid:1;)")
+    suricata_rule = parse_rule("alert tcp any any -> any 80 (priority:256; sid:1;)")
+    snort2 = EngineTarget("snort", "2.9.x")
+    snort3 = EngineTarget("snort", "3.12.2.0")
+    suricata = EngineTarget("suricata", "8.0.6")
 
     assert "engine_priority_out_of_range" in {
-        diagnostic.code for diagnostic in validate_rule(rule, target=snort)
+        diagnostic.code for diagnostic in validate_rule(snort2_rule, target=snort2)
+    }
+    assert "engine_priority_out_of_range" in {
+        diagnostic.code for diagnostic in validate_rule(snort3_rule, target=snort3)
+    }
+    assert "engine_priority_out_of_range" in {
+        diagnostic.code for diagnostic in validate_rule(suricata_rule, target=suricata)
     }
     assert "engine_priority_out_of_range" not in {
-        diagnostic.code for diagnostic in validate_rule(rule, target=suricata)
+        diagnostic.code
+        for diagnostic in validate_rule(
+            parse_rule("alert tcp any any -> any 80 (priority:2147483647; sid:1;)"),
+            target=snort3,
+        )
     }
