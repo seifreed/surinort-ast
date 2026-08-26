@@ -82,3 +82,10 @@ def test_suricata_threshold_can_be_followed_by_option_without_separator():
         "ReferenceOption",
         "SidOption",
     ]
+
+
+def test_content_keyword_is_case_insensitive_for_engine_compatibility():
+    rule = parse_rule('alert http any any -> any any (Content:"UserInformation.txt"; sid:1;)')
+
+    assert rule.options[0].node_type == "ContentOption"
+    assert 'content:"UserInformation.txt";' in print_rule(rule)

@@ -294,7 +294,22 @@ class ContentTransformerMixin(LocationAwareMixin):
         Snort3 Syntax:
             content:("pattern", depth 10, nocase)
         """
-        return self._build_content_option(items)
+        return self._build_content_option(self._without_content_keyword(items))
+
+    @staticmethod
+    def _without_content_keyword(items: Sequence[Any]) -> list[Any]:
+        """Drop the named case-insensitive keyword token from the rule items."""
+        if (
+            items
+            and isinstance(items[0], Token)
+            and items[0].type
+            in {
+                "CONTENT_KW",
+                "URICONTENT_KW",
+            }
+        ):
+            return list(items[1:])
+        return list(items)
 
     def _build_content_option(self, items: Sequence[Any]) -> ContentOption:
         """Assemble a ContentOption from a content/uricontent item list."""
@@ -327,7 +342,7 @@ class ContentTransformerMixin(LocationAwareMixin):
             "uricontent is deprecated, use content with http_uri buffer",
         )
         return [
-            self._build_content_option(items),
+            self._build_content_option(self._without_content_keyword(items)),
             BufferSelectOption(buffer_name="http_uri"),
         ]
 
