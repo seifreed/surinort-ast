@@ -156,6 +156,9 @@ def test_relative_and_byte_operator_constraints_are_reported() -> None:
 
 
 def test_relative_modifier_ranges_and_combinations_are_reported() -> None:
+    assert "invalid_relative_modifier_range" not in codes(
+        'alert tcp any any -> any 80 (content:"x"; offset:0; sid:1;)'
+    )
     assert "invalid_relative_modifier_range" in codes(
         'alert tcp any any -> any 80 (content:"x"; within:0; sid:1;)'
     )

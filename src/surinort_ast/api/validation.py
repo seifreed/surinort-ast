@@ -117,7 +117,12 @@ def _validate_relative_value(
 ) -> list[Diagnostic]:
     if not isinstance(value, int):
         return []
-    valid = abs(value) <= _RELATIVE_LIMIT if name == "distance" else 0 < value <= _RELATIVE_LIMIT
+    if name == "distance":
+        valid = abs(value) <= _RELATIVE_LIMIT
+    elif name == "offset":
+        valid = 0 <= value <= _RELATIVE_LIMIT
+    else:
+        valid = 0 < value <= _RELATIVE_LIMIT
     if valid:
         return []
     minimum = "any value" if name == "distance" else "a value greater than zero"
