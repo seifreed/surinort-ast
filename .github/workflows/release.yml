@@ -95,6 +95,16 @@ jobs:
           fi
           echo "Signed release tag verified: $VERSION"
 
+      - name: Verify release commit is merged into main
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "${VERSION}^{commit}" "origin/main"; then
+            echo "Release tag $VERSION must point to a commit already merged into main"
+            exit 1
+          fi
+          echo "Release commit is merged into main: $VERSION"
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
