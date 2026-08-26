@@ -41,7 +41,24 @@ def test_lsp_completes_rule_keywords_by_context() -> None:
     header = completion_items("alert tc", 0, 9)
 
     assert any(item["label"] == "flowbits" for item in options)
+    assert any(
+        "current detection buffer" in item["documentation"]["value"]
+        for item in completion_items("alert tcp any any -> any 80 (cont", 0, 33)
+    )
     assert any(item["label"] == "tcp" for item in header)
+
+
+def test_lsp_hovers_keyword_documentation_at_cursor() -> None:
+    hover = hover_for_text(
+        'alert tcp any any -> any 80 (content:"x"; sid:1;)',
+        0,
+        Dialect.SNORT3,
+        32,
+    )
+
+    assert hover is not None
+    assert "content" in hover["contents"]["value"]
+    assert "snort3" in hover["contents"]["value"]
 
 
 def test_lsp_formats_rules_and_offers_safe_quick_fix() -> None:
