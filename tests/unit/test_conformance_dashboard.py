@@ -54,6 +54,10 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
         ),
         encoding="utf-8",
     )
+    (history / "optimizer.json").write_text(
+        json.dumps({"kind": "optimizer-behavior-conformance", "pcap_count": 2}),
+        encoding="utf-8",
+    )
     output = tmp_path / "dashboard.md"
 
     rendered = render(history, output, current)
@@ -63,5 +67,6 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
     assert rendered.count("| suricata |") == 2
     assert rendered.count("| 8.0.1 |") == 1
     assert rendered.count("| matrix.json:suricata-test |") == 1
+    assert "optimizer.json" not in rendered
     assert "| 1 | content:1 |" in rendered
     assert output.read_text(encoding="utf-8") == rendered

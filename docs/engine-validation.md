@@ -28,6 +28,11 @@ real-engine loading for Suricata 8.0.6 and Snort3 3.12.2.0. It does not include
 PCAP alert-equivalence results; those require a supplied PCAP corpus and
 engine commands that expose alerts.
 
+The checked-in `conformance/history/4.0.0-optimizer-smoke.json` is a narrow
+Suricata 8.0.6 smoke result over two synthetic PCAPs. It proves the lab path
+and records equal alert projections for that fixture, but is not evidence for
+broad optimizer equivalence.
+
 For an optimized ruleset, compare the original and candidate files over a
 fixture battery:
 
