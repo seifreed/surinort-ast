@@ -109,7 +109,7 @@ jobs:
             echo "| Metric | Value |"
             echo "| --- | ---: |"
             jq -r '"| Source | " + .external_source.label + " |", "| Archive SHA-256 | `" + .external_source.archive_sha256 + "` |", "| Total rules | " + (.total_rules | tostring) + " |", "| Parsed | " + (.parsed | tostring) + " |", "| Parse rate | " + (.parse_rate | tostring) + " |", "| Round-trip rate | " + (.round_trip_rate | tostring) + " |", "| Parse exceptions | " + (.parse_exceptions | tostring) + " |", "| Unexpected failures | " + (.unexpected_failures | tostring) + " |", "| Rules/s | " + (.rules_per_second | tostring) + " |", "| Peak memory MB | " + (.peak_memory_mb | tostring) + " |", "| Elapsed seconds | " + (.elapsed_seconds | tostring) + " |"' external-conformance-report.json
-            echo "Exception types:"
+            echo "### Exception types"
             jq -r '.exception_types | if length == 0 then "- None" else to_entries[] | "- \(.key): \(.value)" end' external-conformance-report.json
             echo
             echo "### Errors by keyword"
