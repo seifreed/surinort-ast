@@ -13,3 +13,11 @@ def test_vscode_extension_manifest_and_entrypoint_exist() -> None:
         "snort3",
     }
     assert (root / manifest["main"][2:]).exists()
+
+
+def test_vscode_extension_resolves_capability_files_from_workspace() -> None:
+    source = Path("editors/vscode/extension.js").read_text(encoding="utf-8")
+
+    assert "path.isAbsolute(configured)" in source
+    assert "workspaceFolders[0].uri.fsPath" in source
+    assert "capabilityFile: configuredCapabilityFile()" in source
