@@ -15,6 +15,17 @@ python -m pip install surinort-ast==4.0.0
 code --install-extension editors/vscode
 ```
 
+For version-aware LSP diagnostics and documentation, configure the concrete
+engine target in VS Code settings:
+
+```json
+{
+  "surinortAst.engine": "suricata",
+  "surinortAst.engineVersion": "8.0.6",
+  "surinortAst.capabilityFile": "conformance/capabilities/4.0.0-local.json"
+}
+```
+
 The release workflow publishes the extension to the Marketplace through the
 `vscode-marketplace` environment. Configure the `VSCE_PAT` environment secret
 for the `seifreed` publisher before creating a release tag; publication is a
