@@ -608,7 +608,11 @@ unsupported AST majors.</p>
   no evidence for that capability. Use <code>EngineTarget.with_keywords()</code> with a
   complete output from the installed engine before treating unknown keywords
   as errors. <code>EngineTarget.from_keyword_listing()</code> accepts plain or tabular
-  <code>--list-keywords</code> output and marks the resulting keyword catalog complete.</li>
+  <code>--list-keywords</code> output and marks the resulting keyword catalog complete.
+  Feature requirements such as <code>sticky-buffer</code>, <code>flowbits</code>, <code>byte-ops</code>, and
+  <code>pcre</code> use the same tri-state behavior through <code>with_features()</code> and
+  <code>feature_catalog_complete</code>; only a complete feature catalog produces an
+  <code>unsupported_engine_feature</code> error.</li>
 <li><code>RulesetContext.from_suricata_yaml()</code> and <code>from_snort_config()</code> resolve
   deployment variables for coverage analysis; unresolved variables remain
   indeterminate instead of being reported as uncovered concrete ports.</li>
