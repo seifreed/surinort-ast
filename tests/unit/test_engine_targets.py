@@ -120,3 +120,4 @@ def test_checked_in_capability_snapshot_has_concrete_complete_catalogs() -> None
     assert snort3 is not None and snort3.keyword_catalog_complete
     assert len(suricata.keywords) >= 300
     assert len(snort3.keywords) >= 100
+    assert snort3.supports("base64_data") is True

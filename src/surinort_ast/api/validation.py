@@ -405,7 +405,8 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
             )
         if option.node_type == "BufferSelectOption":
             buffer_name = str(getattr(option, "buffer_name", "")).lower()
-            buffer_support = target.supports(buffer_name)
+            # Snort 3 field selectors append ``:field ...`` to the base buffer.
+            buffer_support = target.supports(buffer_name.split(":", 1)[0])
             if buffer_support is True or support is True:
                 support = True
             elif buffer_support is None and support is None:

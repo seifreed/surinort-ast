@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "Complete keyword snapshots captured from installed engine builds; absent domains remain unknown.",
+  "scope": "Complete keyword snapshots captured from installed engine builds plus observed compatibility keywords; absent domains remain unknown.",
   "sources": [
     {
       "command": "/opt/homebrew/bin/suricata --list-keywords",
@@ -443,6 +443,7 @@
       "keywords": [
         "ack",
         "appids",
+        "base64_data",
         "base64_decode",
         "ber_data",
         "ber_skip",
