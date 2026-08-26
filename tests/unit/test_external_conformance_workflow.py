@@ -1,4 +1,5 @@
 import io
+import json
 import tarfile
 from pathlib import Path
 
@@ -73,3 +74,36 @@ def test_checked_in_semantic_matrix_has_no_unexpected_diagnostics() -> None:
     assert report["failures"] == 0
     assert report["case_count"] == 22
     assert report["target_case_count"] == 66
+
+
+def test_semantic_matrix_allows_a_target_specific_dialect(tmp_path: Path) -> None:
+    manifest = tmp_path / "semantic-matrix.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "cases": [
+                    {
+                        "id": "snort3-dialect",
+                        "category": "dialect",
+                        "dialect": "suricata",
+                        "rule": 'alert tcp any any -> any 80 (msg:"x"; sid:1; rev:1;)',
+                        "targets": [
+                            {
+                                "engine": "snort",
+                                "version": "3.12.2.0",
+                                "dialect": "snort3",
+                                "expected_diagnostics": [],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = run(manifest)
+
+    assert report["failures"] == 0
+    assert report["cases"][0]["dialect"] == "snort3"
