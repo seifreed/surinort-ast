@@ -118,12 +118,51 @@ def test_engine_matrix_runs_declared_entries(tmp_path) -> None:
     )
 
     entries = load_matrix(matrix)
-    report = run_matrix(matrix)
+    report = run_matrix(matrix, require_complete=True)
 
     assert entries[0].version == "1.2.3"
     assert report["total_rules"] == 1
     assert report["unexpected_failures"] == 0
     assert report["engines"][0]["report"]["engine_validation_passed"] == 1
+    assert report["completeness_failures"] == 0
+
+
+def test_engine_matrix_require_complete_reports_engine_failure(tmp_path) -> None:
+    matrix = tmp_path / "matrix.json"
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps({"files": [{"path": "rules.rules", "dialect": "suricata"}]}),
+        encoding="utf-8",
+    )
+    (tmp_path / "rules.rules").write_text(
+        'alert tcp any any -> any 80 (msg:"x"; sid:1;)\n', encoding="utf-8"
+    )
+    matrix.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "engines": [
+                    {
+                        "id": "rejecting-engine",
+                        "engine": "suricata",
+                        "version": "8.0.6",
+                        "dialect": "suricata",
+                        "manifest": "manifest.json",
+                        "command": f'{sys.executable} -c "import sys; sys.exit(2)" {{file}}',
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_matrix(matrix, require_complete=True)
+
+    assert report["completeness_failures"] == 2
+    assert report["engines"][0]["completeness_failures"] == [
+        "original rules rejected by engine",
+        "printed rules rejected by engine",
+    ]
 
 
 def test_engine_matrix_rejects_wildcard_versions(tmp_path) -> None:
