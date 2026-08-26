@@ -27,6 +27,9 @@ def test_byte_variable_must_be_defined_first() -> None:
     assert "undefined_byte_variable" in codes(
         "alert tcp any any -> any 80 (byte_jump:1,missing; sid:1;)"
     )
+    assert "undefined_byte_variable" in codes(
+        "alert tcp any any -> any 80 (byte_jump:1,0,post_offset missing; sid:1;)"
+    )
 
 
 def test_byte_extract_defines_variables_for_relative_modifiers() -> None:
@@ -36,6 +39,9 @@ def test_byte_extract_defines_variables_for_relative_modifiers() -> None:
     )
 
     assert "undefined_byte_variable" not in found
+    assert "undefined_byte_variable" not in codes(
+        "alert tcp any any -> any 80 (byte_extract:1,0,length; byte_jump:1,0,post_offset length; sid:1;)"
+    )
 
 
 def test_byte_math_tracks_dependencies_and_relative_anchor() -> None:

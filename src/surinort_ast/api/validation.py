@@ -463,6 +463,23 @@ def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) ->
                         )
                     )
 
+        if option_type == "ByteJumpOption":
+            post_offset = _variable_reference(
+                _flag_argument(getattr(option, "flags", ()), "post_offset")
+            )
+            if post_offset is not None and post_offset not in defined:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.WARNING,
+                        message=f"Byte-operation variable '{post_offset}' is not defined earlier in the rule",
+                        location=getattr(option, "location", None),
+                        code="undefined_byte_variable",
+                        hint="Add byte_extract before using the variable, or verify the engine context.",
+                        phase="option-chain",
+                        confidence="medium",
+                    )
+                )
+
         for field_name in _BYTE_REFERENCE_FIELDS.get(option_type, ()):
             value = getattr(option, field_name, None)
             variable = _variable_reference(value)
@@ -525,10 +542,10 @@ def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) ->
                     )
                 )
             if option_type == "ByteJumpOption":
-                post_offset = _flag_value(getattr(option, "flags", ()), "post_offset")
+                post_offset_value = _flag_value(getattr(option, "flags", ()), "post_offset")
                 if (
-                    post_offset is not None
-                    and not -_SNORT_BYTE_LIMIT <= post_offset <= _SNORT_BYTE_LIMIT
+                    post_offset_value is not None
+                    and not -_SNORT_BYTE_LIMIT <= post_offset_value <= _SNORT_BYTE_LIMIT
                 ):
                     diagnostics.append(
                         Diagnostic(
