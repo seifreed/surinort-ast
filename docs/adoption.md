@@ -15,8 +15,10 @@ python -m pip install surinort-ast==4.0.0
 code --install-extension editors/vscode
 ```
 
-Marketplace publication is a separate external operation requiring the
-publisher account and token. Until that operation is completed, the signed
+The release workflow publishes the extension to the Marketplace through the
+`vscode-marketplace` environment. Configure the `VSCE_PAT` environment secret
+for the `seifreed` publisher before creating a release tag; publication is a
+required release job. Until the first publication is completed, the signed
 `.vsix` attached to the GitHub release is the canonical extension artifact.
 
 Use the [release verification checklist](release-verification.md) to verify
