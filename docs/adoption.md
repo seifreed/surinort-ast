@@ -33,5 +33,11 @@ for the `seifreed` publisher before creating a release tag; publication is a
 required release job. Until the first publication is completed, the signed
 `.vsix` attached to the GitHub release is the canonical extension artifact.
 
+PyPI uses Trusted Publisher through the `pypi` environment, so no PyPI token is
+stored in GitHub. Register this publisher on the `surinort-ast` PyPI project
+with owner `seifreed`, repository `surinort-ast`, workflow
+`.github/workflows/release.yml`, and environment `pypi`. The workflow grants
+`id-token: write` only to the publishing job.
+
 Use the [release verification checklist](release-verification.md) to verify
 public tags, checksums, provenance, and SBOMs after publishing a release.
