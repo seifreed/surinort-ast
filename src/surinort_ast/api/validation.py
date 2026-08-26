@@ -15,6 +15,7 @@ from collections.abc import Sequence
 
 from ..analysis.targets import EngineTarget
 from ..core.diagnostics import Diagnostic, DiagnosticLevel
+from ..core.location import Location
 from ..core.nodes import (
     ContentModifier,
     ContentOption,
@@ -51,6 +52,7 @@ _BYTE_REFERENCE_FIELDS = {
     "ByteJumpOption": "offset",
 }
 _BYTE_COUNT_OPTIONS = {"ByteTestOption", "ByteJumpOption", "ByteExtractOption"}
+_RELATIVE_LIMIT = 1_048_576
 _BYTE_TEST_OPERATORS = {
     "!",
     "!=",
@@ -94,15 +96,60 @@ def _modifier_signature(modifier: ContentModifier) -> tuple[str, int | str | Non
     return modifier.name_str, modifier.value
 
 
-def _is_variable_reference(value: object) -> bool:
-    """Return whether a byte-op string is a variable, not a numeric literal."""
+def _variable_reference(value: object) -> str | None:
+    """Return a referenced variable name, or ``None`` for a numeric value."""
     if not isinstance(value, str):
-        return False
+        return None
+    candidate = value[1:] if value.startswith("-") else value
     try:
-        int(value, 0)
+        int(candidate, 0)
     except ValueError:
-        return True
-    return False
+        return candidate
+    return None
+
+
+def _validate_relative_value(
+    name: str, value: object, location: Location | None
+) -> list[Diagnostic]:
+    if not isinstance(value, int):
+        return []
+    valid = abs(value) <= _RELATIVE_LIMIT if name == "distance" else 0 < value <= _RELATIVE_LIMIT
+    if valid:
+        return []
+    minimum = "any value" if name == "distance" else "a value greater than zero"
+    return [
+        Diagnostic(
+            level=DiagnosticLevel.ERROR,
+            message=f"{name} must be {minimum} and no more than {_RELATIVE_LIMIT} bytes",
+            location=location,
+            code="invalid_relative_modifier_range",
+            phase="option-chain",
+        )
+    ]
+
+
+def _validate_content_modifier_combination(
+    names: set[str], location: Location | None
+) -> list[Diagnostic]:
+    conflicts: set[str] = set()
+    if "startswith" in names:
+        conflicts.update(names & {"depth", "offset", "distance", "within"})
+    if "endswith" in names:
+        conflicts.update(names & {"offset", "distance", "within"})
+    if "startswith" in names and "endswith" in names:
+        conflicts.update({"startswith", "endswith"})
+    if not conflicts:
+        return []
+    return [
+        Diagnostic(
+            level=DiagnosticLevel.ERROR,
+            message="Incompatible content modifiers: " + ", ".join(sorted(names)),
+            location=location,
+            code="incompatible_content_modifiers",
+            hint="Use startswith/endswith without conflicting position modifiers.",
+            phase="option-chain",
+        )
+    ]
 
 
 def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:
@@ -139,11 +186,12 @@ def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:
         field_name = _BYTE_REFERENCE_FIELDS.get(option_type)
         if field_name is not None:
             value = getattr(option, field_name, None)
-            if _is_variable_reference(value) and value not in defined:
+            variable = _variable_reference(value)
+            if variable is not None and variable not in defined:
                 diagnostics.append(
                     Diagnostic(
                         level=DiagnosticLevel.WARNING,
-                        message=f"Byte-operation variable '{value}' is not defined earlier in the rule",
+                        message=f"Byte-operation variable '{variable}' is not defined earlier in the rule",
                         location=getattr(option, "location", None),
                         code="undefined_byte_variable",
                         hint="Add byte_extract before using the variable, or verify the engine context.",
@@ -304,12 +352,13 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
     return diagnostics
 
 
-def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
+def _validate_option_chain(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
     diagnostics: list[Diagnostic] = []
     counts: dict[str, int] = {}
     previous_content = False
     previous_content_negated = False
     seen_content = False
+    current_modifiers: set[str] = set()
     for option in rule.options:
         option_type = option.node_type
         if option_type in _SINGLETON_OPTIONS:
@@ -317,6 +366,16 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
         if option_type == "ContentOption":
             modifiers = tuple(getattr(option, "modifiers", ()))
             modifier_names = [modifier.name_str for modifier in modifiers]
+            current_modifiers = set(modifier_names)
+            diagnostics.extend(
+                _validate_content_modifier_combination(current_modifiers, option.location)
+            )
+            for modifier in modifiers:
+                diagnostics.extend(
+                    _validate_relative_value(
+                        modifier.name_str, modifier.value, getattr(option, "location", None)
+                    )
+                )
             duplicate_modifiers = {
                 name for name in modifier_names if name and modifier_names.count(name) > 1
             }
@@ -379,8 +438,19 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
                         fix={"action": "move_after_content"},
                     )
                 )
+            modifier_name = option_type.removesuffix("Option").lower()
+            current_modifiers.add(modifier_name)
+            diagnostics.extend(
+                _validate_content_modifier_combination(current_modifiers, option.location)
+            )
+            diagnostics.extend(
+                _validate_relative_value(
+                    modifier_name, getattr(option, "value", None), getattr(option, "location", None)
+                )
+            )
             continue
         previous_content = False
+        current_modifiers.clear()
 
     for option_type, count in counts.items():
         if count > 1:
