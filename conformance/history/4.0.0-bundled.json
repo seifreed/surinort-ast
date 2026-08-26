@@ -3,6 +3,29 @@
   "behavior_validation_failures": 0,
   "behavior_validation_passed": 0,
   "corpus": "conformance/corpus",
+  "corpus_files": [
+    {
+      "bytes": 13249808,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "rules/suricata/suricata.rules",
+      "sha256": "6784018624d3349c026cf9b3f61c372faaf677ecbe182ec03e0e8c29e1ad44f4"
+    },
+    {
+      "bytes": 1809323,
+      "dialect": "snort2",
+      "expected_parse": true,
+      "path": "rules/snort/snort29-community-rules/community-rules/community.rules",
+      "sha256": "688d2f41c50e1e27d3c2a1968dae044fdbc82733bbba6abe68045618387a8334"
+    },
+    {
+      "bytes": 1794988,
+      "dialect": "snort3",
+      "expected_parse": true,
+      "path": "rules/snort/snort3-community-rules/snort3-community-rules/snort3-community.rules",
+      "sha256": "9113fb15ac089b72aacc4c099dff4dfdb5d8762915d36ee38bcfbc695dd8b8a9"
+    }
+  ],
   "dialect_metrics": {
     "snort2": {
       "parsed": 561,
@@ -23,7 +46,7 @@
       "unexpected_failures": 0
     }
   },
-  "elapsed_seconds": 107.234875,
+  "elapsed_seconds": 106.834055,
   "engine_command": null,
   "engine_timeouts": 0,
   "engine_validation_after_print_failures": 0,
@@ -36,11 +59,11 @@
   "parse_exceptions": 0,
   "parse_rate": 1.0,
   "parsed": 35157,
-  "peak_memory_mb": 27.971598,
+  "peak_memory_mb": 27.973848,
   "printed": 35157,
   "round_trip_passed": 35157,
   "round_trip_rate": 1.0,
-  "rules_per_second": 327.8504318857553,
+  "rules_per_second": 329.0804600900002,
   "total_rules": 35157,
   "unexpected_failures": 0,
   "unsupported_constructions": []
