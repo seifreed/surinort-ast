@@ -569,6 +569,10 @@ jobs:
             echo "GitHub release failed"
             exit 1
           fi
+          if [[ "${{ needs.publish-vscode.result }}" != "success" ]]; then
+            echo "VS Code Marketplace publish failed"
+            exit 1
+          fi
           if [[ "${{ needs.sign-artifacts.result }}" != "success" ]]; then
             echo "Artifact signing failed"
             exit 1
