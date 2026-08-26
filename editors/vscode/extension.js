@@ -65,6 +65,11 @@ function activate(context) {
     processId: process.pid,
     rootUri: vscode.workspace.workspaceFolders?.[0]?.uri.toString() || null,
     capabilities: {},
+    initializationOptions: {
+      engine: vscode.workspace.getConfiguration("surinortAst").get("engine", ""),
+      engineVersion: vscode.workspace.getConfiguration("surinortAst").get("engineVersion", ""),
+      capabilityFile: vscode.workspace.getConfiguration("surinortAst").get("capabilityFile", ""),
+    },
   }).then(() => send({ jsonrpc: "2.0", method: "initialized", params: {} }));
 
   function open(document) {

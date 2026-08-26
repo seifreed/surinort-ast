@@ -50,6 +50,22 @@
           "type": "string",
           "default": "",
           "description": "Optional local engine command containing {file}."
+        },
+        "surinortAst.engine": {
+          "type": "string",
+          "enum": ["", "suricata", "snort"],
+          "default": "",
+          "description": "Engine name used for version-aware LSP diagnostics and documentation."
+        },
+        "surinortAst.engineVersion": {
+          "type": "string",
+          "default": "",
+          "description": "Concrete engine version used for version-aware LSP diagnostics and documentation."
+        },
+        "surinortAst.capabilityFile": {
+          "type": "string",
+          "default": "",
+          "description": "Optional capability snapshot JSON used by the LSP."
         }
       }
     }
