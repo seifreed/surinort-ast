@@ -202,6 +202,7 @@ steps:
       dialect: suricata
       engine: suricata
       engine-version: 8.0.6
+      capability-file: conformance/capabilities/4.0.0-local.json
       sarif: true
       engine-verify: true
       engine-command: 'suricata -T -S {file}'
