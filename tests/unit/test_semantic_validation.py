@@ -391,6 +391,13 @@ def test_snort_byte_operations_use_versioned_ranges() -> None:
         diagnostic.code for diagnostic in validate_rule(invalid_mask, target=snort3)
     }
 
+    incomplete_math = parse_rule(
+        "alert tcp any any -> any 80 (byte_math:bytes 1,offset 0,oper +,rvalue 1; sid:1;)"
+    )
+    assert "invalid_byte_math_syntax" in {
+        diagnostic.code for diagnostic in validate_rule(incomplete_math, target=snort3)
+    }
+
 
 def test_snort_content_ranges_allow_negative_offset_but_require_match_length() -> None:
     target = EngineTarget("snort", "3.12.2.0")
