@@ -22,7 +22,7 @@ from surinort_ast.analysis.strategies import (
     OptionReorderStrategy,
     RedundancyRemovalStrategy,
 )
-from surinort_ast.core.enums import ContentModifierType
+from surinort_ast.core.enums import ContentModifierType, Dialect
 from surinort_ast.core.nodes import (
     ByteJumpOption,
     ByteTestOption,
@@ -425,6 +425,25 @@ class TestFastPatternStrategy:
         assert ",fast_pattern" not in rendered
         reparsed = parse_rule(rendered)
         assert any(option.node_type == "FastPatternOption" for option in reparsed.options)
+
+    def test_snort3_fast_pattern_stays_inline(self):
+        """Snort3 rejects the standalone fast_pattern representation."""
+        from surinort_ast import print_rule
+
+        rule = parse_rule(
+            "alert tcp any any -> any 80 ("
+            'content:"short"; '
+            'content:"longer_distinctive_pattern"; '
+            "sid:1;)",
+            dialect=Dialect.SNORT3,
+        )
+
+        optimized, _ = FastPatternStrategy().apply(rule)
+
+        assert optimized is not None
+        rendered = print_rule(optimized)
+        assert 'content:"longer_distinctive_pattern",fast_pattern;' in rendered
+        assert "; fast_pattern;" not in rendered
 
     def test_fast_pattern_already_present(self):
         """Test that existing fast_pattern is not modified."""
