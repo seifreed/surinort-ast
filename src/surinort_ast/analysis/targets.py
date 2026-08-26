@@ -206,8 +206,12 @@ def parse_keyword_listing(listing: str) -> frozenset[str]:
     ignored = {"keyword", "keywords", "name", "description", "supported"}
     for raw_line in listing.splitlines():
         line = raw_line.strip()
-        if not line or line.startswith(("#", "-", "=")):
+        if not line or line.startswith(("#", "=")):
             continue
+        if line.startswith("-"):
+            line = line.lstrip("-").strip()
+            if not line:
+                continue
         token = line.split(maxsplit=1)[0].rstrip(":")
         if token.lower() in ignored:
             continue
