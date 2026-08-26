@@ -104,14 +104,67 @@ def _semantic_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
     ]
 
 
+def _optimizer_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+
+    def add_row(entry: dict[str, Any]) -> None:
+        engine = entry.get("engine")
+        if isinstance(engine, dict):
+            engine_name = engine.get("name")
+            engine_version = engine.get("version")
+        else:
+            engine_name = engine
+            engine_version = entry.get("version")
+        if not isinstance(engine_name, str) or not engine_name:
+            return
+        cases = entry.get("cases")
+        case_list = cases if isinstance(cases, list) else []
+        pcap_count = entry.get("pcap_count")
+        if not isinstance(pcap_count, int):
+            pcap_count = len(case_list)
+        passed = entry.get("passed")
+        if not isinstance(passed, int):
+            passed = sum(
+                1 for case in case_list if isinstance(case, dict) and case.get("status") == "passed"
+            )
+        failures = entry.get("failures")
+        if not isinstance(failures, int):
+            failures = pcap_count - passed
+        equivalent = entry.get("behaviorally_equivalent")
+        status = "equivalent" if equivalent is True else "failed" if failures else "not-run"
+        entry_id = entry.get("id")
+        rows.append(
+            {
+                "source": f"{source}:{entry_id}" if entry_id else source,
+                "engine": engine_name,
+                "version": engine_version,
+                "dialect": entry.get("dialect"),
+                "pcap_count": pcap_count,
+                "passed": passed,
+                "failures": failures,
+                "status": status,
+            }
+        )
+
+    engines = report.get("engines")
+    if isinstance(engines, list):
+        for entry in engines:
+            if isinstance(entry, dict):
+                add_row(entry)
+    else:
+        add_row(report)
+    return rows
+
+
 def _load_reports(
     history_dir: Path, report: Path | None, semantic_matrix: Path | None
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     paths = sorted(history_dir.glob("*.json")) if history_dir.is_dir() else []
     if report is not None and report not in paths:
         paths.append(report)
     rows: list[dict[str, Any]] = []
     semantic_rows: list[dict[str, Any]] = []
+    optimizer_rows: list[dict[str, Any]] = []
     if semantic_matrix is not None and semantic_matrix not in paths:
         paths.append(semantic_matrix)
     for path in paths:
@@ -124,9 +177,10 @@ def _load_reports(
                 "optimizer-behavior-conformance",
                 "optimizer-behavior-engine-conformance",
             } or ("pcap_count" in payload and "cases" in payload):
+                optimizer_rows.extend(_optimizer_rows(payload, path.name))
                 continue
             rows.extend(_report_rows(payload, path.name))
-    return rows, semantic_rows
+    return rows, semantic_rows, optimizer_rows
 
 
 def render(
@@ -136,7 +190,7 @@ def render(
     semantic_matrix: Path | None = None,
 ) -> str:
     """Render reports and write the resulting Markdown page."""
-    rows, semantic_rows = _load_reports(history_dir, report, semantic_matrix)
+    rows, semantic_rows, optimizer_rows = _load_reports(history_dir, report, semantic_matrix)
     lines = [
         "# Conformance Dashboard",
         "",
@@ -181,6 +235,23 @@ def render(
             lines.append(
                 "| {source} | {version} | {engine} | {engine_version} | {dialect} | "
                 "{evaluations} | {passed} | {failures} |".format(**row)
+            )
+        lines.append("")
+    if optimizer_rows:
+        lines.extend(
+            [
+                "## Optimizer Behavior Evidence",
+                "",
+                "| Snapshot | Engine | Version | Dialect | PCAPs | Passed | Failures | Result |",
+                "| --- | --- | --- | --- | ---: | ---: | ---: | --- |",
+            ]
+        )
+        for row in optimizer_rows:
+            lines.append(
+                "| {source} | {engine} | {version} | {dialect} | {pcap_count} | "
+                "{passed} | {failures} | {status} |".format(
+                    **{key: ("-" if value is None else value) for key, value in row.items()}
+                )
             )
         lines.append("")
     rendered = "\n".join(lines)

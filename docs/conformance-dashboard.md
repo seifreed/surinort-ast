@@ -35,3 +35,13 @@ Rates are fractions in the source JSON. Engine and PCAP behavior claims require 
 | 4.0.0-semantic-matrix.json | 4.0.0 | snort | 3.12.2.0 | suricata | 46 | 46 | 0 |
 | 4.0.0-semantic-matrix.json | 4.0.0 | snort2 | 2.9.20 | suricata | 1 | 1 | 0 |
 | 4.0.0-semantic-matrix.json | 4.0.0 | suricata | 8.0.6 | suricata | 46 | 46 | 0 |
+
+## Optimizer Behavior Evidence
+
+| Snapshot | Engine | Version | Dialect | PCAPs | Passed | Failures | Result |
+| --- | --- | --- | --- | ---: | ---: | ---: | --- |
+| 4.0.0-optimizer-bundled-public-pcap.json | suricata | 8.0.6 | - | 10 | 10 | 0 | equivalent |
+| 4.0.0-optimizer-public-pcap.json | suricata | 8.0.6 | - | 10 | 10 | 0 | equivalent |
+| 4.0.0-optimizer-smoke.json | suricata | 8.0.6 | - | 2 | 2 | 0 | equivalent |
+| 4.0.0-optimizer-snort-public-pcap.json | snort2 | 2.9.20 | snort2 | 9 | 9 | 0 | equivalent |
+| 4.0.0-optimizer-snort-public-pcap.json | snort3 | 3.12.2.0 | snort3 | 9 | 9 | 0 | equivalent |

@@ -94,3 +94,5 @@ python -m tools.optimizer_behavior_lab \
 
 The report is evidence only for the supplied engine build, configuration, and
 PCAPs. It must not be generalized into a universal semantic-equivalence claim.
+These PCAP equivalence results are also listed separately in the public
+conformance dashboard.
