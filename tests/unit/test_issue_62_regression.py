@@ -66,3 +66,19 @@ def test_normalize_still_repairs_missing_content_closer():
     # The repair appends a closing quote, so the escaped quote stays a literal
     # ``"`` in the payload rather than dropping the content.
     assert contents[0].pattern == b'abc"'
+
+
+def test_suricata_threshold_can_be_followed_by_option_without_separator():
+    """Suricata accepts the ET Open threshold/reference separator omission."""
+    rule = parse_rule(
+        'alert dns any any -> any any (msg:"x"; '
+        "threshold: type limit, count 1, seconds 120, track by_src "
+        "reference:url,https://example.test/; sid:1;)"
+    )
+
+    assert [option.node_type for option in rule.options] == [
+        "MsgOption",
+        "ThresholdOption",
+        "ReferenceOption",
+        "SidOption",
+    ]

@@ -26,6 +26,12 @@ _MISSING_CONTENT_CLOSER_RE = re.compile(
     r'(?P<prefix>\b(?:uri)?content:")(?P<body>(?:[^"\\]|\\.)*?)'
     r'\\"(?=;\s*(?:[A-Za-z_][\w.]*\s*[:;)]|\)|$))'
 )
+_MISSING_THRESHOLD_SEPARATOR_RE = re.compile(
+    r"(?P<prefix>\bthreshold\s*:\s*[^;)]*?"
+    r"\b(?:type|track|count|seconds|multiplier)\s+[^\s,;)]+)"
+    r"\s+(?P<option>[A-Za-z_][\w.]*\s*:)",
+    re.IGNORECASE,
+)
 
 
 def is_marker(item: Any, name: str) -> bool:
@@ -89,9 +95,16 @@ def normalize_rule_text(text: str) -> str:
     expects an explicit closing delimiter. Normalize only that specific pattern.
     """
 
-    return _MISSING_CONTENT_CLOSER_RE.sub(
+    normalized = _MISSING_CONTENT_CLOSER_RE.sub(
         lambda match: match.group("prefix") + match.group("body") + '\\""',
         text,
+    )
+    # Suricata accepts a missing semicolon between the final threshold
+    # parameter and the next rule option (for example ``track by_src
+    # reference:url,...``). Keep this repair bounded to a threshold clause.
+    return _MISSING_THRESHOLD_SEPARATOR_RE.sub(
+        lambda match: match.group("prefix") + "; " + match.group("option"),
+        normalized,
     )
 
 
