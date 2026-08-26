@@ -50,6 +50,22 @@ def test_github_release_attaches_downloaded_provenance_bundles() -> None:
     assert "provenance/*.jsonl" in release_block
 
 
+def test_release_publishes_and_signs_the_versioned_vscode_artifact() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    build = workflow[workflow.index("  build:") : workflow.index("  # Generate release notes")]
+    pypi = workflow[workflow.index("  publish-pypi:") : workflow.index("  # Create GitHub Release")]
+    signing = workflow[
+        workflow.index("  sign-artifacts:") : workflow.index("  # Post-release verification")
+    ]
+
+    assert "vsce package --no-dependencies" in build
+    assert "surinort-ast-${{ needs.validate.outputs.version }}.vsix" in build
+    assert "twine check dist/*.whl dist/*.tar.gz" in build
+    assert "rm -f dist/*.vsix" in pypi
+    assert "for file in *.whl *.tar.gz *.vsix; do" in signing
+
+
 def test_ci_summary_matches_the_protected_branch_check_name() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
