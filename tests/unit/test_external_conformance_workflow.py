@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from tools.extract_conformance_archive import extract_archive
+from tools.semantic_matrix import run
 
 
 def test_external_conformance_workflow_verifies_and_publishes_corpus_metrics() -> None:
@@ -57,3 +58,11 @@ def test_conformance_archive_rejects_path_traversal_and_links(tmp_path: Path) ->
 
     with pytest.raises(ValueError, match="links are not allowed"):
         extract_archive(link_archive, tmp_path / "link-extract")
+
+
+def test_checked_in_semantic_matrix_has_no_unexpected_diagnostics() -> None:
+    report = run(Path("conformance/semantic-matrix.json"))
+
+    assert report["failures"] == 0
+    assert report["case_count"] == 9
+    assert report["target_case_count"] == 27
