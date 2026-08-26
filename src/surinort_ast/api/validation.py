@@ -26,6 +26,7 @@ from ..core.nodes import (
 )
 
 _SINGLETON_OPTIONS = {
+    "MsgOption": "msg",
     "SidOption": "sid",
     "GidOption": "gid",
     "RevOption": "rev",
@@ -548,6 +549,16 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
                     phase="option-chain",
                 )
             )
+    if counts.get("DetectionFilterOption", 0) and counts.get("ThresholdOption", 0):
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message="Options 'detection_filter' and 'threshold' cannot be combined",
+                code="incompatible_threshold_options",
+                hint="Keep one alert-rate control option in the rule.",
+                phase="option-chain",
+            )
+        )
     return diagnostics
 
 

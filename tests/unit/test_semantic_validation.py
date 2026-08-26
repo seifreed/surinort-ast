@@ -201,6 +201,22 @@ def test_singleton_threshold_is_reported() -> None:
     )
 
 
+def test_duplicate_msg_is_reported_but_duplicate_content_is_allowed() -> None:
+    assert "duplicate_singleton_option" in codes(
+        'alert tcp any any -> any 80 (msg:"a"; msg:"b"; sid:1;)'
+    )
+    assert "duplicate_singleton_option" not in codes(
+        'alert tcp any any -> any 80 (content:"a"; content:"b"; sid:1;)'
+    )
+
+
+def test_detection_filter_and_threshold_are_incompatible() -> None:
+    assert "incompatible_threshold_options" in codes(
+        "alert tcp any any -> any 80 (detection_filter:track by_src,count 1,seconds 1; "
+        "threshold:type limit,track by_src,count 1,seconds 1; sid:1;)"
+    )
+
+
 def test_engine_target_checks_actions_and_protocols() -> None:
     rule = parse_rule('drop udp any any -> any 53 (msg:"x"; sid:1;)')
     target = EngineTarget(
