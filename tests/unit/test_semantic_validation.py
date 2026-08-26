@@ -37,6 +37,19 @@ def test_byte_extract_defines_variables_for_relative_modifiers() -> None:
     assert "undefined_byte_variable" not in found
 
 
+def test_byte_math_tracks_dependencies_and_relative_anchor() -> None:
+    assert "undefined_byte_variable" in codes(
+        "alert tcp any any -> any 80 (byte_math:bytes missing,offset 0,oper +,rvalue 1,result total; sid:1;)"
+    )
+    assert "relative_byte_operation_without_anchor" in codes(
+        "alert tcp any any -> any 80 (byte_math:bytes 1,offset 0,oper +,rvalue 1,result total,relative; sid:1;)"
+    )
+    assert "undefined_byte_variable" not in codes(
+        'alert tcp any any -> any 80 (content:"x"; byte_math:bytes 1,offset 0,oper +,rvalue 1,result total,relative; '
+        "byte_test:1,>,total,0; sid:1;)"
+    )
+
+
 def test_duplicate_content_modifier_is_reported() -> None:
     assert "duplicate_content_modifier" in codes(
         'alert tcp any any -> any 80 (content:"x",nocase,nocase; sid:1;)'

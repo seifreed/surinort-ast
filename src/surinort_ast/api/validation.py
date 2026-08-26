@@ -153,11 +153,67 @@ def _validate_content_modifier_combination(
     ]
 
 
-def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:
+def _byte_math_fields(value: object) -> dict[str, str]:
+    """Extract the simple ``key value`` fields from a byte_math tail."""
+    if not isinstance(value, str):
+        return {}
+    fields: dict[str, str] = {}
+    for part in value.split(","):
+        pieces = part.strip().split(maxsplit=1)
+        if len(pieces) == 2:
+            fields[pieces[0].lower()] = pieces[1].strip()
+        elif pieces:
+            fields[pieces[0].lower()] = ""
+    return fields
+
+
+def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
     diagnostics: list[Diagnostic] = []
     defined: set[str] = set()
     for option in rule.options:
         option_type = option.node_type
+        if (
+            option_type == "GenericOption"
+            and str(getattr(option, "keyword", "")).lower() == "byte_math"
+        ):
+            fields = _byte_math_fields(getattr(option, "value", None))
+            for field_name in ("bytes", "offset", "rvalue"):
+                variable = _variable_reference(fields.get(field_name))
+                if variable is not None and variable not in defined:
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.WARNING,
+                            message=f"Byte-operation variable '{variable}' is not defined earlier in the rule",
+                            location=getattr(option, "location", None),
+                            code="undefined_byte_variable",
+                            hint="Add byte_extract or byte_math before using the variable.",
+                            phase="option-chain",
+                            confidence="medium",
+                        )
+                    )
+            result = fields.get("result", "")
+            if result and not _FLOWBIT_NAME_RE.fullmatch(result):
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"Invalid byte_math result variable '{result}'",
+                        location=getattr(option, "location", None),
+                        code="invalid_byte_variable",
+                        phase="option-chain",
+                    )
+                )
+            elif result:
+                if result in defined:
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message=f"Byte-operation variable '{result}' is extracted more than once",
+                            location=getattr(option, "location", None),
+                            code="duplicate_byte_variable",
+                            phase="option-chain",
+                        )
+                    )
+                defined.add(result)
         if option_type in _BYTE_COUNT_OPTIONS:
             count = getattr(option, "bytes_to_extract", None)
             if isinstance(count, int) and count < 1:
@@ -669,6 +725,21 @@ def _validate_relative_patterns(rule: Rule) -> list[Diagnostic]:
     has_anchor = False
     for option in rule.options:
         flags = {str(flag).lower() for flag in getattr(option, "flags", ())}
+        if (
+            option.node_type == "GenericOption"
+            and str(getattr(option, "keyword", "")).lower() == "byte_math"
+        ):
+            math_fields = _byte_math_fields(getattr(option, "value", None))
+            if "relative" in math_fields and not has_anchor:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message="Relative byte_math requires a preceding content or byte match",
+                        location=option.location,
+                        code="relative_byte_operation_without_anchor",
+                        phase="option-chain",
+                    )
+                )
         if (
             option.node_type in {"ByteTestOption", "ByteJumpOption", "ByteExtractOption"}
             and "relative" in flags
