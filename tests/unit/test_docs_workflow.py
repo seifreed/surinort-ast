@@ -11,6 +11,12 @@ def test_pages_deploys_the_site_built_with_the_dashboard_snapshot() -> None:
         workflow.index("  deploy:") : workflow.index("  # Documentation link checker")
     ]
 
+    snapshot = workflow[
+        workflow.index("- name: Generate conformance dashboard snapshot") : workflow.index(
+            "- name: Require MkDocs configuration"
+        )
+    ]
+    assert "if: ${{ github.event_name != 'pull_request' }}" in snapshot
     assert 'snapshot="conformance/history/bundled-${GITHUB_SHA}.json"' in build
     assert "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9" in build
     assert "path: site/" in build
