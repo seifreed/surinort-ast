@@ -96,7 +96,9 @@ def test_release_publishes_vscode_extension_to_marketplace() -> None:
     assert "name: vscode-marketplace" in publish
     assert "secrets.VSCE_PAT" in publish
     assert 'vsce publish --packagePath dist/*.vsix --pat "$VSCE_PAT"' in publish
-    assert "publish-vscode" in workflow[workflow.index("  release-success:") :]
+    summary = workflow[workflow.index("  release-success:") :]
+    assert "publish-vscode" in summary
+    assert "needs.publish-vscode.result" in summary
 
 
 def test_ci_summary_matches_the_protected_branch_check_name() -> None:
