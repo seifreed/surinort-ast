@@ -22,6 +22,10 @@ python tools/conformance_lab.py \
   --output conformance/bundled-report.json
 ```
 
+Summary reports include each input file's byte size and SHA-256 fingerprint;
+the published snapshot is rendered in the [conformance dashboard](../docs/conformance-dashboard.md).
+Use `--summary-only` when publishing aggregate evidence without per-rule cases.
+
 For differential behavior checks, provide a traffic fixture and an engine
 command containing both placeholders. The command must print a stable alert
 projection to stdout. The repository includes a Suricata adapter because

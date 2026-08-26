@@ -22,6 +22,8 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
                 "parse_rate": 1.0,
                 "round_trip_rate": 1.0,
                 "unexpected_failures": 0,
+                "parse_exceptions": 1,
+                "errors_by_keyword": {"content": 1},
                 "rules_per_second": 10,
                 "peak_memory_mb": 2,
                 "dialects": ["suricata"],
@@ -61,4 +63,5 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
     assert rendered.count("| suricata |") == 2
     assert rendered.count("| 8.0.1 |") == 1
     assert rendered.count("| matrix.json:suricata-test |") == 1
+    assert "| 1 | content:1 |" in rendered
     assert output.read_text(encoding="utf-8") == rendered
