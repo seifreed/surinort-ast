@@ -192,6 +192,26 @@
       ]
     },
     {
+      "id": "gid-uint32-maximum",
+      "category": "numeric-ranges",
+      "rule": "alert tcp any any -> any 80 (msg:\"x\"; gid:4294967295; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "gid-uint32-overflow",
+      "category": "numeric-ranges",
+      "rule": "alert tcp any any -> any 80 (msg:\"x\"; gid:4294967296; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["parse_error"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["parse_error"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["parse_error"]}
+      ]
+    },
+    {
       "id": "priority-zero",
       "category": "numeric-ranges",
       "rule": "alert tcp any any -> any 80 (priority:0; msg:\"x\"; sid:1; rev:1;)",

@@ -72,8 +72,8 @@ def test_checked_in_semantic_matrix_has_no_unexpected_diagnostics() -> None:
     report = run(Path("conformance/semantic-matrix.json"))
 
     assert report["failures"] == 0
-    assert report["case_count"] == 22
-    assert report["target_case_count"] == 66
+    assert report["case_count"] == 24
+    assert report["target_case_count"] == 72
 
 
 def test_semantic_matrix_allows_a_target_specific_dialect(tmp_path: Path) -> None:
