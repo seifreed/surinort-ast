@@ -5,7 +5,7 @@ installations with the versioned matrix runner:
 
 ```bash
 python -m tools.engine_matrix \
-  --matrix conformance/engine-matrix.example.json \
+  --matrix conformance/engine-matrix.json \
   --output engine-matrix-report.json
 ```
 
@@ -16,9 +16,11 @@ The command is executed without a shell. A
 missing binary, rejected original rule, rejected printed rule, timeout, or
 behavior mismatch is recorded as an unexpected failure.
 
-The example matrix is a declaration template, not evidence that those engines
-are installed. Publish a report only after running it with the exact engine
-builds and configuration used for the release. For optimizer behavior checks,
+The checked-in matrix is a declaration of the supported concrete targets, not
+evidence that those engines are installed. Publish a report only after running
+it with the exact engine builds and configuration used for the release. The
+`conformance/engine-matrix.example.json` file remains a minimal template for
+custom matrices. For optimizer behavior checks,
 add a `pcap` path and a command containing both `{file}` and `{pcap}`; the
 conformance report then compares the original and printed ruleset output.
 

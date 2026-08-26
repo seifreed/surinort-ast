@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "engines": [
+    {
+      "id": "suricata-8.0.6",
+      "engine": "suricata",
+      "version": "8.0.6",
+      "dialect": "suricata",
+      "manifest": "manifest.bundled.json",
+      "command": "suricata -T -S {file}"
+    },
+    {
+      "id": "snort2-2.9.20",
+      "engine": "snort2",
+      "version": "2.9.20",
+      "dialect": "snort2",
+      "manifest": "manifest.bundled.json",
+      "command": "docker run --rm -v {file}:/rules/community.rules:ro surinort-snort2:2.9.20 -T -c /etc/snort/snort.conf"
+    },
+    {
+      "id": "snort3-3.12.2.0",
+      "engine": "snort3",
+      "version": "3.12.2.0",
+      "dialect": "snort3",
+      "manifest": "manifest.bundled.json",
+      "command": "snort -T -c conformance/engines/snort3-3.12.2.lua -R {file}"
+    }
+  ]
+}

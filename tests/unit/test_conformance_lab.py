@@ -127,6 +127,17 @@ def test_engine_matrix_runs_declared_entries(tmp_path) -> None:
     assert report["completeness_failures"] == 0
 
 
+def test_public_engine_matrix_declares_concrete_bundled_targets() -> None:
+    entries = load_matrix(Path("conformance/engine-matrix.json"))
+
+    assert [(entry.engine, entry.version, entry.dialect) for entry in entries] == [
+        ("suricata", "8.0.6", "suricata"),
+        ("snort2", "2.9.20", "snort2"),
+        ("snort3", "3.12.2.0", "snort3"),
+    ]
+    assert all(entry.manifest.name == "manifest.bundled.json" for entry in entries)
+
+
 def test_engine_matrix_require_complete_reports_engine_failure(tmp_path) -> None:
     matrix = tmp_path / "matrix.json"
     manifest = tmp_path / "manifest.json"
