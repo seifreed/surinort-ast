@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import tempfile
@@ -156,6 +157,14 @@ def _manifest_files(
     return files, unsupported
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def run(
     corpus: Path,
     engine_command: str | None = None,
@@ -187,6 +196,17 @@ def run(
             )
             for path in sorted(corpus.rglob("*.rules"))
         ]
+
+    corpus_files = [
+        {
+            "path": str(path),
+            "dialect": dialect.value,
+            "expected_parse": expected_parse,
+            "bytes": path.stat().st_size,
+            "sha256": _sha256(path),
+        }
+        for path, dialect, expected_parse in files
+    ]
 
     for path, dialect, expected_parse in files:
         for line_number, text in _read_rule_lines(path):
@@ -274,6 +294,7 @@ def run(
         "package_version": __version__,
         "corpus": str(corpus),
         "manifest": str(manifest) if manifest else None,
+        "corpus_files": corpus_files,
         "unsupported_constructions": unsupported,
         "dialect_metrics": dialect_metrics,
         "errors_by_keyword": errors_by_keyword,

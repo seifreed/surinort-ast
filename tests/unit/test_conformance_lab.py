@@ -22,6 +22,8 @@ def test_checked_in_conformance_corpus_round_trips() -> None:
     assert report["dialect_metrics"]["suricata"]["total_rules"] == 3
     assert report["rules_per_second"] > 0
     assert report["peak_memory_mb"] > 0
+    assert len(report["corpus_files"]) == 4
+    assert all(len(item["sha256"]) == 64 for item in report["corpus_files"])
 
 
 def test_conformance_cli_can_write_summary_without_cases(tmp_path, monkeypatch) -> None:
