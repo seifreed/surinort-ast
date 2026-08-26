@@ -18,3 +18,6 @@ code --install-extension editors/vscode
 Marketplace publication is a separate external operation requiring the
 publisher account and token. Until that operation is completed, the signed
 `.vsix` attached to the GitHub release is the canonical extension artifact.
+
+Use the [release verification checklist](release-verification.md) to verify
+public tags, checksums, provenance, and SBOMs after publishing a release.

@@ -10,5 +10,6 @@ nav:
   - Engine Validation: engine-validation.md
   - Conformance Dashboard: conformance-dashboard.md
   - Adoption: adoption.md
+  - Release Verification: release-verification.md
   - Changelog: changelog.md
 docs_dir: docs
