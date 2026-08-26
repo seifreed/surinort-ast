@@ -294,6 +294,7 @@ If this project is useful in your workflows, you can support development:
 ## License
 
 This project is licensed under the GPL-3.0-or-later license. See [LICENSE](LICENSE).
+The current licensing decision is documented in the [license decision](https://seifreed.github.io/surinort-ast/license/).
 
 **Attribution**
 - Author: **Marc Rivero López** | [@seifreed](https://github.com/seifreed)
