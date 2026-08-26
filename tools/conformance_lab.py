@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 import tempfile
 import time
 import tracemalloc
@@ -368,6 +369,11 @@ def main() -> int:
         help="omit per-rule cases from the JSON output while retaining aggregate metrics",
     )
     parser.add_argument(
+        "--require-complete",
+        action="store_true",
+        help="fail unless every declared rule parses and round-trips without exceptions",
+    )
+    parser.add_argument(
         "--engine-command",
         help="Optional command template, for example 'suricata -T -S {file}'",
     )
@@ -385,7 +391,25 @@ def main() -> int:
     if args.output:
         args.output.write_text(rendered, encoding="utf-8")
     print(rendered, end="")
-    return 1 if report["unexpected_failures"] else 0
+    failures: list[str] = []
+    if report["unexpected_failures"]:
+        failures.append(f"{report['unexpected_failures']} unexpected failure(s)")
+    if args.require_complete:
+        if report["parse_rate"] != 1.0:
+            failures.append(f"parse rate is {report['parse_rate']:.6g}, expected 1")
+        if report["round_trip_rate"] != 1.0:
+            failures.append(f"round-trip rate is {report['round_trip_rate']:.6g}, expected 1")
+        if report["parse_exceptions"]:
+            failures.append(f"{report['parse_exceptions']} parse exception(s)")
+        for dialect, metrics in sorted(report["dialect_metrics"].items()):
+            if metrics["parsed"] != metrics["total_rules"]:
+                failures.append(f"{dialect} has unparsed rules")
+            if metrics["round_trip_passed"] != metrics["parsed"]:
+                failures.append(f"{dialect} has round-trip failures")
+    if failures:
+        print("Conformance gate failed: " + "; ".join(failures), file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

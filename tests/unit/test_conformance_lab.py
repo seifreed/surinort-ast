@@ -48,6 +48,34 @@ def test_conformance_cli_can_write_summary_without_cases(tmp_path, monkeypatch) 
     assert summary["package_version"] == "4.0.0"
 
 
+def test_conformance_cli_require_complete_passes_for_complete_corpus(tmp_path, monkeypatch) -> None:
+    corpus = tmp_path / "corpus" / "suricata"
+    corpus.mkdir(parents=True)
+    (corpus / "valid.rules").write_text(
+        'alert tcp any any -> any 80 (msg:"x"; sid:1;)\n', encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["conformance_lab", "--corpus", str(tmp_path / "corpus"), "--require-complete"],
+    )
+
+    assert main() == 0
+
+
+def test_conformance_cli_require_complete_rejects_parse_gap(tmp_path, monkeypatch) -> None:
+    corpus = tmp_path / "corpus" / "suricata"
+    corpus.mkdir(parents=True)
+    (corpus / "invalid.rules").write_text("this is not a rule\n", encoding="utf-8")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["conformance_lab", "--corpus", str(tmp_path / "corpus"), "--require-complete"],
+    )
+
+    assert main() == 1
+
+
 def test_bundled_manifest_points_to_tracked_corpora() -> None:
     manifest = json.loads(Path("conformance/manifest.bundled.json").read_text(encoding="utf-8"))
 
