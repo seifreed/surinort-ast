@@ -1,0 +1,156 @@
+{
+  "case_count": 15,
+  "cases": [
+    {
+      "case": "metadata_soid",
+      "dialect": "snort2",
+      "parse": "passed",
+      "printed_sha256": "9946506f10edb591d24a1a377e47cbcf3088a88e28397d3ad17d8302b5155d2c",
+      "round_trip": true,
+      "source_sha256": "f74d3d36ad833c16a1127dd6af4ce3292565df0e6662842335fe71bdfa8244b8"
+    },
+    {
+      "case": "headerless_builtin",
+      "dialect": "snort2",
+      "parse": "passed",
+      "printed_sha256": "89c352684ea3c8f1dde10a55686231d774c8bb1c49dbf575bde3d674c144ad62",
+      "round_trip": true,
+      "source_sha256": "a165c69cb3dc1829b7afc9d0ec374c84b5f9f3e0f0759f9e601cf8a91363172e"
+    },
+    {
+      "case": "suricata_raw_buffer",
+      "dialect": "suricata",
+      "parse": "passed",
+      "printed_sha256": "1ca1e44bb67cac590d558110f9d6e1774b55a487400eae444a0d54749e4cdf5c",
+      "round_trip": true,
+      "source_sha256": "1ca1e44bb67cac590d558110f9d6e1774b55a487400eae444a0d54749e4cdf5c"
+    },
+    {
+      "case": "escaped_reference_semicolon",
+      "dialect": "snort3",
+      "parse": "passed",
+      "printed_sha256": "a66a5b67f56a2f7fe336f289887b3e6937923b802d1f27fc341394eca27dbb75",
+      "round_trip": true,
+      "source_sha256": "a66a5b67f56a2f7fe336f289887b3e6937923b802d1f27fc341394eca27dbb75"
+    },
+    {
+      "case": "escaped_pcre_semicolon",
+      "dialect": "suricata",
+      "parse": "passed",
+      "printed_sha256": "00164794ad8da5b4a543e5f366f313fdb68363f8c658bff82910675cd4ff19f4",
+      "round_trip": true,
+      "source_sha256": "00164794ad8da5b4a543e5f366f313fdb68363f8c658bff82910675cd4ff19f4"
+    },
+    {
+      "case": "snort3_rewrite_action",
+      "dialect": "snort3",
+      "parse": "passed",
+      "printed_sha256": "a10516e831062e94442014aaa86df39522f35b13cd27bd6a90928f22bf2512ac",
+      "round_trip": true,
+      "source_sha256": "fd15ee5f4694ad1992b1742988fef24e28760c4394383f9b3c5603321b6dac7a"
+    },
+    {
+      "case": "snort3_buffer_modifier",
+      "dialect": "snort3",
+      "parse": "passed",
+      "printed_sha256": "1d054ef00f43aa1673dea88f66c21305680bbab7773ddbffed35cfe98950c158",
+      "round_trip": true,
+      "source_sha256": "84f53e420823ccf7f8d2966cb2aca681b5168fcf53e4635f2e494a536cf44a31"
+    },
+    {
+      "case": "snort3_buffer_test",
+      "dialect": "snort3",
+      "parse": "passed",
+      "printed_sha256": "31c3eb5f4ae89586b339062fe4560e1639fef83d61fcc2ae3422eeac9f531dd8",
+      "round_trip": true,
+      "source_sha256": "31c3eb5f4ae89586b339062fe4560e1639fef83d61fcc2ae3422eeac9f531dd8"
+    },
+    {
+      "case": "reserved_tcp_flags",
+      "dialect": "suricata",
+      "parse": "passed",
+      "printed_sha256": "c22af9a48f749493f256fd9e56a49692881efe20279d70a9d0c21005bf8215cd",
+      "round_trip": true,
+      "source_sha256": "c22af9a48f749493f256fd9e56a49692881efe20279d70a9d0c21005bf8215cd"
+    },
+    {
+      "case": "byte_test_negation",
+      "dialect": "snort2",
+      "parse": "passed",
+      "printed_sha256": "f1261c3cdd7e99cb7702fcd814cde39f2adbd91c4ee0acbe2c3d69584c06c505",
+      "round_trip": true,
+      "source_sha256": "f1261c3cdd7e99cb7702fcd814cde39f2adbd91c4ee0acbe2c3d69584c06c505"
+    },
+    {
+      "case": "byte_jump_variable_post_offset",
+      "dialect": "snort2",
+      "parse": "passed",
+      "printed_sha256": "697826e978e304a5cccbc21cebc104b6fe049c5eadcbae866cf9b762ac3e2bcc",
+      "round_trip": true,
+      "source_sha256": "697826e978e304a5cccbc21cebc104b6fe049c5eadcbae866cf9b762ac3e2bcc"
+    },
+    {
+      "case": "ipv6_protocol",
+      "dialect": "suricata",
+      "parse": "passed",
+      "printed_sha256": "416a14f8f0cc7d4108bdf9bcc2a115f0ac0872ad5c8c1224c006832b422c342c",
+      "round_trip": true,
+      "source_sha256": "416a14f8f0cc7d4108bdf9bcc2a115f0ac0872ad5c8c1224c006832b422c342c"
+    },
+    {
+      "case": "tcp_stream_protocol",
+      "dialect": "suricata",
+      "parse": "passed",
+      "printed_sha256": "facb0cb547f959988f39d8dc1470f0c5c6e2266bd37c11b83b71f335d04ad866",
+      "round_trip": true,
+      "source_sha256": "5c43ea656a88fe337c562853b53824fd6db03d67167d4a128fb6a1c8d143fd8a"
+    },
+    {
+      "case": "telnet_protocol",
+      "dialect": "suricata",
+      "parse": "passed",
+      "printed_sha256": "7ab939afb701f56ab20abc524ff32c89435202fd6486b86a7bbe4d9f250d4bb4",
+      "round_trip": true,
+      "source_sha256": "7ab939afb701f56ab20abc524ff32c89435202fd6486b86a7bbe4d9f250d4bb4"
+    },
+    {
+      "case": "uppercase_any_port",
+      "dialect": "snort2",
+      "parse": "passed",
+      "printed_sha256": "a185b66a0c69398f4e317f5de87ef0a632d5425921054b229fe7a29eb368ea00",
+      "round_trip": true,
+      "source_sha256": "c471bc06377a1eefeca6cbaadce7b3308d59b8b34a9eee6a133f0b6d23645228"
+    }
+  ],
+  "dialect_metrics": {
+    "snort2": {
+      "total_rules": 5,
+      "parsed": 5,
+      "round_trip_passed": 5,
+      "unexpected_failures": 0
+    },
+    "snort3": {
+      "total_rules": 4,
+      "parsed": 4,
+      "round_trip_passed": 4,
+      "unexpected_failures": 0
+    },
+    "suricata": {
+      "total_rules": 6,
+      "parsed": 6,
+      "round_trip_passed": 6,
+      "unexpected_failures": 0
+    }
+  },
+  "kind": "issue-166-grammar-conformance",
+  "package_version": "4.0.0",
+  "parse_exceptions": 0,
+  "parsed": 15,
+  "round_trip_passed": 15,
+  "schema_version": 1,
+  "scope": "Fifteen reproducible rules covering the ten grammar gaps documented in issue #166",
+  "source_commit": "d72fcb0",
+  "source_issue": "https://github.com/seifreed/surinort-ast/issues/166",
+  "unexpected_failures": 0,
+  "verified_at": "2026-08-26T08:51:36.245396+00:00"
+}

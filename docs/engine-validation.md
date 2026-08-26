@@ -36,6 +36,11 @@ Snort 3.12.2.0. The historical 288,939-rule figure remains unreproduced because
 the referenced issue does not publish that corpus and its registered Snort
 component is not redistributable.
 
+The issue #166 grammar regression snapshot in
+`conformance/history/4.0.0-issue-166.json` covers all ten reported grammar gaps
+with 15 rules across Snort 2, Snort 3, and Suricata. All 15 parsed and all 15
+round-tripped without exceptions or unexpected failures.
+
 The checked-in `conformance/history/4.0.0-optimizer-smoke.json` is a narrow
 Suricata 8.0.6 smoke result over two synthetic PCAPs. The broader public-PCAP
 result is recorded in
