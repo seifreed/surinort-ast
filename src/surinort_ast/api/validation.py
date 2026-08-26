@@ -450,6 +450,18 @@ def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) ->
                         phase="option-chain",
                     )
                 )
+            if snort_target:
+                value = _numeric_literal(getattr(option, "value", None))
+                if value is not None and not 0 <= value <= _BYTE_VALUE_MAX:
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message=f"byte_test value must be in the range 0-{_BYTE_VALUE_MAX}",
+                            location=getattr(option, "location", None),
+                            code="engine_byte_value_out_of_range",
+                            phase="version",
+                        )
+                    )
 
         for field_name in _BYTE_REFERENCE_FIELDS.get(option_type, ()):
             value = getattr(option, field_name, None)
@@ -512,6 +524,21 @@ def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) ->
                         phase="version",
                     )
                 )
+            if option_type == "ByteJumpOption":
+                post_offset = _flag_value(getattr(option, "flags", ()), "post_offset")
+                if (
+                    post_offset is not None
+                    and not -_SNORT_BYTE_LIMIT <= post_offset <= _SNORT_BYTE_LIMIT
+                ):
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message=f"byte_jump post_offset must be in the range -{_SNORT_BYTE_LIMIT}..{_SNORT_BYTE_LIMIT}",
+                            location=getattr(option, "location", None),
+                            code="engine_byte_post_offset_out_of_range",
+                            phase="version",
+                        )
+                    )
 
         if option_type == "ByteExtractOption":
             name = getattr(option, "var_name", None)
