@@ -57,3 +57,39 @@ def test_target_models_aliases_deprecations_and_domains() -> None:
     assert target.is_deprecated("sticky_buffer") is True
     assert target.supports_action("alert") is True
     assert target.supports_protocol("udp") is False
+
+
+def test_capability_registry_json_roundtrip(tmp_path) -> None:
+    from surinort_ast.analysis import CapabilityRegistry
+
+    target = EngineTarget(
+        "suricata",
+        "8.0.6",
+        keywords=frozenset({"content", "sid"}),
+        features=frozenset({"sticky-buffer"}),
+        actions=frozenset({"alert"}),
+        protocols=frozenset({"tcp"}),
+        aliases=(("http.uri", "http_uri"),),
+        keyword_catalog_complete=True,
+        feature_catalog_complete=True,
+    )
+    registry = CapabilityRegistry((target,))
+    path = tmp_path / "capabilities.json"
+
+    registry.write_json(path)
+    restored = CapabilityRegistry.from_json(path)
+
+    assert restored.resolve("SURICATA", "8.0.6") == target
+    assert restored.resolve("suricata", "8.0.6").supports("missing") is False
+
+
+def test_capability_registry_rejects_non_object_json(tmp_path) -> None:
+    from surinort_ast.analysis import CapabilityRegistry
+
+    path = tmp_path / "invalid.json"
+    path.write_text("[]", encoding="utf-8")
+
+    import pytest
+
+    with pytest.raises(ValueError, match="root must be a JSON object"):
+        CapabilityRegistry.from_json(path)
