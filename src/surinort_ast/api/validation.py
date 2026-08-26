@@ -55,6 +55,7 @@ _BYTE_REFERENCE_FIELDS = {
     "ByteExtractOption": ("bytes_to_extract", "offset"),
 }
 _BYTE_COUNT_OPTIONS = {"ByteTestOption", "ByteJumpOption", "ByteExtractOption"}
+_BYTE_MATH_FIELDS = {"bytes", "offset", "oper", "rvalue", "result"}
 _RELATIVE_LIMIT = 1_048_576
 _SNORT_BYTE_LIMIT = 65_535
 _BYTE_VALUE_MAX = 4_294_967_295
@@ -304,6 +305,17 @@ def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) ->
         ):
             fields = _byte_math_fields(getattr(option, "value", None))
             if snort_target:
+                missing_fields = sorted(_BYTE_MATH_FIELDS - fields.keys())
+                if missing_fields:
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message=("byte_math requires fields: " + ", ".join(missing_fields)),
+                            location=getattr(option, "location", None),
+                            code="invalid_byte_math_syntax",
+                            phase="version",
+                        )
+                    )
                 field_flags = tuple(
                     key if not value else f"{key} {value}" for key, value in fields.items()
                 )
@@ -363,7 +375,7 @@ def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) ->
                         )
                     )
                 operator = fields.get("oper")
-                if operator not in {"+", "-", "*", "/", "<<", ">>"}:
+                if operator is not None and operator not in {"+", "-", "*", "/", "<<", ">>"}:
                     diagnostics.append(
                         Diagnostic(
                             level=DiagnosticLevel.ERROR,
