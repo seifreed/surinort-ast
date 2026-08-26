@@ -41,6 +41,18 @@ def test_engine_keyword_listing_parser_handles_headers_and_descriptions() -> Non
     assert target.supports("missing") is False
 
 
+def test_engine_keyword_listing_parser_handles_suricata_bullets() -> None:
+    target = EngineTarget.from_keyword_listing(
+        "suricata",
+        "8.0.6",
+        "=====Supported keywords=====\n- sid\n- content\n- http.uri\n",
+    )
+
+    assert target.supports("sid") is True
+    assert target.supports("http.uri") is True
+    assert target.supports("missing") is False
+
+
 def test_target_models_aliases_deprecations_and_domains() -> None:
     target = EngineTarget(
         "suricata",
