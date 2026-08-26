@@ -658,6 +658,19 @@ class TestFlagsAndTagAtoms:
         option = self._option("alert tcp any any -> any any (tag:session,packets 5; sid:1;)", "tag")
         assert option.value == "session,packets,5"
 
+    def test_snort3_tag_prints_engine_argument_order(self):
+        from surinort_ast import Dialect
+        from surinort_ast.printer import print_rule
+
+        rule = parse_rule(
+            "alert tcp any any -> any any (tag:session,packets 5; sid:1;)",
+            dialect=Dialect.SNORT3,
+        )
+        printed = print_rule(rule)
+
+        assert "tag:session,packets 5;" in printed
+        assert print_rule(parse_rule(printed, dialect=Dialect.SNORT3)) == printed
+
     def test_flags_round_trips(self):
         from surinort_ast.printer import print_rule
 
