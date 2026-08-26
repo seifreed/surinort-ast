@@ -58,6 +58,20 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
         json.dumps({"kind": "optimizer-behavior-conformance", "pcap_count": 2}),
         encoding="utf-8",
     )
+    (history / "optimizer-valid.json").write_text(
+        json.dumps(
+            {
+                "kind": "optimizer-behavior-conformance",
+                "engine": {"name": "suricata", "version": "8.0.6"},
+                "pcap_count": 2,
+                "passed": 2,
+                "failures": 0,
+                "behaviorally_equivalent": True,
+                "cases": [],
+            }
+        ),
+        encoding="utf-8",
+    )
     (history / "semantic.json").write_text(
         json.dumps(
             {
@@ -87,10 +101,12 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
 
     assert rendered.count("| bundled.json |") == 1
     assert rendered.count("| 4.0.0 |") == 2
-    assert rendered.count("| suricata |") == 4
+    assert rendered.count("| suricata |") == 5
     assert rendered.count("| 8.0.1 |") == 1
     assert rendered.count("| matrix.json:suricata-test |") == 1
     assert "optimizer.json" not in rendered
+    assert "## Optimizer Behavior Evidence" in rendered
+    assert "| optimizer-valid.json | suricata | 8.0.6 | - | 2 | 2 | 0 | equivalent |" in rendered
     assert "| 1 | content:1 |" in rendered
     assert "## Semantic Validation Matrix" in rendered
     assert "| semantic.json | 4.0.0 | suricata | 8.0.6 | suricata | 2 | 1 | 1 |" in rendered
