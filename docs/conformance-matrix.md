@@ -15,6 +15,9 @@ The bundled and external counts are parser-successful rules from the
 corresponding snapshots. Every listed load validates the combined original
 and printed ruleset through the concrete engine build.
 
+The reproducible target declaration is checked in at
+[`conformance/engine-matrix.json`](https://github.com/seifreed/surinort-ast/blob/main/conformance/engine-matrix.json).
+
 The semantic matrix contains 46 cases and 138 engine-target evaluations. It
 includes capability-backed keyword differences, such as `appids` being
 catalogued for Snort 3 but not for the Suricata 8.0.6 or Snort 2.9.20 snapshots.
