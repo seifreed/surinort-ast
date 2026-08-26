@@ -11,6 +11,14 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
             {
                 "total_rules": 2,
                 "package_version": "4.0.0",
+                "dialect_metrics": {
+                    "suricata": {
+                        "total_rules": 2,
+                        "parsed": 2,
+                        "round_trip_passed": 2,
+                        "unexpected_failures": 0,
+                    }
+                },
                 "parse_rate": 1.0,
                 "round_trip_rate": 1.0,
                 "unexpected_failures": 0,
@@ -49,5 +57,6 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
 
     assert rendered.count("| bundled.json |") == 1
     assert rendered.count("| 4.0.0 |") == 1
+    assert rendered.count("| suricata |") == 2
     assert rendered.count("| matrix.json:suricata-test |") == 1
     assert output.read_text(encoding="utf-8") == rendered

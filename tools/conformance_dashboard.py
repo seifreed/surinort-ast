@@ -16,6 +16,30 @@ def _report_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
             if isinstance(nested, dict):
                 rows.extend(_report_rows(nested, f"{source}:{entry.get('id', 'engine')}"))
         return rows
+    dialect_metrics = report.get("dialect_metrics")
+    if isinstance(dialect_metrics, dict):
+        rows = []
+        for dialect, metrics in sorted(dialect_metrics.items()):
+            if not isinstance(metrics, dict):
+                continue
+            total_rules = int(metrics.get("total_rules", 0))
+            parsed = int(metrics.get("parsed", 0))
+            round_trip = int(metrics.get("round_trip_passed", 0))
+            rows.append(
+                {
+                    "source": source,
+                    "version": report.get("package_version"),
+                    "dialect": dialect,
+                    "total_rules": total_rules,
+                    "parse_rate": parsed / total_rules if total_rules else 1.0,
+                    "round_trip_rate": round_trip / parsed if parsed else 1.0,
+                    "unexpected_failures": metrics.get("unexpected_failures", 0),
+                    "rules_per_second": report.get("rules_per_second"),
+                    "peak_memory_mb": report.get("peak_memory_mb"),
+                }
+            )
+        if rows:
+            return rows
     return [
         {
             "source": source,
