@@ -56,6 +56,9 @@ unsupported AST majors.
   complete output from the installed engine before treating unknown keywords
   as errors. `EngineTarget.from_keyword_listing()` accepts plain or tabular
   `--list-keywords` output and marks the resulting keyword catalog complete.
+  Persist a complete target with `CapabilityRegistry.write_json()` and load a
+  release-pinned snapshot with `CapabilityRegistry.from_json()` or
+  `surinort validate --capability-file capabilities.json`.
   Feature requirements such as `sticky-buffer`, `flowbits`, `byte-ops`, and
   `pcre` use the same tri-state behavior through `with_features()` and
   `feature_catalog_complete`; only a complete feature catalog produces an

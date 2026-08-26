@@ -16,7 +16,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from ...analysis import EngineTarget, default_capability_registry
+from ...analysis import CapabilityRegistry, EngineTarget, default_capability_registry
 from ...analysis.findings import Finding, FindingLevel, diagnostics_to_findings
 from ...api import parse_file, to_sarif, validate_rule, validate_rules
 from ...core.enums import DiagnosticLevel, Dialect
@@ -257,6 +257,10 @@ def validate_command(
     engine_version: Annotated[
         str | None, typer.Option("--engine-version", help="Engine version to validate against")
     ] = None,
+    capability_file: Annotated[
+        Path | None,
+        typer.Option("--capability-file", help="Versioned JSON engine capability snapshot"),
+    ] = None,
 ) -> None:
     """
     Validate IDS rules and report issues.
@@ -273,7 +277,12 @@ def validate_command(
             raise ValueError("--engine and --engine-version must be provided together")
         target = None
         if engine and engine_version:
-            target = default_capability_registry().resolve(engine, engine_version)
+            registry = (
+                CapabilityRegistry.from_json(capability_file)
+                if capability_file is not None
+                else default_capability_registry()
+            )
+            target = registry.resolve(engine, engine_version)
             if target is None:
                 raise ValueError(f"unknown engine capability target: {engine} {engine_version}")
 
