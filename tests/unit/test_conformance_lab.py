@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from tools.conformance_lab import run
+from tools.conformance_lab import main, run
 from tools.engine_matrix import load_matrix, run_matrix
 
 
@@ -14,6 +14,7 @@ def test_checked_in_conformance_corpus_round_trips() -> None:
     assert report["parsed"] == 6
     assert report["parse_rate"] == 6 / 7
     assert report["round_trip_rate"] == 1.0
+    assert report["package_version"] == "4.0.0"
     assert report["unexpected_failures"] == 0
     assert report["printed"] == 6
     assert report["parse_exceptions"] == 1
@@ -21,6 +22,27 @@ def test_checked_in_conformance_corpus_round_trips() -> None:
     assert report["dialect_metrics"]["suricata"]["total_rules"] == 3
     assert report["rules_per_second"] > 0
     assert report["peak_memory_mb"] > 0
+
+
+def test_conformance_cli_can_write_summary_without_cases(tmp_path, monkeypatch) -> None:
+    output = tmp_path / "summary.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "conformance_lab",
+            "--corpus",
+            "conformance/corpus",
+            "--summary-only",
+            "--output",
+            str(output),
+        ],
+    )
+
+    assert main() == 0
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert "cases" not in summary
+    assert summary["package_version"] == "4.0.0"
 
 
 def test_bundled_manifest_points_to_tracked_corpora() -> None:

@@ -18,6 +18,7 @@ from surinort_ast.analysis import EngineVerifier
 from surinort_ast.api.parsing import _read_rule_lines
 from surinort_ast.core.enums import Dialect
 from surinort_ast.exceptions import ParseError
+from surinort_ast.version import __version__
 
 
 @dataclass
@@ -270,6 +271,7 @@ def run(
     parsed = sum(result.parsed for result in results)
     dialect_metrics, errors_by_keyword = _summarize_results(results)
     return {
+        "package_version": __version__,
         "corpus": str(corpus),
         "manifest": str(manifest) if manifest else None,
         "unsupported_constructions": unsupported,
@@ -330,6 +332,11 @@ def main() -> int:
     )
     parser.add_argument("--output", type=Path)
     parser.add_argument(
+        "--summary-only",
+        action="store_true",
+        help="omit per-rule cases from the JSON output while retaining aggregate metrics",
+    )
+    parser.add_argument(
         "--engine-command",
         help="Optional command template, for example 'suricata -T -S {file}'",
     )
@@ -341,6 +348,8 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args()
     report = run(args.corpus, args.engine_command, args.timeout, args.manifest, args.pcap)
+    if args.summary_only:
+        report.pop("cases", None)
     rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.write_text(rendered, encoding="utf-8")

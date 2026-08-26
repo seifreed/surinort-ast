@@ -72,9 +72,11 @@ jobs:
         run: |
           mkdir -p conformance/history
           python -m pip install -e .
+          snapshot="conformance/history/bundled-${GITHUB_SHA}.json"
           python tools/conformance_lab.py \
             --manifest conformance/manifest.bundled.json \
-            --output conformance/history/bundled.json
+            --summary-only \
+            --output "$snapshot"
           python -m tools.conformance_dashboard \
             --history-dir conformance/history \
             --output docs/conformance-dashboard.md
