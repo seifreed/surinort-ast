@@ -279,13 +279,51 @@ jobs:
           python -m pip install -e .
 
       - name: Run conformance lab
-        run: python tools/conformance_lab.py --manifest conformance/manifest.bundled.json --output conformance/report.json
+        run: python tools/conformance_lab.py --manifest conformance/manifest.bundled.json --require-complete --output conformance/report.json
 
       - name: Upload conformance report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: conformance-report
           path: conformance/report.json
+          retention-days: 30
+
+  # Versioned semantic validation matrix for supported engine targets
+  semantic:
+    name: Semantic Matrix
+    needs: [lint]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip==26.0.1
+          python -m pip install -e .
+
+      - name: Run semantic matrix
+        run: |
+          python tools/semantic_matrix.py \
+            --manifest conformance/semantic-matrix.json \
+            --output semantic-matrix-report.json
+
+      - name: Upload semantic matrix report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: semantic-matrix-report
+          path: semantic-matrix-report.json
           retention-days: 30
 
   # Performance report without a machine-specific checked-in baseline
@@ -371,7 +409,7 @@ jobs:
   # Build job - verify package can be built
   build:
     name: Build Package
-    needs: [test, coverage, conformance]
+    needs: [test, coverage, conformance, semantic]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -467,7 +505,7 @@ jobs:
   # All jobs summary
   ci-success:
     name: CI Success
-    needs: [security, lint, test, coverage, conformance, benchmark, build, validate]
+    needs: [security, lint, test, coverage, conformance, semantic, benchmark, build, validate]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     if: always()
@@ -493,6 +531,10 @@ jobs:
           fi
           if [[ "${{ needs.conformance.result }}" != "success" ]]; then
             echo "Conformance lab failed"
+            exit 1
+          fi
+          if [[ "${{ needs.semantic.result }}" != "success" ]]; then
+            echo "Semantic matrix failed"
             exit 1
           fi
           if [[ "${{ needs.benchmark.result }}" != "success" ]]; then

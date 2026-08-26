@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, ClassVar
 if TYPE_CHECKING:
     from ..core.nodes import ContentOption, Option, Rule
 
+from ..core.enums import Dialect
 from ..printer.text_printer import TextPrinter
 from .optimizer import Optimization
 from .option_categories import POSITIONAL_OPTIONS
@@ -74,6 +75,18 @@ _STATEFUL_GENERIC_KEYWORDS: frozenset[str] = frozenset(
         "raw_data",
         "dce_stub_data",
         "http_param",
+    }
+)
+_SNORT3_INELIGIBLE_FAST_PATTERN_BUFFERS: frozenset[str] = frozenset(
+    {
+        "http_raw_cookie",
+        "http_param",
+        "http_raw_body",
+        "http_version",
+        "http_raw_request",
+        "http_raw_status",
+        "http_raw_trailer",
+        "http_true_ip",
     }
 )
 
@@ -347,7 +360,7 @@ class FastPatternStrategy(OptimizationStrategy):
         """Get strategy name."""
         return "FastPattern"
 
-    def apply(self, rule: Rule) -> tuple[Rule | None, list[Optimization]]:
+    def apply(self, rule: Rule) -> tuple[Rule | None, list[Optimization]]:  # noqa: PLR0912
         """
         Optimize fast_pattern selection.
 
@@ -388,14 +401,26 @@ class FastPatternStrategy(OptimizationStrategy):
             # Already has fast_pattern - could optimize which one, but skip for now
             return None, []
 
-        # Score each content and find best. Negated content is excluded: Suricata
-        # rejects fast_pattern on a negated content match, so adding it there
-        # would produce a rule that fails to load.
-        scored_contents = [
-            (content, self._score_distinctiveness(content))
-            for content in contents
-            if not content.negated
-        ]
+        # Score each content and find best. Negated content is excluded: engines
+        # reject fast_pattern on a negated content match. Snort3 also excludes
+        # several inspection buffers from fast-pattern selection.
+        scored_contents: list[tuple[ContentOption, float]] = []
+        selected_buffer: str | None = None
+        for option in rule.options:
+            if option.node_type == "BufferSelectOption":
+                selected_buffer = str(getattr(option, "buffer_name", "")).lower()
+            elif option.node_type == "GenericOption":
+                keyword = str(getattr(option, "keyword", "")).lower()
+                if keyword in _SNORT3_INELIGIBLE_FAST_PATTERN_BUFFERS:
+                    selected_buffer = keyword
+            if not isinstance(option, ContentOption):
+                continue
+            content = option
+            if not content.negated and (
+                rule.dialect is not Dialect.SNORT3
+                or selected_buffer not in _SNORT3_INELIGIBLE_FAST_PATTERN_BUFFERS
+            ):
+                scored_contents.append((content, self._score_distinctiveness(content)))
         if not scored_contents:
             return None, []
 
@@ -405,24 +430,34 @@ class FastPatternStrategy(OptimizationStrategy):
             # No good candidate
             return None, []
 
-        # Add fast_pattern modifier to best content
-        from ..core.enums import ContentModifierType
-        from ..core.nodes import ContentModifier
+        if rule.dialect is Dialect.SNORT3:
+            # Snort3 defines fast_pattern as an inline content modifier. A
+            # standalone FastPatternOption is accepted by Suricata and Snort2
+            # but is rejected by Snort3.
+            from ..core.enums import ContentModifierType
+            from ..core.nodes import ContentModifier
 
-        new_modifiers = [
-            *list(best_content.modifiers),
-            ContentModifier(name=ContentModifierType.FAST_PATTERN, value=None),
-        ]
+            new_content = best_content.model_copy(
+                update={
+                    "modifiers": (
+                        *best_content.modifiers,
+                        ContentModifier(name=ContentModifierType.FAST_PATTERN, value=None),
+                    )
+                }
+            )
+            new_options = [
+                new_content if option is best_content else option for option in rule.options
+            ]
+        else:
+            from ..core.nodes import FastPatternOption
 
-        new_content = best_content.model_copy(update={"modifiers": new_modifiers})
-
-        # Replace in options list
-        new_options: list[Option] = []
-        for opt in rule.options:
-            if opt is best_content:
-                new_options.append(new_content)
-            else:
-                new_options.append(opt)
+            new_options = list(rule.options)
+            insert_at = next(i for i, opt in enumerate(new_options) if opt is best_content) + 1
+            # Keep relative byte operations and positional modifiers directly
+            # after their content anchor; fast_pattern is only a hint.
+            while insert_at < len(new_options) and _is_order_significant(new_options[insert_at]):
+                insert_at += 1
+            new_options.insert(insert_at, FastPatternOption())
 
         optimized = rule.model_copy(update={"options": new_options})
 

@@ -12,6 +12,7 @@ NO MOCKS - all tests use real parser and printer execution.
 import pytest
 from lark import Lark
 
+from surinort_ast import parse_rule
 from surinort_ast.parsing.transformer import RuleTransformer
 from surinort_ast.printer.formatter import FormatterOptions
 from surinort_ast.printer.text_printer import TextPrinter, print_rule
@@ -62,6 +63,18 @@ class TestBasicPrinting:
 
 class TestRoundtripParsing:
     """Test roundtrip: parse -> print -> parse."""
+
+    def test_message_control_characters_stay_on_one_rule_line(self):
+        original = (
+            "alert http any any -> any any "
+            '(msg:"Apache \\r\\n"; content:"Server|3a 20|Apache"; sid:1;)'
+        )
+
+        printed = print_rule(parse_rule(original))
+
+        assert "\r" not in printed
+        assert "\n" not in printed
+        assert print_rule(parse_rule(printed)) == printed
 
     def test_roundtrip_simple_rule(
         self, lark_parser: Lark, transformer: RuleTransformer, text_printer: TextPrinter

@@ -19,7 +19,7 @@ from typing import Any
 import pytest
 from lark import Lark
 from lark.exceptions import LarkError
-from tools.conformance_lab import _same_ast
+from tools.conformance_lab import run
 
 from surinort_ast.core.nodes import Rule
 from surinort_ast.parsing.transformer import RuleTransformer
@@ -101,64 +101,23 @@ class TestSuricataGolden:
         """
         _assert_file_parses("Suricata", suricata_rules_file, lark_parser, RuleTransformer())
 
-    def test_suricata_rules_roundtrip(
-        self, lark_parser: Lark, suricata_rules_file: Path, text_printer
-    ):
+    def test_bundled_rules_roundtrip(self):
         """
-        Test roundtrip for first 1000 Suricata rules: parse -> print -> parse.
+        Test roundtrip for every active bundled rule: parse -> print -> parse.
 
         This verifies that printed output can be re-parsed.
         """
-        transformer = RuleTransformer()
-
-        tested = 0
-        roundtrip_ok = 0
-        roundtrip_errors = []
-
-        with open(suricata_rules_file, encoding="utf-8", errors="replace") as f:
-            for line_num, line in enumerate(f, 1):
-                if tested >= 1000:
-                    break
-
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                try:
-                    # First parse
-                    parse_tree1 = lark_parser.parse(line)
-                    rule1 = transformer.transform(parse_tree1)[0]
-
-                    # Print
-                    printed = text_printer.print_rule(rule1)
-
-                    # Second parse
-                    parse_tree2 = lark_parser.parse(printed)
-                    rule2 = transformer.transform(parse_tree2)[0]
-
-                    # Verify basic equality
-                    if _same_ast(rule1, rule2):
-                        roundtrip_ok += 1
-                    else:
-                        roundtrip_errors.append((line_num, "Fields mismatch"))
-
-                    tested += 1
-
-                except Exception as e:
-                    roundtrip_errors.append((line_num, str(e)[:200]))
-                    tested += 1
-
-        success_rate = (roundtrip_ok / tested * 100) if tested > 0 else 0
-
-        print("\nSuricata Roundtrip Test (first 1000 rules):")
-        print(f"  Tested: {tested}")
-        print(f"  Roundtrip OK: {roundtrip_ok}")
-        print(f"  Success rate: {success_rate:.2f}%")
-
-        assert not roundtrip_errors, (
-            f"Roundtrip structural mismatches in {len(roundtrip_errors)} of {tested} rules: "
-            f"{roundtrip_errors[:3]}"
+        report = run(
+            Path("conformance"),
+            manifest=Path("conformance/manifest.bundled.json"),
         )
+
+        assert report["total_rules"] == 35157
+        assert report["parsed"] == 35157
+        assert report["round_trip_passed"] == 35157
+        assert report["parse_rate"] == 1.0
+        assert report["round_trip_rate"] == 1.0
+        assert report["unexpected_failures"] == 0
 
 
 @pytest.mark.golden
@@ -290,7 +249,7 @@ class TestGoldenSubsets:
             f"\nFirst {rule_count} rules: {parsed} parsed, {errors} errors ({success_rate:.2f}% success)"
         )
 
-        assert success_rate >= 95.0
+        assert success_rate >= 100.0
 
 
 @pytest.mark.golden

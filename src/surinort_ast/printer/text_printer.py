@@ -14,7 +14,7 @@ from collections.abc import Sequence
 from functools import singledispatch
 from typing import Protocol
 
-from surinort_ast.core.enums import ContentModifierType, RuleForm
+from surinort_ast.core.enums import ContentModifierType, Dialect, RuleForm
 from surinort_ast.core.nodes import (
     AddressExpr,
     AddressList,
@@ -121,9 +121,16 @@ def _escape_quoted(text: str) -> str:
     """Escape backslashes and double quotes so quoted text re-parses exactly.
 
     Mirrors the unescaping done when parsing a quoted string (``\\"`` -> ``"``,
-    ``\\\\`` -> ``\\``); backslashes must be escaped first.
+    ``\\\\`` -> ``\\``); backslashes must be escaped first. Control characters
+    are emitted as parser-supported escapes so they cannot split a rule line.
     """
-    return text.replace("\\", "\\\\").replace('"', '\\"')
+    return (
+        text.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\r", "\\r")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+    )
 
 
 @_print_option_dispatch.register
@@ -274,6 +281,11 @@ def _(option: FastPatternOption, fmt_opts: FormatterOptions, printer: _TextPrint
 
 @_print_option_dispatch.register
 def _(option: TagOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
+    if getattr(printer, "dialect", None) is Dialect.SNORT3:
+        scope = option.tag_type
+        if option.direction and scope == "host":
+            scope = f"host_{option.direction}"
+        return f"tag:{scope},{option.metric} {option.count};"
     parts = [option.tag_type, str(option.count), option.metric]
     if option.direction:
         parts.append(option.direction)
@@ -343,6 +355,14 @@ def _(option: EndswithOption, fmt_opts: FormatterOptions, printer: _TextPrinter)
 
 @_print_option_dispatch.register
 def _(option: GenericOption, fmt_opts: FormatterOptions, printer: _TextPrinter) -> str:
+    if (
+        getattr(printer, "dialect", None) is Dialect.SNORT3
+        and option.keyword.lower() == "tag"
+        and isinstance(option.value, str)
+    ):
+        parts = option.value.split(",")
+        if len(parts) == 3 and parts[1] in {"packets", "seconds", "bytes"}:
+            return f"tag:{parts[0]},{parts[1]} {parts[2]};"
     # Use raw representation (returned as-is to preserve original formatting)
     # Add semicolon only if not already present
     if option.raw.endswith(";"):
@@ -369,6 +389,7 @@ class TextPrinter:
             options: Formatting options (defaults to standard style)
         """
         self.options = options or FormatterOptions.standard()
+        self.dialect = Dialect.SURICATA
 
     def print_rule(self, rule: Rule) -> str:
         """
@@ -386,6 +407,8 @@ class TextPrinter:
             >>> print(text)
             alert tcp any any -> any 80 (msg:"HTTP Traffic"; sid:1000001; rev:1;)
         """
+        previous_dialect = self.dialect
+        self.dialect = rule.dialect
         parts = []
 
         # Add comments if present
@@ -416,6 +439,7 @@ class TextPrinter:
 
         parts.append(rule_line)
 
+        self.dialect = previous_dialect
         return "\n".join(parts)
 
     def print_rules(self, rules: Sequence[Rule]) -> str:
@@ -511,8 +535,8 @@ class TextPrinter:
             inner = self._print_port(port.expr)
             return f"!{inner}"
         if isinstance(port, PortList):
-            sep = self.options.format_list_separator()
-            elements = sep.join(self._print_port(e) for e in port.elements)
+            # Snort2 rejects whitespace after commas in port lists.
+            elements = ",".join(self._print_port(e) for e in port.elements)
             return f"[{elements}]"
         return "any"
 

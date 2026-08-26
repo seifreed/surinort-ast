@@ -1,6 +1,9 @@
 import io
 import json
 
+import surinort_ast.lsp.server as lsp_server
+from surinort_ast.analysis import EngineTarget
+from surinort_ast.core.enums import Dialect
 from surinort_ast.lsp import (
     code_actions_for_text,
     completion_items,
@@ -39,7 +42,62 @@ def test_lsp_completes_rule_keywords_by_context() -> None:
     header = completion_items("alert tc", 0, 9)
 
     assert any(item["label"] == "flowbits" for item in options)
+    assert any(
+        "current detection buffer" in item["documentation"]["value"]
+        for item in completion_items("alert tcp any any -> any 80 (cont", 0, 33)
+    )
     assert any(item["label"] == "tcp" for item in header)
+
+
+def test_lsp_hovers_keyword_documentation_at_cursor() -> None:
+    hover = hover_for_text(
+        'alert tcp any any -> any 80 (content:"x"; sid:1;)',
+        0,
+        Dialect.SNORT3,
+        32,
+    )
+
+    assert hover is not None
+    assert "content" in hover["contents"]["value"]
+    assert "snort3" in hover["contents"]["value"]
+
+
+def test_lsp_hovers_and_validates_against_engine_version() -> None:
+    target = EngineTarget("suricata", "8.0.6")
+    hover = hover_for_text(
+        'alert tcp any any -> any 80 (content:"x"; sid:1;)',
+        0,
+        Dialect.SURICATA,
+        32,
+        target,
+    )
+    diagnostics = diagnostics_for_text(
+        "alert tcp any any -> any 80 (priority:256; sid:1;)",
+        Dialect.SURICATA,
+        target,
+    )
+
+    assert hover is not None
+    assert "suricata 8.0.6" in hover["contents"]["value"]
+    assert "engine_priority_out_of_range" in {item["code"] for item in diagnostics}
+
+
+def test_lsp_completion_filters_complete_engine_catalogs() -> None:
+    target = EngineTarget(
+        "suricata",
+        "8.0.6",
+        keywords=frozenset({"content"}),
+        keyword_catalog_complete=True,
+    )
+
+    items = completion_items(
+        "alert tcp any any -> any 80 (",
+        0,
+        len("alert tcp any any -> any 80 ("),
+        target=target,
+    )
+
+    assert [item["label"] for item in items] == ["content"]
 
 
 def test_lsp_formats_rules_and_offers_safe_quick_fix() -> None:
@@ -130,3 +188,105 @@ def test_lsp_transport_exposes_navigation_and_preview() -> None:
     assert b'"id":1' in output
     assert b'"id":2' in output and b'"line":0' in output
     assert b'"id":3' in output and b'"heuristic":true' in output
+
+
+def test_lsp_transport_retains_document_dialect(monkeypatch) -> None:
+    seen: list[Dialect] = []
+
+    def fake_diagnostics(
+        text: str,
+        dialect: Dialect = Dialect.SURICATA,
+        target: EngineTarget | None = None,
+    ) -> list[dict[str, object]]:
+        del text
+        seen.append(dialect)
+        assert target is None
+        return []
+
+    monkeypatch.setattr(lsp_server, "diagnostics_for_text", fake_diagnostics)
+
+    def message(payload: dict[str, object]) -> bytes:
+        body = json.dumps(payload, separators=(",", ":")).encode()
+        return f"Content-Length: {len(body)}\r\n\r\n".encode() + body
+
+    reader = io.BytesIO(
+        b"".join(
+            [
+                message({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
+                message(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "textDocument/didOpen",
+                        "params": {
+                            "textDocument": {
+                                "uri": "file:///rule.snort3.rules",
+                                "languageId": "snort3",
+                                "text": "alert tcp (sid:1;)\n",
+                            }
+                        },
+                    }
+                ),
+                message(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "textDocument/didChange",
+                        "params": {
+                            "textDocument": {"uri": "file:///rule.snort3.rules"},
+                            "contentChanges": [{"text": "alert tcp (sid:2;)\n"}],
+                        },
+                    }
+                ),
+            ]
+        )
+    )
+
+    serve(reader, io.BytesIO())
+
+    assert seen == [Dialect.SNORT3, Dialect.SNORT3]
+
+
+def test_lsp_transport_passes_versioned_capability_target() -> None:
+    text = "alert tcp any any -> any 80 (priority:256; sid:1;)\n"
+
+    def message(payload: dict[str, object]) -> bytes:
+        body = json.dumps(payload, separators=(",", ":")).encode()
+        return f"Content-Length: {len(body)}\r\n\r\n".encode() + body
+
+    reader = io.BytesIO(
+        b"".join(
+            [
+                message(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "initialize",
+                        "params": {
+                            "initializationOptions": {
+                                "engine": "suricata",
+                                "engineVersion": "8.0.6",
+                            }
+                        },
+                    }
+                ),
+                message(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "textDocument/didOpen",
+                        "params": {
+                            "textDocument": {
+                                "uri": "file:///rule.rules",
+                                "languageId": "suricata",
+                                "text": text,
+                            }
+                        },
+                    }
+                ),
+                message({"jsonrpc": "2.0", "id": 2, "method": "shutdown", "params": None}),
+            ]
+        )
+    )
+    writer = io.BytesIO()
+
+    serve(reader, writer)
+
+    assert b'"engine_priority_out_of_range"' in writer.getvalue()

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
+import sys
 import tempfile
 import time
 import tracemalloc
@@ -17,7 +19,7 @@ from surinort_ast import parse_rule, print_rule
 from surinort_ast.analysis import EngineVerifier
 from surinort_ast.api.parsing import _read_rule_lines
 from surinort_ast.core.enums import Dialect
-from surinort_ast.exceptions import ParseError
+from surinort_ast.version import __version__
 
 
 @dataclass
@@ -30,6 +32,7 @@ class CaseResult:
     round_trip: bool | None
     error: str | None = None
     error_keyword: str | None = None
+    exception_type: str | None = None
     engine_validation: str = "not-run"
     engine_validation_after_print: str = "not-run"
     behavior_validation: str = "not-run"
@@ -155,7 +158,25 @@ def _manifest_files(
     return files, unsupported
 
 
-def run(
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _display_path(path: Path, corpus: Path) -> str:
+    """Return a stable report path without leaking a machine-local prefix."""
+    for base in (Path.cwd(), corpus):
+        try:
+            return str(path.relative_to(base))
+        except ValueError:
+            continue
+    return path.name
+
+
+def run(  # noqa: PLR0912, PLR0915
     corpus: Path,
     engine_command: str | None = None,
     timeout: float = 30.0,
@@ -187,11 +208,22 @@ def run(
             for path in sorted(corpus.rglob("*.rules"))
         ]
 
+    corpus_files = [
+        {
+            "path": _display_path(path, corpus),
+            "dialect": dialect.value,
+            "expected_parse": expected_parse,
+            "bytes": path.stat().st_size,
+            "sha256": _sha256(path),
+        }
+        for path, dialect, expected_parse in files
+    ]
+
     for path, dialect, expected_parse in files:
         for line_number, text in _read_rule_lines(path):
             try:
                 rule = parse_rule(text, dialect=dialect, include_raw_text=False)
-            except ParseError as exc:
+            except Exception as exc:
                 results.append(
                     CaseResult(
                         str(path),
@@ -202,14 +234,31 @@ def run(
                         None,
                         str(exc),
                         _error_keyword(text, str(exc)),
+                        type(exc).__name__,
                     )
                 )
                 continue
 
-            printed = print_rule(rule)
+            try:
+                printed = print_rule(rule)
+            except Exception as exc:
+                results.append(
+                    CaseResult(
+                        str(path),
+                        dialect.value,
+                        line_number,
+                        expected_parse,
+                        True,
+                        False,
+                        f"Rule printing failed: {exc}",
+                        _error_keyword(text, str(exc)),
+                        type(exc).__name__,
+                    )
+                )
+                continue
             try:
                 round_trip_rule = parse_rule(printed, dialect=dialect, include_raw_text=False)
-            except ParseError as exc:
+            except Exception as exc:
                 results.append(
                     CaseResult(
                         str(path),
@@ -220,6 +269,7 @@ def run(
                         False,
                         f"Printed rule failed to parse: {exc}",
                         _error_keyword(printed, str(exc)),
+                        type(exc).__name__,
                     )
                 )
                 continue
@@ -269,9 +319,14 @@ def run(
     ]
     parsed = sum(result.parsed for result in results)
     dialect_metrics, errors_by_keyword = _summarize_results(results)
+    exception_types = Counter(
+        result.exception_type for result in results if result.exception_type is not None
+    )
     return {
+        "package_version": __version__,
         "corpus": str(corpus),
         "manifest": str(manifest) if manifest else None,
+        "corpus_files": corpus_files,
         "unsupported_constructions": unsupported,
         "dialect_metrics": dialect_metrics,
         "errors_by_keyword": errors_by_keyword,
@@ -305,6 +360,7 @@ def run(
         ),
         "printed": parsed,
         "parse_exceptions": sum(result.error is not None for result in results),
+        "exception_types": dict(sorted(exception_types.items())),
         "engine_timeouts": sum(
             result.engine_validation == "timeout"
             or result.engine_validation_after_print == "timeout"
@@ -330,6 +386,16 @@ def main() -> int:
     )
     parser.add_argument("--output", type=Path)
     parser.add_argument(
+        "--summary-only",
+        action="store_true",
+        help="omit per-rule cases from the JSON output while retaining aggregate metrics",
+    )
+    parser.add_argument(
+        "--require-complete",
+        action="store_true",
+        help="fail unless every declared rule parses and round-trips without exceptions",
+    )
+    parser.add_argument(
         "--engine-command",
         help="Optional command template, for example 'suricata -T -S {file}'",
     )
@@ -341,11 +407,31 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=30.0)
     args = parser.parse_args()
     report = run(args.corpus, args.engine_command, args.timeout, args.manifest, args.pcap)
+    if args.summary_only:
+        report.pop("cases", None)
     rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.write_text(rendered, encoding="utf-8")
     print(rendered, end="")
-    return 1 if report["unexpected_failures"] else 0
+    failures: list[str] = []
+    if report["unexpected_failures"]:
+        failures.append(f"{report['unexpected_failures']} unexpected failure(s)")
+    if args.require_complete:
+        if report["parse_rate"] != 1.0:
+            failures.append(f"parse rate is {report['parse_rate']:.6g}, expected 1")
+        if report["round_trip_rate"] != 1.0:
+            failures.append(f"round-trip rate is {report['round_trip_rate']:.6g}, expected 1")
+        if report["parse_exceptions"]:
+            failures.append(f"{report['parse_exceptions']} parse exception(s)")
+        for dialect, metrics in sorted(report["dialect_metrics"].items()):
+            if metrics["parsed"] != metrics["total_rules"]:
+                failures.append(f"{dialect} has unparsed rules")
+            if metrics["round_trip_passed"] != metrics["parsed"]:
+                failures.append(f"{dialect} has round-trip failures")
+    if failures:
+        print("Conformance gate failed: " + "; ".join(failures), file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

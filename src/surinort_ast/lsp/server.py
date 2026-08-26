@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, BinaryIO, cast
 
-from ..analysis import CoverageAnalyzer, EngineVerifier
+from ..analysis import CapabilityRegistry, CoverageAnalyzer, EngineTarget, EngineVerifier
 from ..api import apply_safe_fixes, parse_rule, validate_rule, validate_rules
 from ..core.enums import Action, DiagnosticLevel, Dialect, Protocol
 from ..core.nodes import FlowbitsOption, Rule, extract_sid
@@ -52,6 +52,21 @@ _OPTION_COMPLETIONS = (
     "tls_sni",
 )
 
+_KEYWORD_DOCUMENTATION = {
+    "content": "Matches bytes in the current detection buffer. Position modifiers attach to this match.",
+    "pcre": "Evaluates a PCRE pattern against the current detection buffer.",
+    "flowbits": "Sets, tests, or clears state shared by rules on the same flow.",
+    "byte_extract": "Extracts bytes into a named variable for later rule options.",
+    "byte_test": "Reads bytes and compares the value with an operator.",
+    "byte_jump": "Reads bytes and advances the detection cursor by the decoded value.",
+    "detection_filter": "Limits alert generation by tracking a count over a time window.",
+    "http_uri": "Selects the normalized HTTP URI sticky buffer.",
+    "http_header": "Selects the normalized HTTP header sticky buffer.",
+    "sid": "The rule signature identifier; it must be unique within a ruleset.",
+    "gid": "The generator identifier associated with the rule source.",
+    "rev": "The revision number of the rule definition.",
+}
+
 
 def _diagnostic(
     level: DiagnosticLevel, message: str, line: int, code: str | None
@@ -65,7 +80,25 @@ def _diagnostic(
     }
 
 
-def _parse_document(text: str, dialect: Dialect) -> tuple[list[Rule], list[dict[str, Any]]]:
+def _keyword_documentation(
+    keyword: str, dialect: Dialect, target: EngineTarget | None = None
+) -> str | None:
+    documentation = _KEYWORD_DOCUMENTATION.get(keyword.lower())
+    if documentation is None:
+        return None
+    if target is None:
+        return f"**{keyword}** ({dialect.value})\n\n{documentation}"
+    support = target.supports(keyword)
+    status = "supported" if support is True else "not listed" if support is False else "unknown"
+    return (
+        f"**{keyword}** ({dialect.value}; {target.engine} {target.version})\n\n"
+        f"{documentation}\n\nEngine status: {status}."
+    )
+
+
+def _parse_document(
+    text: str, dialect: Dialect, target: EngineTarget | None = None
+) -> tuple[list[Rule], list[dict[str, Any]]]:
     rules: list[Rule] = []
     diagnostics: list[dict[str, Any]] = []
     for line, raw in _iter_rule_blocks(enumerate(text.splitlines(), start=0)):
@@ -75,11 +108,11 @@ def _parse_document(text: str, dialect: Dialect) -> tuple[list[Rule], list[dict[
             diagnostics.append(_diagnostic(DiagnosticLevel.ERROR, str(exc), line, "parse_error"))
             continue
         rules.append(rule)
-        for diagnostic in validate_rule(rule):
+        for diagnostic in validate_rule(rule, target=target):
             diagnostics.append(
                 _diagnostic(diagnostic.level, diagnostic.message, line, diagnostic.code)
             )
-    for diagnostic in validate_rules(rules):
+    for diagnostic in validate_rules(rules, target=target):
         if diagnostic.code in {"duplicate_sid", "flowbit_without_definition"}:
             diagnostics.append(
                 _diagnostic(diagnostic.level, diagnostic.message, 0, diagnostic.code)
@@ -87,18 +120,34 @@ def _parse_document(text: str, dialect: Dialect) -> tuple[list[Rule], list[dict[
     return rules, diagnostics
 
 
-def diagnostics_for_text(text: str, dialect: Dialect = Dialect.SURICATA) -> list[dict[str, Any]]:
+def diagnostics_for_text(
+    text: str, dialect: Dialect = Dialect.SURICATA, target: EngineTarget | None = None
+) -> list[dict[str, Any]]:
     """Return LSP diagnostics for a document."""
-    return _parse_document(text, dialect)[1]
+    return _parse_document(text, dialect, target)[1]
 
 
 def hover_for_text(
-    text: str, line: int, dialect: Dialect = Dialect.SURICATA
+    text: str,
+    line: int,
+    dialect: Dialect = Dialect.SURICATA,
+    character: int | None = None,
+    target: EngineTarget | None = None,
 ) -> dict[str, Any] | None:
-    """Return a compact rule summary for an LSP hover request."""
+    """Return keyword documentation or a compact rule summary for hover."""
     lines = text.splitlines()
     if line < 0 or line >= len(lines) or not lines[line].strip():
         return None
+    if character is not None:
+        keyword = _word_at(text, line, character)
+        documentation = _keyword_documentation(keyword or "", dialect, target)
+        if documentation is not None:
+            return {
+                "contents": {
+                    "kind": "markdown",
+                    "value": documentation,
+                }
+            }
     try:
         rule = parse_rule(lines[line], dialect=dialect)
     except ParseError:
@@ -113,10 +162,13 @@ def hover_for_text(
 
 
 def completion_items(
-    text: str, line: int, character: int, dialect: Dialect = Dialect.SURICATA
+    text: str,
+    line: int,
+    character: int,
+    dialect: Dialect = Dialect.SURICATA,
+    target: EngineTarget | None = None,
 ) -> list[dict[str, Any]]:
     """Return keyword completions for the current rule context."""
-    del dialect
     lines = text.splitlines()
     if line < 0 or line >= len(lines):
         return []
@@ -132,11 +184,24 @@ def completion_items(
             *(protocol.value for protocol in Protocol),
         )
     )
-    return [
-        {"label": value, "kind": 14, "detail": "Surinort rule keyword"}
-        for value in candidates
-        if value.startswith(prefix)
-    ]
+    items: list[dict[str, Any]] = []
+    for value in candidates:
+        if not value.startswith(prefix):
+            continue
+        if option_context and target is not None and target.supports(value) is False:
+            continue
+        item: dict[str, Any] = {
+            "label": value,
+            "kind": 14,
+            "detail": f"Surinort {dialect.value} keyword",
+        }
+        documentation = _keyword_documentation(value, dialect, target)
+        if documentation is not None:
+            item["documentation"] = {"kind": "markdown", "value": documentation}
+        if target is not None:
+            item["detail"] = f"Surinort {dialect.value} keyword ({target.engine} {target.version})"
+        items.append(item)
+    return items
 
 
 def format_document(text: str, dialect: Dialect = Dialect.SURICATA) -> str:
@@ -292,6 +357,40 @@ def _read_message(stream: BinaryIO) -> dict[str, Any] | None:
     return cast(dict[str, Any], json.loads(stream.read(length).decode("utf-8")))
 
 
+def _document_dialect(language_id: object) -> Dialect:
+    try:
+        return Dialect(str(language_id))
+    except ValueError:
+        return Dialect.SURICATA
+
+
+def _document_state(
+    documents: dict[str, tuple[str, Dialect, EngineTarget | None]], uri: str
+) -> tuple[str, Dialect, EngineTarget | None]:
+    return documents.get(uri, ("", Dialect.SURICATA, None))
+
+
+def _initialization_target(params: object) -> EngineTarget | None:
+    if not isinstance(params, dict):
+        return None
+    options = params.get("initializationOptions")
+    if not isinstance(options, dict):
+        return None
+    engine = options.get("engine")
+    version = options.get("engineVersion")
+    if not isinstance(engine, str) or not engine or not isinstance(version, str) or not version:
+        return None
+    target = EngineTarget(engine, version)
+    capability_file = options.get("capabilityFile")
+    if not isinstance(capability_file, str) or not capability_file:
+        return target
+    try:
+        resolved = CapabilityRegistry.from_json(Path(capability_file)).resolve(engine, version)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return target
+    return resolved or target
+
+
 def _write_message(stream: BinaryIO, message: dict[str, Any]) -> None:
     body = json.dumps(message, separators=(",", ":")).encode("utf-8")
     stream.write(f"Content-Length: {len(body)}\r\n\r\n".encode("ascii") + body)
@@ -300,7 +399,8 @@ def _write_message(stream: BinaryIO, message: dict[str, Any]) -> None:
 
 def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
     """Serve LSP messages until EOF or an ``exit`` notification."""
-    documents: dict[str, str] = {}
+    documents: dict[str, tuple[str, Dialect, EngineTarget | None]] = {}
+    configured_target: EngineTarget | None = None
     while True:
         message = _read_message(reader)
         if message is None:
@@ -308,6 +408,7 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
         method = message.get("method")
         request_id = message.get("id")
         if method == "initialize":
+            configured_target = _initialization_target(message.get("params", {}))
             _write_message(
                 writer,
                 {
@@ -333,31 +434,49 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
             text = document.get("text")
             if text is None:
                 text = params.get("contentChanges", [{}])[-1].get("text", "")
-            documents[uri] = text
+            _, previous_dialect, previous_target = _document_state(documents, uri)
+            dialect = (
+                _document_dialect(document.get("languageId"))
+                if method == "textDocument/didOpen"
+                else previous_dialect
+            )
+            target = configured_target if method == "textDocument/didOpen" else previous_target
+            documents[uri] = (str(text), dialect, target)
             _write_message(
                 writer,
                 {
                     "jsonrpc": "2.0",
                     "method": "textDocument/publishDiagnostics",
-                    "params": {"uri": uri, "diagnostics": diagnostics_for_text(text)},
+                    "params": {
+                        "uri": uri,
+                        "diagnostics": diagnostics_for_text(str(text), dialect, target),
+                    },
                 },
             )
         elif method == "textDocument/hover":
             params = message.get("params", {})
             document = params.get("textDocument", {})
             position = params.get("position", {})
+            text, dialect, target = _document_state(documents, document.get("uri", ""))
             result = hover_for_text(
-                documents.get(document.get("uri", ""), ""), position.get("line", 0)
+                text,
+                position.get("line", 0),
+                dialect,
+                position.get("character", 0),
+                target,
             )
             _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": result})
         elif method == "textDocument/completion":
             params = message.get("params", {})
             document = params.get("textDocument", {})
             position = params.get("position", {})
+            text, dialect, target = _document_state(documents, document.get("uri", ""))
             completion_result = completion_items(
-                documents.get(document.get("uri", ""), ""),
+                text,
                 position.get("line", 0),
                 position.get("character", 0),
+                dialect,
+                target,
             )
             _write_message(
                 writer, {"jsonrpc": "2.0", "id": request_id, "result": completion_result}
@@ -365,9 +484,8 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
         elif method == "textDocument/formatting":
             params = message.get("params", {})
             document = params.get("textDocument", {})
-            formatting_result = formatting_edits_for_text(
-                documents.get(document.get("uri", ""), "")
-            )
+            text, dialect, _ = _document_state(documents, document.get("uri", ""))
+            formatting_result = formatting_edits_for_text(text, dialect)
             _write_message(
                 writer, {"jsonrpc": "2.0", "id": request_id, "result": formatting_result}
             )
@@ -375,9 +493,8 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
             params = message.get("params", {})
             document = params.get("textDocument", {})
             start = params.get("range", {}).get("start", {})
-            code_action_result = code_actions_for_text(
-                documents.get(document.get("uri", ""), ""), start.get("line", 0)
-            )
+            text, dialect, _ = _document_state(documents, document.get("uri", ""))
+            code_action_result = code_actions_for_text(text, start.get("line", 0), dialect)
             _write_message(
                 writer, {"jsonrpc": "2.0", "id": request_id, "result": code_action_result}
             )
@@ -385,11 +502,13 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
             params = message.get("params", {})
             document = params.get("textDocument", {})
             position = params.get("position", params.get("range", {}).get("start", {}))
+            text, dialect, _ = _document_state(documents, document.get("uri", ""))
             locations = flowbit_locations(
-                documents.get(document.get("uri", ""), ""),
+                text,
                 position.get("line", 0),
                 position.get("character", 0),
                 definitions_only=method.endswith("definition"),
+                dialect=dialect,
             )
             locations_result = [
                 {
@@ -405,13 +524,15 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
         elif method == "surinort/matchSpacePreview":
             params = message.get("params", {})
             document = params.get("textDocument", {})
-            preview_result = match_space_preview(documents.get(document.get("uri", ""), ""))
+            text, dialect, _ = _document_state(documents, document.get("uri", ""))
+            preview_result = match_space_preview(text, dialect)
             _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": preview_result})
         elif method == "surinort/engineValidate":
             params = message.get("params", {})
             document = params.get("textDocument", {})
+            text, _, _ = _document_state(documents, document.get("uri", ""))
             engine_result = engine_validation_for_text(
-                documents.get(document.get("uri", ""), ""),
+                text,
                 str(params.get("command", "")),
                 float(params.get("timeout", 30.0)),
             )

@@ -196,12 +196,13 @@ permissions:
 steps:
   - name: Validate rules
     id: surinort
-    uses: seifreed/surinort-ast@main
+    uses: seifreed/surinort-ast@740b7c6c9fb74af6c927f31c0ae05e28d1d94139
     with:
       rules: rules/**/*.rules
       dialect: suricata
       engine: suricata
-      engine-version: 8.x
+      engine-version: 8.0.6
+      capability-file: conformance/capabilities/4.0.0-local.json
       sarif: true
       engine-verify: true
       engine-command: 'suricata -T -S {file}'
@@ -211,6 +212,7 @@ steps:
 
 Upload the generated `${{ steps.surinort.outputs.sarif-file }}` with
 `github/codeql-action/upload-sarif` when code scanning annotations are desired.
+Replace the commit pin with `@v4.0.0` after that public release tag exists.
 - Upload SARIF to GitHub Code Scanning.
 
 ### Pre-commit and GitLab CI
@@ -292,6 +294,7 @@ If this project is useful in your workflows, you can support development:
 ## License
 
 This project is licensed under the GPL-3.0-or-later license. See [LICENSE](LICENSE).
+The current licensing decision is documented in the [license decision](https://seifreed.github.io/surinort-ast/license/).
 
 **Attribution**
 - Author: **Marc Rivero López** | [@seifreed](https://github.com/seifreed)

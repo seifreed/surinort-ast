@@ -1,0 +1,189 @@
+{
+  "behavior_validation_failures": 0,
+  "engine_validation_failures": 0,
+  "engines": [
+    {
+      "dialect": "suricata",
+      "engine": "suricata",
+      "id": "suricata-8.0.6-bundled",
+      "report": {
+        "behavior_validation": "not-run",
+        "corpus": "rules/suricata",
+        "corpus_files": [
+          {
+            "bytes": 13249808,
+            "path": "rules/suricata/suricata.rules",
+            "sha256": "6784018624d3349c026cf9b3f61c372faaf677ecbe182ec03e0e8c29e1ad44f4"
+          },
+          {
+            "bytes": 13309135,
+            "path": "generated/suricata.printed.rules",
+            "sha256": "fc6556bca71e0163d41e14b65611dfbfece3464fedf79e7cec3606e981033463"
+          }
+        ],
+        "dialect_metrics": {
+          "suricata": {
+            "parsed": 30579,
+            "round_trip_passed": 30579,
+            "total_rules": 30579,
+            "unexpected_failures": 0
+          }
+        },
+        "engine_command": "suricata -T -S {file}",
+        "engine_original": {
+          "loaded_rules": null,
+          "status": "passed",
+          "warnings": 0
+        },
+        "engine_printed": {
+          "loaded_rules": null,
+          "status": "passed",
+          "warnings": 0
+        },
+        "engine_validation_after_print_failures": 0,
+        "engine_validation_after_print_passed": 1,
+        "engine_validation_failures": 0,
+        "engine_validation_passed": 1,
+        "engine_validation_scope": "one full ruleset load for original and printed files",
+        "errors_by_keyword": {},
+        "package_version": "4.0.0",
+        "parse_exceptions": 0,
+        "parse_rate": 1.0,
+        "parsed": 30579,
+        "peak_memory_mb": null,
+        "printed": 30579,
+        "round_trip_passed": 30579,
+        "round_trip_rate": 1.0,
+        "rules_per_second": null,
+        "total_rules": 30579,
+        "unexpected_failures": 0
+      },
+      "version": "8.0.6"
+    },
+    {
+      "dialect": "snort2",
+      "engine": "snort2",
+      "id": "snort2-2.9.20-bundled",
+      "report": {
+        "behavior_validation": "not-run",
+        "corpus": "rules/snort/snort29-community-rules/community-rules",
+        "corpus_files": [
+          {
+            "bytes": 1809323,
+            "path": "rules/snort/snort29-community-rules/community-rules/community.rules",
+            "sha256": "688d2f41c50e1e27d3c2a1968dae044fdbc82733bb6abe68045618387a8334"
+          },
+          {
+            "bytes": 310315,
+            "path": "generated/snort2.printed.rules",
+            "sha256": "62fc0d65b5c2cddcdc4c56a07eed598d2ee7a99e7f19f1148d7bb916b9a7796e"
+          }
+        ],
+        "dialect_metrics": {
+          "snort2": {
+            "parsed": 561,
+            "round_trip_passed": 561,
+            "total_rules": 561,
+            "unexpected_failures": 0
+          }
+        },
+        "engine_command": "docker run --rm -v {file}:/rules/community.rules:ro surinort-snort2:2.9.20 -T -c /etc/snort/snort.conf",
+        "engine_original": {
+          "loaded_rules": 561,
+          "status": "passed",
+          "warnings": 37
+        },
+        "engine_printed": {
+          "loaded_rules": 561,
+          "status": "passed",
+          "warnings": 37
+        },
+        "engine_validation_after_print_failures": 0,
+        "engine_validation_after_print_passed": 1,
+        "engine_validation_failures": 0,
+        "engine_validation_passed": 1,
+        "engine_validation_scope": "one full ruleset load for original and printed files",
+        "errors_by_keyword": {},
+        "package_version": "4.0.0",
+        "parse_exceptions": 0,
+        "parse_rate": 1.0,
+        "parsed": 561,
+        "peak_memory_mb": null,
+        "printed": 561,
+        "round_trip_passed": 561,
+        "round_trip_rate": 1.0,
+        "rules_per_second": null,
+        "total_rules": 561,
+        "unexpected_failures": 0
+      },
+      "version": "2.9.20"
+    },
+    {
+      "dialect": "snort3",
+      "engine": "snort3",
+      "id": "snort3-3.12.2.0-bundled",
+      "report": {
+        "behavior_validation": "not-run",
+        "corpus": "rules/snort/snort3-community-rules/snort3-community-rules",
+        "corpus_files": [
+          {
+            "bytes": 1794988,
+            "path": "rules/snort/snort3-community-rules/snort3-community-rules/snort3-community.rules",
+            "sha256": "9113fb15ac089b72aacc4c099dff4dfdb5d8762915d36ee38bcfbc695dd8b8a9"
+          },
+          {
+            "bytes": 1790426,
+            "path": "generated/snort3.printed.rules",
+            "sha256": "5e5dc482d64473b68de2518720c19871c2134b10701d54f71a46e01affaf4017"
+          }
+        ],
+        "dialect_metrics": {
+          "snort3": {
+            "parsed": 4017,
+            "round_trip_passed": 4017,
+            "total_rules": 4017,
+            "unexpected_failures": 0
+          }
+        },
+        "engine_command": "snort -T -c snort.lua -R {file}",
+        "engine_original": {
+          "loaded_rules": 4236,
+          "status": "passed",
+          "warnings": 0
+        },
+        "engine_printed": {
+          "loaded_rules": 4236,
+          "status": "passed",
+          "warnings": 0
+        },
+        "engine_validation_after_print_failures": 0,
+        "engine_validation_after_print_passed": 1,
+        "engine_validation_failures": 0,
+        "engine_validation_passed": 1,
+        "engine_validation_scope": "one full ruleset load for original and printed files",
+        "errors_by_keyword": {},
+        "package_version": "4.0.0",
+        "parse_exceptions": 0,
+        "parse_rate": 1.0,
+        "parsed": 4017,
+        "peak_memory_mb": null,
+        "printed": 4017,
+        "round_trip_passed": 4017,
+        "round_trip_rate": 1.0,
+        "rules_per_second": null,
+        "total_rules": 4017,
+        "unexpected_failures": 0
+      },
+      "version": "3.12.2.0"
+    }
+  ],
+  "kind": "engine-scale-conformance",
+  "package_version": "4.0.0",
+  "pcap_behavior_equivalence": "not-run",
+  "schema_version": 1,
+  "scope": "Bundled tracked corpora; parser parse -> print -> real engine load",
+  "source_commit": "b840aa4",
+  "total_rules": 35157,
+  "unexpected_failures": 0,
+  "verified_at": "2026-08-26T06:17:36.632034+00:00"
+}

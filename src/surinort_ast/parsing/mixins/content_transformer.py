@@ -147,6 +147,8 @@ def _parse_mixed_content(s: str) -> bytes:
             hex_str = s[i + 1 : j]
             # Remove whitespace and convert
             hex_content = hex_str.translate(_HEX_WHITESPACE_TRANS)
+            if not hex_content:
+                raise ValueError("empty hex segment")
             try:
                 result.extend(bytes.fromhex(hex_content))
             except ValueError as e:
@@ -294,7 +296,22 @@ class ContentTransformerMixin(LocationAwareMixin):
         Snort3 Syntax:
             content:("pattern", depth 10, nocase)
         """
-        return self._build_content_option(items)
+        return self._build_content_option(self._without_content_keyword(items))
+
+    @staticmethod
+    def _without_content_keyword(items: Sequence[Any]) -> list[Any]:
+        """Drop the named case-insensitive keyword token from the rule items."""
+        if (
+            items
+            and isinstance(items[0], Token)
+            and items[0].type
+            in {
+                "CONTENT_KW",
+                "URICONTENT_KW",
+            }
+        ):
+            return list(items[1:])
+        return list(items)
 
     def _build_content_option(self, items: Sequence[Any]) -> ContentOption:
         """Assemble a ContentOption from a content/uricontent item list."""
@@ -327,7 +344,7 @@ class ContentTransformerMixin(LocationAwareMixin):
             "uricontent is deprecated, use content with http_uri buffer",
         )
         return [
-            self._build_content_option(items),
+            self._build_content_option(self._without_content_keyword(items)),
             BufferSelectOption(buffer_name="http_uri"),
         ]
 
@@ -426,7 +443,11 @@ class ContentTransformerMixin(LocationAwareMixin):
         Returns:
             ContentModifier for OFFSET
         """
-        value = _token_to_int_or_str(args[1])
+        if len(args) == 3:
+            token_value = _token_to_int_or_str(args[2])
+            value = -token_value if isinstance(token_value, int) else f"-{token_value}"
+        else:
+            value = _token_to_int_or_str(args[1])
         return ContentModifier(name=ContentModifierType.OFFSET, value=value)
 
     def cm_distance(self, args: list[Any]) -> ContentModifier:
@@ -612,7 +633,7 @@ class ContentTransformerMixin(LocationAwareMixin):
         return DepthOption(value=_token_to_int_or_str(depth_token))
 
     @v_args(inline=True)
-    def offset_option(self, offset_token: Token) -> OffsetOption:
+    def offset_option(self, *items: Any) -> OffsetOption:
         """
         Transform offset modifier (standalone option).
 
@@ -625,7 +646,12 @@ class ContentTransformerMixin(LocationAwareMixin):
         Usage:
             offset:N - Skip first N bytes before searching
         """
-        return OffsetOption(value=_token_to_int_or_str(offset_token))
+        if len(items) == 2 and is_marker(items[0], "neg_sign"):
+            token_value = _token_to_int_or_str(items[1])
+            value = -token_value if isinstance(token_value, int) else f"-{token_value}"
+        else:
+            value = _token_to_int_or_str(items[-1])
+        return OffsetOption(value=value)
 
     def distance_option(self, items: list[Any]) -> DistanceOption:
         """

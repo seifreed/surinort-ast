@@ -56,6 +56,9 @@ unsupported AST majors.
   complete output from the installed engine before treating unknown keywords
   as errors. `EngineTarget.from_keyword_listing()` accepts plain or tabular
   `--list-keywords` output and marks the resulting keyword catalog complete.
+  Persist a complete target with `CapabilityRegistry.write_json()` and load a
+  release-pinned snapshot with `CapabilityRegistry.from_json()` or
+  `surinort validate --capability-file capabilities.json`.
   Feature requirements such as `sticky-buffer`, `flowbits`, `byte-ops`, and
   `pcre` use the same tri-state behavior through `with_features()` and
   `feature_catalog_complete`; only a complete feature catalog produces an
@@ -77,14 +80,20 @@ versioned matrix manifest. Its report keeps engine, version, dialect, parse,
 round-trip, engine, and optional PCAP behavior results together.
 
 `surinort-lsp` implements stdio `initialize`, diagnostics on document changes,
-rule hover, keyword completion, document formatting, and safe duplicate-modifier
-quick fixes. It is intentionally dependency-free so editor integrations can pin
-the package and choose their own client.
+rule and keyword hover documentation, keyword completion with documentation,
+document formatting, safe duplicate-modifier quick fixes, flowbit
+definition/reference navigation, match-space preview, and configured engine
+validation. It retains each document's LSP `languageId`, so Suricata, Snort 2,
+and Snort 3 documents are parsed and formatted with their declared dialect
+instead of silently falling back to Suricata. It is intentionally
+dependency-free so editor integrations can pin the package and choose their
+own client.
 
 The repository also ships a dependency-free VS Code client under
 `editors/vscode`; it starts `surinort-lsp`, publishes diagnostics, and exposes
-rule hover information. Clients may use the additional standard LSP requests
-directly until the extension registers those providers.
+the standard hover, completion, formatting, code-action, definition, and
+reference providers. It also exposes the engine-validation and match-space
+preview commands.
 
 Plugins use API contract version `surinort_ast.plugins.PLUGIN_API_VERSION`.
 Plugins that omit `api_version` remain compatible as legacy version `1`

@@ -1,0 +1,458 @@
+{
+  "behavior_pcap": null,
+  "behavior_validation_failures": 0,
+  "behavior_validation_passed": 0,
+  "corpus": "public-rules-2026-08-26",
+  "corpus_files": [
+    {
+      "bytes": 2114,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/botcc.portgrouped.rules",
+      "sha256": "3daac5427d24c2b31c9d92fb0e28215f1ee8e36012691f4c9f88585370753b7a"
+    },
+    {
+      "bytes": 4711,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/botcc.rules",
+      "sha256": "04a4fe762739fe868c8d114384d6231518e9a55cda59f9a4a38621a3b0e0a2ca"
+    },
+    {
+      "bytes": 335401,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/ciarmy.rules",
+      "sha256": "59f5bfdcaf947f3d5338f7df7cf43cec2a0d84477b86383cd5fbc3c0fe953570"
+    },
+    {
+      "bytes": 17640,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/compromised.rules",
+      "sha256": "797fa35a4ed2fab1794b55d73df809cadaa726bc0694b8eed0ff45e151c454eb"
+    },
+    {
+      "bytes": 54476,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/drop.rules",
+      "sha256": "07e931b98a41931c550bea168c38c5baae8a64a351cf2d1253222ba54dae0104"
+    },
+    {
+      "bytes": 2668,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/dshield.rules",
+      "sha256": "5efd2409dd967d8d75a401c9ed8dabf5eb9c1270fa24252712fcf64dfa688756"
+    },
+    {
+      "bytes": 369791,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-activex.rules",
+      "sha256": "2c6e05770d9e9aad8c4e8989e47c2c0e6bfec12fb6d3cebd6be71ebeec668444"
+    },
+    {
+      "bytes": 646200,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-adware_pup.rules",
+      "sha256": "a46ed78705529add861a58c8486698b61b9989a1405b03a1a00d292b7069d0d1"
+    },
+    {
+      "bytes": 658014,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-attack_response.rules",
+      "sha256": "5d63e04becff5b6301377e2a26dacb70e648928b6a6d1e7f985346b196214cd1"
+    },
+    {
+      "bytes": 35976,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-chat.rules",
+      "sha256": "05db807bb074a9b5805f1b1895695f11bc2cb453d7c120edd613d7b14e5f7359"
+    },
+    {
+      "bytes": 20155,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-coinminer.rules",
+      "sha256": "f2aa273811065469fcebb283ada1d026926d5a8eac14b933419ce127e8bc4b76"
+    },
+    {
+      "bytes": 141705,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-current_events.rules",
+      "sha256": "fa128e03922bfdd935abe0a8858126140573acff9ef8223aee0d9cc2da102604"
+    },
+    {
+      "bytes": 1791927,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-deleted.rules",
+      "sha256": "97d3fbfb7ceb9590827a5dc17ce8cf196562953f07e61ce2d56c06f631f8a702"
+    },
+    {
+      "bytes": 21831,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-dns.rules",
+      "sha256": "1e6dc933975eea5925f8ece66723d029f10d8284e7c854f0f86f45b631f0a9e9"
+    },
+    {
+      "bytes": 68996,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-dos.rules",
+      "sha256": "5f30fb2c8bb13ef1da591948fb684e1b1d140841eba496430e999e5ff67fb3f7"
+    },
+    {
+      "bytes": 1465595,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-exploit.rules",
+      "sha256": "ad828bf4f5353f2a8913659bbb2bc0cf9683af2997b775dbd883bce182a8adbc"
+    },
+    {
+      "bytes": 3704056,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-exploit_kit.rules",
+      "sha256": "78eb45f55e9a493517549680ec54617d8bf0860009176b5c0e08f3b006212f2b"
+    },
+    {
+      "bytes": 54791,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-ftp.rules",
+      "sha256": "d726fff4d9b83c156c4d4bd184fcac2441af02efdd7dc5e8613c5e5dc007d7a9"
+    },
+    {
+      "bytes": 39071,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-games.rules",
+      "sha256": "70eece6dcd8822bc8820a540af3343fb9488ef4be7257bef98a6464f467bcf8d"
+    },
+    {
+      "bytes": 925390,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-hunting.rules",
+      "sha256": "408ef2d1a6635feb823770bec5bea62f37d20e6116d807b4a6f6429f8cdb5657"
+    },
+    {
+      "bytes": 13556,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-icmp.rules",
+      "sha256": "e637ae98bde82915a7cfee8a374ca127901b6040cd6676925ac0d3cec9296f50"
+    },
+    {
+      "bytes": 23232,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-icmp_info.rules",
+      "sha256": "9d2c0de78db23757ac03435a27f4d8511bdff04ee97951b45b8a8948ae12ae7b"
+    },
+    {
+      "bytes": 15540,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-imap.rules",
+      "sha256": "ae2862cd64e3fe48291960f1de102f69ec539792da23c9b7320d77520d3101e8"
+    },
+    {
+      "bytes": 11285,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-inappropriate.rules",
+      "sha256": "f97837449f5ccfee5404d1e3e449f58019a1157adb56307f718baa7afffa3b78"
+    },
+    {
+      "bytes": 6495036,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-info.rules",
+      "sha256": "ea37565e98c08c923fff75a45a41b871d0c7e7927a5425214713a2df75865f8b"
+    },
+    {
+      "bytes": 56692,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-ja3.rules",
+      "sha256": "684ac52e011cf264666ff557609cebe3d057783b3df1e70a0b8ceb66fdbd8185"
+    },
+    {
+      "bytes": 17509355,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-malware.rules",
+      "sha256": "64091c0370e5f54ed6c0ff9b2226494cbfa425142cd654c8d27c9bfa61d383fc"
+    },
+    {
+      "bytes": 24705,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-misc.rules",
+      "sha256": "0dcbac07253ef5e1bd3a0d7cc42a55e7369ea3f9500b8390495dae1dd9763122"
+    },
+    {
+      "bytes": 831463,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-mobile_malware.rules",
+      "sha256": "4f357809f77b3b857a8818a2334953a5b55422161aecca5823419f19acd679a3"
+    },
+    {
+      "bytes": 366240,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-netbios.rules",
+      "sha256": "8f3f20e9f3b353baf36f949a726f6569dade644f82e8a9dd780d3441bb76b803"
+    },
+    {
+      "bytes": 50653,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-p2p.rules",
+      "sha256": "f122230b36972a249a6146b04839d637fd339f49fb711b03f753f895d3e90f80"
+    },
+    {
+      "bytes": 2245818,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-phishing.rules",
+      "sha256": "b202c49e9abfae298474f518214f9e3db3c754ffcd0811032af5732b0cc387e6"
+    },
+    {
+      "bytes": 581863,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-policy.rules",
+      "sha256": "f0bed9e54dc9b490c01e43cebbe55e0f7f0919e60bb189c8cf27860fed5b58eb"
+    },
+    {
+      "bytes": 9527,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-pop3.rules",
+      "sha256": "b57feb4590f096ee756079299eee68b1b6af76f2fd85e79b2e53a878f67d6b9b"
+    },
+    {
+      "bytes": 348244,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-retired.rules",
+      "sha256": "00300ea20c5b6613ef9b2d96f220c6092a826e7cacd8f0f85846371e46281321"
+    },
+    {
+      "bytes": 62525,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-rpc.rules",
+      "sha256": "09bd1415c9d5b14a8628db8e213c1a13104130b0d09b9eb84b05fdfdb08a550e"
+    },
+    {
+      "bytes": 61817,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-scada.rules",
+      "sha256": "1d4c7e2f99457452f2e91522006b355c3aa03a0eddd1d7c37e11727af6e37673"
+    },
+    {
+      "bytes": 170640,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-scan.rules",
+      "sha256": "a6e51f83cad3e6633a81d17c42b011dbe3b7b4a4c73ea83dc77f17103ff93dbc"
+    },
+    {
+      "bytes": 80763,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-shellcode.rules",
+      "sha256": "6cd334fb4f538cbcfce946e7bbd642dc6943c4b2e85f521486ff5a300e62ebb1"
+    },
+    {
+      "bytes": 13814,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-smtp.rules",
+      "sha256": "2d52425b7b28bf9c290b9256253f1489c310a893f2618423156644414b98be31"
+    },
+    {
+      "bytes": 17252,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-snmp.rules",
+      "sha256": "85d9bf9d8457271fcd28809f68426cf82f402d6019aac0823ac0529281f54383"
+    },
+    {
+      "bytes": 217844,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-sql.rules",
+      "sha256": "920ddbe4d8e080df298b27b5f41c6a1f8acbfee10faf0cd2a1aef3dee2e41e7a"
+    },
+    {
+      "bytes": 6505,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-telnet.rules",
+      "sha256": "1c9da4c0f3bae68da6f5b100ee106d8048d034825019e255286b6015cedf2130"
+    },
+    {
+      "bytes": 8945,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-tftp.rules",
+      "sha256": "8c283b154b87cfbb253ecf9ae3491b8bc1e57a9086a24845a6532383d524bbad"
+    },
+    {
+      "bytes": 168459,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-user_agents.rules",
+      "sha256": "b919f816301e85494cb7d7158fab70354398f04616026b5d1e38bbc9436359c0"
+    },
+    {
+      "bytes": 11028,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-voip.rules",
+      "sha256": "b711f89737a56fafdf4e70dd03345bf9b9e0ace84728e8ce8f1fc2d2776b138d"
+    },
+    {
+      "bytes": 508729,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-web_client.rules",
+      "sha256": "d4b2c7679bdb0876fed4f6a15bc777124be0ad3ecfbc1288ba0814d429356f09"
+    },
+    {
+      "bytes": 516877,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-web_server.rules",
+      "sha256": "46093f5c654e986e0770e7007207ba9b466d5d152f1da5272635afcfdf13c5f0"
+    },
+    {
+      "bytes": 5676379,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-web_specific_apps.rules",
+      "sha256": "686191165b748946b81f205fafcb5319d4ee4a371b7b992b57ad9ad5289574f2"
+    },
+    {
+      "bytes": 10946,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/emerging-worm.rules",
+      "sha256": "ee7fcb69eab4e47c293f8c929ea7576bdbf25a25bb7725ffbe9ca8f0180b87f2"
+    },
+    {
+      "bytes": 27022,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/threatview_CS_c2.rules",
+      "sha256": "533bb1e25a1b6febf12607899ad001fb9feb81e620fe046f2be26076f3be0266"
+    },
+    {
+      "bytes": 509423,
+      "dialect": "suricata",
+      "expected_parse": true,
+      "path": "ET-Open/tor.rules",
+      "sha256": "71a7852b24855ffc90d45e5ef1a0672fcb97848eb4a71210b268ca0e692a6b9e"
+    },
+    {
+      "bytes": 1809306,
+      "dialect": "snort2",
+      "expected_parse": true,
+      "path": "Snort-Community/community.rules",
+      "sha256": "a5ca3b3c44e9dd27dba9d32a5ee9a4b8e99a6531dc2a5fbca9425006fb0cf8f4"
+    },
+    {
+      "bytes": 1794816,
+      "dialect": "snort3",
+      "expected_parse": true,
+      "path": "Snort3-Community/snort3-community.rules",
+      "sha256": "8c0d9172127a7270ec8084ffbd16d3995df6d27aa0ccc232638f5f0293e68e19"
+    }
+  ],
+  "dialect_metrics": {
+    "snort2": {
+      "parsed": 561,
+      "round_trip_passed": 561,
+      "total_rules": 561,
+      "unexpected_failures": 0
+    },
+    "snort3": {
+      "parsed": 4017,
+      "round_trip_passed": 4017,
+      "total_rules": 4017,
+      "unexpected_failures": 0
+    },
+    "suricata": {
+      "parsed": 52080,
+      "round_trip_passed": 52080,
+      "total_rules": 52080,
+      "unexpected_failures": 0
+    }
+  },
+  "elapsed_seconds": 229.595123,
+  "engine_command": null,
+  "engine_timeouts": 0,
+  "engine_validation_after_print_failures": 0,
+  "engine_validation_after_print_passed": 0,
+  "engine_validation_failures": 0,
+  "engine_validation_passed": 0,
+  "errors_by_keyword": {},
+  "historical_benchmark": {
+    "reason": "The issue does not publish the corpus; its registered Snort component requires an account/license and is not redistributed here.",
+    "reference": "https://github.com/seifreed/surinort-ast/issues/166",
+    "reported_rules": 288939,
+    "reproduced": false
+  },
+  "kind": "external-conformance",
+  "manifest": "external public source manifest (not redistributed)",
+  "package_version": "4.0.0",
+  "parse_exceptions": 0,
+  "parse_rate": 1.0,
+  "parsed": 56658,
+  "peak_memory_mb": 44.142735,
+  "printed": 56658,
+  "round_trip_passed": 56658,
+  "round_trip_rate": 1.0,
+  "rules_per_second": 246.77353438171767,
+  "schema_version": 1,
+  "scope": "Current public ET Open, Snort Community, and Snort3 Community archives; parse -> print -> parse only.",
+  "source_commit": "4afb657",
+  "sources": [
+    {
+      "license": "Mixed GPLv2/BSD; archive LICENSE governs individual rule ranges.",
+      "name": "ET Open",
+      "sha256": "b3d70a34a502da4f329720fa7a9053afb0531f93aab563f40dc73435953ce310",
+      "url": "https://rules.emergingthreats.net/open/suricata/emerging.rules.tar.gz"
+    },
+    {
+      "license": "GPLv2, per archive LICENSE.",
+      "name": "Snort Community Rules",
+      "sha256": "0730e2b45f09bf20964847fe32021d7062faa4b229ca201fda10fd830ee2e125",
+      "url": "https://snort.org/downloads/community/community-rules.tar.gz"
+    },
+    {
+      "license": "GPLv2, per archive LICENSE.",
+      "name": "Snort3 Community Rules",
+      "sha256": "109cb90a7b3f8c062eeae7f9c35065eae4bb01342d1cc90463249c1bb340cb84",
+      "url": "https://snort.org/downloads/community/snort3-community-rules.tar.gz"
+    }
+  ],
+  "total_rules": 56658,
+  "unexpected_failures": 0,
+  "unsupported_constructions": [],
+  "verified_at": "2026-08-26T06:44:04Z"
+}

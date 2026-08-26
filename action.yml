@@ -14,7 +14,11 @@ inputs:
     required: false
     default: ''
   engine-version:
-    description: Versioned engine target, for example 8.x or 3.x.
+    description: Concrete engine version target, for example 8.0.6 or 3.12.2.0.
+    required: false
+    default: ''
+  capability-file:
+    description: Optional versioned JSON engine capability snapshot.
     required: false
     default: ''
   sarif:
@@ -59,6 +63,7 @@ runs:
         DIALECT: ${{ inputs.dialect }}
         ENGINE: ${{ inputs.engine }}
         ENGINE_VERSION: ${{ inputs.engine-version }}
+        CAPABILITY_FILE: ${{ inputs.capability-file }}
         SARIF: ${{ inputs.sarif }}
         SARIF_FILE: ${{ inputs.sarif-file }}
         BASELINE: ${{ inputs.baseline }}
@@ -88,6 +93,13 @@ runs:
             exit 1
           fi
           args+=(--engine "$ENGINE" --engine-version "$ENGINE_VERSION")
+        fi
+        if [[ -n "$CAPABILITY_FILE" ]]; then
+          if [[ -z "$ENGINE" || -z "$ENGINE_VERSION" ]]; then
+            echo "capability-file requires engine and engine-version" >&2
+            exit 1
+          fi
+          args+=(--capability-file "$CAPABILITY_FILE")
         fi
         if [[ "$SARIF" == "true" ]]; then
           set +e

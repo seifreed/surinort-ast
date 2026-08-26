@@ -162,6 +162,45 @@ class TestCLIValidateCommand:
 
         assert result.exit_code in {0, 1}
 
+    def test_validate_command_uses_capability_snapshot(self, tmp_path):
+        rules = tmp_path / "test.rules"
+        rules.write_text('drop tcp any any -> any 80 (msg:"Test"; sid:1;)\n')
+        capabilities = tmp_path / "capabilities.json"
+        capabilities.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "targets": [
+                        {
+                            "engine": "suricata",
+                            "version": "8.0.6",
+                            "keywords": ["msg", "sid"],
+                            "actions": ["alert"],
+                            "protocols": ["tcp"],
+                            "keyword_catalog_complete": True,
+                        }
+                    ],
+                }
+            )
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "validate",
+                str(rules),
+                "--engine",
+                "suricata",
+                "--engine-version",
+                "8.0.6",
+                "--capability-file",
+                str(capabilities),
+            ],
+        )
+
+        assert result.exit_code == 1
+        assert "unsupported_engine_action" in result.stdout
+
 
 class TestCLISharedHelpers:
     """Test shared CLI helper behavior."""

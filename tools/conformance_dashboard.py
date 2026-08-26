@@ -8,21 +8,72 @@ from pathlib import Path
 from typing import Any
 
 
-def _report_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
+def _report_rows(
+    report: dict[str, Any], source: str, version: str | None = None
+) -> list[dict[str, Any]]:
+    error_keywords = report.get("errors_by_keyword")
+    error_summary = (
+        ", ".join(f"{key}:{value}" for key, value in sorted(error_keywords.items()))
+        if isinstance(error_keywords, dict) and error_keywords
+        else None
+    )
+    exception_types = report.get("exception_types")
+    exception_summary = (
+        ", ".join(f"{key}:{value}" for key, value in sorted(exception_types.items()))
+        if isinstance(exception_types, dict) and exception_types
+        else None
+    )
     if isinstance(report.get("engines"), list):
         rows: list[dict[str, Any]] = []
         for entry in report["engines"]:
             nested = entry.get("report")
             if isinstance(nested, dict):
-                rows.extend(_report_rows(nested, f"{source}:{entry.get('id', 'engine')}"))
+                rows.extend(
+                    _report_rows(
+                        nested,
+                        f"{source}:{entry.get('id', 'engine')}",
+                        version=entry.get("version"),
+                    )
+                )
         return rows
+    dialect_metrics = report.get("dialect_metrics")
+    if isinstance(dialect_metrics, dict):
+        rows = []
+        for dialect, metrics in sorted(dialect_metrics.items()):
+            if not isinstance(metrics, dict):
+                continue
+            total_rules = int(metrics.get("total_rules", 0))
+            parsed = int(metrics.get("parsed", 0))
+            round_trip = int(metrics.get("round_trip_passed", 0))
+            rows.append(
+                {
+                    "source": source,
+                    "version": version or report.get("package_version"),
+                    "dialect": dialect,
+                    "total_rules": total_rules,
+                    "parse_rate": parsed / total_rules if total_rules else 1.0,
+                    "round_trip_rate": round_trip / parsed if parsed else 1.0,
+                    "parse_exceptions": report.get("parse_exceptions"),
+                    "exception_types": exception_summary,
+                    "errors_by_keyword": error_summary,
+                    "unexpected_failures": metrics.get("unexpected_failures", 0),
+                    "rules_per_second": report.get("rules_per_second"),
+                    "peak_memory_mb": report.get("peak_memory_mb"),
+                }
+            )
+        if rows:
+            return rows
     return [
         {
             "source": source,
+            "version": version or report.get("package_version"),
             "dialect": report.get("dialect", ", ".join(report.get("dialects", []))),
             "total_rules": report.get("total_rules", 0),
             "parse_rate": report.get("parse_rate"),
             "round_trip_rate": report.get("round_trip_rate"),
+            "parse_exceptions": report.get("parse_exceptions"),
+            "exception_types": exception_summary,
+            "errors_by_keyword": error_summary,
             "unexpected_failures": report.get("unexpected_failures", 0),
             "rules_per_second": report.get("rules_per_second"),
             "peak_memory_mb": report.get("peak_memory_mb"),
@@ -30,29 +81,132 @@ def _report_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
     ]
 
 
-def _load_reports(history_dir: Path, report: Path | None) -> list[dict[str, Any]]:
-    paths = sorted(history_dir.glob("*.json")) if history_dir.is_dir() else []
-    if report is not None:
-        paths.append(report)
+def _semantic_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
+    cases = report.get("cases")
+    if not isinstance(cases, list):
+        return []
+    grouped: dict[tuple[str, str, str], dict[str, int]] = {}
+    for case in cases:
+        if not isinstance(case, dict):
+            continue
+        key = (
+            str(case.get("engine", "")),
+            str(case.get("version", "")),
+            str(case.get("dialect", "")),
+        )
+        metrics = grouped.setdefault(key, {"evaluations": 0, "passed": 0})
+        metrics["evaluations"] += 1
+        metrics["passed"] += int(case.get("passed") is True)
+    return [
+        {
+            "source": source,
+            "version": report.get("package_version"),
+            "engine": engine,
+            "dialect": dialect,
+            "engine_version": engine_version,
+            "evaluations": metrics["evaluations"],
+            "passed": metrics["passed"],
+            "failures": metrics["evaluations"] - metrics["passed"],
+        }
+        for (engine, engine_version, dialect), metrics in sorted(grouped.items())
+    ]
+
+
+def _optimizer_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for path in paths:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        if isinstance(payload, dict):
-            rows.extend(_report_rows(payload, path.name))
+
+    def add_row(entry: dict[str, Any]) -> None:
+        engine = entry.get("engine")
+        if isinstance(engine, dict):
+            engine_name = engine.get("name")
+            engine_version = engine.get("version")
+        else:
+            engine_name = engine
+            engine_version = entry.get("version")
+        if not isinstance(engine_name, str) or not engine_name:
+            return
+        cases = entry.get("cases")
+        case_list = cases if isinstance(cases, list) else []
+        pcap_count = entry.get("pcap_count")
+        if not isinstance(pcap_count, int):
+            pcap_count = len(case_list)
+        passed = entry.get("passed")
+        if not isinstance(passed, int):
+            passed = sum(
+                1 for case in case_list if isinstance(case, dict) and case.get("status") == "passed"
+            )
+        failures = entry.get("failures")
+        if not isinstance(failures, int):
+            failures = pcap_count - passed
+        equivalent = entry.get("behaviorally_equivalent")
+        status = "equivalent" if equivalent is True else "failed" if failures else "not-run"
+        entry_id = entry.get("id")
+        rows.append(
+            {
+                "source": f"{source}:{entry_id}" if entry_id else source,
+                "engine": engine_name,
+                "version": engine_version,
+                "dialect": entry.get("dialect"),
+                "pcap_count": pcap_count,
+                "passed": passed,
+                "failures": failures,
+                "status": status,
+            }
+        )
+
+    engines = report.get("engines")
+    if isinstance(engines, list):
+        for entry in engines:
+            if isinstance(entry, dict):
+                add_row(entry)
+    else:
+        add_row(report)
     return rows
 
 
-def render(history_dir: Path, output: Path, report: Path | None = None) -> str:
+def _load_reports(
+    history_dir: Path, report: Path | None, semantic_matrix: Path | None
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    paths = sorted(history_dir.glob("*.json")) if history_dir.is_dir() else []
+    if report is not None and report not in paths:
+        paths.append(report)
+    rows: list[dict[str, Any]] = []
+    semantic_rows: list[dict[str, Any]] = []
+    optimizer_rows: list[dict[str, Any]] = []
+    if semantic_matrix is not None and semantic_matrix not in paths:
+        paths.append(semantic_matrix)
+    for path in paths:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(payload, dict):
+            if payload.get("kind") == "semantic-validation-matrix":
+                semantic_rows.extend(_semantic_rows(payload, path.name))
+                continue
+            if payload.get("kind") in {
+                "optimizer-behavior-conformance",
+                "optimizer-behavior-engine-conformance",
+            } or ("pcap_count" in payload and "cases" in payload):
+                optimizer_rows.extend(_optimizer_rows(payload, path.name))
+                continue
+            rows.extend(_report_rows(payload, path.name))
+    return rows, semantic_rows, optimizer_rows
+
+
+def render(
+    history_dir: Path,
+    output: Path,
+    report: Path | None = None,
+    semantic_matrix: Path | None = None,
+) -> str:
     """Render reports and write the resulting Markdown page."""
-    rows = _load_reports(history_dir, report)
+    rows, semantic_rows, optimizer_rows = _load_reports(history_dir, report, semantic_matrix)
     lines = [
         "# Conformance Dashboard",
         "",
         "This page contains only reports generated by the conformance lab. "
         "Missing engine runs are not represented as passing results.",
         "",
-        "| Snapshot | Dialect | Rules | Parse rate | Round-trip rate | Unexpected failures | Rules/s | Peak MB |",
-        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Snapshot | Version | Dialect | Rules | Parse rate | Round-trip rate | Parse exceptions | Exception types | Errors by keyword | Unexpected failures | Rules/s | Peak MB |",
+        "| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: | ---: |",
     ]
     if rows:
         for row in rows:
@@ -61,13 +215,14 @@ def render(history_dir: Path, output: Path, report: Path | None = None) -> str:
                 return "-" if value is None else str(value)
 
             lines.append(
-                "| {source} | {dialect} | {total_rules} | {parse_rate} | {round_trip_rate} | "
-                "{unexpected_failures} | {rules_per_second} | {peak_memory_mb} |".format(
-                    **{key: number(value) for key, value in row.items()}
-                )
+                "| {source} | {version} | {dialect} | {total_rules} | {parse_rate} | "
+                "{round_trip_rate} | {parse_exceptions} | {exception_types} | "
+                "{errors_by_keyword} | "
+                "{unexpected_failures} | {rules_per_second} | "
+                "{peak_memory_mb} |".format(**{key: number(value) for key, value in row.items()})
             )
     else:
-        lines.append("| No reports | - | 0 | - | - | - | - | - |")
+        lines.append("| No reports | - | - | 0 | - | - | - | - | - | - | - | - |")
     lines.extend(
         [
             "",
@@ -76,6 +231,38 @@ def render(history_dir: Path, output: Path, report: Path | None = None) -> str:
             "",
         ]
     )
+    if semantic_rows:
+        lines.extend(
+            [
+                "## Semantic Validation Matrix",
+                "",
+                "| Snapshot | Package | Engine | Version | Dialect | Evaluations | Passed | Failures |",
+                "| --- | --- | --- | --- | --- | ---: | ---: | ---: |",
+            ]
+        )
+        for row in semantic_rows:
+            lines.append(
+                "| {source} | {version} | {engine} | {engine_version} | {dialect} | "
+                "{evaluations} | {passed} | {failures} |".format(**row)
+            )
+        lines.append("")
+    if optimizer_rows:
+        lines.extend(
+            [
+                "## Optimizer Behavior Evidence",
+                "",
+                "| Snapshot | Engine | Version | Dialect | PCAPs | Passed | Failures | Result |",
+                "| --- | --- | --- | --- | ---: | ---: | ---: | --- |",
+            ]
+        )
+        for row in optimizer_rows:
+            lines.append(
+                "| {source} | {engine} | {version} | {dialect} | {pcap_count} | "
+                "{passed} | {failures} | {status} |".format(
+                    **{key: ("-" if value is None else value) for key, value in row.items()}
+                )
+            )
+        lines.append("")
     rendered = "\n".join(lines)
     output.write_text(rendered, encoding="utf-8")
     return rendered
@@ -85,9 +272,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--history-dir", type=Path, required=True)
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--semantic-matrix", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    render(args.history_dir, args.output, args.report)
+    render(args.history_dir, args.output, args.report, args.semantic_matrix)
     return 0
 
 

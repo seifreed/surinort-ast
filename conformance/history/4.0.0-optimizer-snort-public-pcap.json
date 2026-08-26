@@ -1,0 +1,329 @@
+{
+  "behaviorally_equivalent": true,
+  "engine_validation_failures": 0,
+  "engines": [
+    {
+      "behaviorally_equivalent": true,
+      "cases": [
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "curl-http.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "dns-additionals.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "dns-cname.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "dns-ptr.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "http-download-nosyn.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "http-download.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "icmp-ssh.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "pppoe-http.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "smtp.pcap",
+          "status": "passed"
+        }
+      ],
+      "dialect": "snort2",
+      "engine": "snort2",
+      "engine_command": "docker run --rm -v {file}:/rules/community.rules:ro -v {pcap}:/pcap.pcap:ro surinort-snort2:2.9.20 -q -c /etc/snort/snort.conf -r /pcap.pcap -A fast",
+      "failures": 0,
+      "passed": 9,
+      "pcap_count": 9,
+      "rule_corpus": {
+        "optimized_sha256": "b3824cadd883432edb0c2ff7397b953bfaf9befe22d2b6ef2d8a74d710ba9770",
+        "original_sha256": "62fc0d65b5c2cddcdc4c56a07eed598d2ee7a99e7f19f1148d7bb916b9a7796e"
+      },
+      "version": "2.9.20"
+    },
+    {
+      "behaviorally_equivalent": true,
+      "cases": [
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "curl-http.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "dns-additionals.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "dns-cname.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "dns-ptr.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "http-download-nosyn.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "http-download.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 80,
+          "optimized_alert_sha256": "d90d92e65ee20bd513c5715d9ffcaefd39ec9ece87a06b7bd11c408711852831",
+          "optimized_returncode": 0,
+          "original_alert_lines": 80,
+          "original_alert_sha256": "d90d92e65ee20bd513c5715d9ffcaefd39ec9ece87a06b7bd11c408711852831",
+          "original_returncode": 0,
+          "pcap": "icmp-ssh.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 0,
+          "optimized_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "optimized_returncode": 0,
+          "original_alert_lines": 0,
+          "original_alert_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "original_returncode": 0,
+          "pcap": "pppoe-http.pcap",
+          "status": "passed"
+        },
+        {
+          "alert_output_equal": true,
+          "optimized_alert_lines": 4,
+          "optimized_alert_sha256": "1980fa37c32395ccb9376d971d0819e837af8831f294e2f66c61aad83821e3df",
+          "optimized_returncode": 0,
+          "original_alert_lines": 4,
+          "original_alert_sha256": "1980fa37c32395ccb9376d971d0819e837af8831f294e2f66c61aad83821e3df",
+          "original_returncode": 0,
+          "pcap": "smtp.pcap",
+          "status": "passed"
+        }
+      ],
+      "dialect": "snort3",
+      "engine": "snort3",
+      "engine_command": "snort -q -c conformance/engines/snort3-3.12.2.lua -R {file} -r {pcap} -A alert_fast",
+      "failures": 0,
+      "passed": 9,
+      "pcap_count": 9,
+      "rule_corpus": {
+        "optimized_sha256": "b99b65b6be85dac46b3b111c3b08de990de956e0817828418125cc57920060fa",
+        "original_sha256": "ebf6979b3220495925cf4fd52f29a94e21b41de3dbb795a4d607c4cafcdf5f12"
+      },
+      "version": "3.12.2.0"
+    }
+  ],
+  "excluded_fixtures": [
+    {
+      "bytes": 5696,
+      "local_fixture": "tls-incomplete.pcap",
+      "reason": "Snort2 2.9.20 rejects the capture length as invalid; it is not counted as a passing case.",
+      "sha256": "ff71780faa23b44f0f599d431f4570033e57f80e3138907cf99f1e1a996652f0"
+    }
+  ],
+  "kind": "optimizer-behavior-engine-conformance",
+  "limitations": [
+    "This compares captured engine alert output for the bundled corpora and nine public fixtures; it is not universal semantic equivalence.",
+    "Snort2 produced no alert lines on these nine fixtures; Snort3 produced alert lines on the applicable fixtures.",
+    "The fixture battery is public regression traffic, not production traffic calibration or a performance benchmark."
+  ],
+  "package_version": "4.0.0",
+  "pcap_fixtures": [
+    {
+      "bytes": 1219,
+      "license": "MIT",
+      "local_fixture": "curl-http.pcap",
+      "path": "external/suricata-verify/curl-http.pcap",
+      "sha256": "ed174c25d147f4a26421e4d8047fd2a2848a997e6c1ce9687a53a6d4fbf0e9ae",
+      "source_repository": "https://github.com/OISF/suricata-verify"
+    },
+    {
+      "bytes": 815,
+      "license": "MIT",
+      "local_fixture": "dns-additionals.pcap",
+      "path": "external/suricata-verify/dns-additionals.pcap",
+      "sha256": "f532c394ca511c359e8907afec8ce1d90655712106fa142f60075c43e353ace9",
+      "source_repository": "https://github.com/OISF/suricata-verify"
+    },
+    {
+      "bytes": 258,
+      "license": "MIT",
+      "local_fixture": "dns-cname.pcap",
+      "path": "external/suricata-verify/dns-cname.pcap",
+      "sha256": "cb30dddb979fcb70094daec7e6c5b96d00a4f9ed38937c3b3ee3fcf7f3ac98b4",
+      "source_repository": "https://github.com/OISF/suricata-verify"
+    },
+    {
+      "bytes": 263,
+      "license": "MIT",
+      "local_fixture": "dns-ptr.pcap",
+      "path": "external/suricata-verify/dns-ptr.pcap",
+      "sha256": "d46511a8973e1bd00e77a57fcea9eb3f7b9d434d980e2ff9223cae2392d7b878",
+      "source_repository": "https://github.com/OISF/suricata-verify"
+    },
+    {
+      "bytes": 1987,
+      "license": "MIT",
+      "local_fixture": "http-download-nosyn.pcap",
+      "path": "external/suricata-verify/http-download-nosyn.pcap",
+      "sha256": "473eb7e933c6819feaf8444d3aec788d95ec1d6264e3044037d93d93f9c550a4",
+      "source_repository": "https://github.com/OISF/suricata-verify"
+    },
+    {
+      "bytes": 2069,
+      "license": "MIT",
+      "local_fixture": "http-download.pcap",
+      "path": "external/suricata-verify/http-download.pcap",
+      "sha256": "14a0f0fe3a22e8a956020d6d6b989a0fe9a792446e961cbeef26802163da83aa",
+      "source_repository": "https://github.com/OISF/suricata-verify"
+    },
+    {
+      "bytes": 57838,
+      "license": "MIT",
+      "local_fixture": "icmp-ssh.pcap",
+      "path": "external/suricata-verify/icmp-ssh.pcap",
+      "sha256": "d43450dc110fe02e7d31eb73be964d4ebd1b657bf511bcedeb055ddf844f440d",
+      "source_repository": "https://github.com/OISF/suricata-verify"
+    },
+    {
+      "bytes": 18218,
+      "license": "MIT",
+      "local_fixture": "pppoe-http.pcap",
+      "path": "external/suricata-verify/pppoe-http.pcap",
+      "sha256": "506a7a5a85769abd8eacf0bd4d2af9e5da84f0cd18845deeab7e360fb1d910a7",
+      "source_repository": "https://github.com/OISF/suricata-verify"
+    },
+    {
+      "bytes": 27850,
+      "license": "MIT",
+      "local_fixture": "smtp.pcap",
+      "path": "external/suricata-verify/smtp.pcap",
+      "sha256": "17ad230db1b6fd5dd18eb311092df1cf6eb162054bdb47697b89bef5a86a47ab",
+      "source_repository": "https://github.com/OISF/suricata-verify"
+    }
+  ],
+  "schema_version": 1,
+  "scope": "Bundled Snort2/Snort3 optimizer candidates over nine valid public PCAP fixtures",
+  "source_commit": "e925368",
+  "verified_at": "2026-08-26T08:46:59.418676+00:00"
+}

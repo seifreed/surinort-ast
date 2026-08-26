@@ -1,0 +1,1909 @@
+{
+  "case_count": 46,
+  "cases": [
+    {
+      "actual_diagnostics": [
+        "duplicate_singleton_option"
+      ],
+      "category": "multiplicity",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "duplicate_singleton_option"
+      ],
+      "id": "duplicate-singleton",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "duplicate_singleton_option"
+      ],
+      "category": "multiplicity",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "duplicate_singleton_option"
+      ],
+      "id": "duplicate-singleton",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "duplicate_singleton_option"
+      ],
+      "category": "multiplicity",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "duplicate_singleton_option"
+      ],
+      "id": "duplicate-singleton",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "incompatible_content_modifiers"
+      ],
+      "category": "incompatibility",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "incompatible_content_modifiers"
+      ],
+      "id": "incompatible-relative-modifiers",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "incompatible_content_modifiers"
+      ],
+      "category": "incompatibility",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "incompatible_content_modifiers"
+      ],
+      "id": "incompatible-relative-modifiers",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "incompatible_content_modifiers"
+      ],
+      "category": "incompatibility",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "incompatible_content_modifiers"
+      ],
+      "id": "incompatible-relative-modifiers",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "missing_flowbit_name"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "missing_flowbit_name"
+      ],
+      "id": "flowbit-name-required",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "missing_flowbit_name"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "missing_flowbit_name"
+      ],
+      "id": "flowbit-name-required",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "missing_flowbit_name"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "missing_flowbit_name"
+      ],
+      "id": "flowbit-name-required",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "id": "byte-variable-dependency",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "id": "byte-variable-dependency",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "id": "byte-variable-dependency",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "relative_pcre_without_anchor"
+      ],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "relative_pcre_without_anchor"
+      ],
+      "id": "relative-pcre-anchor",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "relative_pcre_without_anchor"
+      ],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "relative_pcre_without_anchor"
+      ],
+      "id": "relative-pcre-anchor",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "relative_pcre_without_anchor"
+      ],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "relative_pcre_without_anchor"
+      ],
+      "id": "relative-pcre-anchor",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "sticky_buffer_without_match"
+      ],
+      "category": "sticky-buffers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "sticky_buffer_without_match"
+      ],
+      "id": "sticky-buffer-match",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "sticky_buffer_without_match"
+      ],
+      "category": "sticky-buffers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "sticky_buffer_without_match"
+      ],
+      "id": "sticky-buffer-match",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "sticky_buffer_without_match"
+      ],
+      "category": "sticky-buffers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "sticky_buffer_without_match"
+      ],
+      "id": "sticky-buffer-match",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "engine_priority_out_of_range"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "engine_priority_out_of_range"
+      ],
+      "id": "priority-version-range",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "engine_priority_out_of_range"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "engine_priority_out_of_range"
+      ],
+      "id": "priority-version-range",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "priority-version-range",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "deprecated_engine_flowbit_action"
+      ],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "deprecated_engine_flowbit_action"
+      ],
+      "id": "flowbit-toggle-version",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "flowbit-toggle-version",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "unsupported_engine_flowbit_action"
+      ],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "unsupported_engine_flowbit_action"
+      ],
+      "id": "flowbit-toggle-version",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "incompatible_threshold_options"
+      ],
+      "category": "incompatibility",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "incompatible_threshold_options"
+      ],
+      "id": "threshold-incompatibility",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "incompatible_threshold_options"
+      ],
+      "category": "incompatibility",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "incompatible_threshold_options"
+      ],
+      "id": "threshold-incompatibility",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "incompatible_threshold_options"
+      ],
+      "category": "incompatibility",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "incompatible_threshold_options"
+      ],
+      "id": "threshold-incompatibility",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_byte_length"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_byte_length"
+      ],
+      "id": "byte-length-range",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_byte_length"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_byte_length"
+      ],
+      "id": "byte-length-range",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_byte_length"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_byte_length"
+      ],
+      "id": "byte-length-range",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_byte_test_operator"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_byte_test_operator"
+      ],
+      "id": "byte-test-operator",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_byte_test_operator"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_byte_test_operator"
+      ],
+      "id": "byte-test-operator",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_byte_test_operator"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_byte_test_operator"
+      ],
+      "id": "byte-test-operator",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "byte-test-value-range",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "engine_byte_value_out_of_range"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "engine_byte_value_out_of_range"
+      ],
+      "id": "byte-test-value-range",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "engine_byte_value_out_of_range"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "engine_byte_value_out_of_range"
+      ],
+      "id": "byte-test-value-range",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "byte-jump-post-offset-range",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "engine_byte_post_offset_out_of_range"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "engine_byte_post_offset_out_of_range"
+      ],
+      "id": "byte-jump-post-offset-range",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "engine_byte_post_offset_out_of_range"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "engine_byte_post_offset_out_of_range"
+      ],
+      "id": "byte-jump-post-offset-range",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "id": "byte-variable-flag-dependency",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "id": "byte-variable-flag-dependency",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "undefined_byte_variable"
+      ],
+      "id": "byte-variable-flag-dependency",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "byte-string-flag",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_byte_string_format"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_byte_string_format"
+      ],
+      "id": "byte-string-flag",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_byte_string_format"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_byte_string_format"
+      ],
+      "id": "byte-string-flag",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "duplicate_byte_variable"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "duplicate_byte_variable"
+      ],
+      "id": "duplicate-byte-variable",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "duplicate_byte_variable"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "duplicate_byte_variable"
+      ],
+      "id": "duplicate-byte-variable",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "duplicate_byte_variable"
+      ],
+      "category": "byte-operations",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "duplicate_byte_variable"
+      ],
+      "id": "duplicate-byte-variable",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "relative_byte_operation_without_anchor"
+      ],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "relative_byte_operation_without_anchor"
+      ],
+      "id": "relative-byte-without-anchor",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "relative_byte_operation_without_anchor"
+      ],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "relative_byte_operation_without_anchor"
+      ],
+      "id": "relative-byte-without-anchor",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "relative_byte_operation_without_anchor"
+      ],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "relative_byte_operation_without_anchor"
+      ],
+      "id": "relative-byte-without-anchor",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_relative_modifier_range",
+        "relative_modifier_without_content"
+      ],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_relative_modifier_range",
+        "relative_modifier_without_content"
+      ],
+      "id": "relative-modifier-range",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_relative_modifier_range",
+        "modifier_shorter_than_content",
+        "relative_modifier_without_content"
+      ],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_relative_modifier_range",
+        "modifier_shorter_than_content",
+        "relative_modifier_without_content"
+      ],
+      "id": "relative-modifier-range",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_relative_modifier_range",
+        "modifier_shorter_than_content",
+        "relative_modifier_without_content"
+      ],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_relative_modifier_range",
+        "modifier_shorter_than_content",
+        "relative_modifier_without_content"
+      ],
+      "id": "relative-modifier-range",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "buffer_protocol_mismatch"
+      ],
+      "category": "sticky-buffers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "buffer_protocol_mismatch"
+      ],
+      "id": "sticky-buffer-protocol-mismatch",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "buffer_protocol_mismatch"
+      ],
+      "category": "sticky-buffers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "buffer_protocol_mismatch"
+      ],
+      "id": "sticky-buffer-protocol-mismatch",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "buffer_protocol_mismatch"
+      ],
+      "category": "sticky-buffers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "buffer_protocol_mismatch"
+      ],
+      "id": "sticky-buffer-protocol-mismatch",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "unsupported_engine_keyword"
+      ],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "unsupported_engine_keyword"
+      ],
+      "id": "engine-keyword-capability",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "unsupported_engine_keyword"
+      ],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "snort2",
+      "error": null,
+      "expected_diagnostics": [
+        "unsupported_engine_keyword"
+      ],
+      "id": "engine-keyword-capability",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "engine-keyword-capability",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "id": "flowbit-mutating-operator",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "id": "flowbit-mutating-operator",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "id": "flowbit-mutating-operator",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "unexpected_flowbit_name"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "unexpected_flowbit_name"
+      ],
+      "id": "flowbit-noalert-name",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "unexpected_flowbit_name"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "unexpected_flowbit_name"
+      ],
+      "id": "flowbit-noalert-name",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "unexpected_flowbit_name"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "unexpected_flowbit_name"
+      ],
+      "id": "flowbit-noalert-name",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "sid-uint32-maximum",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "sid-uint32-maximum",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "sid-uint32-maximum",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": "Failed to parse rule: Error trying to process rule \"sid_option\":\n\n1 validation error for SidOption\nvalue\n  Input should be less than or equal to 4294967295 [type=less_than_equal, input_value=4294967296, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/less_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "sid-uint32-overflow",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": "Failed to parse rule: Error trying to process rule \"sid_option\":\n\n1 validation error for SidOption\nvalue\n  Input should be less than or equal to 4294967295 [type=less_than_equal, input_value=4294967296, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/less_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "sid-uint32-overflow",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": "Failed to parse rule: Error trying to process rule \"sid_option\":\n\n1 validation error for SidOption\nvalue\n  Input should be less than or equal to 4294967295 [type=less_than_equal, input_value=4294967296, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/less_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "sid-uint32-overflow",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "gid-uint32-maximum",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "gid-uint32-maximum",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "gid-uint32-maximum",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": "Failed to parse rule: Error trying to process rule \"gid_option\":\n\n1 validation error for GidOption\nvalue\n  Input should be less than or equal to 4294967295 [type=less_than_equal, input_value=4294967296, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/less_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "gid-uint32-overflow",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": "Failed to parse rule: Error trying to process rule \"gid_option\":\n\n1 validation error for GidOption\nvalue\n  Input should be less than or equal to 4294967295 [type=less_than_equal, input_value=4294967296, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/less_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "gid-uint32-overflow",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": "Failed to parse rule: Error trying to process rule \"gid_option\":\n\n1 validation error for GidOption\nvalue\n  Input should be less than or equal to 4294967295 [type=less_than_equal, input_value=4294967296, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/less_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "gid-uint32-overflow",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": "Failed to parse rule: Error trying to process rule \"priority_option\":\n\n1 validation error for PriorityOption\nvalue\n  Input should be greater than or equal to 1 [type=greater_than_equal, input_value=0, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/greater_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "priority-zero",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": "Failed to parse rule: Error trying to process rule \"priority_option\":\n\n1 validation error for PriorityOption\nvalue\n  Input should be greater than or equal to 1 [type=greater_than_equal, input_value=0, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/greater_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "priority-zero",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": "Failed to parse rule: Error trying to process rule \"priority_option\":\n\n1 validation error for PriorityOption\nvalue\n  Input should be greater than or equal to 1 [type=greater_than_equal, input_value=0, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/greater_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "priority-zero",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": "Failed to parse rule: Error trying to process rule \"rev_option\":\n\n1 validation error for RevOption\nvalue\n  Input should be greater than or equal to 1 [type=greater_than_equal, input_value=0, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/greater_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "rev-zero",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": "Failed to parse rule: Error trying to process rule \"rev_option\":\n\n1 validation error for RevOption\nvalue\n  Input should be greater than or equal to 1 [type=greater_than_equal, input_value=0, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/greater_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "rev-zero",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "parse_error"
+      ],
+      "category": "numeric-ranges",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": "Failed to parse rule: Error trying to process rule \"rev_option\":\n\n1 validation error for RevOption\nvalue\n  Input should be greater than or equal to 1 [type=greater_than_equal, input_value=0, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/greater_than_equal",
+      "expected_diagnostics": [
+        "parse_error"
+      ],
+      "id": "rev-zero",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-startswith",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-startswith",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-startswith",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-endswith",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-endswith",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-endswith",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "offset-zero-boundary",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "offset-zero-boundary",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "offset-zero-boundary",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "offset-engine-limit",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_relative_modifier_range"
+      ],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_relative_modifier_range"
+      ],
+      "id": "offset-engine-limit",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_relative_modifier_range"
+      ],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_relative_modifier_range"
+      ],
+      "id": "offset-engine-limit",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "distance-negative-engine-limit",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_relative_modifier_range"
+      ],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_relative_modifier_range"
+      ],
+      "id": "distance-negative-engine-limit",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_relative_modifier_range"
+      ],
+      "category": "engine-differences",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_relative_modifier_range"
+      ],
+      "id": "distance-negative-engine-limit",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "within-content-boundary",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "within-content-boundary",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "within-content-boundary",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "depth-content-boundary",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "depth-content-boundary",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "depth-content-boundary",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-test-with-anchor",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-test-with-anchor",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-test-with-anchor",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-jump-with-anchor",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-jump-with-anchor",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-jump-with-anchor",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-extract-with-anchor",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-extract-with-anchor",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-extract-with-anchor",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-math-with-anchor",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-math-with-anchor",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "relative-modifiers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "relative-byte-math-with-anchor",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-flowbit-composite",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-flowbit-composite",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-flowbit-composite",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_flowbits_action"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_flowbits_action"
+      ],
+      "id": "invalid-flowbit-action",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_flowbits_action"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_flowbits_action"
+      ],
+      "id": "invalid-flowbit-action",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_flowbits_action"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_flowbits_action"
+      ],
+      "id": "invalid-flowbit-action",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "id": "invalid-flowbit-name",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "id": "invalid-flowbit-name",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "category": "flowbits",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "invalid_flowbit_operator"
+      ],
+      "id": "invalid-flowbit-name",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "content_modifier_without_content",
+        "fast_pattern_without_content"
+      ],
+      "category": "incompatibility",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "content_modifier_without_content",
+        "fast_pattern_without_content"
+      ],
+      "id": "fast-pattern-without-content",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "content_modifier_without_content",
+        "fast_pattern_without_content"
+      ],
+      "category": "incompatibility",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "content_modifier_without_content",
+        "fast_pattern_without_content"
+      ],
+      "id": "fast-pattern-without-content",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "content_modifier_without_content",
+        "fast_pattern_without_content"
+      ],
+      "category": "incompatibility",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "content_modifier_without_content",
+        "fast_pattern_without_content"
+      ],
+      "id": "fast-pattern-without-content",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [
+        "duplicate_content_modifier"
+      ],
+      "category": "multiplicity",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [
+        "duplicate_content_modifier"
+      ],
+      "id": "duplicate-content-modifier",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [
+        "duplicate_content_modifier"
+      ],
+      "category": "multiplicity",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "duplicate_content_modifier"
+      ],
+      "id": "duplicate-content-modifier",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [
+        "duplicate_content_modifier"
+      ],
+      "category": "multiplicity",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [
+        "duplicate_content_modifier"
+      ],
+      "id": "duplicate-content-modifier",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "sticky-buffers",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "qualified-sticky-buffer",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "sticky-buffers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "qualified-sticky-buffer",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "sticky-buffers",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "qualified-sticky-buffer",
+      "passed": true,
+      "version": "3.12.2.0"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "baseline",
+      "dialect": "suricata",
+      "engine": "suricata",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-baseline",
+      "passed": true,
+      "version": "8.0.6"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "baseline",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-baseline",
+      "passed": true,
+      "version": "2.9.20"
+    },
+    {
+      "actual_diagnostics": [],
+      "category": "baseline",
+      "dialect": "suricata",
+      "engine": "snort",
+      "error": null,
+      "expected_diagnostics": [],
+      "id": "valid-baseline",
+      "passed": true,
+      "version": "3.12.2.0"
+    }
+  ],
+  "categories": [
+    "baseline",
+    "byte-operations",
+    "engine-differences",
+    "flowbits",
+    "incompatibility",
+    "multiplicity",
+    "numeric-ranges",
+    "relative-modifiers",
+    "sticky-buffers"
+  ],
+  "failures": 0,
+  "kind": "semantic-validation-matrix",
+  "manifest": "conformance/semantic-matrix.json",
+  "package_version": "4.0.0",
+  "passed": 138,
+  "schema_version": 1,
+  "target_case_count": 138
+}
