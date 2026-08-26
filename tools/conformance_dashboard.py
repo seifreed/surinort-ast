@@ -8,13 +8,21 @@ from pathlib import Path
 from typing import Any
 
 
-def _report_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
+def _report_rows(
+    report: dict[str, Any], source: str, version: str | None = None
+) -> list[dict[str, Any]]:
     if isinstance(report.get("engines"), list):
         rows: list[dict[str, Any]] = []
         for entry in report["engines"]:
             nested = entry.get("report")
             if isinstance(nested, dict):
-                rows.extend(_report_rows(nested, f"{source}:{entry.get('id', 'engine')}"))
+                rows.extend(
+                    _report_rows(
+                        nested,
+                        f"{source}:{entry.get('id', 'engine')}",
+                        version=entry.get("version"),
+                    )
+                )
         return rows
     dialect_metrics = report.get("dialect_metrics")
     if isinstance(dialect_metrics, dict):
@@ -28,7 +36,7 @@ def _report_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
             rows.append(
                 {
                     "source": source,
-                    "version": report.get("package_version"),
+                    "version": version or report.get("package_version"),
                     "dialect": dialect,
                     "total_rules": total_rules,
                     "parse_rate": parsed / total_rules if total_rules else 1.0,
@@ -43,7 +51,7 @@ def _report_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
     return [
         {
             "source": source,
-            "version": report.get("package_version"),
+            "version": version or report.get("package_version"),
             "dialect": report.get("dialect", ", ".join(report.get("dialects", []))),
             "total_rules": report.get("total_rules", 0),
             "parse_rate": report.get("parse_rate"),

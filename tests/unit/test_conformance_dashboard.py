@@ -36,6 +36,7 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
                 "engines": [
                     {
                         "id": "suricata-test",
+                        "version": "8.0.1",
                         "report": {
                             "total_rules": 1,
                             "parse_rate": 1.0,
@@ -58,5 +59,6 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
     assert rendered.count("| bundled.json |") == 1
     assert rendered.count("| 4.0.0 |") == 1
     assert rendered.count("| suricata |") == 2
+    assert rendered.count("| 8.0.1 |") == 1
     assert rendered.count("| matrix.json:suricata-test |") == 1
     assert output.read_text(encoding="utf-8") == rendered
