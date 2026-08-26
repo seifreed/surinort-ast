@@ -93,7 +93,22 @@ def load_matrix(path: Path) -> list[MatrixEntry]:
     return loaded
 
 
-def run_matrix(path: Path) -> dict[str, Any]:
+def _completeness_failures(entry: MatrixEntry, report: dict[str, Any]) -> list[str]:
+    failures: list[str] = []
+    if report["parse_rate"] != 1.0:
+        failures.append("parse rate is below 1")
+    if report["round_trip_rate"] != 1.0:
+        failures.append("round-trip rate is below 1")
+    if report["engine_validation_failures"]:
+        failures.append("original rules rejected by engine")
+    if report["engine_validation_after_print_failures"]:
+        failures.append("printed rules rejected by engine")
+    if entry.pcap and report["behavior_validation_failures"]:
+        failures.append("behavior verification failed")
+    return failures
+
+
+def run_matrix(path: Path, require_complete: bool = False) -> dict[str, Any]:
     """Run every declared engine and return one aggregate JSON report."""
     entries = load_matrix(path)
     reports: list[dict[str, Any]] = []
@@ -105,14 +120,16 @@ def run_matrix(path: Path) -> dict[str, Any]:
             behavior_pcap=entry.pcap,
             dialect_filter=Dialect(entry.dialect),
         )
-        reports.append(
-            {
-                **asdict(entry),
-                "manifest": str(entry.manifest),
-                "pcap": str(entry.pcap) if entry.pcap else None,
-                "report": report,
-            }
-        )
+        item = {
+            **asdict(entry),
+            "manifest": str(entry.manifest),
+            "pcap": str(entry.pcap) if entry.pcap else None,
+            "report": report,
+        }
+        if require_complete:
+            item["completeness_failures"] = _completeness_failures(entry, report)
+        reports.append(item)
+    completeness_failures = sum(len(item.get("completeness_failures", ())) for item in reports)
     return {
         "schema_version": 1,
         "matrix": str(path),
@@ -125,6 +142,7 @@ def run_matrix(path: Path) -> dict[str, Any]:
         "behavior_validation_failures": sum(
             item["report"]["behavior_validation_failures"] for item in reports
         ),
+        "completeness_failures": completeness_failures,
     }
 
 
@@ -132,13 +150,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--matrix", type=Path, required=True)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--require-complete",
+        action="store_true",
+        help="fail unless every matrix entry parses, round-trips, and loads in its engine",
+    )
     args = parser.parse_args()
-    report = run_matrix(args.matrix)
+    report = run_matrix(args.matrix, require_complete=args.require_complete)
     rendered = json.dumps(report, indent=2, sort_keys=True, default=str) + "\n"
     if args.output:
         args.output.write_text(rendered, encoding="utf-8")
     print(rendered, end="")
-    return 1 if report["unexpected_failures"] else 0
+    return 1 if report["unexpected_failures"] or report["completeness_failures"] else 0
 
 
 if __name__ == "__main__":
