@@ -287,7 +287,7 @@ jobs:
   # Publish to PyPI using Trusted Publisher
   publish-pypi:
     name: Publish to PyPI
-    needs: [validate, build, changelog]
+    needs: [validate, build, changelog, sign-artifacts]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -416,7 +416,7 @@ jobs:
   # Sign release artifacts with Sigstore
   sign-artifacts:
     name: Sign Release Artifacts
-    needs: [validate, build, publish-pypi]
+    needs: [validate, build]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
