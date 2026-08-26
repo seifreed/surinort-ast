@@ -4,7 +4,7 @@
   "description": "Diagnostics, completion, formatting, quick fixes, and hover information for Suricata and Snort rules.",
   "version": "4.0.0",
   "publisher": "seifreed",
-  "license": "GPL-3.0-only",
+  "license": "GPL-3.0-or-later",
   "homepage": "https://seifreed.github.io/surinort-ast/",
   "repository": {"type": "git", "url": "https://github.com/seifreed/surinort-ast.git"},
   "bugs": {"url": "https://github.com/seifreed/surinort-ast/issues"},
