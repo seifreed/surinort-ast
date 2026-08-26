@@ -190,8 +190,10 @@ SOID_VALUE.3: /\d+\|\d+/
 
 // Content matching
 // Support Snort3 inline modifiers: content:"test",depth 16,nocase
-content_option: "content" ":" neg_bang? content_value ("," content_modifier)*
-uricontent_option: "uricontent" ":" neg_bang? content_value ("," content_modifier)*
+content_option: CONTENT_KW ":" neg_bang? content_value ("," content_modifier)*
+uricontent_option: URICONTENT_KW ":" neg_bang? content_value ("," content_modifier)*
+CONTENT_KW.5: /content/i
+URICONTENT_KW.5: /uricontent/i
 // Named marker for an optional negation "!"; anonymous "!" literals are
 // filtered out by Lark, which would silently drop the negation.
 neg_bang: "!"
