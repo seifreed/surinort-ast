@@ -528,8 +528,8 @@ class TextPrinter:
             inner = self._print_port(port.expr)
             return f"!{inner}"
         if isinstance(port, PortList):
-            sep = self.options.format_list_separator()
-            elements = sep.join(self._print_port(e) for e in port.elements)
+            # Snort2 rejects whitespace after commas in port lists.
+            elements = ",".join(self._print_port(e) for e in port.elements)
             return f"[{elements}]"
         return "any"
 

@@ -671,6 +671,19 @@ class TestFlagsAndTagAtoms:
         assert "tag:session,packets 5;" in printed
         assert print_rule(parse_rule(printed, dialect=Dialect.SNORT3)) == printed
 
+    def test_snort2_port_lists_have_no_space_after_comma(self):
+        from surinort_ast import Dialect
+        from surinort_ast.printer import print_rule
+
+        rule = parse_rule(
+            'alert tcp any [110, 143] -> any any (msg:"mail"; sid:1;)',
+            dialect=Dialect.SNORT2,
+        )
+
+        printed = print_rule(rule)
+
+        assert "[110,143]" in printed
+
     def test_flags_round_trips(self):
         from surinort_ast.printer import print_rule
 
