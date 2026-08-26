@@ -895,21 +895,20 @@ def validate_rules(rules: Sequence[Rule], target: EngineTarget | None = None) ->
     for index, rule in enumerate(rules, start=1):
         diagnostics.extend(validate_rule(rule, target=target))
         sid = extract_sid(rule)
-        if sid is None:
-            continue
-        previous = seen_sids.get(sid)
-        if previous is not None:
-            diagnostics.append(
-                Diagnostic(
-                    level=DiagnosticLevel.ERROR,
-                    message=f"SID {sid} is duplicated by rules {previous} and {index}",
-                    code="duplicate_sid",
-                    hint="Assign a unique SID to each rule.",
-                    phase="cross-rule",
+        if sid is not None:
+            previous = seen_sids.get(sid)
+            if previous is not None:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"SID {sid} is duplicated by rules {previous} and {index}",
+                        code="duplicate_sid",
+                        hint="Assign a unique SID to each rule.",
+                        phase="cross-rule",
+                    )
                 )
-            )
-        else:
-            seen_sids[sid] = index
+            else:
+                seen_sids[sid] = index
         for option in rule.options:
             if not isinstance(option, FlowbitsOption):
                 continue
