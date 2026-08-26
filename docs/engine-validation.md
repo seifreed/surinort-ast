@@ -28,6 +28,14 @@ real-engine loading for Suricata 8.0.6 and Snort3 3.12.2.0. It does not include
 PCAP alert-equivalence results; those require a supplied PCAP corpus and
 engine commands that expose alerts.
 
+The external public snapshot in
+`conformance/history/4.0.0-external-engine-scale.json` covers 56,658 rules from
+the current ET Open, Snort Community, and Snort3 Community archives. It records
+successful original and printed loads for Suricata 8.0.6, Snort 2.9.20, and
+Snort 3.12.2.0. The historical 288,939-rule figure remains unreproduced because
+the referenced issue does not publish that corpus and its registered Snort
+component is not redistributable.
+
 The checked-in `conformance/history/4.0.0-optimizer-smoke.json` is a narrow
 Suricata 8.0.6 smoke result over two synthetic PCAPs. It proves the lab path
 and records equal alert projections for that fixture, but is not evidence for
