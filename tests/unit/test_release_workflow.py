@@ -38,6 +38,21 @@ def test_release_requires_a_verified_annotated_tag_before_building() -> None:
     assert "must point to a commit already merged into main" in signed_tag_block
 
 
+def test_manual_release_checks_out_the_requested_tag() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    checkout = workflow[
+        workflow.index("      - name: Checkout code") : workflow.index(
+            "      - name: Extract version from tag"
+        )
+    ]
+
+    assert (
+        "ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref }}"
+        in checkout
+    )
+
+
 def test_github_release_attaches_downloaded_provenance_bundles() -> None:
     workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
