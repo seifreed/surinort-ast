@@ -306,6 +306,25 @@ def test_conformance_reports_printed_rule_parse_failure(tmp_path, monkeypatch) -
     assert "Printed rule failed to parse" in report["cases"][0]["error"]
 
 
+def test_conformance_reports_ast_round_trip_mismatch(tmp_path, monkeypatch) -> None:
+    corpus = tmp_path / "corpus" / "suricata"
+    corpus.mkdir(parents=True)
+    (corpus / "basic.rules").write_text(
+        'alert tcp any any -> any 80 (msg:"x"; sid:1;)\n', encoding="utf-8"
+    )
+    monkeypatch.setattr("tools.conformance_lab._same_ast", lambda _left, _right: False)
+
+    report = run(corpus.parent.parent)
+
+    assert report["parsed"] == 1
+    assert report["round_trip_passed"] == 0
+    assert report["round_trip_rate"] == 0.0
+    assert report["unexpected_failures"] == 1
+    assert report["cases"][0]["expected_parse"] is True
+    assert report["cases"][0]["parsed"] is True
+    assert report["cases"][0]["round_trip"] is False
+
+
 def test_conformance_error_keyword_ignores_quoted_colons(tmp_path) -> None:
     corpus = tmp_path / "corpus" / "suricata"
     corpus.mkdir(parents=True)
