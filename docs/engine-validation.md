@@ -22,6 +22,12 @@ builds and configuration used for the release. For optimizer behavior checks,
 add a `pcap` path and a command containing both `{file}` and `{pcap}`; the
 conformance report then compares the original and printed ruleset output.
 
+The bundled engine-scale snapshot in
+`conformance/history/4.0.0-engine-scale.json` records parse, round-trip, and
+real-engine loading for Suricata 8.0.6 and Snort3 3.12.2.0. It does not include
+PCAP alert-equivalence results; those require a supplied PCAP corpus and
+engine commands that expose alerts.
+
 For an optimized ruleset, compare the original and candidate files over a
 fixture battery:
 
