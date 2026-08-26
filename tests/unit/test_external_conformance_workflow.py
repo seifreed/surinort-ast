@@ -22,6 +22,13 @@ def test_external_conformance_workflow_verifies_and_publishes_corpus_metrics() -
     assert "--output external-conformance-report.json" in workflow
     assert "set +e" in workflow
     assert 'exit "$status"' in workflow
+    assert "name: Publish benchmark summary" in workflow
+    assert '>> "$GITHUB_STEP_SUMMARY"' in workflow
+    assert '"| Parse rate | " + (.parse_rate | tostring)' in workflow
+    assert '"| Round-trip rate | " + (.round_trip_rate | tostring)' in workflow
+    assert '"| Rules/s | " + (.rules_per_second | tostring)' in workflow
+    assert '"| Peak memory MB | " + (.peak_memory_mb | tostring)' in workflow
+    assert "errors_by_keyword" in workflow
     assert "if: always()" in workflow
     assert "external-conformance-report.json" in workflow
 
