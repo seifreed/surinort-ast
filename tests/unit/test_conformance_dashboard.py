@@ -23,6 +23,7 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
                 "round_trip_rate": 1.0,
                 "unexpected_failures": 0,
                 "parse_exceptions": 1,
+                "exception_types": {"RuntimeError": 1},
                 "errors_by_keyword": {"content": 1},
                 "rules_per_second": 10,
                 "peak_memory_mb": 2,
@@ -107,7 +108,7 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
     assert "optimizer.json" not in rendered
     assert "## Optimizer Behavior Evidence" in rendered
     assert "| optimizer-valid.json | suricata | 8.0.6 | - | 2 | 2 | 0 | equivalent |" in rendered
-    assert "| 1 | content:1 |" in rendered
+    assert "| 1 | RuntimeError:1 | content:1 |" in rendered
     assert "## Semantic Validation Matrix" in rendered
     assert "| semantic.json | 4.0.0 | suricata | 8.0.6 | suricata | 2 | 1 | 1 |" in rendered
     assert output.read_text(encoding="utf-8") == rendered
