@@ -193,7 +193,8 @@ jobs:
 
       - name: Generate checksums
         run: |
-          sha256sum dist/* > SHA256SUMS
+          sha256sum dist/* | sed 's#  dist/#  #' > SHA256SUMS
+          sha256sum sbom.json sbom.xml >> SHA256SUMS
           cat SHA256SUMS
 
       - name: Attest release distributions
@@ -201,11 +202,21 @@ jobs:
         with:
           subject-path: 'dist/*'
 
+      - name: Attest JSON SBOM
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45  # v2
+        with:
+          subject-path: 'sbom.json'
+
+      - name: Attest XML SBOM
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45  # v2
+        with:
+          subject-path: 'sbom.xml'
+
       - name: Verify build provenance
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for file in dist/*.whl dist/*.tar.gz dist/*.vsix; do
+          for file in dist/*.whl dist/*.tar.gz dist/*.vsix sbom.json sbom.xml; do
             gh attestation verify "$file" \
               --repo "$GITHUB_REPOSITORY" \
               --signer-workflow .github/workflows/release.yml
@@ -341,7 +352,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p provenance
-          for file in dist/*.whl dist/*.tar.gz dist/*.vsix; do
+          for file in dist/*.whl dist/*.tar.gz dist/*.vsix sbom.json sbom.xml; do
             (
               cd provenance
               gh attestation download "../$file" --repo "$GITHUB_REPOSITORY"
@@ -430,17 +441,19 @@ jobs:
 
       - name: Sign artifacts with Sigstore
         run: |
-          cd dist/
-          for file in *.whl *.tar.gz *.vsix; do
+          rm -rf signed-artifacts
+          mkdir -p signed-artifacts
+          for file in dist/*.whl dist/*.tar.gz dist/*.vsix sbom.json sbom.xml; do
             python -m sigstore sign "$file"
+            cp "$file.sigstore.json" signed-artifacts/
           done
-          ls -la
+          ls -la signed-artifacts/
 
       - name: Upload signed artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: signed-artifacts
-          path: dist/*.sigstore.json
+          path: signed-artifacts/*.sigstore.json
           retention-days: 90
 
   # Post-release verification
@@ -523,8 +536,7 @@ jobs:
           test -s release-assets/SHA256SUMS
           test -s release-assets/sbom.json
           test -s release-assets/sbom.xml
-          sed 's#  dist/#  release-assets/#' release-assets/SHA256SUMS \
-            | sha256sum --check --strict
+          (cd release-assets && sha256sum --check --strict SHA256SUMS)
 
       - name: Verify Sigstore signatures and build provenance
         env:
@@ -532,7 +544,7 @@ jobs:
         run: |
           VERSION="${{ needs.validate.outputs.version }}"
           IDENTITY="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@refs/tags/${VERSION}"
-          for file in release-assets/*.whl release-assets/*.tar.gz release-assets/*.vsix; do
+          for file in release-assets/*.whl release-assets/*.tar.gz release-assets/*.vsix release-assets/sbom.json release-assets/sbom.xml; do
             test -s "$file.sigstore.json"
             sigstore verify identity "$file" \
               --bundle "$file.sigstore.json" \
