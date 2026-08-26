@@ -1,5 +1,14 @@
 const vscode = require("vscode");
 const { spawn } = require("child_process");
+const path = require("path");
+
+function configuredCapabilityFile() {
+  const configured = vscode.workspace.getConfiguration("surinortAst").get("capabilityFile", "");
+  if (!configured || path.isAbsolute(configured) || !vscode.workspace.workspaceFolders?.length) {
+    return configured;
+  }
+  return path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, configured);
+}
 
 function activate(context) {
   const command = vscode.workspace.getConfiguration("surinortAst").get("lspCommand", "surinort-lsp");
@@ -68,7 +77,7 @@ function activate(context) {
     initializationOptions: {
       engine: vscode.workspace.getConfiguration("surinortAst").get("engine", ""),
       engineVersion: vscode.workspace.getConfiguration("surinortAst").get("engineVersion", ""),
-      capabilityFile: vscode.workspace.getConfiguration("surinortAst").get("capabilityFile", ""),
+      capabilityFile: configuredCapabilityFile(),
     },
   }).then(() => send({ jsonrpc: "2.0", method: "initialized", params: {} }));
 
