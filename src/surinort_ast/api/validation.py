@@ -76,6 +76,7 @@ _OPTION_FEATURES = {
     "ByteExtractOption": "byte-ops",
     "PcreOption": "pcre",
 }
+_SNORT_PRIORITY_MAX = 255
 _FLOWBIT_ACTIONS = {"set", "isset", "isnotset", "toggle", "unset", "noalert"}
 _FLOWBIT_NAME_REQUIRED = {"set", "isset", "isnotset", "toggle", "unset"}
 
@@ -206,6 +207,27 @@ def _validate_fast_pattern(option: object, has_content: bool) -> list[Diagnostic
     return diagnostics
 
 
+def _validate_target_priority(rule: Rule, target: EngineTarget) -> list[Diagnostic]:
+    if not target.engine.lower().startswith("snort"):
+        return []
+    diagnostics: list[Diagnostic] = []
+    for option in rule.options:
+        if option.node_type != "PriorityOption":
+            continue
+        priority = getattr(option, "value", None)
+        if isinstance(priority, int) and priority > _SNORT_PRIORITY_MAX:
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message=f"Priority {priority} is outside the Snort range 1-{_SNORT_PRIORITY_MAX}",
+                    location=option.location,
+                    code="engine_priority_out_of_range",
+                    phase="version",
+                )
+            )
+    return diagnostics
+
+
 def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     if target.supports_action(rule.action.value) is False:
@@ -231,6 +253,7 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
                 phase="version",
             )
         )
+    diagnostics.extend(_validate_target_priority(rule, target))
     for option in rule.options:
         keyword = _option_keyword(option)
         support = target.supports(keyword)
