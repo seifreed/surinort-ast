@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,8 @@ from typing import Any
 from tools.conformance_lab import run
 
 from surinort_ast.core.enums import Dialect
+
+_CONCRETE_VERSION = re.compile(r"^\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$")
 
 
 @dataclass(frozen=True)
@@ -62,6 +65,10 @@ def load_matrix(path: Path) -> list[MatrixEntry]:
         if entry_id in seen_ids:
             raise ValueError(f"engine matrix entry id is duplicated: {entry_id}")
         seen_ids.add(entry_id)
+        if not _CONCRETE_VERSION.fullmatch(entry["version"]):
+            raise ValueError(
+                f"engine matrix version for {entry_id} must be a concrete numeric version"
+            )
         try:
             dialect = Dialect(entry["dialect"])
         except ValueError as exc:
