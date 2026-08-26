@@ -82,6 +82,24 @@ def test_lsp_hovers_and_validates_against_engine_version() -> None:
     assert "engine_priority_out_of_range" in {item["code"] for item in diagnostics}
 
 
+def test_lsp_completion_filters_complete_engine_catalogs() -> None:
+    target = EngineTarget(
+        "suricata",
+        "8.0.6",
+        keywords=frozenset({"content"}),
+        keyword_catalog_complete=True,
+    )
+
+    items = completion_items(
+        "alert tcp any any -> any 80 (",
+        0,
+        len("alert tcp any any -> any 80 ("),
+        target=target,
+    )
+
+    assert [item["label"] for item in items] == ["content"]
+
+
 def test_lsp_formats_rules_and_offers_safe_quick_fix() -> None:
     text = 'alert tcp any any -> any 80 (content:"x",nocase,nocase;sid:1;)\n'
 

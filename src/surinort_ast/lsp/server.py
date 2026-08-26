@@ -188,6 +188,8 @@ def completion_items(
     for value in candidates:
         if not value.startswith(prefix):
             continue
+        if option_context and target is not None and target.supports(value) is False:
+            continue
         item: dict[str, Any] = {
             "label": value,
             "kind": 14,
