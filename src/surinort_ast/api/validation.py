@@ -79,7 +79,9 @@ _OPTION_FEATURES = {
     "ByteExtractOption": "byte-ops",
     "PcreOption": "pcre",
 }
-_SNORT_PRIORITY_MAX = 255
+_SURICATA_PRIORITY_MAX = 255
+_SNORT2_PRIORITY_MAX = 255
+_SNORT3_PRIORITY_MAX = 2_147_483_647
 _FLOWBIT_ACTIONS = {"set", "isset", "isnotset", "toggle", "unset", "noalert"}
 _FLOWBIT_NAME_REQUIRED = {"set", "isset", "isnotset", "toggle", "unset"}
 _FLOWBIT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -313,18 +315,30 @@ def _validate_fast_pattern(option: object, has_content: bool) -> list[Diagnostic
 
 
 def _validate_target_priority(rule: Rule, target: EngineTarget) -> list[Diagnostic]:
-    if not target.engine.lower().startswith("snort"):
+    engine = target.engine.lower()
+    version = _version_tuple(target.version)
+    if engine == "suricata":
+        maximum = _SURICATA_PRIORITY_MAX
+    elif engine.startswith("snort"):
+        maximum = (
+            _SNORT3_PRIORITY_MAX
+            if version is not None and version[0] >= 3
+            else _SNORT2_PRIORITY_MAX
+        )
+    else:
         return []
     diagnostics: list[Diagnostic] = []
     for option in rule.options:
         if option.node_type != "PriorityOption":
             continue
         priority = getattr(option, "value", None)
-        if isinstance(priority, int) and priority > _SNORT_PRIORITY_MAX:
+        if isinstance(priority, int) and priority > maximum:
             diagnostics.append(
                 Diagnostic(
                     level=DiagnosticLevel.ERROR,
-                    message=f"Priority {priority} is outside the Snort range 1-{_SNORT_PRIORITY_MAX}",
+                    message=(
+                        f"Priority {priority} is outside the {target.engine} range 1-{maximum}"
+                    ),
                     location=option.location,
                     code="engine_priority_out_of_range",
                     phase="version",
