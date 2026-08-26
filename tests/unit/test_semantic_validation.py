@@ -80,6 +80,17 @@ def test_flowbit_use_without_definition_is_ruleset_warning() -> None:
     assert "flowbit_without_definition" in {diagnostic.code for diagnostic in diagnostics}
 
 
+def test_flowbit_definition_is_collected_from_rule_without_sid() -> None:
+    diagnostics = validate_rules(
+        [
+            parse_rule('alert tcp any any -> any 80 (flowbits:set,seen; msg:"setter"; )'),
+            parse_rule("alert tcp any any -> any 80 (flowbits:isset,seen; sid:2; )"),
+        ]
+    )
+
+    assert "flowbit_without_definition" not in {diagnostic.code for diagnostic in diagnostics}
+
+
 def test_flowbits_require_names_for_mutations_and_checks() -> None:
     assert "missing_flowbit_name" in codes("alert tcp any any -> any 80 (flowbits:set; sid:1;)")
     assert "missing_flowbit_name" in codes("alert tcp any any -> any 80 (flowbits:isset; sid:1;)")
