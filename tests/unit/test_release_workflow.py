@@ -113,8 +113,14 @@ def test_public_release_verifies_signed_and_attested_sboms() -> None:
     workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
     checklist = Path("docs/release-verification.md").read_text(encoding="utf-8")
 
+    build = workflow[workflow.index("  build:") : workflow.index("  # Generate release notes")]
     public = workflow[workflow.index("  verify-public-assets:") :]
 
+    assert "sha256sum sbom.json sbom.xml" in build
+    assert "name: Attest JSON SBOM" in build
+    assert "subject-path: 'sbom.json'" in build
+    assert "name: Attest XML SBOM" in build
+    assert "subject-path: 'sbom.xml'" in build
     assert "(cd release-assets && sha256sum --check --strict SHA256SUMS)" in public
     assert "release-assets/sbom.json release-assets/sbom.xml" in public
     assert 'test -s "$file.sigstore.json"' in public
