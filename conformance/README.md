@@ -60,3 +60,15 @@ python tools/conformance_lab.py \
   --corpus conformance/corpus/snort2 \
   --engine-command 'python tools/snort2_engine.py --config conformance/engines/snort2-2.9.20.conf --rules {file}'
 ```
+
+For a complete ruleset check, `tools/engine_scale.py` parses and prints every
+rule, then loads the combined original and printed rulesets once in the native
+engine. Its JSON report records per-file hashes, parse/round-trip rates,
+throughput, memory, and engine status for both loads.
+
+```bash
+python -m tools.engine_scale \
+  --manifest /path/to/manifest.json \
+  --engine-command 'suricata -T -c /etc/suricata/suricata.yaml -S {file}' \
+  --output /tmp/engine-scale.json
+```
