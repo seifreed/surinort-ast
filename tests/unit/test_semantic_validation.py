@@ -20,6 +20,21 @@ def test_byte_variable_must_be_defined_first() -> None:
     assert "undefined_byte_variable" in codes(
         'alert tcp any any -> any 80 (content:"x"; depth:missing; sid:1;)'
     )
+    assert "undefined_byte_variable" in codes(
+        "alert tcp any any -> any 80 (byte_test:1,>,1,missing; sid:1;)"
+    )
+    assert "undefined_byte_variable" in codes(
+        "alert tcp any any -> any 80 (byte_jump:1,missing; sid:1;)"
+    )
+
+
+def test_byte_extract_defines_variables_for_relative_modifiers() -> None:
+    found = codes(
+        'alert tcp any any -> any 80 (content:"x"; byte_extract:1,0,length; '
+        'content:"y"; within:length; sid:1;)'
+    )
+
+    assert "undefined_byte_variable" not in found
 
 
 def test_duplicate_content_modifier_is_reported() -> None:

@@ -44,12 +44,13 @@ _CONTENT_MODIFIERS = {
     "FastPatternOption",
 }
 _BYTE_REFERENCE_FIELDS = {
-    "DepthOption": "value",
-    "OffsetOption": "value",
-    "DistanceOption": "value",
-    "WithinOption": "value",
-    "ByteTestOption": "value",
-    "ByteJumpOption": "offset",
+    "DepthOption": ("value",),
+    "OffsetOption": ("value",),
+    "DistanceOption": ("value",),
+    "WithinOption": ("value",),
+    "ByteTestOption": ("bytes_to_extract", "value", "offset"),
+    "ByteJumpOption": ("bytes_to_extract", "offset"),
+    "ByteExtractOption": ("bytes_to_extract", "offset"),
 }
 _BYTE_COUNT_OPTIONS = {"ByteTestOption", "ByteJumpOption", "ByteExtractOption"}
 _RELATIVE_LIMIT = 1_048_576
@@ -183,8 +184,7 @@ def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:
                     )
                 )
 
-        field_name = _BYTE_REFERENCE_FIELDS.get(option_type)
-        if field_name is not None:
+        for field_name in _BYTE_REFERENCE_FIELDS.get(option_type, ()):
             value = getattr(option, field_name, None)
             variable = _variable_reference(value)
             if variable is not None and variable not in defined:
