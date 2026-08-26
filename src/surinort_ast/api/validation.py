@@ -56,6 +56,8 @@ _BYTE_REFERENCE_FIELDS = {
 }
 _BYTE_COUNT_OPTIONS = {"ByteTestOption", "ByteJumpOption", "ByteExtractOption"}
 _RELATIVE_LIMIT = 1_048_576
+_SNORT_BYTE_LIMIT = 65_535
+_BYTE_VALUE_MAX = 4_294_967_295
 _BYTE_TEST_OPERATORS = {
     "!",
     "!=",
@@ -113,24 +115,56 @@ def _variable_reference(value: object) -> str | None:
     return None
 
 
+def _numeric_literal(value: object) -> int | None:
+    if isinstance(value, int):
+        return value
+    if not isinstance(value, str):
+        return None
+    for base in (0, 10):
+        try:
+            return int(value, base)
+        except ValueError:
+            continue
+    return None
+
+
+def _is_snort_target(target: EngineTarget | None) -> bool:
+    return target is not None and target.engine.lower().startswith("snort")
+
+
+def _is_snort3_target(target: EngineTarget | None) -> bool:
+    if target is None or not _is_snort_target(target):
+        return False
+    return target.engine.lower() == "snort3" or (_version_tuple(target.version) or (0,))[0] >= 3
+
+
 def _validate_relative_value(
-    name: str, value: object, location: Location | None
+    name: str,
+    value: object,
+    location: Location | None,
+    limit: int = _RELATIVE_LIMIT,
+    allow_negative_offset: bool = False,
 ) -> list[Diagnostic]:
-    if not isinstance(value, int):
+    numeric_value = _numeric_literal(value)
+    if numeric_value is None:
         return []
     if name == "distance":
-        valid = abs(value) <= _RELATIVE_LIMIT
+        valid = abs(numeric_value) <= limit
     elif name == "offset":
-        valid = 0 <= value <= _RELATIVE_LIMIT
+        valid = (
+            -limit <= numeric_value <= limit
+            if allow_negative_offset
+            else 0 <= numeric_value <= limit
+        )
     else:
-        valid = 0 < value <= _RELATIVE_LIMIT
+        valid = 0 < numeric_value <= limit
     if valid:
         return []
-    minimum = "any value" if name == "distance" else "a value greater than zero"
+    minimum = "any value" if name in {"distance", "offset"} else "a value greater than zero"
     return [
         Diagnostic(
             level=DiagnosticLevel.ERROR,
-            message=f"{name} must be {minimum} and no more than {_RELATIVE_LIMIT} bytes",
+            message=f"{name} must be {minimum} and no more than {limit} bytes",
             location=location,
             code="invalid_relative_modifier_range",
             phase="option-chain",
@@ -184,9 +218,23 @@ def _byte_math_fields(value: object) -> dict[str, str]:
     return fields
 
 
-def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
+def _flag_value(flags: object, name: str) -> int | None:
+    if not isinstance(flags, (tuple, list)):
+        return None
+    prefix = name.lower() + " "
+    for flag in flags:
+        if not isinstance(flag, str) or not flag.lower().startswith(prefix):
+            continue
+        return _numeric_literal(flag[len(prefix) :].strip())
+    return None
+
+
+def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) -> list[Diagnostic]:  # noqa: PLR0912, PLR0915
     diagnostics: list[Diagnostic] = []
     defined: set[str] = set()
+    snort_target = _is_snort_target(target)
+    snort3_target = _is_snort3_target(target)
+    target_name = f"{target.engine} {target.version}" if target is not None else ""
     for option in rule.options:
         option_type = option.node_type
         if (
@@ -209,6 +257,52 @@ def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
                         )
                     )
             result = fields.get("result", "")
+            if snort_target:
+                count = _numeric_literal(fields.get("bytes"))
+                max_count = 10 if snort3_target and "string" in fields else 4
+                if count is not None and not 1 <= count <= max_count:
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message=f"byte_math count must be in the range 1-{max_count} for {target_name}",
+                            location=getattr(option, "location", None),
+                            code="engine_byte_length_out_of_range",
+                            phase="version",
+                        )
+                    )
+                offset = _numeric_literal(fields.get("offset"))
+                if offset is not None and not -_SNORT_BYTE_LIMIT <= offset <= _SNORT_BYTE_LIMIT:
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message=f"byte_math offset must be in the range -{_SNORT_BYTE_LIMIT}..{_SNORT_BYTE_LIMIT}",
+                            location=getattr(option, "location", None),
+                            code="engine_byte_offset_out_of_range",
+                            phase="version",
+                        )
+                    )
+                rvalue = _numeric_literal(fields.get("rvalue"))
+                if rvalue is not None and not (1 <= rvalue <= _BYTE_VALUE_MAX):
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message="Snort byte_math rvalue must be in the range 1-4294967295",
+                            location=getattr(option, "location", None),
+                            code="engine_byte_rvalue_out_of_range",
+                            phase="version",
+                        )
+                    )
+                operator = fields.get("oper")
+                if operator not in {"+", "-", "*", "/", "<<", ">>"}:
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message=f"Unsupported byte_math operator '{operator}'",
+                            location=getattr(option, "location", None),
+                            code="invalid_byte_math_operator",
+                            phase="version",
+                        )
+                    )
             if result and not _FLOWBIT_NAME_RE.fullmatch(result):
                 diagnostics.append(
                     Diagnostic(
@@ -233,7 +327,15 @@ def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
                 defined.add(result)
         if option_type in _BYTE_COUNT_OPTIONS:
             count = getattr(option, "bytes_to_extract", None)
-            if isinstance(count, int) and count < 1:
+            numeric_count = _numeric_literal(count)
+            minimum = 0 if snort3_target and option_type == "ByteJumpOption" else 1
+            max_count = (
+                10
+                if snort3_target
+                and (option_type == "ByteTestOption" or "string" in getattr(option, "flags", ()))
+                else 4
+            )
+            if numeric_count is not None and numeric_count < minimum:
                 diagnostics.append(
                     Diagnostic(
                         level=DiagnosticLevel.ERROR,
@@ -241,6 +343,16 @@ def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
                         location=getattr(option, "location", None),
                         code="invalid_byte_length",
                         phase="option-chain",
+                    )
+                )
+            if snort_target and numeric_count is not None and numeric_count > max_count:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"{_option_keyword(option)} count must be in the range {minimum}-{max_count} for {target_name}",
+                        location=getattr(option, "location", None),
+                        code="engine_byte_length_out_of_range",
+                        phase="version",
                     )
                 )
 
@@ -270,6 +382,45 @@ def _validate_byte_operations(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
                         hint="Add byte_extract before using the variable, or verify the engine context.",
                         phase="option-chain",
                         confidence="medium",
+                    )
+                )
+            if snort_target and field_name == "offset":
+                numeric_value = _numeric_literal(value)
+                if (
+                    numeric_value is not None
+                    and not -_SNORT_BYTE_LIMIT <= numeric_value <= _SNORT_BYTE_LIMIT
+                ):
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message=f"{_option_keyword(option)} offset must be in the range -{_SNORT_BYTE_LIMIT}..{_SNORT_BYTE_LIMIT}",
+                            location=getattr(option, "location", None),
+                            code="engine_byte_offset_out_of_range",
+                            phase="version",
+                        )
+                    )
+
+        if snort_target and option_type in _BYTE_COUNT_OPTIONS:
+            multiplier = _flag_value(getattr(option, "flags", ()), "multiplier")
+            if multiplier is not None and not 1 <= multiplier <= _SNORT_BYTE_LIMIT:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"byte operation multiplier must be in the range 1-{_SNORT_BYTE_LIMIT}",
+                        location=getattr(option, "location", None),
+                        code="engine_byte_multiplier_out_of_range",
+                        phase="version",
+                    )
+                )
+            align = _flag_value(getattr(option, "flags", ()), "align")
+            if align is not None and align not in {2, 4}:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message="byte operation align must be 2 or 4",
+                        location=getattr(option, "location", None),
+                        code="invalid_byte_align",
+                        phase="version",
                     )
                 )
 
@@ -438,13 +589,16 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
     return diagnostics
 
 
-def _validate_option_chain(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
+def _validate_option_chain(rule: Rule, target: EngineTarget | None = None) -> list[Diagnostic]:  # noqa: PLR0912, PLR0915
     diagnostics: list[Diagnostic] = []
     counts: dict[str, int] = {}
     previous_content = False
     previous_content_negated = False
     seen_content = False
     current_modifiers: set[str] = set()
+    previous_content_length = 0
+    target_limit = _SNORT_BYTE_LIMIT if _is_snort_target(target) else _RELATIVE_LIMIT
+    allow_negative_offset = _is_snort_target(target)
     for option in rule.options:
         option_type = option.node_type
         if option_type in _SINGLETON_OPTIONS:
@@ -452,16 +606,38 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
         if option_type == "ContentOption":
             modifiers = tuple(getattr(option, "modifiers", ()))
             modifier_names = [modifier.name_str for modifier in modifiers]
+            pattern = getattr(option, "pattern", b"")
+            content_length = len(pattern) if isinstance(pattern, (bytes, str)) else 0
             current_modifiers = set(modifier_names)
             diagnostics.extend(
                 _validate_content_modifier_combination(current_modifiers, option.location)
             )
             for modifier in modifiers:
+                numeric_modifier = _numeric_literal(modifier.value)
                 diagnostics.extend(
                     _validate_relative_value(
-                        modifier.name_str, modifier.value, getattr(option, "location", None)
+                        modifier.name_str,
+                        modifier.value,
+                        getattr(option, "location", None),
+                        target_limit,
+                        allow_negative_offset,
                     )
                 )
+                if (
+                    _is_snort_target(target)
+                    and modifier.name_str in {"depth", "within"}
+                    and numeric_modifier is not None
+                    and numeric_modifier < content_length
+                ):
+                    diagnostics.append(
+                        Diagnostic(
+                            level=DiagnosticLevel.ERROR,
+                            message=f"{modifier.name_str} must be at least the content length ({content_length})",
+                            location=getattr(option, "location", None),
+                            code="modifier_shorter_than_content",
+                            phase="version",
+                        )
+                    )
             duplicate_modifiers = {
                 name for name in modifier_names if name and modifier_names.count(name) > 1
             }
@@ -497,6 +673,7 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
             previous_content = True
             previous_content_negated = bool(getattr(option, "negated", False))
             seen_content = True
+            previous_content_length = content_length
             continue
         if option_type == "FastPatternOption":
             diagnostics.extend(_validate_fast_pattern(option, previous_content))
@@ -505,7 +682,7 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
                     Diagnostic(
                         level=DiagnosticLevel.WARNING,
                         message="fast_pattern follows negated content and may not be usable by the engine",
-                        location=option.location,
+                        location=getattr(option, "location", None),
                         code="fast_pattern_on_negated_content",
                         phase="option-chain",
                         confidence="medium",
@@ -531,12 +708,33 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:  # noqa: PLR0912
             )
             diagnostics.extend(
                 _validate_relative_value(
-                    modifier_name, getattr(option, "value", None), getattr(option, "location", None)
+                    modifier_name,
+                    getattr(option, "value", None),
+                    getattr(option, "location", None),
+                    target_limit,
+                    allow_negative_offset,
                 )
             )
+            numeric_value = _numeric_literal(getattr(option, "value", None))
+            if (
+                _is_snort_target(target)
+                and modifier_name in {"depth", "within"}
+                and numeric_value is not None
+                and numeric_value < previous_content_length
+            ):
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"{modifier_name} must be at least the content length ({previous_content_length})",
+                        location=option.location,
+                        code="modifier_shorter_than_content",
+                        phase="version",
+                    )
+                )
             continue
         previous_content = False
         current_modifiers.clear()
+        previous_content_length = 0
 
     for option_type, count in counts.items():
         if count > 1:
@@ -865,13 +1063,13 @@ def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagno
             )
         )
 
-    diagnostics.extend(_validate_option_chain(rule))
+    diagnostics.extend(_validate_option_chain(rule, target=target))
     diagnostics.extend(_validate_flowbits(rule, target=target))
 
     if target is not None:
         diagnostics.extend(_validate_target_options(rule, target))
 
-    diagnostics.extend(_validate_byte_operations(rule))
+    diagnostics.extend(_validate_byte_operations(rule, target=target))
     diagnostics.extend(_validate_buffer_semantics(rule))
     diagnostics.extend(_validate_relative_patterns(rule))
 

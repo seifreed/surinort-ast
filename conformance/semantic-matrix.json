@@ -137,8 +137,8 @@
       "rule": "alert tcp any any -> any 80 (content:\"x\",within 0; msg:\"x\"; sid:1; rev:1;)",
       "targets": [
         {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["invalid_relative_modifier_range", "relative_modifier_without_content"]},
-        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_relative_modifier_range", "relative_modifier_without_content"]},
-        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_relative_modifier_range", "relative_modifier_without_content"]}
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_relative_modifier_range", "modifier_shorter_than_content", "relative_modifier_without_content"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_relative_modifier_range", "modifier_shorter_than_content", "relative_modifier_without_content"]}
       ]
     },
     {
