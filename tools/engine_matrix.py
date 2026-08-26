@@ -26,6 +26,21 @@ class MatrixEntry:
     pcap: Path | None = None
 
 
+def _resolve_pcap(path: Path, entry_id: str, value: object, command: str) -> Path | None:
+    if value is None or value == "":
+        if "{pcap}" in command:
+            raise ValueError(f"engine matrix command for {entry_id} requires a pcap path")
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"engine matrix pcap for {entry_id} must be a string")
+    pcap_path = (path.parent / value).resolve()
+    if not pcap_path.is_file():
+        raise ValueError(f"engine matrix pcap does not exist for {entry_id}: {pcap_path}")
+    if "{pcap}" not in command:
+        raise ValueError(f"engine matrix command for {entry_id} must contain {{pcap}}")
+    return pcap_path
+
+
 def load_matrix(path: Path) -> list[MatrixEntry]:
     """Load and validate a versioned engine matrix."""
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -36,26 +51,36 @@ def load_matrix(path: Path) -> list[MatrixEntry]:
         raise ValueError("engine matrix must contain a non-empty 'engines' list")
 
     loaded: list[MatrixEntry] = []
+    seen_ids: set[str] = set()
     for entry in entries:
         if not isinstance(entry, dict):
             raise ValueError("each engine matrix entry must be an object")
         required = ("id", "engine", "version", "dialect", "manifest", "command")
         if any(not isinstance(entry.get(key), str) or not entry[key] for key in required):
             raise ValueError(f"engine matrix entries require string fields: {', '.join(required)}")
+        entry_id = entry["id"]
+        if entry_id in seen_ids:
+            raise ValueError(f"engine matrix entry id is duplicated: {entry_id}")
+        seen_ids.add(entry_id)
+        try:
+            dialect = Dialect(entry["dialect"])
+        except ValueError as exc:
+            raise ValueError(f"engine matrix dialect is invalid for {entry_id}") from exc
         if "{file}" not in entry["command"]:
-            raise ValueError(f"engine matrix command for {entry['id']} must contain {{file}}")
-        pcap = entry.get("pcap")
-        if pcap is not None and not isinstance(pcap, str):
-            raise ValueError(f"engine matrix pcap for {entry['id']} must be a string")
+            raise ValueError(f"engine matrix command for {entry_id} must contain {{file}}")
+        manifest = (path.parent / entry["manifest"]).resolve()
+        if not manifest.is_file():
+            raise ValueError(f"engine matrix manifest does not exist for {entry_id}: {manifest}")
+        pcap_path = _resolve_pcap(path, entry_id, entry.get("pcap"), entry["command"])
         loaded.append(
             MatrixEntry(
-                id=entry["id"],
+                id=entry_id,
                 engine=entry["engine"],
                 version=entry["version"],
-                dialect=entry["dialect"],
-                manifest=(path.parent / entry["manifest"]).resolve(),
+                dialect=dialect.value,
+                manifest=manifest,
                 command=entry["command"],
-                pcap=(path.parent / pcap).resolve() if pcap else None,
+                pcap=pcap_path,
             )
         )
     return loaded
