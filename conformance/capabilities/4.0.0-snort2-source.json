@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "Snort 2 detection-plugin registrations plus core rule metadata",
+  "scope": "Snort 2 detection-plugin registrations plus observed core rule keywords",
   "sources": [
     {
       "file_count": 44,
@@ -33,6 +33,7 @@
         "content-list",
         "cvs",
         "depth",
+        "detection_filter",
         "distance",
         "dsize",
         "fast_pattern",
@@ -86,6 +87,7 @@
         "seq",
         "session",
         "sid",
+        "ssl_state",
         "tos",
         "ttl",
         "uricontent",
