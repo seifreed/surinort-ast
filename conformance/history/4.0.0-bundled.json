@@ -1,0 +1,47 @@
+{
+  "behavior_pcap": null,
+  "behavior_validation_failures": 0,
+  "behavior_validation_passed": 0,
+  "corpus": "conformance/corpus",
+  "dialect_metrics": {
+    "snort2": {
+      "parsed": 561,
+      "round_trip_passed": 561,
+      "total_rules": 561,
+      "unexpected_failures": 0
+    },
+    "snort3": {
+      "parsed": 4017,
+      "round_trip_passed": 4017,
+      "total_rules": 4017,
+      "unexpected_failures": 0
+    },
+    "suricata": {
+      "parsed": 30579,
+      "round_trip_passed": 30579,
+      "total_rules": 30579,
+      "unexpected_failures": 0
+    }
+  },
+  "elapsed_seconds": 107.234875,
+  "engine_command": null,
+  "engine_timeouts": 0,
+  "engine_validation_after_print_failures": 0,
+  "engine_validation_after_print_passed": 0,
+  "engine_validation_failures": 0,
+  "engine_validation_passed": 0,
+  "errors_by_keyword": {},
+  "manifest": "conformance/manifest.bundled.json",
+  "package_version": "4.0.0",
+  "parse_exceptions": 0,
+  "parse_rate": 1.0,
+  "parsed": 35157,
+  "peak_memory_mb": 27.971598,
+  "printed": 35157,
+  "round_trip_passed": 35157,
+  "round_trip_rate": 1.0,
+  "rules_per_second": 327.8504318857553,
+  "total_rules": 35157,
+  "unexpected_failures": 0,
+  "unsupported_constructions": []
+}
