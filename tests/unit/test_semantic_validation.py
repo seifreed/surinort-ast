@@ -164,3 +164,16 @@ def test_engine_target_rejects_options_with_missing_catalogued_features() -> Non
     assert "unsupported_engine_feature" not in {
         diagnostic.code for diagnostic in validate_rule(flowbit_rule, target=target)
     }
+
+
+def test_engine_target_applies_snort_priority_range_only() -> None:
+    rule = parse_rule("alert tcp any any -> any 80 (priority:256; sid:1;)")
+    snort = EngineTarget("snort", "2.9.x")
+    suricata = EngineTarget("suricata", "8.0.0")
+
+    assert "engine_priority_out_of_range" in {
+        diagnostic.code for diagnostic in validate_rule(rule, target=snort)
+    }
+    assert "engine_priority_out_of_range" not in {
+        diagnostic.code for diagnostic in validate_rule(rule, target=suricata)
+    }
