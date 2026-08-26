@@ -61,6 +61,64 @@
       "version": "8.0.6"
     },
     {
+      "dialect": "snort2",
+      "engine": "snort2",
+      "id": "snort2-2.9.20-bundled",
+      "report": {
+        "behavior_validation": "not-run",
+        "corpus": "rules/snort/snort29-community-rules/community-rules",
+        "corpus_files": [
+          {
+            "bytes": 1809323,
+            "path": "rules/snort/snort29-community-rules/community-rules/community.rules",
+            "sha256": "688d2f41c50e1e27d3c2a1968dae044fdbc82733bb6abe68045618387a8334"
+          },
+          {
+            "bytes": 310315,
+            "path": "generated/snort2.printed.rules",
+            "sha256": "62fc0d65b5c2cddcdc4c56a07eed598d2ee7a99e7f19f1148d7bb916b9a7796e"
+          }
+        ],
+        "dialect_metrics": {
+          "snort2": {
+            "parsed": 561,
+            "round_trip_passed": 561,
+            "total_rules": 561,
+            "unexpected_failures": 0
+          }
+        },
+        "engine_command": "docker run --rm -v {file}:/rules/community.rules:ro surinort-snort2:2.9.20 -T -c /etc/snort/snort.conf",
+        "engine_original": {
+          "loaded_rules": 561,
+          "status": "passed",
+          "warnings": 37
+        },
+        "engine_printed": {
+          "loaded_rules": 561,
+          "status": "passed",
+          "warnings": 37
+        },
+        "engine_validation_after_print_failures": 0,
+        "engine_validation_after_print_passed": 1,
+        "engine_validation_failures": 0,
+        "engine_validation_passed": 1,
+        "engine_validation_scope": "one full ruleset load for original and printed files",
+        "errors_by_keyword": {},
+        "package_version": "4.0.0",
+        "parse_exceptions": 0,
+        "parse_rate": 1.0,
+        "parsed": 561,
+        "peak_memory_mb": null,
+        "printed": 561,
+        "round_trip_passed": 561,
+        "round_trip_rate": 1.0,
+        "rules_per_second": null,
+        "total_rules": 561,
+        "unexpected_failures": 0
+      },
+      "version": "2.9.20"
+    },
+    {
       "dialect": "snort3",
       "engine": "snort3",
       "id": "snort3-3.12.2.0-bundled",
@@ -124,8 +182,8 @@
   "pcap_behavior_equivalence": "not-run",
   "schema_version": 1,
   "scope": "Bundled tracked corpora; parser parse -> print -> real engine load",
-  "source_commit": "4d8c0ec",
-  "total_rules": 34596,
+  "source_commit": "b840aa4",
+  "total_rules": 35157,
   "unexpected_failures": 0,
-  "verified_at": "2026-08-26T05:56:49.914105+00:00"
+  "verified_at": "2026-08-26T06:17:36.632034+00:00"
 }
