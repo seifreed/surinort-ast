@@ -406,6 +406,26 @@ class TestFastPatternStrategy:
             assert len(opts) > 0
             assert opts[0].strategy == "FastPattern"
 
+    def test_added_fast_pattern_prints_as_engine_option(self):
+        """The optimizer output must load in Suricata's standalone syntax."""
+        from surinort_ast import print_rule
+
+        rule = parse_rule(
+            "alert tcp any any -> any 80 ("
+            'content:"short"; '
+            'content:"longer_distinctive_pattern"; '
+            "sid:1;)"
+        )
+
+        optimized, _ = FastPatternStrategy().apply(rule)
+
+        assert optimized is not None
+        rendered = print_rule(optimized)
+        assert 'content:"longer_distinctive_pattern"; fast_pattern;' in rendered
+        assert ",fast_pattern" not in rendered
+        reparsed = parse_rule(rendered)
+        assert any(option.node_type == "FastPatternOption" for option in reparsed.options)
+
     def test_fast_pattern_already_present(self):
         """Test that existing fast_pattern is not modified."""
         rule = parse_rule(

@@ -405,24 +405,17 @@ class FastPatternStrategy(OptimizationStrategy):
             # No good candidate
             return None, []
 
-        # Add fast_pattern modifier to best content
-        from ..core.enums import ContentModifierType
-        from ..core.nodes import ContentModifier
+        # Use the standalone option form.  Inline ``content:"...",fast_pattern``
+        # is accepted by some Snort grammars but is rejected by Suricata 8.
+        from ..core.nodes import FastPatternOption
 
-        new_modifiers = [
-            *list(best_content.modifiers),
-            ContentModifier(name=ContentModifierType.FAST_PATTERN, value=None),
-        ]
-
-        new_content = best_content.model_copy(update={"modifiers": new_modifiers})
-
-        # Replace in options list
-        new_options: list[Option] = []
-        for opt in rule.options:
-            if opt is best_content:
-                new_options.append(new_content)
-            else:
-                new_options.append(opt)
+        new_options = list(rule.options)
+        insert_at = next(i for i, opt in enumerate(new_options) if opt is best_content) + 1
+        # Keep relative byte operations and positional modifiers directly after
+        # their content anchor; fast_pattern is a hint and can follow that chain.
+        while insert_at < len(new_options) and _is_order_significant(new_options[insert_at]):
+            insert_at += 1
+        new_options.insert(insert_at, FastPatternOption())
 
         optimized = rule.model_copy(update={"options": new_options})
 
