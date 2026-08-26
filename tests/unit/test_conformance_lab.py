@@ -2,6 +2,7 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
 from tools.conformance_lab import run
 from tools.engine_matrix import load_matrix, run_matrix
 
@@ -70,6 +71,68 @@ def test_engine_matrix_runs_declared_entries(tmp_path) -> None:
     assert report["total_rules"] == 1
     assert report["unexpected_failures"] == 0
     assert report["engines"][0]["report"]["engine_validation_passed"] == 1
+
+
+def test_engine_matrix_rejects_invalid_dialect_and_missing_manifest(tmp_path) -> None:
+    matrix = tmp_path / "matrix.json"
+    matrix.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "engines": [
+                    {
+                        "id": "invalid-dialect",
+                        "engine": "suricata",
+                        "version": "8.0.0",
+                        "dialect": "unknown",
+                        "manifest": "missing.json",
+                        "command": "engine -S {file}",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="dialect"):
+        load_matrix(matrix)
+
+    payload = json.loads(matrix.read_text(encoding="utf-8"))
+    payload["engines"][0]["dialect"] = "suricata"
+    matrix.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="manifest does not exist"):
+        load_matrix(matrix)
+
+
+def test_engine_matrix_requires_matching_pcap_placeholder(tmp_path) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text('{"files": []}', encoding="utf-8")
+    pcap = tmp_path / "traffic.pcap"
+    pcap.write_bytes(b"pcap")
+    matrix = tmp_path / "matrix.json"
+    matrix.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "engines": [
+                    {
+                        "id": "missing-pcap-placeholder",
+                        "engine": "suricata",
+                        "version": "8.0.0",
+                        "dialect": "suricata",
+                        "manifest": "manifest.json",
+                        "pcap": "traffic.pcap",
+                        "command": "engine -S {file}",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="must contain \\{pcap\\}"):
+        load_matrix(matrix)
 
 
 def test_conformance_engine_checks_original_and_printed_rule(tmp_path) -> None:
