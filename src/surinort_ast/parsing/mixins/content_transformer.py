@@ -147,6 +147,8 @@ def _parse_mixed_content(s: str) -> bytes:
             hex_str = s[i + 1 : j]
             # Remove whitespace and convert
             hex_content = hex_str.translate(_HEX_WHITESPACE_TRANS)
+            if not hex_content:
+                raise ValueError("empty hex segment")
             try:
                 result.extend(bytes.fromhex(hex_content))
             except ValueError as e:
