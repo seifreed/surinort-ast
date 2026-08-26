@@ -31,6 +31,7 @@ _SINGLETON_OPTIONS = {
     "RevOption": "rev",
     "PriorityOption": "priority",
     "DetectionFilterOption": "detection_filter",
+    "ThresholdOption": "threshold",
 }
 _CONTENT_MODIFIERS = {
     "DepthOption",
@@ -135,6 +136,14 @@ def _validate_content_modifier_combination(
     names: set[str], location: Location | None
 ) -> list[Diagnostic]:
     conflicts: set[str] = set()
+    for left, right in (
+        ("offset", "distance"),
+        ("offset", "within"),
+        ("depth", "distance"),
+        ("depth", "within"),
+    ):
+        if left in names and right in names:
+            conflicts.update({left, right})
     if "startswith" in names:
         conflicts.update(names & {"depth", "offset", "distance", "within"})
     if "endswith" in names:
