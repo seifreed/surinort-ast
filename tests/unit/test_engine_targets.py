@@ -41,6 +41,24 @@ def test_engine_keyword_listing_parser_handles_headers_and_descriptions() -> Non
     assert target.supports("missing") is False
 
 
+def test_engine_keyword_listing_marks_supplied_features_complete() -> None:
+    target = EngineTarget.from_keyword_listing(
+        "suricata",
+        "8.0.0",
+        "content\npcre\n",
+        features=frozenset({"pcre"}),
+    )
+
+    assert target.supports_feature("pcre") is True
+    assert target.supports_feature("sticky-buffer") is False
+
+
+def test_engine_keyword_listing_without_features_keeps_features_unknown() -> None:
+    target = EngineTarget.from_keyword_listing("suricata", "8.0.0", "content\n")
+
+    assert target.supports_feature("pcre") is None
+
+
 def test_target_models_aliases_deprecations_and_domains() -> None:
     target = EngineTarget(
         "suricata",

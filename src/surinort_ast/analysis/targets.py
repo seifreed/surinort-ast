@@ -77,7 +77,7 @@ class EngineTarget:
         version: str,
         listing: str,
         *,
-        features: frozenset[str] = frozenset(),
+        features: frozenset[str] | None = None,
         actions: frozenset[str] = frozenset(),
         protocols: frozenset[str] = frozenset(),
     ) -> EngineTarget:
@@ -90,10 +90,11 @@ class EngineTarget:
             engine=engine,
             version=version,
             keywords=parse_keyword_listing(listing),
-            features=features,
+            features=frozenset(features) if features is not None else frozenset(),
             actions=actions,
             protocols=protocols,
             keyword_catalog_complete=True,
+            feature_catalog_complete=features is not None,
         )
 
 
