@@ -82,6 +82,136 @@
       ]
     },
     {
+      "id": "threshold-incompatibility",
+      "category": "incompatibility",
+      "rule": "alert tcp any any -> any 80 (threshold:type limit,track by_src,count 1,seconds 1; detection_filter:track by_src,count 1,seconds 1; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["incompatible_threshold_options"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["incompatible_threshold_options"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["incompatible_threshold_options"]}
+      ]
+    },
+    {
+      "id": "byte-length-range",
+      "category": "byte-operations",
+      "rule": "alert tcp any any -> any 80 (byte_test:0,>,1,0; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["invalid_byte_length"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_byte_length"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_byte_length"]}
+      ]
+    },
+    {
+      "id": "byte-test-operator",
+      "category": "byte-operations",
+      "rule": "alert tcp any any -> any 80 (byte_test:1,wat,1,0; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["invalid_byte_test_operator"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_byte_test_operator"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_byte_test_operator"]}
+      ]
+    },
+    {
+      "id": "duplicate-byte-variable",
+      "category": "byte-operations",
+      "rule": "alert tcp any any -> any 80 (byte_extract:1,0,foo; byte_extract:1,0,foo; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["duplicate_byte_variable"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["duplicate_byte_variable"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["duplicate_byte_variable"]}
+      ]
+    },
+    {
+      "id": "relative-byte-without-anchor",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (byte_test:1,>,1,0,relative; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["relative_byte_operation_without_anchor"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["relative_byte_operation_without_anchor"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["relative_byte_operation_without_anchor"]}
+      ]
+    },
+    {
+      "id": "relative-modifier-range",
+      "category": "relative-modifiers",
+      "rule": "alert tcp any any -> any 80 (content:\"x\",within 0; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["invalid_relative_modifier_range", "relative_modifier_without_content"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_relative_modifier_range", "relative_modifier_without_content"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_relative_modifier_range", "relative_modifier_without_content"]}
+      ]
+    },
+    {
+      "id": "sticky-buffer-protocol-mismatch",
+      "category": "sticky-buffers",
+      "rule": "alert udp any any -> any 80 (http_uri; content:\"x\"; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["buffer_protocol_mismatch"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["buffer_protocol_mismatch"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["buffer_protocol_mismatch"]}
+      ]
+    },
+    {
+      "id": "flowbit-mutating-operator",
+      "category": "flowbits",
+      "rule": "alert tcp any any -> any 80 (flowbits:set,a|b; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["invalid_flowbit_operator"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_flowbit_operator"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_flowbit_operator"]}
+      ]
+    },
+    {
+      "id": "flowbit-noalert-name",
+      "category": "flowbits",
+      "rule": "alert tcp any any -> any 80 (flowbits:noalert,seen; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["unexpected_flowbit_name"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["unexpected_flowbit_name"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["unexpected_flowbit_name"]}
+      ]
+    },
+    {
+      "id": "sid-uint32-maximum",
+      "category": "numeric-ranges",
+      "rule": "alert tcp any any -> any 80 (msg:\"x\"; sid:4294967295; rev:4294967295;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": []},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": []}
+      ]
+    },
+    {
+      "id": "sid-uint32-overflow",
+      "category": "numeric-ranges",
+      "rule": "alert tcp any any -> any 80 (msg:\"x\"; sid:4294967296; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["parse_error"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["parse_error"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["parse_error"]}
+      ]
+    },
+    {
+      "id": "priority-zero",
+      "category": "numeric-ranges",
+      "rule": "alert tcp any any -> any 80 (priority:0; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["parse_error"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["parse_error"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["parse_error"]}
+      ]
+    },
+    {
+      "id": "rev-zero",
+      "category": "numeric-ranges",
+      "rule": "alert tcp any any -> any 80 (msg:\"x\"; sid:1; rev:0;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": ["parse_error"]},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["parse_error"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["parse_error"]}
+      ]
+    },
+    {
       "id": "valid-baseline",
       "category": "baseline",
       "rule": "alert tcp any any -> any 80 (content:\"x\"; msg:\"x\"; sid:1; rev:1;)",
