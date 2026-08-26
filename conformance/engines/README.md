@@ -37,3 +37,20 @@ docker run --rm \
 
 The committed report records engine loading for both files. It does not claim
 PCAP alert equivalence; that remains a separate traffic-fixture check.
+
+## Snort3
+
+The optimizer scale check uses Snort `3.12.2.0` with the minimal reproducible
+configuration in `snort3-3.12.2.lua`:
+
+```bash
+snort -T \
+  -c conformance/engines/snort3-3.12.2.lua \
+  -R path/to/rules.rules
+```
+
+The fixture defines the variables referenced by the bundled community corpus
+as `any` so the check measures parser/printer compatibility. It is not a
+recommended network policy. The optimizer result is recorded in
+`conformance/history/4.0.0-optimizer-engine-scale.json`; it does not claim
+PCAP alert equivalence.

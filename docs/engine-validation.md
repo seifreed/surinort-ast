@@ -55,6 +55,15 @@ snapshot is evidence for this bundled corpus and engine build only; it does
 not establish universal optimizer equivalence or a production performance
 benchmark.
 
+The bundled Snort optimizer result is recorded in
+`conformance/history/4.0.0-optimizer-engine-scale.json`. It validates the
+parse -> optimize -> print -> engine path for 561 Snort2 rules on Snort 2.9.20
+and 4,017 Snort3 rules on Snort 3.12.2.0. Both original and optimized files
+loaded successfully. Snort3 uses the reproducible variable configuration in
+`conformance/engines/snort3-3.12.2.lua`; it is an acceptance-test fixture,
+not a deployment policy. PCAP alert equivalence and production traffic
+calibration remain open for these dialects.
+
 For an optimized ruleset, compare the original and candidate files over a
 fixture battery:
 
