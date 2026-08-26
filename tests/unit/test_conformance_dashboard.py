@@ -10,6 +10,7 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
         json.dumps(
             {
                 "total_rules": 2,
+                "package_version": "4.0.0",
                 "parse_rate": 1.0,
                 "round_trip_rate": 1.0,
                 "unexpected_failures": 0,
@@ -47,5 +48,6 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
     rendered = render(history, output, current)
 
     assert rendered.count("| bundled.json |") == 1
+    assert rendered.count("| 4.0.0 |") == 1
     assert rendered.count("| matrix.json:suricata-test |") == 1
     assert output.read_text(encoding="utf-8") == rendered
