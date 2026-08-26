@@ -164,6 +164,8 @@ jobs:
       - name: Package VS Code extension
         run: |
           npm install --global @vscode/vsce@3.9.2
+          cp LICENSE editors/vscode/LICENSE
+          trap 'rm -f editors/vscode/LICENSE' EXIT
           cd editors/vscode
           vsce package --no-dependencies \
             --out "../../dist/surinort-ast-${{ needs.validate.outputs.version }}.vsix"
