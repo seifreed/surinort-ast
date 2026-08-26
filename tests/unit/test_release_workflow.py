@@ -85,6 +85,20 @@ def test_release_publishes_and_signs_the_versioned_vscode_artifact() -> None:
     assert "for file in *.whl *.tar.gz *.vsix; do" in signing
 
 
+def test_release_publishes_vscode_extension_to_marketplace() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    publish = workflow[
+        workflow.index("  publish-vscode:") : workflow.index("  # Sign release artifacts")
+    ]
+
+    assert "needs: [validate, build, github-release]" in publish
+    assert "name: vscode-marketplace" in publish
+    assert "secrets.VSCE_PAT" in publish
+    assert 'vsce publish --packagePath dist/*.vsix --pat "$VSCE_PAT"' in publish
+    assert "publish-vscode" in workflow[workflow.index("  release-success:") :]
+
+
 def test_ci_summary_matches_the_protected_branch_check_name() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
