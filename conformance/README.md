@@ -26,6 +26,17 @@ Summary reports include each input file's byte size and SHA-256 fingerprint;
 the published snapshot is rendered in the [conformance dashboard](../docs/conformance-dashboard.md).
 Use `--summary-only` when publishing aggregate evidence without per-rule cases.
 
+## External corpus workflow
+
+The manual `External Conformance` workflow accepts an authorized `.tar.gz`
+corpus without storing its rules in this repository. The archive must contain
+`*.rules` files; include `suricata`, `snort2`, or `snort3` in their paths when
+the dialect differs from the Suricata default. Supply the archive URL, its
+SHA-256 digest, and a source/license label in the workflow dispatch form. The
+workflow verifies the digest, runs the lab, and uploads
+`external-conformance-report.json` even when the corpus has unexpected
+failures.
+
 For differential behavior checks, provide a traffic fixture and an engine
 command containing both placeholders. The command must print a stable alert
 projection to stdout. The repository includes a Suricata adapter because
