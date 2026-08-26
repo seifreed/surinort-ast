@@ -84,6 +84,10 @@ jobs:
             --manifest conformance/manifest.bundled.json \
             --summary-only \
             --output "$snapshot"
+          semantic_snapshot="conformance/history/semantic-${GITHUB_SHA}.json"
+          python tools/semantic_matrix.py \
+            --manifest conformance/semantic-matrix.json \
+            --output "$semantic_snapshot"
           python -m tools.conformance_dashboard \
             --history-dir conformance/history \
             --output docs/conformance-dashboard.md
