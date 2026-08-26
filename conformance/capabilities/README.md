@@ -27,7 +27,9 @@ python tools/snort2_capabilities.py \
 
 The generator fingerprints every C file, extracts each `RegisterRuleOption`
 registration, and adds Snort's core rule metadata keywords (`sid`, `gid`,
-`rev`, `msg`, and related fields), which are parsed outside the plugin registry.
+`rev`, `msg`, and related fields), plus core keywords observed in the complete
+Snort Community ruleset (`detection_filter` and `ssl_state`), which are parsed
+outside the plugin registry.
 Actions, protocols, and semantic feature domains remain unknown because these
 sources do not prove those contracts; engine-load evidence remains in the
 versioned conformance reports.

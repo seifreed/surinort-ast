@@ -13,7 +13,18 @@ from surinort_ast.analysis import EngineTarget
 
 _REGISTERED_OPTION = re.compile(r'RegisterRuleOption\s*\(\s*"([^"]+)"')
 _CORE_RULE_KEYWORDS = frozenset(
-    {"classtype", "gid", "metadata", "msg", "priority", "reference", "rev", "sid"}
+    {
+        "classtype",
+        "detection_filter",
+        "gid",
+        "metadata",
+        "msg",
+        "priority",
+        "reference",
+        "rev",
+        "sid",
+        "ssl_state",
+    }
 )
 
 
@@ -52,7 +63,7 @@ def snapshot(source_dir: Path, version: str) -> dict[str, Any]:
     )
     return {
         "schema_version": 1,
-        "scope": "Snort 2 detection-plugin registrations plus core rule metadata",
+        "scope": "Snort 2 detection-plugin registrations plus observed core rule keywords",
         "sources": [
             {
                 "kind": "source-tree",
