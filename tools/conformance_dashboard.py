@@ -81,9 +81,10 @@ def _load_reports(history_dir: Path, report: Path | None) -> list[dict[str, Any]
     for path in paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(payload, dict):
-            if payload.get("kind") == "optimizer-behavior-conformance" or (
-                "pcap_count" in payload and "cases" in payload
-            ):
+            if payload.get("kind") in {
+                "optimizer-behavior-conformance",
+                "optimizer-behavior-engine-conformance",
+            } or ("pcap_count" in payload and "cases" in payload):
                 continue
             rows.extend(_report_rows(payload, path.name))
     return rows

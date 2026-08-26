@@ -64,6 +64,14 @@ loaded successfully. Snort3 uses the reproducible variable configuration in
 not a deployment policy. PCAP alert equivalence and production traffic
 calibration remain open for these dialects.
 
+The public-PCAP optimizer result is recorded in
+`conformance/history/4.0.0-optimizer-snort-public-pcap.json`. It compares the
+bundled Snort2 and Snort3 original/optimized outputs over nine valid public
+PCAPs, with 9/9 equivalent cases for each engine. The tenth downloaded
+fixture is excluded because Snort2 rejects its invalid capture length; the
+report records its hash and reason. This is regression evidence, not a
+production traffic benchmark.
+
 For an optimized ruleset, compare the original and candidate files over a
 fixture battery:
 
