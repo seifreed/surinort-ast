@@ -12,12 +12,18 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'conformance/**'
+      - 'tools/conformance_lab.py'
+      - 'tools/conformance_dashboard.py'
       - 'mkdocs.yml'
       - 'mkdocs.yaml'
   pull_request:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'conformance/**'
+      - 'tools/conformance_lab.py'
+      - 'tools/conformance_dashboard.py'
       - 'mkdocs.yml'
       - 'mkdocs.yaml'
   workflow_dispatch:
