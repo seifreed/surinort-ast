@@ -73,26 +73,70 @@ def _report_rows(
     ]
 
 
-def _load_reports(history_dir: Path, report: Path | None) -> list[dict[str, Any]]:
+def _semantic_rows(report: dict[str, Any], source: str) -> list[dict[str, Any]]:
+    cases = report.get("cases")
+    if not isinstance(cases, list):
+        return []
+    grouped: dict[tuple[str, str, str], dict[str, int]] = {}
+    for case in cases:
+        if not isinstance(case, dict):
+            continue
+        key = (
+            str(case.get("engine", "")),
+            str(case.get("version", "")),
+            str(case.get("dialect", "")),
+        )
+        metrics = grouped.setdefault(key, {"evaluations": 0, "passed": 0})
+        metrics["evaluations"] += 1
+        metrics["passed"] += int(case.get("passed") is True)
+    return [
+        {
+            "source": source,
+            "version": report.get("package_version"),
+            "engine": engine,
+            "dialect": dialect,
+            "engine_version": engine_version,
+            "evaluations": metrics["evaluations"],
+            "passed": metrics["passed"],
+            "failures": metrics["evaluations"] - metrics["passed"],
+        }
+        for (engine, engine_version, dialect), metrics in sorted(grouped.items())
+    ]
+
+
+def _load_reports(
+    history_dir: Path, report: Path | None, semantic_matrix: Path | None
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     paths = sorted(history_dir.glob("*.json")) if history_dir.is_dir() else []
-    if report is not None:
+    if report is not None and report not in paths:
         paths.append(report)
     rows: list[dict[str, Any]] = []
+    semantic_rows: list[dict[str, Any]] = []
+    if semantic_matrix is not None and semantic_matrix not in paths:
+        paths.append(semantic_matrix)
     for path in paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(payload, dict):
+            if payload.get("kind") == "semantic-validation-matrix":
+                semantic_rows.extend(_semantic_rows(payload, path.name))
+                continue
             if payload.get("kind") in {
                 "optimizer-behavior-conformance",
                 "optimizer-behavior-engine-conformance",
             } or ("pcap_count" in payload and "cases" in payload):
                 continue
             rows.extend(_report_rows(payload, path.name))
-    return rows
+    return rows, semantic_rows
 
 
-def render(history_dir: Path, output: Path, report: Path | None = None) -> str:
+def render(
+    history_dir: Path,
+    output: Path,
+    report: Path | None = None,
+    semantic_matrix: Path | None = None,
+) -> str:
     """Render reports and write the resulting Markdown page."""
-    rows = _load_reports(history_dir, report)
+    rows, semantic_rows = _load_reports(history_dir, report, semantic_matrix)
     lines = [
         "# Conformance Dashboard",
         "",
@@ -124,6 +168,21 @@ def render(history_dir: Path, output: Path, report: Path | None = None) -> str:
             "",
         ]
     )
+    if semantic_rows:
+        lines.extend(
+            [
+                "## Semantic Validation Matrix",
+                "",
+                "| Snapshot | Package | Engine | Version | Dialect | Evaluations | Passed | Failures |",
+                "| --- | --- | --- | --- | --- | ---: | ---: | ---: |",
+            ]
+        )
+        for row in semantic_rows:
+            lines.append(
+                "| {source} | {version} | {engine} | {engine_version} | {dialect} | "
+                "{evaluations} | {passed} | {failures} |".format(**row)
+            )
+        lines.append("")
     rendered = "\n".join(lines)
     output.write_text(rendered, encoding="utf-8")
     return rendered
@@ -133,9 +192,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--history-dir", type=Path, required=True)
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--semantic-matrix", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    render(args.history_dir, args.output, args.report)
+    render(args.history_dir, args.output, args.report, args.semantic_matrix)
     return 0
 
 

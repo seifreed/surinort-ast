@@ -58,15 +58,43 @@ def test_dashboard_renders_single_and_engine_reports(tmp_path) -> None:
         json.dumps({"kind": "optimizer-behavior-conformance", "pcap_count": 2}),
         encoding="utf-8",
     )
+    (history / "semantic.json").write_text(
+        json.dumps(
+            {
+                "kind": "semantic-validation-matrix",
+                "package_version": "4.0.0",
+                "cases": [
+                    {
+                        "engine": "suricata",
+                        "version": "8.0.6",
+                        "dialect": "suricata",
+                        "passed": True,
+                    },
+                    {
+                        "engine": "suricata",
+                        "version": "8.0.6",
+                        "dialect": "suricata",
+                        "passed": False,
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
     output = tmp_path / "dashboard.md"
 
     rendered = render(history, output, current)
 
     assert rendered.count("| bundled.json |") == 1
-    assert rendered.count("| 4.0.0 |") == 1
-    assert rendered.count("| suricata |") == 2
+    assert rendered.count("| 4.0.0 |") == 2
+    assert rendered.count("| suricata |") == 4
     assert rendered.count("| 8.0.1 |") == 1
     assert rendered.count("| matrix.json:suricata-test |") == 1
     assert "optimizer.json" not in rendered
     assert "| 1 | content:1 |" in rendered
+    assert "## Semantic Validation Matrix" in rendered
+    assert "| semantic.json | 4.0.0 | suricata | 8.0.6 | suricata | 2 | 1 | 1 |" in rendered
     assert output.read_text(encoding="utf-8") == rendered
+
+    explicit = render(history, output, current, history / "semantic.json")
+    assert explicit.count("| semantic.json | 4.0.0 | suricata | 8.0.6 |") == 1
