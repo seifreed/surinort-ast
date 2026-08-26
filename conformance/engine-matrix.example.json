@@ -23,7 +23,7 @@
       "version": "3.12.2.0",
       "dialect": "snort3",
       "manifest": "manifest.json",
-      "command": "snort -T -c /etc/snort/snort.lua -R {file}"
+      "command": "snort -T -c conformance/engines/snort3-3.12.2.lua -R {file}"
     }
   ]
 }
