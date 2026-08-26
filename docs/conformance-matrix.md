@@ -15,6 +15,12 @@ The bundled and external counts are parser-successful rules from the
 corresponding snapshots. Every listed load validates the combined original
 and printed ruleset through the concrete engine build.
 
+The semantic matrix contains 25 cases and 75 engine-target evaluations. It
+includes capability-backed keyword differences, such as `appids` being
+catalogued for Snort 3 but not for the Suricata 8.0.6 or Snort 2.9.20 snapshots.
+The matrix is checked in at
+[`conformance/semantic-matrix.json`](https://github.com/seifreed/surinort-ast/blob/main/conformance/semantic-matrix.json).
+
 Evidence:
 
 - [Bundled engine-scale report](https://github.com/seifreed/surinort-ast/blob/main/conformance/history/4.0.0-engine-scale.json)
