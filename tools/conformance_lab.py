@@ -165,6 +165,16 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _display_path(path: Path, corpus: Path) -> str:
+    """Return a stable report path without leaking a machine-local prefix."""
+    for base in (Path.cwd(), corpus):
+        try:
+            return str(path.relative_to(base))
+        except ValueError:
+            continue
+    return path.name
+
+
 def run(
     corpus: Path,
     engine_command: str | None = None,
@@ -199,7 +209,7 @@ def run(
 
     corpus_files = [
         {
-            "path": str(path),
+            "path": _display_path(path, corpus),
             "dialect": dialect.value,
             "expected_parse": expected_parse,
             "bytes": path.stat().st_size,
