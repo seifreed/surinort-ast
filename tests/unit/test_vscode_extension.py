@@ -21,3 +21,17 @@ def test_vscode_extension_resolves_capability_files_from_workspace() -> None:
     assert "path.isAbsolute(configured)" in source
     assert "workspaceFolders[0].uri.fsPath" in source
     assert "capabilityFile: configuredCapabilityFile()" in source
+
+
+def test_vscode_extension_exposes_all_supported_engine_aliases() -> None:
+    manifest = json.loads(Path("editors/vscode/package.json").read_text(encoding="utf-8"))
+
+    assert set(
+        manifest["contributes"]["configuration"]["properties"]["surinortAst.engine"]["enum"]
+    ) == {
+        "",
+        "suricata",
+        "snort",
+        "snort2",
+        "snort3",
+    }

@@ -163,7 +163,21 @@ class CapabilityRegistry:
     def resolve(self, engine: str, version: str) -> EngineTarget | None:
         """Resolve exact versions before major-version wildcards."""
         key = _normalize(engine)
-        return self._targets.get((key, version)) or self._targets.get((key, _major(version)))
+        candidates = [key]
+        major = version.split(".", 1)[0]
+        if key == "snort" and major in {"2", "3"}:
+            candidates.append(f"snort{major}")
+        elif key in {"snort2", "snort3"} and key[-1] == major:
+            candidates.append("snort")
+        for candidate in candidates:
+            target = self._targets.get((candidate, version))
+            if target is not None:
+                return target
+        for candidate in candidates:
+            target = self._targets.get((candidate, _major(version)))
+            if target is not None:
+                return target
+        return None
 
     def targets(self) -> tuple[EngineTarget, ...]:
         return tuple(self._targets.values())

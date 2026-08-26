@@ -16,7 +16,8 @@ code --install-extension editors/vscode
 ```
 
 For version-aware LSP diagnostics and documentation, configure the concrete
-engine target in VS Code settings:
+engine target in VS Code settings. The engine value may be `suricata`, `snort`,
+`snort2`, or `snort3`; Snort aliases resolve only to compatible major versions:
 
 ```json
 {

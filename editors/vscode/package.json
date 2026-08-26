@@ -53,7 +53,7 @@
         },
         "surinortAst.engine": {
           "type": "string",
-          "enum": ["", "suricata", "snort"],
+          "enum": ["", "suricata", "snort", "snort2", "snort3"],
           "default": "",
           "description": "Engine name used for version-aware LSP diagnostics and documentation."
         },

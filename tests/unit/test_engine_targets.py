@@ -21,6 +21,15 @@ def test_registry_prefers_exact_version_then_major_snapshot() -> None:
     assert registry.resolve("other", "1.0") is None
 
 
+def test_registry_resolves_snort_aliases_only_for_matching_major_versions() -> None:
+    registry = default_capability_registry()
+
+    assert registry.resolve("snort2", "2.9.20") == registry.resolve("snort", "2.9.20")
+    assert registry.resolve("snort3", "3.12.2.0") == registry.resolve("snort", "3.12.2.0")
+    assert registry.resolve("snort2", "3.12.2.0") is None
+    assert registry.resolve("snort3", "2.9.20") is None
+
+
 def test_engine_keyword_listing_can_populate_target() -> None:
     target = EngineTarget("suricata", "9.x").with_keywords({"content"})
 
