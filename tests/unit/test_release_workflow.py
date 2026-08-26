@@ -108,6 +108,20 @@ def test_release_publishes_and_signs_the_versioned_vscode_artifact() -> None:
     assert "path: signed-artifacts/*.sigstore.json" in signing
 
 
+def test_release_signs_artifacts_before_publishing_to_pypi() -> None:
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    publish = workflow[
+        workflow.index("  publish-pypi:") : workflow.index("  # Create GitHub Release")
+    ]
+    signing = workflow[
+        workflow.index("  sign-artifacts:") : workflow.index("  # Post-release verification")
+    ]
+
+    assert "needs: [validate, build, changelog, sign-artifacts]" in publish
+    assert "needs: [validate, build]" in signing
+
+
 def test_release_publishes_vscode_extension_to_marketplace() -> None:
     workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
