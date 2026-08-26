@@ -46,9 +46,10 @@ python tools/semantic_matrix.py \
 ```
 
 It compares exact diagnostic sets for Suricata 8.0.6, Snort 2.9.20, and Snort
-3.12.2.0 across the declared semantic cases. Adding a case requires its
-expected result for every target so unsupported engine differences stay
-explicit.
+3.12.2.0 across the declared semantic cases. A case-level `dialect` is the
+default parser dialect; a target may override it with `suricata`, `snort2`, or
+`snort3`. Adding a case requires its expected result for every target so
+unsupported engine differences stay explicit.
 
 For differential behavior checks, provide a traffic fixture and an engine
 command containing both placeholders. The command must print a stable alert

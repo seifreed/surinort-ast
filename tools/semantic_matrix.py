@@ -52,7 +52,7 @@ def run(manifest: Path) -> dict[str, Any]:
         ):
             raise ValueError("semantic matrix cases require id, category, and rule strings")
         try:
-            dialect = Dialect(raw_case.get("dialect", Dialect.SURICATA.value))
+            case_dialect = Dialect(raw_case.get("dialect", Dialect.SURICATA.value))
         except ValueError as exc:
             raise ValueError(f"invalid dialect for semantic case {case_id}") from exc
         targets = raw_case.get("targets")
@@ -62,6 +62,10 @@ def run(manifest: Path) -> dict[str, Any]:
             if not isinstance(raw_target, dict):
                 raise ValueError(f"semantic case {case_id} target must be an object")
             target = _target(raw_target)
+            try:
+                dialect = Dialect(raw_target.get("dialect", case_dialect.value))
+            except ValueError as exc:
+                raise ValueError(f"invalid dialect for semantic target {case_id}") from exc
             expected = set(
                 _strings(raw_target.get("expected_diagnostics", []), "expected_diagnostics")
             )
