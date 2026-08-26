@@ -2,7 +2,9 @@
 
 `4.0.0-local.json` contains complete keyword snapshots captured from the
 installed Suricata 8.0.6 and Snort 3.12.2.0 builds. The source command and
-SHA-256 hash are recorded for each listing. Empty action, protocol, and
+SHA-256 hash are recorded for each listing. `base64_data` is additionally
+recorded for Snort 3 because the engine accepts it in the community ruleset
+although it is absent from the module listing. Empty action, protocol, and
 feature catalogs remain unknown; they are not interpreted as unsupported.
 
 Load the snapshot in the validator with:

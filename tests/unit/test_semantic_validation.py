@@ -1,5 +1,6 @@
 from surinort_ast import apply_safe_fixes, parse_rule, validate_rule, validate_rules
 from surinort_ast.analysis import EngineTarget
+from surinort_ast.core.enums import Dialect
 
 
 def codes(rule_text: str) -> set[str]:
@@ -254,6 +255,23 @@ def test_engine_target_accepts_catalogued_sticky_buffer_name() -> None:
         "suricata",
         "8.x",
         keywords=frozenset({"http_uri", "content", "sid"}),
+        keyword_catalog_complete=True,
+    )
+
+    found = {diagnostic.code for diagnostic in validate_rule(rule, target=target)}
+
+    assert "unsupported_engine_keyword" not in found
+
+
+def test_engine_target_accepts_qualified_sticky_buffer_name() -> None:
+    rule = parse_rule(
+        'alert http any any -> any any (http_header:field user-agent; content:"x"; sid:1;)',
+        dialect=Dialect.SNORT3,
+    )
+    target = EngineTarget(
+        "snort",
+        "3.12.2.0",
+        keywords=frozenset({"http_header", "content", "sid"}),
         keyword_catalog_complete=True,
     )
 
