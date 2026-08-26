@@ -66,7 +66,7 @@ jobs:
           else
             VERSION="${GITHUB_REF#refs/tags/}"
           fi
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Releasing version: ${VERSION}"
 
       - name: Verify tag format
@@ -235,21 +235,23 @@ jobs:
           VERSION="${{ needs.validate.outputs.version }}"
 
           # Get previous tag
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 ${VERSION}^ 2>/dev/null || echo "")
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "${VERSION}^" 2>/dev/null || echo "")
 
           if [[ -z "$PREVIOUS_TAG" ]]; then
             echo "First release, no previous tag"
             CHANGELOG="Initial release of surinort-ast"
           else
             echo "Generating changelog from $PREVIOUS_TAG to $VERSION"
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${PREVIOUS_TAG}..${VERSION})
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" "${PREVIOUS_TAG}..${VERSION}")
           fi
 
           # Save to file and output
           echo "$CHANGELOG" > changelog.txt
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload changelog
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -437,10 +439,68 @@ jobs:
           fi
           echo "Version verified: $INSTALLED_VERSION"
 
+  # Verify the exact assets exposed by the public GitHub release.
+  verify-public-assets:
+    name: Verify Public Release Assets
+    needs: [validate, github-release]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      attestations: read
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.14'
+
+      - name: Install signature verifier
+        run: |
+          python -m pip install --upgrade pip==26.0.1
+          python -m pip install sigstore==4.2.0
+
+      - name: Download public release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          mkdir -p release-assets
+          gh release download "$VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir release-assets
+          ls -lh release-assets
+
+      - name: Verify checksums and required metadata
+        run: |
+          test -s release-assets/SHA256SUMS
+          test -s release-assets/sbom.json
+          test -s release-assets/sbom.xml
+          sed 's#  dist/#  release-assets/#' release-assets/SHA256SUMS \
+            | sha256sum --check --strict
+
+      - name: Verify Sigstore signatures and build provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          IDENTITY="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@refs/tags/${VERSION}"
+          for file in release-assets/*.whl release-assets/*.tar.gz release-assets/*.vsix; do
+            test -s "$file.sigstore.json"
+            sigstore verify identity "$file" \
+              --bundle "$file.sigstore.json" \
+              --cert-identity "$IDENTITY" \
+              --cert-oidc-issuer "https://token.actions.githubusercontent.com"
+            gh attestation verify "$file" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+              --source-ref "$VERSION"
+          done
+
   # Release success summary
   release-success:
     name: Release Pipeline Success
-    needs: [validate, test, build, changelog, publish-pypi, github-release, sign-artifacts, verify-release]
+    needs: [validate, test, build, changelog, publish-pypi, github-release, sign-artifacts, verify-release, verify-public-assets]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     if: always()
@@ -478,6 +538,10 @@ jobs:
           fi
           if [[ "${{ needs.verify-release.result }}" != "success" ]]; then
             echo "Release verification failed"
+            exit 1
+          fi
+          if [[ "${{ needs.verify-public-assets.result }}" != "success" ]]; then
+            echo "Public release asset verification failed"
             exit 1
           fi
           echo "Release ${{ needs.validate.outputs.version }} completed successfully!"
