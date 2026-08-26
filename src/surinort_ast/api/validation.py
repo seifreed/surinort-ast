@@ -79,6 +79,7 @@ _OPTION_FEATURES = {
 _SNORT_PRIORITY_MAX = 255
 _FLOWBIT_ACTIONS = {"set", "isset", "isnotset", "toggle", "unset", "noalert"}
 _FLOWBIT_NAME_REQUIRED = {"set", "isset", "isnotset", "toggle", "unset"}
+_FLOWBIT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 def _option_keyword(option: object) -> str:
@@ -396,7 +397,22 @@ def _validate_option_chain(rule: Rule) -> list[Diagnostic]:
     return diagnostics
 
 
-def _validate_flowbits(rule: Rule) -> list[Diagnostic]:
+def _flowbit_names(value: str) -> tuple[str, ...]:
+    """Return the individual names in a valid flowbit expression."""
+    if not value or ("&" in value and "|" in value):
+        return ()
+    names = tuple(re.split(r"[&|]", value))
+    return names if all(_FLOWBIT_NAME_RE.fullmatch(name) for name in names) else ()
+
+
+def _version_tuple(version: str) -> tuple[int, ...] | None:
+    match = re.match(r"^(\d+)(?:\.(\d+))?(?:\.(\d+))?", version)
+    if match is None:
+        return None
+    return tuple(int(part) for part in match.groups(default="0"))
+
+
+def _validate_flowbits(rule: Rule, target: EngineTarget | None = None) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     for option in rule.options:
         if not isinstance(option, FlowbitsOption):
@@ -425,14 +441,26 @@ def _validate_flowbits(rule: Rule) -> list[Diagnostic]:
                     phase="option-chain",
                 )
             )
-        if action in {"set", "toggle", "unset"} and any(separator in name for separator in "&|"):
+        names = _flowbit_names(name)
+        if name and not names:
             diagnostics.append(
                 Diagnostic(
                     level=DiagnosticLevel.ERROR,
-                    message=f"flowbits:{action} accepts one flowbit name at a time",
+                    message=f"Invalid flowbit name expression '{name}'",
                     location=option.location,
-                    code="composite_flowbit_mutation",
-                    hint="Use a single name for mutating flowbits.",
+                    code="invalid_flowbit_name",
+                    hint="Use alphanumeric names with periods, dashes, or underscores.",
+                    phase="option-chain",
+                )
+            )
+        if action in {"set", "toggle", "unset"} and "|" in name:
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message=f"flowbits:{action} only supports '&' between multiple names",
+                    location=option.location,
+                    code="invalid_flowbit_operator",
+                    hint="Use '&' for a mutating flowbits expression.",
                     phase="option-chain",
                 )
             )
@@ -446,6 +474,30 @@ def _validate_flowbits(rule: Rule) -> list[Diagnostic]:
                     phase="option-chain",
                 )
             )
+        if target is not None and action == "toggle":
+            engine = target.engine.lower()
+            version = _version_tuple(target.version)
+            if engine.startswith("snort") and version is not None and version[0] >= 3:
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.ERROR,
+                        message=f"flowbits:toggle is not supported by {target.engine} {target.version}",
+                        location=option.location,
+                        code="unsupported_engine_flowbit_action",
+                        phase="version",
+                    )
+                )
+            elif engine == "suricata" and version is not None and version >= (8, 0, 6):
+                diagnostics.append(
+                    Diagnostic(
+                        level=DiagnosticLevel.WARNING,
+                        message=f"flowbits:toggle is deprecated in Suricata {target.version}",
+                        location=option.location,
+                        code="deprecated_engine_flowbit_action",
+                        phase="version",
+                        confidence="high",
+                    )
+                )
     return diagnostics
 
 
@@ -633,7 +685,7 @@ def validate_rule(rule: Rule, target: EngineTarget | None = None) -> list[Diagno
         )
 
     diagnostics.extend(_validate_option_chain(rule))
-    diagnostics.extend(_validate_flowbits(rule))
+    diagnostics.extend(_validate_flowbits(rule, target=target))
 
     if target is not None:
         diagnostics.extend(_validate_target_options(rule, target))
@@ -682,10 +734,11 @@ def validate_rules(rules: Sequence[Rule], target: EngineTarget | None = None) ->
                 continue
             action = option.action.lower()
             name = option.name
+            names = _flowbit_names(name)
             if action in {"set", "toggle"}:
-                flowbit_definitions.add(name)
+                flowbit_definitions.update(names)
             elif action in {"isset", "isnotset", "unset"}:
-                flowbit_uses.append((name, option))
+                flowbit_uses.extend((flowbit_name, option) for flowbit_name in names)
     for name, option in flowbit_uses:
         if name not in flowbit_definitions:
             diagnostics.append(
