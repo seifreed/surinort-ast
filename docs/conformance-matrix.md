@@ -15,7 +15,7 @@ The bundled and external counts are parser-successful rules from the
 corresponding snapshots. Every listed load validates the combined original
 and printed ruleset through the concrete engine build.
 
-The semantic matrix contains 26 cases and 78 engine-target evaluations. It
+The semantic matrix contains 28 cases and 84 engine-target evaluations. It
 includes capability-backed keyword differences, such as `appids` being
 catalogued for Snort 3 but not for the Suricata 8.0.6 or Snort 2.9.20 snapshots.
 The matrix is checked in at

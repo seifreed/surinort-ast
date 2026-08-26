@@ -359,6 +359,18 @@ def test_snort_byte_operations_use_versioned_ranges() -> None:
         diagnostic.code for diagnostic in validate_rule(wide_offset, target=snort3)
     }
 
+    wide_value = parse_rule("alert tcp any any -> any 80 (byte_test:1,>,4294967296,0; sid:1;)")
+    assert "engine_byte_value_out_of_range" in {
+        diagnostic.code for diagnostic in validate_rule(wide_value, target=snort3)
+    }
+
+    wide_post_offset = parse_rule(
+        "alert tcp any any -> any 80 (byte_jump:1,0,post_offset 65536; sid:1;)"
+    )
+    assert "engine_byte_post_offset_out_of_range" in {
+        diagnostic.code for diagnostic in validate_rule(wide_post_offset, target=snort3)
+    }
+
     long_string = parse_rule("alert tcp any any -> any 80 (byte_extract:11,0,value,string; sid:1;)")
     assert "engine_byte_length_out_of_range" in {
         diagnostic.code for diagnostic in validate_rule(long_string, target=snort3)
