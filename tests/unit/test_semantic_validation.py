@@ -168,6 +168,18 @@ def test_relative_modifier_ranges_and_combinations_are_reported() -> None:
     assert "incompatible_content_modifiers" in codes(
         'alert tcp any any -> any 80 (content:"x",endswith,distance 1; sid:1;)'
     )
+    assert "incompatible_content_modifiers" in codes(
+        'alert tcp any any -> any 80 (content:"x",offset 1,distance 1; sid:1;)'
+    )
+    assert "incompatible_content_modifiers" in codes(
+        'alert tcp any any -> any 80 (content:"x",depth 4,within 1; sid:1;)'
+    )
+    assert "incompatible_content_modifiers" not in codes(
+        'alert tcp any any -> any 80 (content:"x",offset 1,depth 4; sid:1;)'
+    )
+    assert "incompatible_content_modifiers" not in codes(
+        'alert tcp any any -> any 80 (content:"x",distance 1,within 4; sid:1;)'
+    )
     assert "invalid_relative_modifier_range" not in codes(
         'alert tcp any any -> any 80 (content:"x"; distance:-1048576; sid:1;)'
     )
@@ -176,6 +188,13 @@ def test_relative_modifier_ranges_and_combinations_are_reported() -> None:
 def test_relative_variable_references_are_checked() -> None:
     assert "undefined_byte_variable" in codes(
         'alert tcp any any -> any 80 (content:"x"; within:missing; sid:1;)'
+    )
+
+
+def test_singleton_threshold_is_reported() -> None:
+    assert "duplicate_singleton_option" in codes(
+        "alert tcp any any -> any 80 (threshold:type limit,track by_src,count 1,seconds 1; "
+        "threshold:type limit,track by_dst,count 1,seconds 1; sid:1;)"
     )
 
 
