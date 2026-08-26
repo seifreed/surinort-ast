@@ -80,7 +80,9 @@ report records its hash and reason. This is regression evidence, not a
 production traffic benchmark.
 
 For an optimized ruleset, compare the original and candidate files over a
-fixture battery:
+fixture battery. When the configured command prints a JSON list of alert
+records, the runner compares that alert projection and records
+`alert_output_equal`; otherwise it compares the command output verbatim:
 
 ```bash
 python -m tools.optimizer_behavior_lab \
@@ -88,7 +90,7 @@ python -m tools.optimizer_behavior_lab \
   --candidate rules/optimized.rules \
   --pcap traffic/one.pcap \
   --pcap traffic/two.pcap \
-  --engine-command 'suricata -T -S {file} --pcap {pcap}' \
+  --engine-command 'python tools/suricata_behavior.py --rules {file} --pcap {pcap}' \
   --output optimizer-behavior-report.json
 ```
 

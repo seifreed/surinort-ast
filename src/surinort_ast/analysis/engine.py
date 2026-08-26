@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shlex
 import shutil
@@ -37,6 +38,7 @@ class BehavioralVerification:
     status: str
     original: EngineVerification
     candidate: EngineVerification
+    alert_output_equal: bool | None = None
 
     @property
     def passed(self) -> bool:
@@ -73,7 +75,7 @@ class EngineVerifier:
     def verify_behavior(
         self, original: Path, candidate: Path, pcap: Path
     ) -> BehavioralVerification:
-        """Run both rulesets against ``pcap`` and compare their stdout."""
+        """Run both rulesets and compare alert JSON when the command emits it."""
         if "{pcap}" not in self.command:
             raise ValueError("behavior command must include a {pcap} placeholder")
         original_result = self._execute(original, pcap)
@@ -82,11 +84,20 @@ class EngineVerifier:
             status = original_result.status
         elif not candidate_result.passed:
             status = candidate_result.status
-        elif original_result.stdout != candidate_result.stdout:
-            status = "mismatch"
         else:
-            status = "passed"
-        return BehavioralVerification(status, original_result, candidate_result)
+            original_alerts = _alert_json(original_result.stdout)
+            candidate_alerts = _alert_json(candidate_result.stdout)
+            if original_alerts is not None and candidate_alerts is not None:
+                alert_output_equal = original_alerts == candidate_alerts
+                status = "passed" if alert_output_equal else "mismatch"
+            else:
+                alert_output_equal = None
+                status = (
+                    "passed" if original_result.stdout == candidate_result.stdout else "mismatch"
+                )
+        if not original_result.passed or not candidate_result.passed:
+            alert_output_equal = None
+        return BehavioralVerification(status, original_result, candidate_result, alert_output_equal)
 
     def _execute(self, path: Path, pcap: Path | None = None) -> EngineVerification:
         if pcap is None and "{pcap}" in self.command:
@@ -118,6 +129,15 @@ class EngineVerifier:
             stdout=completed.stdout,
             stderr=completed.stderr,
         )
+
+
+def _alert_json(output: str) -> list[object] | None:
+    """Return a JSON alert projection, or ``None`` for ordinary engine output."""
+    try:
+        value = json.loads(output)
+    except json.JSONDecodeError:
+        return None
+    return value if isinstance(value, list) else None
 
 
 __all__ = ["BehavioralVerification", "EngineVerification", "EngineVerifier"]

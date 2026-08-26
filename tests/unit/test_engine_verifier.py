@@ -48,3 +48,18 @@ def test_engine_verifier_compares_behavior_output(tmp_path) -> None:
 
     assert passed.passed
     assert mismatch.status == "mismatch"
+
+
+def test_engine_verifier_compares_json_alert_projections(tmp_path) -> None:
+    original = tmp_path / "original.rules"
+    candidate = tmp_path / "candidate.rules"
+    pcap = tmp_path / "traffic.pcap"
+    original.write_text("original", encoding="utf-8")
+    candidate.write_text("candidate", encoding="utf-8")
+    pcap.write_bytes(b"pcap")
+    command = f"{sys.executable} -c \"print('[1]')\" {{file}} {{pcap}}"
+
+    result = EngineVerifier(command).verify_behavior(original, candidate, pcap)
+
+    assert result.passed
+    assert result.alert_output_equal is True
