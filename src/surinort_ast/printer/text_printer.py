@@ -121,9 +121,16 @@ def _escape_quoted(text: str) -> str:
     """Escape backslashes and double quotes so quoted text re-parses exactly.
 
     Mirrors the unescaping done when parsing a quoted string (``\\"`` -> ``"``,
-    ``\\\\`` -> ``\\``); backslashes must be escaped first.
+    ``\\\\`` -> ``\\``); backslashes must be escaped first. Control characters
+    are emitted as parser-supported escapes so they cannot split a rule line.
     """
-    return text.replace("\\", "\\\\").replace('"', '\\"')
+    return (
+        text.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\r", "\\r")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+    )
 
 
 @_print_option_dispatch.register
