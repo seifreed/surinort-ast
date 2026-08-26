@@ -37,9 +37,14 @@ the referenced issue does not publish that corpus and its registered Snort
 component is not redistributable.
 
 The checked-in `conformance/history/4.0.0-optimizer-smoke.json` is a narrow
-Suricata 8.0.6 smoke result over two synthetic PCAPs. It proves the lab path
-and records equal alert projections for that fixture, but is not evidence for
-broad optimizer equivalence.
+Suricata 8.0.6 smoke result over two synthetic PCAPs. The broader public-PCAP
+result is recorded in
+`conformance/history/4.0.0-optimizer-public-pcap.json`: it compares the same
+optimizer fixture over ten PCAPs from OISF's `suricata-verify` repository and
+records equal alert projections for all ten cases. This is stronger regression
+evidence than the smoke test, but it is still not universal equivalence or a
+production traffic corpus; the report records those limitations and hashes the
+referenced, non-redistributed PCAPs.
 
 For an optimized ruleset, compare the original and candidate files over a
 fixture battery:
