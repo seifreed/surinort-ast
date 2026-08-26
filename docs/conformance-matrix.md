@@ -21,6 +21,7 @@ Evidence:
 - [External engine-scale report](https://github.com/seifreed/surinort-ast/blob/main/conformance/history/4.0.0-external-engine-scale.json)
 - [Bundled parser conformance report](https://github.com/seifreed/surinort-ast/blob/main/conformance/history/4.0.0-bundled.json)
 - [External parser conformance report](https://github.com/seifreed/surinort-ast/blob/main/conformance/history/4.0.0-external-public.json)
+- [Snort 2 source capability snapshot](https://github.com/seifreed/surinort-ast/blob/main/conformance/capabilities/4.0.0-snort2-source.json)
 
 The external 288,939-rule figure from the historical review is not reproduced
 because that issue does not publish the corpus and the registered Snort

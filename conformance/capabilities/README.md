@@ -14,7 +14,20 @@ surinort validate rules.rules \
   --capability-file conformance/capabilities/4.0.0-local.json
 ```
 
-The Snort 2.9.20 matrix engine does not expose an equivalent complete keyword
-listing through its command-line interface, so it is intentionally absent from
-this capability snapshot. Its parser and engine-load evidence remains in the
+Snort 2.9.20 does not expose an equivalent complete keyword listing through its
+command-line interface. Build its source-backed snapshot from the official
+detection-plugin sources with:
+
+```bash
+python tools/snort2_capabilities.py \
+  --source-dir /path/to/snort-2.9.20/src/detection-plugins \
+  --version 2.9.20 \
+  --output conformance/capabilities/4.0.0-snort2-source.json
+```
+
+The generator fingerprints every C file, extracts each `RegisterRuleOption`
+registration, and adds Snort's core rule metadata keywords (`sid`, `gid`,
+`rev`, `msg`, and related fields), which are parsed outside the plugin registry.
+Actions, protocols, and semantic feature domains remain unknown because these
+sources do not prove those contracts; engine-load evidence remains in the
 versioned conformance reports.
