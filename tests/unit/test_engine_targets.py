@@ -105,3 +105,18 @@ def test_capability_registry_rejects_non_object_json(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="root must be a JSON object"):
         CapabilityRegistry.from_json(path)
+
+
+def test_checked_in_capability_snapshot_has_concrete_complete_catalogs() -> None:
+    from pathlib import Path
+
+    from surinort_ast.analysis import CapabilityRegistry
+
+    registry = CapabilityRegistry.from_json(Path("conformance/capabilities/4.0.0-local.json"))
+
+    suricata = registry.resolve("suricata", "8.0.6")
+    snort3 = registry.resolve("snort", "3.12.2.0")
+    assert suricata is not None and suricata.keyword_catalog_complete
+    assert snort3 is not None and snort3.keyword_catalog_complete
+    assert len(suricata.keywords) >= 300
+    assert len(snort3.keywords) >= 100
