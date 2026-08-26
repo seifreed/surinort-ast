@@ -72,8 +72,8 @@ def test_checked_in_semantic_matrix_has_no_unexpected_diagnostics() -> None:
     report = run(Path("conformance/semantic-matrix.json"))
 
     assert report["failures"] == 0
-    assert report["case_count"] == 25
-    assert report["target_case_count"] == 75
+    assert report["case_count"] == 26
+    assert report["target_case_count"] == 78
     capability_case = [
         item for item in report["cases"] if item["id"] == "engine-keyword-capability"
     ]
