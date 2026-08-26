@@ -152,6 +152,31 @@
       ]
     },
     {
+      "id": "engine-keyword-capability",
+      "category": "engine-differences",
+      "rule": "alert tcp any any -> any 80 (appids; content:\"x\"; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {
+          "engine": "suricata",
+          "version": "8.0.6",
+          "capability_file": "capabilities/4.0.0-local.json",
+          "expected_diagnostics": ["unsupported_engine_keyword"]
+        },
+        {
+          "engine": "snort2",
+          "version": "2.9.20",
+          "capability_file": "capabilities/4.0.0-snort2-source.json",
+          "expected_diagnostics": ["unsupported_engine_keyword"]
+        },
+        {
+          "engine": "snort",
+          "version": "3.12.2.0",
+          "capability_file": "capabilities/4.0.0-local.json",
+          "expected_diagnostics": []
+        }
+      ]
+    },
+    {
       "id": "flowbit-mutating-operator",
       "category": "flowbits",
       "rule": "alert tcp any any -> any 80 (flowbits:set,a|b; msg:\"x\"; sid:1; rev:1;)",
