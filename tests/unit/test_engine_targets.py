@@ -18,6 +18,14 @@ def test_engine_keyword_listing_can_populate_target() -> None:
     assert target.keyword_catalog_complete is True
 
 
+def test_engine_feature_listing_is_tri_state() -> None:
+    target = EngineTarget("suricata", "8.x").with_features({"sticky-buffer"})
+
+    assert target.supports_feature("sticky-buffer") is True
+    assert target.supports_feature("byte-ops") is False
+    assert EngineTarget("suricata", "8.x").supports_feature("sticky-buffer") is None
+
+
 def test_engine_keyword_listing_parser_handles_headers_and_descriptions() -> None:
     listing = """
     Keyword                 Description

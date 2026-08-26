@@ -68,6 +68,14 @@ _BYTE_TEST_OPERATORS = {
     ">=",
     "^",
 }
+_OPTION_FEATURES = {
+    "BufferSelectOption": "sticky-buffer",
+    "FlowbitsOption": "flowbits",
+    "ByteTestOption": "byte-ops",
+    "ByteJumpOption": "byte-ops",
+    "ByteExtractOption": "byte-ops",
+    "PcreOption": "pcre",
+}
 _FLOWBIT_ACTIONS = {"set", "isset", "isnotset", "toggle", "unset", "noalert"}
 _FLOWBIT_NAME_REQUIRED = {"set", "isset", "isnotset", "toggle", "unset"}
 
@@ -226,6 +234,18 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
     for option in rule.options:
         keyword = _option_keyword(option)
         support = target.supports(keyword)
+        feature = _OPTION_FEATURES.get(option.node_type)
+        if feature is not None and target.supports_feature(feature) is False:
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message=f"Feature '{feature}' is not listed for {target.engine} {target.version}",
+                    location=option.location,
+                    code="unsupported_engine_feature",
+                    hint="Use a compatible engine target or remove the dependent option.",
+                    phase="version",
+                )
+            )
         if option.node_type == "BufferSelectOption":
             buffer_name = str(getattr(option, "buffer_name", "")).lower()
             buffer_support = target.supports(buffer_name)

@@ -130,3 +130,28 @@ def test_engine_target_accepts_catalogued_sticky_buffer_name() -> None:
     found = {diagnostic.code for diagnostic in validate_rule(rule, target=target)}
 
     assert "unsupported_engine_keyword" not in found
+
+
+def test_engine_target_rejects_options_with_missing_catalogued_features() -> None:
+    target = EngineTarget(
+        "snort",
+        "2.9.x",
+        keywords=frozenset({"buffer_select", "flowbits", "byte_test", "sid"}),
+        features=frozenset({"byte-ops", "flowbits", "pcre"}),
+        feature_catalog_complete=True,
+        keyword_catalog_complete=True,
+    )
+
+    sticky = parse_rule('alert tcp any any -> any 80 (http_uri; content:"x"; sid:1;)')
+    byte_rule = parse_rule("alert tcp any any -> any 80 (byte_test:1,>,1,0; sid:1;)")
+    flowbit_rule = parse_rule("alert tcp any any -> any 80 (flowbits:set,seen; sid:1;)")
+
+    assert "unsupported_engine_feature" in {
+        diagnostic.code for diagnostic in validate_rule(sticky, target=target)
+    }
+    assert "unsupported_engine_feature" not in {
+        diagnostic.code for diagnostic in validate_rule(byte_rule, target=target)
+    }
+    assert "unsupported_engine_feature" not in {
+        diagnostic.code for diagnostic in validate_rule(flowbit_rule, target=target)
+    }
