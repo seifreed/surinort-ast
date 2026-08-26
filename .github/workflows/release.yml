@@ -175,9 +175,10 @@ jobs:
       - name: Package VS Code extension
         run: |
           npm install --global @vscode/vsce@3.9.2
-          cp LICENSE editors/vscode/LICENSE
-          trap 'rm -f editors/vscode/LICENSE' EXIT
-          cd editors/vscode
+          license_path="$GITHUB_WORKSPACE/editors/vscode/LICENSE"
+          cp "$GITHUB_WORKSPACE/LICENSE" "$license_path"
+          trap 'rm -f "$license_path"' EXIT
+          cd "$GITHUB_WORKSPACE/editors/vscode"
           vsce package --no-dependencies \
             --out "../../dist/surinort-ast-${{ needs.validate.outputs.version }}.vsix"
 

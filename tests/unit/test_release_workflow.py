@@ -100,6 +100,8 @@ def test_release_publishes_and_signs_the_versioned_vscode_artifact() -> None:
     ]
 
     assert "vsce package --no-dependencies" in build
+    assert 'license_path="$GITHUB_WORKSPACE/editors/vscode/LICENSE"' in build
+    assert "trap 'rm -f \"$license_path\"' EXIT" in build
     assert "surinort-ast-${{ needs.validate.outputs.version }}.vsix" in build
     assert "twine check dist/*.whl dist/*.tar.gz" in build
     assert "rm -f dist/*.vsix" in pypi
