@@ -2,9 +2,9 @@
   "schema_version": 1,
   "engines": [
     {
-      "id": "suricata-8.0.1",
+      "id": "suricata-8.0.6",
       "engine": "suricata",
-      "version": "8.0.1",
+      "version": "8.0.6",
       "dialect": "suricata",
       "manifest": "manifest.json",
       "command": "suricata -T -S {file}"
@@ -15,7 +15,7 @@
       "version": "2.9.20",
       "dialect": "snort2",
       "manifest": "manifest.json",
-      "command": "python tools/snort2_engine.py --config conformance/engines/snort2-2.9.20.conf --rules {file}"
+      "command": "docker run --rm -v {file}:/rules/community.rules:ro surinort-snort2:2.9.20 -T -c /etc/snort/snort.conf"
     },
     {
       "id": "snort3-3.12.2.0",

@@ -10,7 +10,7 @@ python -m tools.engine_matrix \
 ```
 
 Each entry must identify an engine, concrete numeric version (for example
-`8.0.1`), dialect, manifest, and command containing `{file}`. Wildcard labels
+`8.0.6`), dialect, manifest, and command containing `{file}`. Wildcard labels
 such as `8.x` are rejected because they cannot identify reproducible evidence.
 The command is executed without a shell. A
 missing binary, rejected original rule, rejected printed rule, timeout, or
