@@ -8,6 +8,7 @@ nav:
   - Home: index.md
   - API Compatibility: api-compatibility.md
   - Engine Validation: engine-validation.md
+  - Supported Engine Matrix: conformance-matrix.md
   - Conformance Dashboard: conformance-dashboard.md
   - Adoption: adoption.md
   - Release Verification: release-verification.md
