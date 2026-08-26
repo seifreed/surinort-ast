@@ -104,6 +104,11 @@ function activate(context) {
       }).then((items) => (items || []).map((item) => {
         const completion = new vscode.CompletionItem(item.label, vscode.CompletionItemKind.Keyword);
         completion.detail = item.detail;
+        if (item.documentation) {
+          completion.documentation = new vscode.MarkdownString(
+            item.documentation.value || item.documentation,
+          );
+        }
         return completion;
       }));
     },
