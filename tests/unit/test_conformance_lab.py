@@ -27,6 +27,23 @@ def test_checked_in_conformance_corpus_round_trips() -> None:
     assert all(not Path(item["path"]).is_absolute() for item in report["corpus_files"])
 
 
+def test_conformance_records_unexpected_parser_exceptions(tmp_path, monkeypatch) -> None:
+    corpus = tmp_path / "corpus" / "suricata"
+    corpus.mkdir(parents=True)
+    (corpus / "rules.rules").write_text("alert tcp any any -> any 80 (sid:1;)\n", encoding="utf-8")
+
+    def fail(*args, **kwargs):
+        raise RuntimeError("parser exploded")
+
+    monkeypatch.setattr("tools.conformance_lab.parse_rule", fail)
+
+    report = run(tmp_path / "corpus")
+
+    assert report["parse_exceptions"] == 1
+    assert report["exception_types"] == {"RuntimeError": 1}
+    assert report["unexpected_failures"] == 1
+
+
 def test_conformance_cli_can_write_summary_without_cases(tmp_path, monkeypatch) -> None:
     output = tmp_path / "summary.json"
     monkeypatch.setattr(
