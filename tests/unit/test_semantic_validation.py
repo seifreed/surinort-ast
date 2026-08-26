@@ -127,6 +127,30 @@ def test_relative_and_byte_operator_constraints_are_reported() -> None:
     )
 
 
+def test_relative_modifier_ranges_and_combinations_are_reported() -> None:
+    assert "invalid_relative_modifier_range" in codes(
+        'alert tcp any any -> any 80 (content:"x"; within:0; sid:1;)'
+    )
+    assert "invalid_relative_modifier_range" in codes(
+        'alert tcp any any -> any 80 (content:"x"; distance:1048577; sid:1;)'
+    )
+    assert "incompatible_content_modifiers" in codes(
+        'alert tcp any any -> any 80 (content:"x",startswith,offset 1; sid:1;)'
+    )
+    assert "incompatible_content_modifiers" in codes(
+        'alert tcp any any -> any 80 (content:"x",endswith,distance 1; sid:1;)'
+    )
+    assert "invalid_relative_modifier_range" not in codes(
+        'alert tcp any any -> any 80 (content:"x"; distance:-1048576; sid:1;)'
+    )
+
+
+def test_relative_variable_references_are_checked() -> None:
+    assert "undefined_byte_variable" in codes(
+        'alert tcp any any -> any 80 (content:"x"; within:missing; sid:1;)'
+    )
+
+
 def test_engine_target_checks_actions_and_protocols() -> None:
     rule = parse_rule('drop udp any any -> any 53 (msg:"x"; sid:1;)')
     target = EngineTarget(
