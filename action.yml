@@ -14,7 +14,7 @@ inputs:
     required: false
     default: ''
   engine-version:
-    description: Versioned engine target, for example 8.x or 3.x.
+    description: Concrete engine version target, for example 8.0.1 or 3.12.2.0.
     required: false
     default: ''
   sarif:
