@@ -523,6 +523,21 @@ def _validate_relative_patterns(rule: Rule) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     has_anchor = False
     for option in rule.options:
+        flags = {str(flag).lower() for flag in getattr(option, "flags", ())}
+        if (
+            option.node_type in {"ByteTestOption", "ByteJumpOption", "ByteExtractOption"}
+            and "relative" in flags
+            and not has_anchor
+        ):
+            diagnostics.append(
+                Diagnostic(
+                    level=DiagnosticLevel.ERROR,
+                    message="Relative byte operation requires a preceding content or byte match",
+                    location=option.location,
+                    code="relative_byte_operation_without_anchor",
+                    phase="option-chain",
+                )
+            )
         if option.node_type in {"ContentOption", "ByteTestOption", "ByteJumpOption"}:
             has_anchor = True
         if option.node_type == "PcreOption" and "r" in str(getattr(option, "flags", "")).lower():

@@ -82,6 +82,15 @@ def test_sticky_buffer_and_protocol_constraints_are_reported() -> None:
 def test_relative_and_byte_operator_constraints_are_reported() -> None:
     found = codes('alert tcp any any -> any 80 (pcre:"/x/R"; sid:1;)')
     assert "relative_pcre_without_anchor" in found
+    assert "relative_byte_operation_without_anchor" in codes(
+        "alert tcp any any -> any 80 (byte_test:1,>,1,0,relative; sid:1;)"
+    )
+    assert "relative_byte_operation_without_anchor" in codes(
+        "alert tcp any any -> any 80 (byte_extract:1,0,value,relative; sid:1;)"
+    )
+    assert "relative_byte_operation_without_anchor" not in codes(
+        'alert tcp any any -> any 80 (content:"x"; byte_jump:1,0,relative; sid:1;)'
+    )
     assert "relative_modifier_without_content" in codes(
         'alert tcp any any -> any 80 (content:"x",within 5; sid:1;)'
     )
