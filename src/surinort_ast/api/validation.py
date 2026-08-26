@@ -58,6 +58,7 @@ _BYTE_COUNT_OPTIONS = {"ByteTestOption", "ByteJumpOption", "ByteExtractOption"}
 _RELATIVE_LIMIT = 1_048_576
 _SNORT_BYTE_LIMIT = 65_535
 _BYTE_VALUE_MAX = 4_294_967_295
+_BYTE_STRING_BASES = {"dec", "hex", "oct"}
 _BYTE_TEST_OPERATORS = {
     "!",
     "!=",
@@ -219,14 +220,74 @@ def _byte_math_fields(value: object) -> dict[str, str]:
 
 
 def _flag_value(flags: object, name: str) -> int | None:
+    value = _flag_argument(flags, name)
+    return _numeric_literal(value) if value is not None else None
+
+
+def _flag_argument(flags: object, name: str) -> str | None:
     if not isinstance(flags, (tuple, list)):
         return None
-    prefix = name.lower() + " "
+    lowered_name = name.lower()
     for flag in flags:
-        if not isinstance(flag, str) or not flag.lower().startswith(prefix):
+        if not isinstance(flag, str):
             continue
-        return _numeric_literal(flag[len(prefix) :].strip())
+        if flag.lower() == lowered_name:
+            return ""
+        if flag.lower().startswith(lowered_name + " "):
+            return flag[len(name) :].strip()
     return None
+
+
+def _validate_byte_flags(
+    flags: object, location: Location | None, keyword: str
+) -> list[Diagnostic]:
+    if not isinstance(flags, (tuple, list)):
+        return []
+    names: set[str] = set()
+    for flag in flags:
+        if not isinstance(flag, str):
+            continue
+        parts = flag.lower().split()
+        if parts:
+            names.add(parts[0])
+            if parts[0] == "string" and len(parts) == 2:
+                names.add(parts[1])
+    diagnostics: list[Diagnostic] = []
+    bases = names & _BYTE_STRING_BASES
+    if len(bases) > 1 or (bases and "string" not in names):
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message=f"{keyword} string/dec/hex/oct requires string and at most one base",
+                location=location,
+                code="invalid_byte_string_format",
+                phase="version",
+            )
+        )
+    endianness = names & {"big", "little"}
+    if len(endianness) > 1:
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message=f"{keyword} cannot specify both big and little endian",
+                location=location,
+                code="invalid_byte_endian",
+                phase="version",
+            )
+        )
+    bitmask = _flag_argument(flags, "bitmask")
+    bitmask_value = _numeric_literal(bitmask) if bitmask is not None else None
+    if bitmask is not None and (bitmask_value is None or not 1 <= bitmask_value <= _BYTE_VALUE_MAX):
+        diagnostics.append(
+            Diagnostic(
+                level=DiagnosticLevel.ERROR,
+                message=f"{keyword} bitmask must be in the range 1-{_BYTE_VALUE_MAX}",
+                location=location,
+                code="invalid_byte_bitmask",
+                phase="version",
+            )
+        )
+    return diagnostics
 
 
 def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) -> list[Diagnostic]:  # noqa: PLR0912, PLR0915
@@ -242,6 +303,15 @@ def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) ->
             and str(getattr(option, "keyword", "")).lower() == "byte_math"
         ):
             fields = _byte_math_fields(getattr(option, "value", None))
+            if snort_target:
+                field_flags = tuple(
+                    key if not value else f"{key} {value}" for key, value in fields.items()
+                )
+                diagnostics.extend(
+                    _validate_byte_flags(
+                        field_flags, getattr(option, "location", None), "byte_math"
+                    )
+                )
             for field_name in ("bytes", "offset", "rvalue"):
                 variable = _variable_reference(fields.get(field_name))
                 if variable is not None and variable not in defined:
@@ -401,6 +471,13 @@ def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) ->
                     )
 
         if snort_target and option_type in _BYTE_COUNT_OPTIONS:
+            diagnostics.extend(
+                _validate_byte_flags(
+                    getattr(option, "flags", ()),
+                    getattr(option, "location", None),
+                    _option_keyword(option),
+                )
+            )
             multiplier = _flag_value(getattr(option, "flags", ()), "multiplier")
             if multiplier is not None and not 1 <= multiplier <= _SNORT_BYTE_LIMIT:
                 diagnostics.append(

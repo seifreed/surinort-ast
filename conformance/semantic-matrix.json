@@ -112,6 +112,16 @@
       ]
     },
     {
+      "id": "byte-string-flag",
+      "category": "byte-operations",
+      "rule": "alert tcp any any -> any 80 (byte_test:1,>,1,0,hex; msg:\"x\"; sid:1; rev:1;)",
+      "targets": [
+        {"engine": "suricata", "version": "8.0.6", "expected_diagnostics": []},
+        {"engine": "snort", "version": "2.9.20", "expected_diagnostics": ["invalid_byte_string_format"]},
+        {"engine": "snort", "version": "3.12.2.0", "expected_diagnostics": ["invalid_byte_string_format"]}
+      ]
+    },
+    {
       "id": "duplicate-byte-variable",
       "category": "byte-operations",
       "rule": "alert tcp any any -> any 80 (byte_extract:1,0,foo; byte_extract:1,0,foo; msg:\"x\"; sid:1; rev:1;)",

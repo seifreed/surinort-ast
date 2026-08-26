@@ -372,6 +372,25 @@ def test_snort_byte_operations_use_versioned_ranges() -> None:
         diagnostic.code for diagnostic in validate_rule(invalid_math, target=snort3)
     }
 
+    invalid_flags = parse_rule("alert tcp any any -> any 80 (byte_test:1,>,1,0,hex; sid:1;)")
+    assert "invalid_byte_string_format" in {
+        diagnostic.code for diagnostic in validate_rule(invalid_flags, target=snort3)
+    }
+
+    invalid_endian = parse_rule(
+        "alert tcp any any -> any 80 (byte_test:1,>,1,0,big,little; sid:1;)"
+    )
+    assert "invalid_byte_endian" in {
+        diagnostic.code for diagnostic in validate_rule(invalid_endian, target=snort3)
+    }
+
+    invalid_mask = parse_rule(
+        "alert tcp any any -> any 80 (byte_test:1,>,1,0,bitmask 0x100000000; sid:1;)"
+    )
+    assert "invalid_byte_bitmask" in {
+        diagnostic.code for diagnostic in validate_rule(invalid_mask, target=snort3)
+    }
+
 
 def test_snort_content_ranges_allow_negative_offset_but_require_match_length() -> None:
     target = EngineTarget("snort", "3.12.2.0")
