@@ -53,7 +53,7 @@ def test_engine_matrix_runs_declared_entries(tmp_path) -> None:
                     {
                         "id": "fake-suricata",
                         "engine": "suricata",
-                        "version": "test",
+                        "version": "1.2.3",
                         "dialect": "suricata",
                         "manifest": "manifest.json",
                         "command": f"{sys.executable} -c pass {{file}}",
@@ -67,10 +67,37 @@ def test_engine_matrix_runs_declared_entries(tmp_path) -> None:
     entries = load_matrix(matrix)
     report = run_matrix(matrix)
 
-    assert entries[0].version == "test"
+    assert entries[0].version == "1.2.3"
     assert report["total_rules"] == 1
     assert report["unexpected_failures"] == 0
     assert report["engines"][0]["report"]["engine_validation_passed"] == 1
+
+
+def test_engine_matrix_rejects_wildcard_versions(tmp_path) -> None:
+    matrix = tmp_path / "matrix.json"
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text('{"files": []}', encoding="utf-8")
+    matrix.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "engines": [
+                    {
+                        "id": "suricata-template",
+                        "engine": "suricata",
+                        "version": "8.x",
+                        "dialect": "suricata",
+                        "manifest": "manifest.json",
+                        "command": f"{sys.executable} -c pass {{file}}",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="concrete numeric version"):
+        load_matrix(matrix)
 
 
 def test_engine_matrix_rejects_invalid_dialect_and_missing_manifest(tmp_path) -> None:

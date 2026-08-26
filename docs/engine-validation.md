@@ -9,8 +9,10 @@ python -m tools.engine_matrix \
   --output engine-matrix-report.json
 ```
 
-Each entry must identify an engine, concrete version label, dialect, manifest,
-and command containing `{file}`. The command is executed without a shell. A
+Each entry must identify an engine, concrete numeric version (for example
+`8.0.1`), dialect, manifest, and command containing `{file}`. Wildcard labels
+such as `8.x` are rejected because they cannot identify reproducible evidence.
+The command is executed without a shell. A
 missing binary, rejected original rule, rejected printed rule, timeout, or
 behavior mismatch is recorded as an unexpected failure.
 

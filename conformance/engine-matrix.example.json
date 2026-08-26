@@ -2,25 +2,25 @@
   "schema_version": 1,
   "engines": [
     {
-      "id": "suricata-8.x",
+      "id": "suricata-8.0.1",
       "engine": "suricata",
-      "version": "8.x",
+      "version": "8.0.1",
       "dialect": "suricata",
       "manifest": "manifest.json",
       "command": "suricata -T -S {file}"
     },
     {
-      "id": "snort2-2.9.x",
+      "id": "snort2-2.9.20.0",
       "engine": "snort2",
-      "version": "2.9.x",
+      "version": "2.9.20.0",
       "dialect": "snort2",
       "manifest": "manifest.json",
       "command": "snort -T -c /etc/snort/snort.conf -R {file}"
     },
     {
-      "id": "snort3-3.x",
+      "id": "snort3-3.12.2.0",
       "engine": "snort3",
-      "version": "3.x",
+      "version": "3.12.2.0",
       "dialect": "snort3",
       "manifest": "manifest.json",
       "command": "snort -T -c /etc/snort/snort.lua -R {file}"
