@@ -37,6 +37,19 @@ workflow verifies the digest, runs the lab, and uploads
 `external-conformance-report.json` even when the corpus has unexpected
 failures.
 
+The versioned semantic target matrix is reproducible locally with:
+
+```bash
+python tools/semantic_matrix.py \
+  --manifest conformance/semantic-matrix.json \
+  --output semantic-matrix-report.json
+```
+
+It compares exact diagnostic sets for Suricata 8.0.6, Snort 2.9.20, and Snort
+3.12.2.0 across the declared semantic cases. Adding a case requires its
+expected result for every target so unsupported engine differences stay
+explicit.
+
 For differential behavior checks, provide a traffic fixture and an engine
 command containing both placeholders. The command must print a stable alert
 projection to stdout. The repository includes a Suricata adapter because
