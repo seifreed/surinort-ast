@@ -86,17 +86,17 @@ dev = [
     # Testing
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
-    "pytest-benchmark>=5.2.3",
+    "pytest-benchmark>=5.3.0",
     "hypothesis>=6.165.7",
     # Linting, formatting, typing
-    "ruff>=0.16.4",
+    "ruff>=0.16.5",
     "black>=26.1.0",
     "mypy>=2.3.1",
     # Security & dependency auditing
     "bandit>=1.9.4",
     "pip-audit>=2.10.1",
     # Build, publishing, hooks, docs
-    "build>=1.5.0",
+    "build>=1.6.0",
     "twine>=7.0.0",
     "pre-commit>=4.6.2",
     "mkdocs-material>=9.7.7",
