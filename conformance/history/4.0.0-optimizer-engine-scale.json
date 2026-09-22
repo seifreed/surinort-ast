@@ -1,0 +1,131 @@
+{
+  "engine_validation_failures": 0,
+  "engines": [
+    {
+      "dialect": "snort2",
+      "engine": "snort2",
+      "id": "snort2-2.9.20-bundled-optimizer",
+      "report": {
+        "corpus": "rules/snort/snort29-community-rules/community-rules/community.rules",
+        "corpus_files": [
+          {
+            "bytes": 1809323,
+            "path": "rules/snort/snort29-community-rules/community-rules/community.rules",
+            "sha256": "688d2f41c50e1e27d3c2a1968dae044fdbc82733bb6abe68045618387a8334"
+          },
+          {
+            "bytes": 311323,
+            "path": "optimizer candidate (generated)",
+            "sha256": "b3824cadd883432edb0c2ff7397b953bfaf9befe22d2b6ef2d8a74d710ba9770"
+          }
+        ],
+        "dialect": "snort2",
+        "engine_command": "docker run --rm -v {file}:/rules/community.rules:ro surinort-snort2:2.9.20 -T -c /etc/snort/snort.conf",
+        "engine_optimized": {
+          "returncode": 0,
+          "status": "passed",
+          "warnings": 37
+        },
+        "engine_original": {
+          "returncode": 0,
+          "status": "passed",
+          "warnings": 37
+        },
+        "engine_validation_scope": "one full ruleset load for original and optimized files",
+        "errors_by_keyword": {},
+        "optimizer": {
+          "modified_rules": 76,
+          "optimization_count": 77,
+          "rule_count": 561,
+          "strategy_counts": {
+            "FastPattern": 72,
+            "OptionReorder": 5
+          }
+        },
+        "parse_exceptions": 0,
+        "parse_print_engine_path": "parse -> optimize -> print -> Snort2 load",
+        "parse_rate": 1.0,
+        "parsed": 561,
+        "peak_memory_mb": null,
+        "printed": 561,
+        "round_trip_passed": 561,
+        "round_trip_rate": 1.0,
+        "rules_per_second": null,
+        "total_rules": 561,
+        "unexpected_failures": 0
+      },
+      "version": "2.9.20"
+    },
+    {
+      "dialect": "snort3",
+      "engine": "snort3",
+      "id": "snort3-3.12.2.0-bundled-optimizer",
+      "report": {
+        "corpus": "rules/snort/snort3-community-rules/snort3-community-rules/snort3-community.rules",
+        "corpus_files": [
+          {
+            "bytes": 1794988,
+            "path": "rules/snort/snort3-community-rules/snort3-community-rules/snort3-community.rules",
+            "sha256": "9113fb15ac089b72aacc4c099dff4dfdb5d8762915d36ee38bcfbc695dd8b8a9"
+          },
+          {
+            "bytes": 1798159,
+            "path": "optimizer candidate (generated)",
+            "sha256": "b99b65b6be85dac46b3b111c3b08de990de956e0817828418125cc57920060fa"
+          }
+        ],
+        "dialect": "snort3",
+        "engine_command": "snort -T -c conformance/engines/snort3-3.12.2.lua -R {file}",
+        "engine_config": "conformance/engines/snort3-3.12.2.lua",
+        "engine_optimized": {
+          "returncode": 0,
+          "status": "passed",
+          "warnings": 0
+        },
+        "engine_original": {
+          "returncode": 0,
+          "status": "passed",
+          "warnings": 0
+        },
+        "engine_validation_scope": "one full ruleset load for original and optimized files",
+        "errors_by_keyword": {},
+        "optimizer": {
+          "modified_rules": 1527,
+          "optimization_count": 1543,
+          "rule_count": 4017,
+          "strategy_counts": {
+            "FastPattern": 620,
+            "OptionReorder": 923
+          }
+        },
+        "parse_exceptions": 0,
+        "parse_print_engine_path": "parse -> optimize -> print -> Snort3 load",
+        "parse_rate": 1.0,
+        "parsed": 4017,
+        "peak_memory_mb": null,
+        "printed": 4017,
+        "round_trip_passed": 4017,
+        "round_trip_rate": 1.0,
+        "rules_per_second": null,
+        "total_rules": 4017,
+        "unexpected_failures": 0
+      },
+      "version": "3.12.2.0"
+    }
+  ],
+  "kind": "optimizer-engine-scale-conformance",
+  "limitations": [
+    "This validates engine acceptance of the optimized rulesets, not universal semantic equivalence or production performance gain.",
+    "PCAP alert equivalence and production traffic calibration remain unvalidated for Snort2 and Snort3.",
+    "Snort2 emits 37 existing corpus warnings in both runs; no new failures were observed.",
+    "The Snort3 config assigns any to corpus variables for reproducible syntax/load validation and is not a deployment policy."
+  ],
+  "package_version": "4.0.0",
+  "pcap_behavior_equivalence": "not-run",
+  "schema_version": 1,
+  "scope": "Bundled tracked Snort2 and Snort3 corpora; parser optimize -> print -> real engine load",
+  "source_commit": "ea2c569",
+  "total_rules": 4578,
+  "unexpected_failures": 0,
+  "verified_at": "2026-08-26T08:40:36.071317+00:00"
+}

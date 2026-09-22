@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, replace
+from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -53,6 +56,57 @@ class EngineTarget:
     def supports_protocol(self, protocol: str) -> bool | None:
         """Return protocol support when the target publishes a protocol list."""
         return _supports(self.protocols, protocol)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this versioned capability snapshot."""
+        return {
+            "engine": self.engine,
+            "version": self.version,
+            "keywords": sorted(self.keywords),
+            "features": sorted(self.features),
+            "actions": sorted(self.actions),
+            "protocols": sorted(self.protocols),
+            "aliases": [list(alias) for alias in self.aliases],
+            "deprecated_keywords": sorted(self.deprecated_keywords),
+            "keyword_catalog_complete": self.keyword_catalog_complete,
+            "feature_catalog_complete": self.feature_catalog_complete,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> EngineTarget:
+        """Load one capability snapshot and reject malformed fields."""
+        engine = payload.get("engine")
+        version = payload.get("version")
+        if not isinstance(engine, str) or not engine or not isinstance(version, str) or not version:
+            raise ValueError("capability targets require non-empty engine and version strings")
+
+        def strings(name: str) -> frozenset[str]:
+            value = payload.get(name, [])
+            if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+                raise ValueError(f"capability target field '{name}' must be a string list")
+            return frozenset(value)
+
+        raw_aliases = payload.get("aliases", [])
+        if not isinstance(raw_aliases, list) or not all(
+            isinstance(item, list)
+            and len(item) == 2
+            and all(isinstance(value, str) for value in item)
+            for item in raw_aliases
+        ):
+            raise ValueError("capability target field 'aliases' must contain string pairs")
+
+        return cls(
+            engine=engine,
+            version=version,
+            keywords=strings("keywords"),
+            features=strings("features"),
+            actions=strings("actions"),
+            protocols=strings("protocols"),
+            aliases=tuple((item[0], item[1]) for item in raw_aliases),
+            deprecated_keywords=strings("deprecated_keywords"),
+            keyword_catalog_complete=bool(payload.get("keyword_catalog_complete", False)),
+            feature_catalog_complete=bool(payload.get("feature_catalog_complete", False)),
+        )
 
     def with_keywords(self, keywords: set[str] | frozenset[str]) -> EngineTarget:
         """Return a target populated from an engine keyword listing."""
@@ -109,10 +163,47 @@ class CapabilityRegistry:
     def resolve(self, engine: str, version: str) -> EngineTarget | None:
         """Resolve exact versions before major-version wildcards."""
         key = _normalize(engine)
-        return self._targets.get((key, version)) or self._targets.get((key, _major(version)))
+        candidates = [key]
+        major = version.split(".", 1)[0]
+        if key == "snort" and major in {"2", "3"}:
+            candidates.append(f"snort{major}")
+        elif key in {"snort2", "snort3"} and key[-1] == major:
+            candidates.append("snort")
+        for candidate in candidates:
+            target = self._targets.get((candidate, version))
+            if target is not None:
+                return target
+        for candidate in candidates:
+            target = self._targets.get((candidate, _major(version)))
+            if target is not None:
+                return target
+        return None
 
     def targets(self) -> tuple[EngineTarget, ...]:
         return tuple(self._targets.values())
+
+    @classmethod
+    def from_json(cls, path: Path | str) -> CapabilityRegistry:
+        """Load a versioned registry snapshot from JSON."""
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("capability registry root must be a JSON object")
+        if payload.get("schema_version") != 1:
+            raise ValueError("capability registry schema_version must be 1")
+        entries = payload.get("targets")
+        if not isinstance(entries, list) or not all(isinstance(item, dict) for item in entries):
+            raise ValueError("capability registry must contain a 'targets' object list")
+        return cls(tuple(EngineTarget.from_dict(item) for item in entries))
+
+    def write_json(self, path: Path | str) -> None:
+        """Write this registry as a versioned JSON snapshot."""
+        payload = {
+            "schema_version": 1,
+            "targets": [target.to_dict() for target in self.targets()],
+        }
+        Path(path).write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
 
 
 def _major(version: str) -> str:
@@ -129,8 +220,12 @@ def parse_keyword_listing(listing: str) -> frozenset[str]:
     ignored = {"keyword", "keywords", "name", "description", "supported"}
     for raw_line in listing.splitlines():
         line = raw_line.strip()
-        if not line or line.startswith(("#", "-", "=")):
+        if not line or line.startswith(("#", "=")):
             continue
+        if line.startswith("-"):
+            line = line.lstrip("-").strip()
+            if not line:
+                continue
         token = line.split(maxsplit=1)[0].rstrip(":")
         if token.lower() in ignored:
             continue

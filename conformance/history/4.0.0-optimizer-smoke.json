@@ -1,0 +1,77 @@
+{
+  "behaviorally_equivalent": true,
+  "candidate": {
+    "path": "conformance/optimizer/optimized.rules",
+    "sha256": "c364c9dd4346d4de4ca1221583fe14214f2bff4efb1bcbc7f477e4d2d4aa31ee"
+  },
+  "cases": [
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [
+        {
+          "action": "allowed",
+          "category": "",
+          "gid": 1,
+          "rev": 1,
+          "severity": 3,
+          "signature": "GET",
+          "signature_id": 100001
+        }
+      ],
+      "original_alerts": [
+        {
+          "action": "allowed",
+          "category": "",
+          "gid": 1,
+          "rev": 1,
+          "severity": 3,
+          "signature": "GET",
+          "signature_id": 100001
+        }
+      ],
+      "pcap": "conformance/pcap/get.pcap",
+      "status": "passed"
+    },
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "conformance/pcap/post.pcap",
+      "status": "passed"
+    }
+  ],
+  "engine": {
+    "name": "suricata",
+    "version": "8.0.6"
+  },
+  "engine_command": "python tools/suricata_behavior.py --rules {file} --pcap {pcap}",
+  "failures": 0,
+  "kind": "optimizer-behavior-conformance",
+  "optimizer": {
+    "confidence": "low",
+    "experimental": true,
+    "modified": true,
+    "strategy": "OptionReorder"
+  },
+  "original": {
+    "path": "conformance/optimizer/original.rules",
+    "sha256": "7bf30b084876417721a42a418e3fb51d7d37df8b93ddf68bc872af4ab422be74"
+  },
+  "package_version": "4.0.0",
+  "passed": 2,
+  "pcap_count": 2,
+  "pcap_fixtures": [
+    {
+      "path": "conformance/pcap/get.pcap",
+      "sha256": "9c5698270e9e55510208aeadef5e87a347187999b62bc7fb5b5fc2e1ac8db07a"
+    },
+    {
+      "path": "conformance/pcap/post.pcap",
+      "sha256": "87ac2b3c7f146bb47b84feaa7c119af25466d0c7cea15ce1678f68c6f5608464"
+    }
+  ],
+  "schema_version": 1,
+  "scope": "Two checked-in synthetic PCAP fixtures; smoke evidence only, not a broad traffic corpus.",
+  "source_commit": "22a2891",
+  "verified_at": "2026-08-26T06:23:03.747795+00:00"
+}

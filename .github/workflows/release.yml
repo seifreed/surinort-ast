@@ -57,6 +57,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0  # Full history for changelog
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref }}
 
       - name: Extract version from tag
         id: version
@@ -66,7 +67,7 @@ jobs:
           else
             VERSION="${GITHUB_REF#refs/tags/}"
           fi
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Releasing version: ${VERSION}"
 
       - name: Verify tag format
@@ -94,6 +95,16 @@ jobs:
             exit 1
           fi
           echo "Signed release tag verified: $VERSION"
+
+      - name: Verify release commit is merged into main
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "${VERSION}^{commit}" "origin/main"; then
+            echo "Release tag $VERSION must point to a commit already merged into main"
+            exit 1
+          fi
+          echo "Release commit is merged into main: $VERSION"
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
@@ -164,7 +175,10 @@ jobs:
       - name: Package VS Code extension
         run: |
           npm install --global @vscode/vsce@3.9.2
-          cd editors/vscode
+          license_path="$GITHUB_WORKSPACE/editors/vscode/LICENSE"
+          cp "$GITHUB_WORKSPACE/LICENSE" "$license_path"
+          trap 'rm -f "$license_path"' EXIT
+          cd "$GITHUB_WORKSPACE/editors/vscode"
           vsce package --no-dependencies \
             --out "../../dist/surinort-ast-${{ needs.validate.outputs.version }}.vsix"
 
@@ -181,7 +195,8 @@ jobs:
 
       - name: Generate checksums
         run: |
-          sha256sum dist/* > SHA256SUMS
+          sha256sum dist/* | sed 's#  dist/#  #' > SHA256SUMS
+          sha256sum sbom.json sbom.xml >> SHA256SUMS
           cat SHA256SUMS
 
       - name: Attest release distributions
@@ -189,11 +204,21 @@ jobs:
         with:
           subject-path: 'dist/*'
 
+      - name: Attest JSON SBOM
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45  # v2
+        with:
+          subject-path: 'sbom.json'
+
+      - name: Attest XML SBOM
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45  # v2
+        with:
+          subject-path: 'sbom.xml'
+
       - name: Verify build provenance
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for file in dist/*.whl dist/*.tar.gz dist/*.vsix; do
+          for file in dist/*.whl dist/*.tar.gz dist/*.vsix sbom.json sbom.xml; do
             gh attestation verify "$file" \
               --repo "$GITHUB_REPOSITORY" \
               --signer-workflow .github/workflows/release.yml
@@ -235,21 +260,23 @@ jobs:
           VERSION="${{ needs.validate.outputs.version }}"
 
           # Get previous tag
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 ${VERSION}^ 2>/dev/null || echo "")
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "${VERSION}^" 2>/dev/null || echo "")
 
           if [[ -z "$PREVIOUS_TAG" ]]; then
             echo "First release, no previous tag"
             CHANGELOG="Initial release of surinort-ast"
           else
             echo "Generating changelog from $PREVIOUS_TAG to $VERSION"
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${PREVIOUS_TAG}..${VERSION})
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" "${PREVIOUS_TAG}..${VERSION}")
           fi
 
           # Save to file and output
           echo "$CHANGELOG" > changelog.txt
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload changelog
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -261,7 +288,7 @@ jobs:
   # Publish to PyPI using Trusted Publisher
   publish-pypi:
     name: Publish to PyPI
-    needs: [validate, build, changelog]
+    needs: [validate, build, changelog, sign-artifacts]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -327,7 +354,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p provenance
-          for file in dist/*.whl dist/*.tar.gz dist/*.vsix; do
+          for file in dist/*.whl dist/*.tar.gz dist/*.vsix sbom.json sbom.xml; do
             (
               cd provenance
               gh attestation download "../$file" --repo "$GITHUB_REPOSITORY"
@@ -343,7 +370,9 @@ jobs:
           draft: false
           prerelease: ${{ contains(needs.validate.outputs.version, '-') }}
           files: |
-            dist/*
+            dist/*.whl
+            dist/*.tar.gz
+            dist/*.vsix
             SHA256SUMS
             sbom.json
             sbom.xml
@@ -352,10 +381,43 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
 
+  # Publish the versioned extension to the VS Code Marketplace.
+  publish-vscode:
+    name: Publish VS Code Extension
+    needs: [validate, build, github-release]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    environment:
+      name: vscode-marketplace
+      url: https://marketplace.visualstudio.com/items?itemName=seifreed.surinort-ast
+
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v6.0.0
+        with:
+          node-version: '24'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: release-distributions
+          path: .
+
+      - name: Publish extension
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          test -n "$VSCE_PAT"
+          npm install --global @vscode/vsce@3.9.2
+          vsce publish --packagePath dist/*.vsix --pat "$VSCE_PAT"
+
   # Sign release artifacts with Sigstore
   sign-artifacts:
     name: Sign Release Artifacts
-    needs: [validate, build, publish-pypi]
+    needs: [validate, build]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -381,17 +443,19 @@ jobs:
 
       - name: Sign artifacts with Sigstore
         run: |
-          cd dist/
-          for file in *.whl *.tar.gz *.vsix; do
+          rm -rf signed-artifacts
+          mkdir -p signed-artifacts
+          for file in dist/*.whl dist/*.tar.gz dist/*.vsix sbom.json sbom.xml; do
             python -m sigstore sign "$file"
+            cp "$file.sigstore.json" signed-artifacts/
           done
-          ls -la
+          ls -la signed-artifacts/
 
       - name: Upload signed artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: signed-artifacts
-          path: dist/*.sigstore.json
+          path: signed-artifacts/*.sigstore.json
           retention-days: 90
 
   # Post-release verification
@@ -437,10 +501,67 @@ jobs:
           fi
           echo "Version verified: $INSTALLED_VERSION"
 
+  # Verify the exact assets exposed by the public GitHub release.
+  verify-public-assets:
+    name: Verify Public Release Assets
+    needs: [validate, github-release]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      attestations: read
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.14'
+
+      - name: Install signature verifier
+        run: |
+          python -m pip install --upgrade pip==26.0.1
+          python -m pip install sigstore==4.2.0
+
+      - name: Download public release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          mkdir -p release-assets
+          gh release download "$VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir release-assets
+          ls -lh release-assets
+
+      - name: Verify checksums and required metadata
+        run: |
+          test -s release-assets/SHA256SUMS
+          test -s release-assets/sbom.json
+          test -s release-assets/sbom.xml
+          (cd release-assets && sha256sum --check --strict SHA256SUMS)
+
+      - name: Verify Sigstore signatures and build provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          IDENTITY="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@refs/tags/${VERSION}"
+          for file in release-assets/*.whl release-assets/*.tar.gz release-assets/*.vsix release-assets/sbom.json release-assets/sbom.xml; do
+            test -s "$file.sigstore.json"
+            sigstore verify identity "$file" \
+              --bundle "$file.sigstore.json" \
+              --cert-identity "$IDENTITY" \
+              --cert-oidc-issuer "https://token.actions.githubusercontent.com"
+            gh attestation verify "$file" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+              --source-ref "$VERSION"
+          done
+
   # Release success summary
   release-success:
     name: Release Pipeline Success
-    needs: [validate, test, build, changelog, publish-pypi, github-release, sign-artifacts, verify-release]
+    needs: [validate, test, build, changelog, publish-pypi, github-release, publish-vscode, sign-artifacts, verify-release, verify-public-assets]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     if: always()
@@ -472,12 +593,20 @@ jobs:
             echo "GitHub release failed"
             exit 1
           fi
+          if [[ "${{ needs.publish-vscode.result }}" != "success" ]]; then
+            echo "VS Code Marketplace publish failed"
+            exit 1
+          fi
           if [[ "${{ needs.sign-artifacts.result }}" != "success" ]]; then
             echo "Artifact signing failed"
             exit 1
           fi
           if [[ "${{ needs.verify-release.result }}" != "success" ]]; then
             echo "Release verification failed"
+            exit 1
+          fi
+          if [[ "${{ needs.verify-public-assets.result }}" != "success" ]]; then
+            echo "Public release asset verification failed"
             exit 1
           fi
           echo "Release ${{ needs.validate.outputs.version }} completed successfully!"

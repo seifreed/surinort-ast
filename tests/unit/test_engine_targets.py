@@ -1,4 +1,15 @@
-from surinort_ast.analysis import EngineTarget, default_capability_registry, parse_keyword_listing
+from pathlib import Path
+
+import pytest
+
+from surinort_ast.analysis import (
+    CapabilityRegistry,
+    EngineTarget,
+    default_capability_registry,
+    parse_keyword_listing,
+)
+from surinort_ast.api import parse_file, validate_rules
+from surinort_ast.core.enums import Dialect
 
 
 def test_registry_prefers_exact_version_then_major_snapshot() -> None:
@@ -8,6 +19,15 @@ def test_registry_prefers_exact_version_then_major_snapshot() -> None:
     assert registry.resolve("snort", "3.1").supports("content") is True
     assert registry.resolve("snort", "3.1").supports("unknown") is None
     assert registry.resolve("other", "1.0") is None
+
+
+def test_registry_resolves_snort_aliases_only_for_matching_major_versions() -> None:
+    registry = default_capability_registry()
+
+    assert registry.resolve("snort2", "2.9.20") == registry.resolve("snort", "2.9.20")
+    assert registry.resolve("snort3", "3.12.2.0") == registry.resolve("snort", "3.12.2.0")
+    assert registry.resolve("snort2", "3.12.2.0") is None
+    assert registry.resolve("snort3", "2.9.20") is None
 
 
 def test_engine_keyword_listing_can_populate_target() -> None:
@@ -41,6 +61,18 @@ def test_engine_keyword_listing_parser_handles_headers_and_descriptions() -> Non
     assert target.supports("missing") is False
 
 
+def test_engine_keyword_listing_parser_handles_suricata_bullets() -> None:
+    target = EngineTarget.from_keyword_listing(
+        "suricata",
+        "8.0.6",
+        "=====Supported keywords=====\n- sid\n- content\n- http.uri\n",
+    )
+
+    assert target.supports("sid") is True
+    assert target.supports("http.uri") is True
+    assert target.supports("missing") is False
+
+
 def test_target_models_aliases_deprecations_and_domains() -> None:
     target = EngineTarget(
         "suricata",
@@ -57,3 +89,88 @@ def test_target_models_aliases_deprecations_and_domains() -> None:
     assert target.is_deprecated("sticky_buffer") is True
     assert target.supports_action("alert") is True
     assert target.supports_protocol("udp") is False
+
+
+def test_capability_registry_json_roundtrip(tmp_path) -> None:
+    from surinort_ast.analysis import CapabilityRegistry
+
+    target = EngineTarget(
+        "suricata",
+        "8.0.6",
+        keywords=frozenset({"content", "sid"}),
+        features=frozenset({"sticky-buffer"}),
+        actions=frozenset({"alert"}),
+        protocols=frozenset({"tcp"}),
+        aliases=(("http.uri", "http_uri"),),
+        keyword_catalog_complete=True,
+        feature_catalog_complete=True,
+    )
+    registry = CapabilityRegistry((target,))
+    path = tmp_path / "capabilities.json"
+
+    registry.write_json(path)
+    restored = CapabilityRegistry.from_json(path)
+
+    assert restored.resolve("SURICATA", "8.0.6") == target
+    assert restored.resolve("suricata", "8.0.6").supports("missing") is False
+
+
+def test_capability_registry_rejects_non_object_json(tmp_path) -> None:
+    from surinort_ast.analysis import CapabilityRegistry
+
+    path = tmp_path / "invalid.json"
+    path.write_text("[]", encoding="utf-8")
+
+    import pytest
+
+    with pytest.raises(ValueError, match="root must be a JSON object"):
+        CapabilityRegistry.from_json(path)
+
+
+def test_checked_in_capability_snapshot_has_concrete_complete_catalogs() -> None:
+    registry = CapabilityRegistry.from_json(Path("conformance/capabilities/4.0.0-local.json"))
+
+    suricata = registry.resolve("suricata", "8.0.6")
+    snort3 = registry.resolve("snort", "3.12.2.0")
+    assert suricata is not None and suricata.keyword_catalog_complete
+    assert snort3 is not None and snort3.keyword_catalog_complete
+    assert len(suricata.keywords) >= 300
+    assert len(snort3.keywords) >= 100
+    assert snort3.supports("base64_data") is True
+
+
+@pytest.mark.parametrize(
+    ("path", "dialect", "engine", "version", "expected_rules"),
+    [
+        (
+            "rules/suricata/suricata.rules",
+            Dialect.SURICATA,
+            "suricata",
+            "8.0.6",
+            30579,
+        ),
+        (
+            "rules/snort/snort3-community-rules/snort3-community-rules/snort3-community.rules",
+            Dialect.SNORT3,
+            "snort",
+            "3.12.2.0",
+            4017,
+        ),
+    ],
+)
+def test_checked_in_capability_snapshot_covers_real_engine_corpus(
+    path: str,
+    dialect: Dialect,
+    engine: str,
+    version: str,
+    expected_rules: int,
+) -> None:
+    registry = CapabilityRegistry.from_json(Path("conformance/capabilities/4.0.0-local.json"))
+    target = registry.resolve(engine, version)
+    assert target is not None
+
+    rules = list(parse_file(Path(path), dialect=dialect, stream=True))
+    diagnostics = validate_rules(rules, target=target)
+
+    assert len(rules) == expected_rules
+    assert not any(item.code == "unsupported_engine_keyword" for item in diagnostics)

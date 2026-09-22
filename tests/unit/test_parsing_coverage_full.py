@@ -205,6 +205,10 @@ class TestParseMixedContent:
         with pytest.raises(ValueError, match="Invalid hex content"):
             _parse_mixed_content("|GG|rest")
 
+    def test_empty_hex_between_pipes_raises(self) -> None:
+        with pytest.raises(ValueError, match="empty hex segment"):
+            _parse_mixed_content("||rest")
+
     def test_invalid_hex_in_mixed_content_preserves_raw_bytes(self) -> None:
         # Through a full parse, malformed hex falls back to the raw string and
         # records a WARNING diagnostic rather than dropping the |...| segment.

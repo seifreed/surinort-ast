@@ -1,0 +1,126 @@
+# Copyright (c) Marc Rivero López
+# Licensed under GNU General Public License v3.0
+# See LICENSE file for full terms
+
+name: External Conformance
+
+on:
+  workflow_dispatch:
+    inputs:
+      corpus_url:
+        description: "HTTPS URL of an authorized .tar.gz rules corpus"
+        required: true
+        type: string
+      corpus_sha256:
+        description: "SHA-256 digest of the archive"
+        required: true
+        type: string
+      source_label:
+        description: "Human-readable corpus and license label"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: external-conformance-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    name: External Corpus Benchmark
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip==26.0.1
+          python -m pip install -e .
+
+      - name: Download and verify corpus
+        env:
+          CORPUS_URL: ${{ inputs.corpus_url }}
+          CORPUS_SHA256: ${{ inputs.corpus_sha256 }}
+        run: |
+          mkdir -p external-corpus
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output /tmp/external-corpus.tar.gz "$CORPUS_URL"
+          printf '%s  %s\n' "$CORPUS_SHA256" /tmp/external-corpus.tar.gz \
+            | sha256sum --check --strict
+          python tools/extract_conformance_archive.py \
+            /tmp/external-corpus.tar.gz external-corpus
+          rules_count=$(find external-corpus -type f -name '*.rules' | wc -l)
+          test "$rules_count" -gt 0
+          echo "Discovered $rules_count rule file(s)"
+
+      - name: Run external conformance lab
+        env:
+          SOURCE_LABEL: ${{ inputs.source_label }}
+          CORPUS_URL: ${{ inputs.corpus_url }}
+          CORPUS_SHA256: ${{ inputs.corpus_sha256 }}
+        run: |
+          set +e
+          python tools/conformance_lab.py \
+            --corpus external-corpus \
+            --summary-only \
+            --output external-conformance-report.json
+          status=$?
+          set -e
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("external-conformance-report.json")
+          report = json.loads(path.read_text(encoding="utf-8"))
+          report["external_source"] = {
+              "label": os.environ["SOURCE_LABEL"],
+              "url": os.environ["CORPUS_URL"],
+              "archive_sha256": os.environ["CORPUS_SHA256"],
+          }
+          path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+          exit "$status"
+
+      - name: Publish benchmark summary
+        if: always()
+        run: |
+          if [[ ! -s external-conformance-report.json ]]; then
+            echo "External conformance report was not produced." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          {
+            echo "## External corpus benchmark"
+            echo
+            echo "| Metric | Value |"
+            echo "| --- | ---: |"
+            jq -r '"| Source | " + .external_source.label + " |", "| Archive SHA-256 | `" + .external_source.archive_sha256 + "` |", "| Total rules | " + (.total_rules | tostring) + " |", "| Parsed | " + (.parsed | tostring) + " |", "| Parse rate | " + (.parse_rate | tostring) + " |", "| Round-trip rate | " + (.round_trip_rate | tostring) + " |", "| Parse exceptions | " + (.parse_exceptions | tostring) + " |", "| Unexpected failures | " + (.unexpected_failures | tostring) + " |", "| Rules/s | " + (.rules_per_second | tostring) + " |", "| Peak memory MB | " + (.peak_memory_mb | tostring) + " |", "| Elapsed seconds | " + (.elapsed_seconds | tostring) + " |"' external-conformance-report.json
+            echo "### Exception types"
+            jq -r '.exception_types | if length == 0 then "- None" else to_entries[] | "- \(.key): \(.value)" end' external-conformance-report.json
+            echo
+            echo "### Errors by keyword"
+            jq -r '.errors_by_keyword | if length == 0 then "None" else to_entries[] | "- \(.key): \(.value)" end' external-conformance-report.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload external conformance report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: external-conformance-report
+          path: external-conformance-report.json
+          if-no-files-found: error
+          retention-days: 90

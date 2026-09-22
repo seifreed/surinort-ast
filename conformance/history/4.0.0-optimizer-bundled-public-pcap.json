@@ -1,0 +1,203 @@
+{
+  "behaviorally_equivalent": true,
+  "candidate": {
+    "path": "/tmp generated from rules/suricata/suricata.rules",
+    "sha256": "b4781ffea01816aa6bcc49d571b0ad3b4fffaa5a4f2518b6a52485aac098993b"
+  },
+  "cases": [
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "external/suricata-verify/tests/bug-7199/TLPW-curl-http-suricata.pcap",
+      "status": "passed"
+    },
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "external/suricata-verify/pcaps/20250129-dns-with-additionals.pcap",
+      "status": "passed"
+    },
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "external/suricata-verify/pcaps/20250224-dns-additionals-with-cname.pcap",
+      "status": "passed"
+    },
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "external/suricata-verify/pcaps/20250221-dns-ptr.pcap",
+      "status": "passed"
+    },
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "external/suricata-verify/tests/bug-2491-02/simple_http_download.onesided.nosyn.pcap",
+      "status": "passed"
+    },
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "external/suricata-verify/tests/bug-2491-01/simple_http_download.onesided.pcap",
+      "status": "passed"
+    },
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "external/suricata-verify/tests/bug-4663-03/icmp_and_ssh.pcap",
+      "status": "passed"
+    },
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "external/suricata-verify/tests/bug-4810/pppoe-session-http.pcap",
+      "status": "passed"
+    },
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "external/suricata-verify/tests/bug-3616-smtp/input.pcap",
+      "status": "passed"
+    },
+    {
+      "alert_sets_equal": true,
+      "optimized_alerts": [],
+      "original_alerts": [],
+      "pcap": "external/suricata-verify/tests/bug-1450-04/tls_DER-incomplete-header.pcap",
+      "status": "passed"
+    }
+  ],
+  "engine": {
+    "name": "suricata",
+    "version": "8.0.6"
+  },
+  "engine_command": "python tools/suricata_behavior.py --rules {file} --pcap {pcap}",
+  "engine_load": {
+    "candidate": {
+      "returncode": 0,
+      "status": "passed"
+    },
+    "original": {
+      "returncode": 0,
+      "status": "passed"
+    }
+  },
+  "failures": 0,
+  "limitations": [
+    "Behavioral equivalence is demonstrated only for Suricata 8.0.6, this bundled rule snapshot, and these ten PCAPs.",
+    "The optimizer modified all 30,579 parsed rules by adding one standalone fast_pattern hint; this is not a proof of universal semantic equivalence or production performance gain.",
+    "The bundled corpus is a repository snapshot and does not replace an independently licensed, production-scale rule corpus or traffic benchmark.",
+    "PCAPs are referenced by URL and hash and are not redistributed in this repository."
+  ],
+  "optimizer": {
+    "modified_rules": 30579,
+    "optimization_count": 30579,
+    "rule_count": 30579,
+    "strategy_counts": {
+      "FastPattern": 30579
+    }
+  },
+  "original": {
+    "path": "/tmp generated from rules/suricata/suricata.rules",
+    "sha256": "fc6556bca71e0163d41e14b65611dfbfece3464fedf79e7cec3606e981033463"
+  },
+  "passed": 10,
+  "pcap_count": 10,
+  "pcap_fixtures": [
+    {
+      "bytes": 1219,
+      "license": "MIT",
+      "path": "external/suricata-verify/tests/bug-7199/TLPW-curl-http-suricata.pcap",
+      "sha256": "ed174c25d147f4a26421e4d8047fd2a2848a997e6c1ce9687a53a6d4fbf0e9ae",
+      "source_repository": "https://github.com/OISF/suricata-verify",
+      "source_url": "https://raw.githubusercontent.com/OISF/suricata-verify/master/tests/bug-7199/TLPW-curl-http-suricata.pcap"
+    },
+    {
+      "bytes": 815,
+      "license": "MIT",
+      "path": "external/suricata-verify/pcaps/20250129-dns-with-additionals.pcap",
+      "sha256": "f532c394ca511c359e8907afec8ce1d90655712106fa142f60075c43e353ace9",
+      "source_repository": "https://github.com/OISF/suricata-verify",
+      "source_url": "https://raw.githubusercontent.com/OISF/suricata-verify/master/pcaps/20250129-dns-with-additionals.pcap"
+    },
+    {
+      "bytes": 258,
+      "license": "MIT",
+      "path": "external/suricata-verify/pcaps/20250224-dns-additionals-with-cname.pcap",
+      "sha256": "cb30dddb979fcb70094daec7e6c5b96d00a4f9ed38937c3b3ee3fcf7f3ac98b4",
+      "source_repository": "https://github.com/OISF/suricata-verify",
+      "source_url": "https://raw.githubusercontent.com/OISF/suricata-verify/master/pcaps/20250224-dns-additionals-with-cname.pcap"
+    },
+    {
+      "bytes": 263,
+      "license": "MIT",
+      "path": "external/suricata-verify/pcaps/20250221-dns-ptr.pcap",
+      "sha256": "d46511a8973e1bd00e77a57fcea9eb3f7b9d434d980e2ff9223cae2392d7b878",
+      "source_repository": "https://github.com/OISF/suricata-verify",
+      "source_url": "https://raw.githubusercontent.com/OISF/suricata-verify/master/pcaps/20250221-dns-ptr.pcap"
+    },
+    {
+      "bytes": 1987,
+      "license": "MIT",
+      "path": "external/suricata-verify/tests/bug-2491-02/simple_http_download.onesided.nosyn.pcap",
+      "sha256": "473eb7e933c6819feaf8444d3aec788d95ec1d6264e3044037d93d93f9c550a4",
+      "source_repository": "https://github.com/OISF/suricata-verify",
+      "source_url": "https://raw.githubusercontent.com/OISF/suricata-verify/master/tests/bug-2491-02/simple_http_download.onesided.nosyn.pcap"
+    },
+    {
+      "bytes": 2069,
+      "license": "MIT",
+      "path": "external/suricata-verify/tests/bug-2491-01/simple_http_download.onesided.pcap",
+      "sha256": "14a0f0fe3a22e8a956020d6d6b989a0fe9a792446e961cbeef26802163da83aa",
+      "source_repository": "https://github.com/OISF/suricata-verify",
+      "source_url": "https://raw.githubusercontent.com/OISF/suricata-verify/master/tests/bug-2491-01/simple_http_download.onesided.pcap"
+    },
+    {
+      "bytes": 57838,
+      "license": "MIT",
+      "path": "external/suricata-verify/tests/bug-4663-03/icmp_and_ssh.pcap",
+      "sha256": "d43450dc110fe02e7d31eb73be964d4ebd1b657bf511bcedeb055ddf844f440d",
+      "source_repository": "https://github.com/OISF/suricata-verify",
+      "source_url": "https://raw.githubusercontent.com/OISF/suricata-verify/master/tests/bug-4663-03/icmp_and_ssh.pcap"
+    },
+    {
+      "bytes": 18218,
+      "license": "MIT",
+      "path": "external/suricata-verify/tests/bug-4810/pppoe-session-http.pcap",
+      "sha256": "506a7a5a85769abd8eacf0bd4d2af9e5da84f0cd18845deeab7e360fb1d910a7",
+      "source_repository": "https://github.com/OISF/suricata-verify",
+      "source_url": "https://raw.githubusercontent.com/OISF/suricata-verify/master/tests/bug-4810/pppoe-session-http.pcap"
+    },
+    {
+      "bytes": 27850,
+      "license": "MIT",
+      "path": "external/suricata-verify/tests/bug-3616-smtp/input.pcap",
+      "sha256": "17ad230db1b6fd5dd18eb311092df1cf6eb162054bdb47697b89bef5a86a47ab",
+      "source_repository": "https://github.com/OISF/suricata-verify",
+      "source_url": "https://raw.githubusercontent.com/OISF/suricata-verify/master/tests/bug-3616-smtp/input.pcap"
+    },
+    {
+      "bytes": 5696,
+      "license": "MIT",
+      "path": "external/suricata-verify/tests/bug-1450-04/tls_DER-incomplete-header.pcap",
+      "sha256": "ff71780faa23b44f0f599d431f4570033e57f80e3138907cf99f1e1a996652f0",
+      "source_repository": "https://github.com/OISF/suricata-verify",
+      "source_url": "https://raw.githubusercontent.com/OISF/suricata-verify/master/tests/bug-1450-04/tls_DER-incomplete-header.pcap"
+    }
+  ],
+  "rule_corpus": {
+    "bytes": 13249808,
+    "path": "rules/suricata/suricata.rules",
+    "sha256": "6784018624d3349c026cf9b3f61c372faaf677ecbe182ec03e0e8c29e1ad44f4",
+    "source": "repository bundled Suricata snapshot"
+  }
+}
