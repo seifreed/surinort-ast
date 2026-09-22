@@ -1858,9 +1858,9 @@ urllib3==2.7.0 \
     #   id
     #   requests
     #   twine
-virtualenv==21.7.4 \
-    --hash=sha256:376ec93cd6aab3044fa395d7db226db38043b7b5748948044b2a87168525e843 \
-    --hash=sha256:c9d960c95fa458171e58222a5ccab7465298e4b6559977865e627c4719f1e825
+virtualenv==21.8.1 \
+    --hash=sha256:0685ab90c9c3748dd6c99631207bda9fb359c72c28337047e719c83fb41a7a59 \
+    --hash=sha256:529a4c883b4efa067b98cfb61b64cdc0e453d01800ef5b5a29d0a9c514499a4f
     # via pre-commit
 watchdog==6.0.0 \
     --hash=sha256:07df1fdd701c5d4c8e55ef6cf55b8f0120fe1aef7ef39a1c6fc6bc2e606d517a \
