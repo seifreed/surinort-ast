@@ -503,6 +503,7 @@ jobs:
           python -c "import surinort_ast; print(surinort_ast.__version__)"
 
   # All jobs summary
+  # Keep this explicit aggregate check aligned with branch protection.
   ci-success:
     name: CI Success
     needs: [security, lint, test, coverage, conformance, semantic, benchmark, build, validate]
