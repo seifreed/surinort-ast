@@ -631,7 +631,7 @@ def _validate_target_priority(rule: Rule, target: EngineTarget) -> list[Diagnost
         if option.node_type != "PriorityOption":
             continue
         priority = getattr(option, "value", None)
-        if isinstance(priority, int) and priority > maximum:
+        if isinstance(priority, int) and not 1 <= priority <= maximum:
             diagnostics.append(
                 Diagnostic(
                     level=DiagnosticLevel.ERROR,
