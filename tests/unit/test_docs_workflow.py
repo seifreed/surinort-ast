@@ -22,6 +22,6 @@ def test_pages_deploys_the_site_built_with_the_dashboard_snapshot() -> None:
     assert "tools/semantic_matrix.py" in build
     assert "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9" in build
     assert "path: site/" in build
-    assert "actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128" in deploy
+    assert "actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346" in deploy
     assert "contents: write" not in deploy
     assert "mkdocs gh-deploy" not in deploy
