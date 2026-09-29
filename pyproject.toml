@@ -87,7 +87,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "pytest-benchmark>=5.3.0",
-    "hypothesis>=6.168.0",
+    "hypothesis>=6.168.1",
     # Linting, formatting, typing
     "ruff>=0.16.9",
     "black>=26.1.0",
