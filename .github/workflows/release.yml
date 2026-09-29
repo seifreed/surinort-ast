@@ -200,17 +200,17 @@ jobs:
           cat SHA256SUMS
 
       - name: Attest release distributions
-        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be  # v2
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4.2.2
         with:
           subject-path: 'dist/*'
 
       - name: Attest JSON SBOM
-        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45  # v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be  # v2
         with:
           subject-path: 'sbom.json'
 
       - name: Attest XML SBOM
-        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45  # v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be  # v2
         with:
           subject-path: 'sbom.xml'
 
