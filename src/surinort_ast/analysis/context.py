@@ -16,7 +16,7 @@ class RulesetContext:
 
     @classmethod
     def from_suricata_yaml(cls, path: Path | str) -> RulesetContext:
-        import yaml
+        import yaml  # type: ignore[import-untyped]
 
         data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
         variables: dict[str, str] = {}

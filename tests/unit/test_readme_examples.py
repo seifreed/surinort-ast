@@ -8,7 +8,7 @@ import shlex
 from pathlib import Path
 
 import pytest
-import yaml
+import yaml  # type: ignore[import-untyped]
 from typer.main import get_command
 from typer.testing import CliRunner
 
@@ -86,7 +86,7 @@ def test_readme_python_examples_run(tmp_path: Path, monkeypatch: pytest.MonkeyPa
 
 
 def test_readme_yaml_examples_have_unique_keys() -> None:
-    class UniqueKeyLoader(yaml.SafeLoader):
+    class UniqueKeyLoader(yaml.SafeLoader):  # type: ignore[misc]
         pass
 
     def construct_mapping(
