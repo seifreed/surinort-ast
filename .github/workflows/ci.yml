@@ -506,7 +506,7 @@ jobs:
   # Keep this explicit aggregate check aligned with branch protection.
   ci-success:
     name: CI Success
-    needs: [security, lint, test, coverage, conformance, semantic, benchmark, build, validate]
+    needs: [security, lint, test, coverage, conformance, semantic, benchmark, slow-tests, build, validate]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     if: always()
@@ -540,6 +540,10 @@ jobs:
           fi
           if [[ "${{ needs.benchmark.result }}" != "success" ]]; then
             echo "Benchmark report failed"
+            exit 1
+          fi
+          if [[ "${{ needs.slow-tests.result }}" != "success" ]]; then
+            echo "Slow tests failed"
             exit 1
           fi
           if [[ "${{ needs.build.result }}" != "success" ]]; then
