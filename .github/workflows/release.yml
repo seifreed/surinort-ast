@@ -221,7 +221,7 @@ jobs:
           for file in dist/*.whl dist/*.tar.gz dist/*.vsix sbom.json sbom.xml; do
             gh attestation verify "$file" \
               --repo "$GITHUB_REPOSITORY" \
-              --signer-workflow .github/workflows/release.yml
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
           done
 
       - name: Upload build artifacts

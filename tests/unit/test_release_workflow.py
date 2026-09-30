@@ -15,7 +15,9 @@ def test_release_verifies_provenance_before_uploading_distributions() -> None:
     verification_block = workflow[verification:upload]
     assert 'gh attestation verify "$file"' in verification_block
     assert '--repo "$GITHUB_REPOSITORY"' in verification_block
-    assert "--signer-workflow .github/workflows/release.yml" in verification_block
+    assert (
+        '--signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"' in verification_block
+    )
     assert "sbom.json sbom.xml" in verification_block
 
 
