@@ -6,12 +6,31 @@ and artifact provenance are tracked separately in
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-10-30
+
+### Updated
+
+- Refreshed runtime, development, and GitHub Actions dependencies, including
+  generated requirements and lock data.
+- Updated Pydantic, Typer, Protobuf, Mypy, Ruff, Black, urllib3, filelock,
+  virtualenv, and msgpack.
+
+### Fixed
+
+- Aligned the msgpack 1.2.4 requirement hashes with `uv.lock`.
+- Restored pytest-benchmark node ID compatibility after filelock and virtualenv
+  upgrades.
+- Made the aggregate CI gate include the slow test suite.
+- Corrected release attestation identity and tag-ref verification.
+- Kept the signed VS Code extension available as a GitHub release asset when
+  the Marketplace publishing credential is not configured.
+
 - Keep the external 288,939-rule corpus and production-traffic benchmarks as
   release-blocking evidence until they are reproducibly available.
 - Keep engine capability snapshots and conformance reports tied to the exact
   engine build that produced them.
 
-## [4.0.0] - pending publication
+## [4.0.0] - 2026-09-30
 
 ### Added
 
@@ -57,6 +76,7 @@ cryptographically verified `v3.0.5` tag and public release artifacts exist.
 - Released the parser, AST, CLI, analysis, and serialization APIs.
 - Added the issue regression corpus and cross-platform CI coverage.
 
-[Unreleased]: https://github.com/seifreed/surinort-ast/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/seifreed/surinort-ast/compare/v4.0.1...HEAD
+[4.0.1]: https://github.com/seifreed/surinort-ast/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/seifreed/surinort-ast/releases/tag/v4.0.0
 [3.0.5]: https://github.com/seifreed/surinort-ast/releases/tag/v3.0.5

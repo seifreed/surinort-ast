@@ -6,7 +6,7 @@ GitHub build provenance, and the published SBOM files.
 
 ```bash
 REPO=seifreed/surinort-ast
-TAG=v4.0.0
+TAG=v4.0.1
 DIR="release-${TAG}"
 
 TAG_REF=$(gh api "repos/${REPO}/git/ref/tags/${TAG}")
@@ -37,6 +37,6 @@ and attestation checks must pass for every wheel, source archive, VS Code
 extension, and published SBOM. A release is not considered verified when an expected artifact,
 signature bundle, checksum, SBOM, or provenance record is missing.
 
-The current repository contains release workflow support for this procedure;
-the commands become evidence for `v3.0.5` and `v4.0.0` only after those public
-releases have been created and the complete output has been retained.
+Run this checklist against each published tag and retain its complete output
+with the release record. The workflow's own checks do not replace downloading and
+verifying the assets exposed by the public GitHub release.
