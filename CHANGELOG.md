@@ -6,6 +6,11 @@ and artifact provenance are tracked separately in
 
 ## [Unreleased]
 
+- Keep the external 288,939-rule corpus and production-traffic benchmarks as
+  release-blocking evidence until they are reproducibly available.
+- Keep engine capability snapshots and conformance reports tied to the exact
+  engine build that produced them.
+
 ## [4.0.1] - 2026-10-30
 
 ### Updated
@@ -24,11 +29,6 @@ and artifact provenance are tracked separately in
 - Corrected release attestation identity and tag-ref verification.
 - Kept the signed VS Code extension available as a GitHub release asset when
   the Marketplace publishing credential is not configured.
-
-- Keep the external 288,939-rule corpus and production-traffic benchmarks as
-  release-blocking evidence until they are reproducibly available.
-- Keep engine capability snapshots and conformance reports tied to the exact
-  engine build that produced them.
 
 ## [4.0.0] - 2026-09-30
 
