@@ -1,17 +1,17 @@
 # Versioned Deliverables
 
-The `4.0.0` compatibility line contains these deliverables:
+The `4.0.x` compatibility line contains these deliverables:
 
 | Deliverable | Version | Installation | Verification |
 | --- | --- | --- | --- |
-| Python package and `surinort-lsp` | `4.0.0` | `pip install surinort-ast==4.0.0` | `surinort-lsp` over stdio |
-| GitHub Action | `v4.0.0` | `uses: seifreed/surinort-ast@v4.0.0` | Action validation and optional engine check |
-| VS Code extension | `4.0.0` | Install the `.vsix` release asset | VS Code `^1.85.0` |
+| Python package and `surinort-lsp` | `4.0.1` | `pip install surinort-ast==4.0.1` | `surinort-lsp` over stdio |
+| GitHub Action | `v4.0.1` | `uses: seifreed/surinort-ast@v4.0.1` | Action validation and optional engine check |
+| VS Code extension | `4.0.1` | Install the `.vsix` release asset | VS Code `^1.85.0` |
 
 The extension is also installable from the repository during development:
 
 ```bash
-python -m pip install surinort-ast==4.0.0
+python -m pip install surinort-ast==4.0.1
 code --install-extension editors/vscode
 ```
 
@@ -27,11 +27,10 @@ engine target in VS Code settings. The engine value may be `suricata`, `snort`,
 }
 ```
 
-The release workflow publishes the extension to the Marketplace through the
-`vscode-marketplace` environment. Configure the `VSCE_PAT` environment secret
-for the `seifreed` publisher before creating a release tag; publication is a
-required release job. Until the first publication is completed, the signed
-`.vsix` attached to the GitHub release is the canonical extension artifact.
+The release workflow publishes the extension to the Marketplace when the
+`VSCE_PAT` secret is configured in the `vscode-marketplace` environment. If the
+secret is absent, Marketplace publishing is skipped; the signed `.vsix` attached
+to the GitHub release remains the canonical extension artifact.
 
 PyPI uses Trusted Publisher through the `pypi` environment, so no PyPI token is
 stored in GitHub. Register this publisher on the `surinort-ast` PyPI project

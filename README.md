@@ -212,7 +212,7 @@ steps:
 
 Upload the generated `${{ steps.surinort.outputs.sarif-file }}` with
 `github/codeql-action/upload-sarif` when code scanning annotations are desired.
-Replace the commit pin with `@v4.0.0` after that public release tag exists.
+Replace the commit pin with `@v4.0.1` after that public release tag exists.
 - Upload SARIF to GitHub Code Scanning.
 
 ### Pre-commit and GitLab CI
@@ -222,7 +222,7 @@ Use the repository hook from a pre-commit configuration:
 ```yaml
 repos:
   - repo: https://github.com/seifreed/surinort-ast
-    rev: v4.0.0
+    rev: v4.0.1
     hooks:
       - id: surinort-validate
 ```

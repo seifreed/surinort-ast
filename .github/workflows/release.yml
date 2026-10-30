@@ -410,7 +410,10 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
-          test -n "$VSCE_PAT"
+          if [[ -z "$VSCE_PAT" ]]; then
+            echo "VSCE_PAT is not configured; the signed VSIX remains available as a GitHub release asset."
+            exit 0
+          fi
           npm install --global @vscode/vsce@3.9.2
           vsce publish --packagePath dist/*.vsix --pat "$VSCE_PAT"
 
@@ -555,7 +558,7 @@ jobs:
             gh attestation verify "$file" \
               --repo "$GITHUB_REPOSITORY" \
               --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
-              --source-ref "$VERSION"
+              --source-ref "refs/tags/${VERSION}"
           done
 
   # Release success summary

@@ -5,7 +5,7 @@ Licensed under GNU General Public License v3.0
 Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 """
 
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 __ast_version__ = "4.0.0"
 
 __author__ = "Marc Rivero López"

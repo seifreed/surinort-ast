@@ -14,7 +14,7 @@ def test_checked_in_conformance_corpus_round_trips() -> None:
     assert report["parsed"] == 6
     assert report["parse_rate"] == 6 / 7
     assert report["round_trip_rate"] == 1.0
-    assert report["package_version"] == "4.0.0"
+    assert report["package_version"] == "4.0.1"
     assert report["unexpected_failures"] == 0
     assert report["printed"] == 6
     assert report["parse_exceptions"] == 1
@@ -62,7 +62,7 @@ def test_conformance_cli_can_write_summary_without_cases(tmp_path, monkeypatch) 
     assert main() == 0
     summary = json.loads(output.read_text(encoding="utf-8"))
     assert "cases" not in summary
-    assert summary["package_version"] == "4.0.0"
+    assert summary["package_version"] == "4.0.1"
 
 
 def test_conformance_cli_require_complete_passes_for_complete_corpus(tmp_path, monkeypatch) -> None:
