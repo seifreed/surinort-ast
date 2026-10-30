@@ -256,6 +256,12 @@ class TestGoldenSubsets:
 class TestPerformance:
     """Test parsing performance with real rules."""
 
+    @pytest.fixture(autouse=True)
+    def _restore_node_id_for_benchmark(self, request):
+        # pytest-benchmark still reads this private attribute after pytest clears it.
+        if not hasattr(request.node, "_nodeid"):
+            request.node._nodeid = request.node.nodeid
+
     def test_parsing_speed(self, lark_parser: Lark, suricata_rules_file: Path, benchmark):
         """Benchmark parsing speed (if pytest-benchmark available)."""
         transformer = RuleTransformer()
