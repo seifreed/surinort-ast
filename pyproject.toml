@@ -84,14 +84,14 @@ dependencies = [
 # and audit the project. Installed via `pip install -e .[dev]`.
 dev = [
     # Testing
-    "pytest>=9.1.1",
+    "pytest>=9.2.0",
     "pytest-cov>=7.1.0",
     "pytest-benchmark>=5.3.0",
     "hypothesis>=6.168.1",
     # Linting, formatting, typing
-    "ruff>=0.16.10",
+    "ruff>=0.17.3",
     "black>=26.1.0",
-    "mypy>=2.4.0",
+    "mypy>=2.4.1",
     # Security & dependency auditing
     "bandit>=1.9.4",
     "pip-audit>=2.10.1",
@@ -99,7 +99,7 @@ dev = [
     "build>=1.6.1",
     "twine>=7.0.0",
     "pre-commit>=4.6.2",
-    "mkdocs-material>=9.7.7",
+    "mkdocs-material>=9.8.0",
 ]
 
 [project.urls]
