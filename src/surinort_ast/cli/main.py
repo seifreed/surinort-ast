@@ -9,10 +9,11 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 import typer
 
+from ..observability import configure_logging
 from ..version import __version__
 from .commands import (
     analyze_command,
@@ -101,12 +102,25 @@ def main(
             is_eager=True,
         ),
     ] = False,
+    log_level: Annotated[
+        str,
+        typer.Option("--log-level", envvar="SURINORT_LOG_LEVEL", help="Logging level"),
+    ] = "WARNING",
+    log_format: Annotated[
+        Literal["text", "json"],
+        typer.Option("--log-format", envvar="SURINORT_LOG_FORMAT", help="Log output format"),
+    ] = "text",
 ) -> None:
     """
     Surinort-AST: Parser and AST for Suricata/Snort IDS rules.
 
     A high-performance, type-safe parser for IDS/IPS rule languages.
     """
+    _ = version
+    try:
+        configure_logging(level=log_level, log_format=log_format)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc), param_hint="--log-level") from exc
 
 
 # ============================================================================

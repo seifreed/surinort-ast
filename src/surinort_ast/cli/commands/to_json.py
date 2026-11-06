@@ -48,7 +48,7 @@ def to_json_command(
 
         cat rules.txt | surinort to-json - --compact
     """
-    with cli_error_handler():
+    with cli_error_handler(operation="cli.to_json"):
         rules, _, _ = load_rules(file, dialect)
 
         # Convert to JSON

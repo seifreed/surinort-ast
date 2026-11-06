@@ -159,7 +159,7 @@ class TestParseHexStringError:
         with pytest.raises(ValueError, match="Invalid hex content"):
             parse_hex_string("|4|")
 
-    def test_warning_logged_before_re_raise(self, caplog: pytest.LogCaptureFixture) -> None:
+    def test_safe_warning_logged_before_re_raise(self, caplog: pytest.LogCaptureFixture) -> None:
         import logging
 
         with (
@@ -169,6 +169,12 @@ class TestParseHexStringError:
             pytest.raises(ValueError),
         ):
             parse_hex_string("|ABC|")  # 3 hex chars → odd → fromhex fails
+
+        assert any(
+            getattr(record, "event_name", None) == "invalid_hex_content"
+            for record in caplog.records
+        )
+        assert all("|ABC|" not in record.getMessage() for record in caplog.records)
 
 
 class TestIsPureHexPiped:

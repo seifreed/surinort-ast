@@ -24,7 +24,7 @@ def diff_command(
     ] = False,
 ) -> None:
     """Compare two single-rule files semantically."""
-    with cli_error_handler():
+    with cli_error_handler(operation="cli.diff"):
         before_rules = parse_file(before, dialect=dialect)
         after_rules = parse_file(after, dialect=dialect)
         if len(before_rules) != 1 or len(after_rules) != 1:

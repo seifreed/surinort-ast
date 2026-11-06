@@ -10,9 +10,11 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Iterator, Sequence
 from pathlib import Path
+from time import perf_counter
 from typing import TYPE_CHECKING, Any, cast
 
 from lark.exceptions import LarkError
@@ -29,6 +31,8 @@ from ._internal import (
     _validate_file_path,
     build_embedded_parser,
 )
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..parsing.interfaces import IParser
@@ -170,6 +174,7 @@ def parse_rules(
         - include_raw_text=False: ~50% memory reduction
         - track_locations=False: omits node positions, saving that work and memory
     """
+    started_at = perf_counter()
     rules: list[Rule] = []
     errors: list[tuple[int, str]] = []
 
@@ -185,6 +190,17 @@ def parse_rules(
         except ParseError as e:
             errors.append((idx, str(e)))
 
+    logger.info(
+        "rule_batch_parse_completed",
+        extra={
+            "event_name": "rule_batch_parse_completed",
+            "dialect": dialect.value,
+            "rule_count": len(rules),
+            "error_count": len(errors),
+            "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+            "outcome": "partial" if errors else "success",
+        },
+    )
     return rules, errors
 
 
@@ -272,6 +288,7 @@ def parse_file(
         - include_raw_text=False: Saves memory but loses original rule text
         - track_locations=False: Faster but loses position information
     """
+    started_at = perf_counter()
     file_path = Path(path)
 
     # Security: Validate file path against traversal attacks (CWE-22)
@@ -309,6 +326,17 @@ def parse_file(
     if include_raw_text:
         rules = _attach_source_comments(rules, file_path)
 
+    logger.info(
+        "api_file_parse_completed",
+        extra={
+            "event_name": "api_file_parse_completed",
+            "dialect": dialect.value,
+            "rule_count": len(rules),
+            "error_count": len(errors),
+            "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+            "outcome": "partial" if errors else "success",
+        },
+    )
     return rules
 
 

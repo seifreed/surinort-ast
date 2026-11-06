@@ -14,6 +14,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
+from time import perf_counter
 from typing import Any, TextIO
 
 from ..core.nodes import Rule
@@ -58,6 +59,7 @@ class StreamWriter(ABC):
         self.encoding = encoding
         self._file: TextIO | None = None
         self._count = 0
+        self._started_at: float | None = None
 
     @abstractmethod
     def _write_header(self) -> None:
@@ -75,28 +77,58 @@ class StreamWriter(ABC):
         """Open writer for writing."""
         self._file = self.path.open("w", encoding=self.encoding)
         self._count = 0
+        started_at = self._started_at = perf_counter()
         try:
             self._write_header()
-        except BaseException:
+        except BaseException as exc:
             # __exit__ is not called when __enter__ raises, so close here to
             # avoid leaking the just-opened file handle.
             self._file.close()
             self._file = None
+            logger.error(
+                "stream_writer_closed",
+                extra={
+                    "event_name": "stream_writer_closed",
+                    "rule_count": 0,
+                    "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+                    "outcome": "failure",
+                    "error_type": type(exc).__name__,
+                },
+            )
+            self._started_at = None
             raise
-        logger.debug(f"Opened stream writer: {self.path}")
+        logger.debug("stream_writer_opened", extra={"event_name": "stream_writer_opened"})
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Close writer and finalize output."""
         if self._file:
+            started_at = self._started_at or perf_counter()
+            outcome = "failure" if exc_type else "success"
+            error_type = exc_type.__name__ if exc_type else None
             try:
                 self._write_footer()
+            except BaseException as exc:
+                outcome = "failure"
+                error_type = type(exc).__name__
+                raise
             finally:
                 # Always close, even if writing the footer fails, so the file
                 # handle is never leaked.
                 self._file.close()
                 self._file = None
-                logger.info(f"Closed stream writer: {self.path} ({self._count} rules)")
+                logger.log(
+                    logging.ERROR if outcome == "failure" else logging.INFO,
+                    "stream_writer_closed",
+                    extra={
+                        "event_name": "stream_writer_closed",
+                        "rule_count": self._count,
+                        "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+                        "outcome": outcome,
+                        "error_type": error_type,
+                    },
+                )
+                self._started_at = None
 
     def write(self, rule: Rule) -> None:
         """

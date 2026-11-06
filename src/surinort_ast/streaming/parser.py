@@ -16,8 +16,10 @@ from collections.abc import Callable, Generator, Iterable, Iterator
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
+from ..core.diagnostics import DiagnosticLevel
 from ..core.enums import Dialect
 from ..core.nodes import Rule, SourceOrigin, extract_sid_str
 from ..exceptions import ParseError
@@ -326,35 +328,64 @@ class StreamParser:
         if not file_path.is_file():
             raise ParseError(f"Not a file: {file_path}")
 
+        started_at = perf_counter()
         # Get total line count for progress tracking (optional pre-scan)
         total_lines: int | None = None
         if progress_callback:
             total_lines = self._count_lines(file_path)
 
         processed_count = 0
+        error_count = 0
+        outcome = "failure"
+        error_type: str | None = None
 
         # Stream file rule by rule, reassembling multi-line rules. Decoding is
         # lazy (per line), so a non-UTF-8 byte surfaces while advancing the
         # iterator; wrap it in ParseError to honor the documented read-failure
         # contract without materializing the whole file.
-        with file_path.open(encoding=encoding) as f:
-            blocks = _iter_rule_blocks(enumerate(f, start=1))
-            while True:
-                try:
-                    first_line_num, rule_text = next(blocks)
-                except StopIteration:
-                    break
-                except UnicodeDecodeError as e:
-                    raise ParseError(f"Failed to read file {file_path}: {e}") from e
-                rule = self._parse_lines([(first_line_num, rule_text)], str(file_path), skip_errors)
-                if rule is not None:
-                    yield rule
+        try:
+            with file_path.open(encoding=encoding) as f:
+                blocks = _iter_rule_blocks(enumerate(f, start=1))
+                while True:
+                    try:
+                        first_line_num, rule_text = next(blocks)
+                    except StopIteration:
+                        break
+                    except UnicodeDecodeError as e:
+                        raise ParseError(f"Failed to read file {file_path}: {e}") from e
+                    rule = self._parse_lines(
+                        [(first_line_num, rule_text)], str(file_path), skip_errors
+                    )
+                    if rule is None:
+                        error_count += 1
+                        continue
+                    if any(d.level == DiagnosticLevel.ERROR for d in rule.diagnostics):
+                        error_count += 1
                     processed_count += 1
+                    yield rule
 
                     if progress_callback:
                         progress_callback(processed_count, total_lines)
-
-        logger.info(f"Streamed {processed_count} rules from {file_path}")
+            outcome = "partial" if error_count else "success"
+        except GeneratorExit:
+            outcome = "cancelled"
+            raise
+        except Exception as exc:
+            error_type = type(exc).__name__
+            raise
+        finally:
+            logger.log(
+                logging.ERROR if outcome == "failure" else logging.INFO,
+                "stream_parse_finished",
+                extra={
+                    "event_name": "stream_parse_finished",
+                    "rule_count": processed_count,
+                    "error_count": error_count,
+                    "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+                    "outcome": outcome,
+                    "error_type": error_type,
+                },
+            )
 
     def stream_file_batched(
         self,
@@ -512,7 +543,6 @@ class StreamParser:
                 and rule.diagnostics
                 and any(d.level.value == "error" for d in rule.diagnostics)
             ):
-                logger.debug(f"Skipping rule at line {first_line_num} due to errors")
                 return None
 
             # Attach source metadata
@@ -558,8 +588,6 @@ class StreamParser:
                 return None
             raise
         except Exception as e:
-            logger.debug(f"Failed to parse rule at line {first_line_num}: {e}")
-
             if skip_errors:
                 return None
 
@@ -610,13 +638,7 @@ def _parse_chunk_worker(
     Returns:
         List of (line_number, parsed_rule or None, error_string or None)
     """
-    lines, dialect, track_locations, include_raw_text, file_path = args
-
-    # ``LarkRuleParser`` doesn't expose ``track_locations`` directly; it
-    # currently always tracks. Keep the parameter for forward compatibility
-    # and log if a caller asks to opt out so the divergence is visible.
-    if not track_locations:
-        logger.debug("LarkRuleParser always tracks locations; ignoring opt-out")
+    lines, dialect, _track_locations, include_raw_text, file_path = args
 
     parser = LarkRuleParser(dialect=dialect, strict=False, error_recovery=True)
     results: list[tuple[int, Rule | None, str | None]] = []
@@ -644,12 +666,10 @@ def _parse_chunk_worker(
 def _iter_chunk_results(
     chunk_results: list[tuple[int, Rule | None, str | None]],
 ) -> Iterator[Rule]:
-    """Yield parsed rules from a worker chunk result, logging any errors."""
-    for line_num, rule, error in chunk_results:
+    """Yield successful rules from a worker chunk result."""
+    for _, rule, _ in chunk_results:
         if rule is not None:
             yield rule
-        elif error:
-            logger.debug(f"Line {line_num}: {error}")
 
 
 def stream_parse_file_parallel(
@@ -697,8 +717,14 @@ def stream_parse_file_parallel(
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
 
+    started_at = perf_counter()
     # Determine worker count
     max_workers = workers or min(8, os.cpu_count() or 1)
+    if not track_locations:
+        logger.warning(
+            "location_tracking_option_ignored",
+            extra={"event_name": "location_tracking_option_ignored"},
+        )
 
     # Reassemble complete rules (including multi-line rules) before chunking, so
     # each worker parse unit is a whole rule rather than a single physical line.
@@ -709,7 +735,15 @@ def stream_parse_file_parallel(
             raise ParseError(f"Failed to read file {file_path}: {e}") from e
 
     if not rule_blocks:
-        logger.warning(f"No parseable rules found in {file_path}")
+        logger.info(
+            "parallel_stream_parse_finished",
+            extra={
+                "event_name": "parallel_stream_parse_finished",
+                "rule_count": 0,
+                "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+                "outcome": "empty",
+            },
+        )
         return
 
     # Split rules into chunks for parallel processing
@@ -718,22 +752,49 @@ def stream_parse_file_parallel(
         chunks.append(rule_blocks[i : i + chunk_size])
 
     # Process chunks in parallel
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all chunks
-        futures = [
-            executor.submit(
-                _parse_chunk_worker,
-                (chunk, dialect, track_locations, include_raw_text, str(file_path)),
-            )
-            for chunk in chunks
-        ]
+    processed_count = 0
+    error_count = 0
+    outcome = "failure"
+    error_type: str | None = None
+    try:
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all chunks
+            futures = [
+                executor.submit(
+                    _parse_chunk_worker,
+                    (chunk, dialect, track_locations, include_raw_text, str(file_path)),
+                )
+                for chunk in chunks
+            ]
 
-        # Yield results in submission order so the output stream preserves the
-        # original rule order from the file (matters for shadowing/conflict
-        # detection and SARIF reporting). Iterating `as_completed(futures)` here
-        # would emit rules in completion order, which is non-deterministic.
-        for future in futures:
-            yield from _iter_chunk_results(future.result())
+            # Yield in input order to preserve deterministic rule ordering.
+            for future in futures:
+                chunk_results = future.result()
+                error_count += sum(1 for _, rule, error in chunk_results if rule is None and error)
+                for rule in _iter_chunk_results(chunk_results):
+                    processed_count += 1
+                    yield rule
+        outcome = "partial" if error_count else "success"
+    except GeneratorExit:
+        outcome = "cancelled"
+        raise
+    except Exception as exc:
+        error_type = type(exc).__name__
+        raise
+    finally:
+        logger.log(
+            logging.ERROR if outcome == "failure" else logging.INFO,
+            "parallel_stream_parse_finished",
+            extra={
+                "event_name": "parallel_stream_parse_finished",
+                "rule_count": processed_count,
+                "error_count": error_count,
+                "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+                "dialect": dialect.value,
+                "outcome": outcome,
+                "error_type": error_type,
+            },
+        )
 
 
 # ============================================================================

@@ -134,6 +134,9 @@ surinort stats rules/local.rules --format sarif -o stats-results.sarif
 
 ## Python Library
 
+See [Logging and observability](docs/observability.md) for structured logs,
+CLI configuration, context propagation, and privacy conventions.
+
 ### Basic Usage
 
 ```python

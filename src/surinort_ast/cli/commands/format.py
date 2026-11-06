@@ -76,7 +76,7 @@ def fmt_command(
 
         surinort fmt rules.txt --check
     """
-    with cli_error_handler():
+    with cli_error_handler(operation="cli.format"):
         # --in-place rewrites the input file, so an explicit --output target is
         # contradictory. Reject the combination rather than silently ignoring
         # --output and writing back to the input file.

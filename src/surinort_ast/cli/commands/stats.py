@@ -118,7 +118,7 @@ def stats_command(
 
         surinort stats rules.txt --dialect snort3
     """
-    with cli_error_handler():
+    with cli_error_handler(operation="cli.stats"):
         fmt = _resolve_output_format(output_format)
 
         with parsing_progress("Analyzing rules..."):

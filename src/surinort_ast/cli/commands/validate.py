@@ -271,7 +271,7 @@ def validate_command(
 
         surinort validate rules.txt --strict
     """
-    with cli_error_handler():
+    with cli_error_handler(operation="cli.validate"):
         fmt = resolve_output_format(output_format, ("text", "sarif"))
         if (engine is None) != (engine_version is None):
             raise ValueError("--engine and --engine-version must be provided together")

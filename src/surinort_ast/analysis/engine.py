@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shlex
 import shutil
 import subprocess
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -100,35 +104,64 @@ class EngineVerifier:
         return BehavioralVerification(status, original_result, candidate_result, alert_output_equal)
 
     def _execute(self, path: Path, pcap: Path | None = None) -> EngineVerification:
+        started_at = perf_counter()
         if pcap is None and "{pcap}" in self.command:
             raise ValueError("engine command containing {pcap} requires behavior verification")
         parts = [part.replace("{file}", str(path)) for part in self._parts]
         if pcap is not None:
             parts = [part.replace("{pcap}", str(pcap)) for part in parts]
         if shutil.which(parts[0]) is None:
-            return EngineVerification(status="unavailable")
-        try:
-            completed = subprocess.run(
-                parts,
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=self.timeout,
-            )
-        except subprocess.TimeoutExpired as exc:
-            return EngineVerification(
-                status="timeout",
-                stdout=(exc.stdout.decode() if isinstance(exc.stdout, bytes) else exc.stdout) or "",
-                stderr=(exc.stderr.decode() if isinstance(exc.stderr, bytes) else exc.stderr) or "",
-            )
-        except OSError as exc:
-            return EngineVerification(status="error", stderr=str(exc))
-        return EngineVerification(
-            status="passed" if completed.returncode == 0 else "failed",
-            returncode=completed.returncode,
-            stdout=completed.stdout,
-            stderr=completed.stderr,
+            result = EngineVerification(status="unavailable")
+            error_type = None
+        else:
+            try:
+                completed = subprocess.run(
+                    parts,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.timeout,
+                )
+            except subprocess.TimeoutExpired as exc:
+                result = EngineVerification(
+                    status="timeout",
+                    stdout=(exc.stdout.decode() if isinstance(exc.stdout, bytes) else exc.stdout)
+                    or "",
+                    stderr=(exc.stderr.decode() if isinstance(exc.stderr, bytes) else exc.stderr)
+                    or "",
+                )
+                error_type = type(exc).__name__
+            except OSError as exc:
+                result = EngineVerification(status="error", stderr=str(exc))
+                error_type = type(exc).__name__
+            else:
+                result = EngineVerification(
+                    status="passed" if completed.returncode == 0 else "failed",
+                    returncode=completed.returncode,
+                    stdout=completed.stdout,
+                    stderr=completed.stderr,
+                )
+                error_type = None
+
+        if result.passed:
+            level = logging.INFO
+        elif result.status == "error":
+            level = logging.ERROR
+        else:
+            level = logging.WARNING
+        logger.log(
+            level,
+            "engine_validation_finished",
+            extra={
+                "event_name": "engine_validation_finished",
+                "status": result.status,
+                "outcome": result.status,
+                "returncode": result.returncode,
+                "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+                "error_type": error_type,
+            },
         )
+        return result
 
 
 def _alert_json(output: str) -> list[object] | None:

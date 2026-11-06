@@ -52,6 +52,7 @@ from .exceptions import (
     UnsupportedDialectError,
     ValidationError,
 )
+from .observability import TRACE, add_logging_handler, configure_logging, log_context
 from .printer import CanonicalPrinter, SourcePrinter
 from .version import (
     __ast_version__,
@@ -62,6 +63,7 @@ from .version import (
 )
 
 __all__ = [
+    "TRACE",
     # Enums
     "Action",
     "CanonicalPrinter",
@@ -87,11 +89,14 @@ __all__ = [
     "__email__",
     "__license__",
     "__version__",
+    "add_logging_handler",
     "apply_safe_fixes",
+    "configure_logging",
     "coverage_report_to_sarif",
     "diagnostics_to_sarif",
     # Core API functions
     "from_json",
+    "log_context",
     "migrate_ast",
     "optimization_results_to_sarif",
     "parse_file",

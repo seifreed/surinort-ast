@@ -61,14 +61,11 @@ def test_readme_cli_examples_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
             continue
 
         args = shlex.split(line)
-        args = [
-            "rules/local.rules"
-            if argument == "rules/*.rules"
-            else "rules/vendor/vendor.rules"
-            if argument == "rules/vendor/*.rules"
-            else argument
-            for argument in args
-        ]
+        for index, argument in enumerate(args):
+            if argument == "rules/*.rules":
+                args[index] = "rules/local.rules"
+            elif argument == "rules/vendor/*.rules":
+                args[index] = "rules/vendor/vendor.rules"
         result = runner.invoke(app, args[1:])
         assert result.exit_code == 0, f"{line}\n{result.output}"
 

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sys
 import tempfile
 from pathlib import Path
+from time import perf_counter
 from typing import Any, BinaryIO, cast
 
 from ..analysis import CapabilityRegistry, CoverageAnalyzer, EngineTarget, EngineVerifier
@@ -14,6 +16,7 @@ from ..api import apply_safe_fixes, parse_rule, validate_rule, validate_rules
 from ..core.enums import Action, DiagnosticLevel, Dialect, Protocol
 from ..core.nodes import FlowbitsOption, Rule, extract_sid
 from ..exceptions import ParseError
+from ..observability import configure_logging, log_context
 from ..printer import CanonicalPrinter
 from ..streaming.parser import _iter_rule_blocks
 
@@ -51,6 +54,8 @@ _OPTION_COMPLETIONS = (
     "dns_query",
     "tls_sni",
 )
+
+logger = logging.getLogger(__name__)
 
 _KEYWORD_DOCUMENTATION = {
     "content": "Matches bytes in the current detection buffer. Position modifiers attach to this match.",
@@ -124,7 +129,8 @@ def diagnostics_for_text(
     text: str, dialect: Dialect = Dialect.SURICATA, target: EngineTarget | None = None
 ) -> list[dict[str, Any]]:
     """Return LSP diagnostics for a document."""
-    return _parse_document(text, dialect, target)[1]
+    with log_context(operation="lsp.document_diagnostics"):
+        return _parse_document(text, dialect, target)[1]
 
 
 def hover_for_text(
@@ -324,20 +330,32 @@ def flowbit_locations(
 
 def match_space_preview(text: str, dialect: Dialect = Dialect.SURICATA) -> dict[str, Any]:
     """Return a coverage-backed, explicitly heuristic match-space preview."""
-    rules, diagnostics = _parse_document(text, dialect)
+    with log_context(operation="lsp.match_space_preview"):
+        rules, diagnostics = _parse_document(text, dialect)
     report = CoverageAnalyzer().analyze(rules)
     return {"heuristic": True, "coverage": report.to_dict(), "diagnostics": diagnostics}
 
 
 def engine_validation_for_text(text: str, command: str, timeout: float = 30.0) -> dict[str, Any]:
     """Validate the current document with a configured local engine command."""
+    started_at = perf_counter()
     try:
-        verifier = EngineVerifier(command, timeout)
-        with tempfile.TemporaryDirectory(prefix="surinort-lsp-") as directory:
-            path = Path(directory) / "document.rules"
-            path.write_text(text, encoding="utf-8")
-            return verifier.verify(path).to_dict()
+        with log_context(operation="lsp.engine_validation"):
+            verifier = EngineVerifier(command, timeout)
+            with tempfile.TemporaryDirectory(prefix="surinort-lsp-") as directory:
+                path = Path(directory) / "document.rules"
+                path.write_text(text, encoding="utf-8")
+                return verifier.verify(path).to_dict()
     except (OSError, ValueError) as exc:
+        logger.warning(
+            "lsp_engine_validation_failed",
+            extra={
+                "event_name": "lsp_engine_validation_failed",
+                "error_type": type(exc).__name__,
+                "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+                "outcome": "failure",
+            },
+        )
         return {"status": "error", "returncode": None, "stdout": "", "stderr": str(exc)}
 
 
@@ -525,17 +543,25 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
             params = message.get("params", {})
             document = params.get("textDocument", {})
             text, dialect, _ = _document_state(documents, document.get("uri", ""))
-            preview_result = match_space_preview(text, dialect)
+            request_context = {"operation": "lsp.match_space_preview"}
+            if request_id is not None:
+                request_context["request_id"] = str(request_id)
+            with log_context(**request_context):
+                preview_result = match_space_preview(text, dialect)
             _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": preview_result})
         elif method == "surinort/engineValidate":
             params = message.get("params", {})
             document = params.get("textDocument", {})
             text, _, _ = _document_state(documents, document.get("uri", ""))
-            engine_result = engine_validation_for_text(
-                text,
-                str(params.get("command", "")),
-                float(params.get("timeout", 30.0)),
-            )
+            request_context = {"operation": "lsp.engine_validation"}
+            if request_id is not None:
+                request_context["request_id"] = str(request_id)
+            with log_context(**request_context):
+                engine_result = engine_validation_for_text(
+                    text,
+                    str(params.get("command", "")),
+                    float(params.get("timeout", 30.0)),
+                )
             _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": engine_result})
         elif method == "shutdown":
             _write_message(writer, {"jsonrpc": "2.0", "id": request_id, "result": None})
@@ -545,7 +571,22 @@ def serve(reader: BinaryIO, writer: BinaryIO) -> None:  # noqa: PLR0912, PLR0915
 
 def main() -> None:
     """Run the LSP endpoint over stdio."""
-    serve(sys.stdin.buffer, sys.stdout.buffer)
+    configure_logging()
+    logger.info("lsp_started", extra={"event_name": "lsp_started"})
+    try:
+        serve(sys.stdin.buffer, sys.stdout.buffer)
+    except Exception as exc:
+        logger.critical(
+            "lsp_stopped_unexpectedly",
+            extra={
+                "event_name": "lsp_stopped_unexpectedly",
+                "error_type": type(exc).__name__,
+                "outcome": "failure",
+            },
+        )
+        raise
+    finally:
+        logger.info("lsp_stopped", extra={"event_name": "lsp_stopped"})
 
 
 __all__ = [

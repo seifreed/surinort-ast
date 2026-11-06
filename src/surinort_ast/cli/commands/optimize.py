@@ -118,7 +118,7 @@ def optimize_command(
     ] = None,
 ) -> None:
     """Suggest safe-looking optimizations; require explicit verification to apply them."""
-    with cli_error_handler():
+    with cli_error_handler(operation="cli.optimize"):
         _validate_options(suggest, apply, in_place, output, engine_verify, engine_command, pcap)
 
         with parsing_progress("Optimizing rules..."):

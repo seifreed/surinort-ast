@@ -84,7 +84,10 @@ def parse_hex_string(s: str) -> bytes:
     try:
         return bytes.fromhex(hex_content)
     except ValueError as e:
-        logger.warning(f"Invalid hex string '{s}': {e}")
+        logger.warning(
+            "invalid_hex_content",
+            extra={"event_name": "invalid_hex_content", "error_type": type(e).__name__},
+        )
         raise ValueError(f"Invalid hex content in '{s}': {e}") from e
 
 

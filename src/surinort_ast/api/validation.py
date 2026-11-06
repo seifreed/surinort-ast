@@ -291,7 +291,9 @@ def _validate_byte_flags(
     return diagnostics
 
 
-def _validate_byte_operations(rule: Rule, target: EngineTarget | None = None) -> list[Diagnostic]:  # noqa: PLR0912, PLR0915
+def _validate_byte_operations(  # noqa: PLR0912, PLR0915
+    rule: Rule, target: EngineTarget | None = None
+) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     defined: set[str] = set()
     snort_target = _is_snort_target(target)
@@ -722,7 +724,9 @@ def _validate_target_options(rule: Rule, target: EngineTarget) -> list[Diagnosti
     return diagnostics
 
 
-def _validate_option_chain(rule: Rule, target: EngineTarget | None = None) -> list[Diagnostic]:  # noqa: PLR0912, PLR0915
+def _validate_option_chain(  # noqa: PLR0912, PLR0915
+    rule: Rule, target: EngineTarget | None = None
+) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     counts: dict[str, int] = {}
     previous_content = False
@@ -1038,13 +1042,12 @@ def apply_safe_fixes(rule: Rule) -> Rule:
 
 def _validate_buffer_semantics(rule: Rule) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
-    protocol = (
-        rule.header.protocol.value
-        if rule.header is not None
-        else rule.protocol.value
-        if rule.protocol is not None
-        else None
-    )
+    if rule.header is not None:
+        protocol = rule.header.protocol.value
+    elif rule.protocol is not None:
+        protocol = rule.protocol.value
+    else:
+        protocol = None
     selected_buffer: str | None = None
     has_match = False
     for option in rule.options:

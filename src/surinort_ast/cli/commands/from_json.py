@@ -11,13 +11,22 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from time import perf_counter
 from typing import Annotated, Any
 
 import typer
 
 from ...api import from_json, print_rule
 from ...exceptions import SerializationError
-from ..shared import OutputOption, err_console, read_input, status_console, write_output
+from ..shared import (
+    OutputOption,
+    err_console,
+    log_cli_failure,
+    log_cli_success,
+    read_input,
+    status_console,
+    write_output,
+)
 
 
 def _flatten_loaded(items: Any) -> Any:
@@ -44,6 +53,7 @@ def from_json_command(
 
         cat rules.json | surinort from-json -
     """
+    started_at = perf_counter()
     try:
         # Read input
         if file and str(file) == "-":
@@ -66,6 +76,7 @@ def from_json_command(
         rules: list[Any] = list(_flatten_loaded(from_json(rule_data) for rule_data in rules_data))
 
         if not rules:
+            log_cli_failure("cli.from_json", "NoValidRules", expected=True, started_at=started_at)
             err_console.print("Error: No valid rules found in JSON")
             raise typer.Exit(1) from None
 
@@ -78,15 +89,19 @@ def from_json_command(
         write_output(result, output)
 
         status_console.print(f"[green]Success:[/green] Converted {len(rules)} rule(s) from JSON")
+        log_cli_success("cli.from_json", started_at, rule_count=len(rules))
 
     except json.JSONDecodeError as e:
+        log_cli_failure("cli.from_json", e, expected=True, started_at=started_at)
         err_console.print(f"JSON decode error: {e}")
         raise typer.Exit(1) from None
     except SerializationError as e:
+        log_cli_failure("cli.from_json", e, expected=True, started_at=started_at)
         err_console.print(f"Serialization error: {e}")
         raise typer.Exit(1) from None
     except typer.Exit:
         raise
     except Exception as e:
+        log_cli_failure("cli.from_json", e, started_at=started_at)
         err_console.print(f"Unexpected error: {e}")
         raise typer.Exit(1) from None

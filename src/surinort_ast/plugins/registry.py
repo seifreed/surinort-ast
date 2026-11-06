@@ -76,7 +76,9 @@ class PluginRegistry:
         # Thread safety
         self._lock = threading.RLock()
 
-        logger.debug("Plugin registry initialized")
+        logger.debug(
+            "plugin_registry_initialized", extra={"event_name": "plugin_registry_initialized"}
+        )
 
     # ========================================================================
     # Shared registry operations (one implementation per plugin type below)
@@ -106,7 +108,14 @@ class PluginRegistry:
             if not isinstance(plugin, abc):
                 raise TypeError(f"Plugin must implement {abc.__name__}, got {type(plugin)}")
             registry[name] = plugin
-            logger.info(f"Registered {label.lower()} plugin: {name}")
+            logger.info(
+                "plugin_registered",
+                extra={
+                    "event_name": "plugin_registered",
+                    "plugin_name": name,
+                    "plugin_type": label.lower(),
+                },
+            )
 
     def _get_plugin(self, registry: dict[str, _Plugin], name: str) -> _Plugin | None:
         """Return the plugin registered under ``name``, or ``None``."""
@@ -123,7 +132,14 @@ class PluginRegistry:
         with self._lock:
             if name in registry:
                 del registry[name]
-                logger.info(f"Unregistered {label.lower()} plugin: {name}")
+                logger.info(
+                    "plugin_unregistered",
+                    extra={
+                        "event_name": "plugin_unregistered",
+                        "plugin_name": name,
+                        "plugin_type": label.lower(),
+                    },
+                )
                 return True
             return False
 
@@ -428,7 +444,7 @@ class PluginRegistry:
             self._serializers.clear()
             self._analyzers.clear()
             self._queries.clear()
-            logger.info("All plugins cleared from registry")
+            logger.info("plugin_registry_cleared", extra={"event_name": "plugin_registry_cleared"})
 
     def unregister_parser(self, name: str) -> bool:
         """
@@ -525,7 +541,10 @@ class _RegistrySingleton:
                 # Double-checked locking
                 if cls._instance is None:
                     cls._instance = PluginRegistry()
-                    logger.debug("Global plugin registry created")
+                    logger.debug(
+                        "global_plugin_registry_created",
+                        extra={"event_name": "global_plugin_registry_created"},
+                    )
 
         return cls._instance
 
@@ -534,7 +553,9 @@ class _RegistrySingleton:
         """Reset the global registry (primarily for testing)."""
         with cls._lock:
             cls._instance = None
-            logger.debug("Global plugin registry reset")
+            logger.debug(
+                "global_plugin_registry_reset", extra={"event_name": "global_plugin_registry_reset"}
+            )
 
 
 def get_registry() -> PluginRegistry:

@@ -173,6 +173,7 @@ class FilterProcessor(StreamProcessor):
             predicate: Function that returns True to keep rule, False to filter out
         """
         self.predicate = predicate
+        self._logged_predicate_failure = False
 
     def process(self, rule: Rule) -> Rule | None:
         """
@@ -189,11 +190,16 @@ class FilterProcessor(StreamProcessor):
                 return rule
             return None
         except Exception as e:
-            logger.warning(
-                f"Filter predicate raised {type(e).__name__}: {e}. "
-                f"Keeping rule to avoid silent data loss. "
-                f"Fix predicate to handle this case explicitly."
-            )
+            if not self._logged_predicate_failure:
+                logger.warning(
+                    "filter_predicate_failed",
+                    extra={
+                        "event_name": "filter_predicate_failed",
+                        "error_type": type(e).__name__,
+                        "outcome": "kept_rule",
+                    },
+                )
+                self._logged_predicate_failure = True
             return rule
 
 
@@ -238,6 +244,7 @@ class TransformProcessor(StreamProcessor):
             transformer: Function that transforms a rule
         """
         self.transformer = transformer
+        self._logged_transform_failure = False
 
     def process(self, rule: Rule) -> Rule | None:
         """
@@ -252,7 +259,15 @@ class TransformProcessor(StreamProcessor):
         try:
             return self.transformer(rule)
         except Exception as e:
-            logger.error(f"Transform error: {e}")
+            if not self._logged_transform_failure:
+                logger.error(
+                    "stream_transform_failed",
+                    extra={
+                        "event_name": "stream_transform_failed",
+                        "error_type": type(e).__name__,
+                    },
+                )
+                self._logged_transform_failure = True
             return None
 
 
@@ -303,6 +318,7 @@ class ValidateProcessor(StreamProcessor):
         self.strict = strict
         self.custom_validators = custom_validators or []
         self._seen_sids: set[int] = set()
+        self._logged_validator_failure = False
 
     def process(self, rule: Rule) -> Rule | None:
         """
@@ -330,7 +346,15 @@ class ValidateProcessor(StreamProcessor):
                 custom_diags = validator(rule)
                 diagnostics.extend(custom_diags)
             except Exception as e:
-                logger.error(f"Custom validator error: {e}")
+                if not self._logged_validator_failure:
+                    logger.error(
+                        "custom_validator_failed",
+                        extra={
+                            "event_name": "custom_validator_failed",
+                            "error_type": type(e).__name__,
+                        },
+                    )
+                    self._logged_validator_failure = True
 
         # Update rule with diagnostics
         if diagnostics != list(rule.diagnostics):
@@ -375,6 +399,7 @@ class ValidateProcessor(StreamProcessor):
     def reset(self) -> None:
         """Clear the SIDs tracked for uniqueness checks."""
         self._seen_sids.clear()
+        self._logged_validator_failure = False
 
 
 # ============================================================================
@@ -470,6 +495,7 @@ class AggregateProcessor(StreamProcessor):
         """
         self.stats = AggregateStats()
         self.custom_aggregators = custom_aggregators or []
+        self._logged_aggregator_failure = False
 
     def process(self, rule: Rule) -> Rule:
         """
@@ -489,13 +515,13 @@ class AggregateProcessor(StreamProcessor):
         self.stats.rules_by_action[action] = self.stats.rules_by_action.get(action, 0) + 1
 
         # Count by protocol
-        protocol = (
-            rule.header.protocol
-            if rule.header is not None
-            else rule.protocol
-            if rule.protocol is not None
-            else "unknown"
-        )
+        protocol: str
+        if rule.header is not None:
+            protocol = rule.header.protocol
+        elif rule.protocol is not None:
+            protocol = rule.protocol
+        else:
+            protocol = "unknown"
         self.stats.rules_by_protocol[protocol] = self.stats.rules_by_protocol.get(protocol, 0) + 1
 
         # Count diagnostics
@@ -518,10 +544,19 @@ class AggregateProcessor(StreamProcessor):
             try:
                 aggregator(self.stats, rule)
             except Exception as e:
-                logger.error(f"Custom aggregator error: {e}")
+                if not self._logged_aggregator_failure:
+                    logger.error(
+                        "custom_aggregator_failed",
+                        extra={
+                            "event_name": "custom_aggregator_failed",
+                            "error_type": type(e).__name__,
+                        },
+                    )
+                    self._logged_aggregator_failure = True
 
         return rule
 
     def reset(self) -> None:
         """Reset statistics to initial state."""
         self.stats = AggregateStats()
+        self._logged_aggregator_failure = False

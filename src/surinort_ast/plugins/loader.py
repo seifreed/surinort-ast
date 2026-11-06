@@ -93,7 +93,10 @@ class PluginLoader:
             try:
                 self.load_entry_points()
             except Exception as e:
-                logger.warning(f"Auto-load of entry point plugins failed: {e}")
+                logger.warning(
+                    "plugin_autoload_failed",
+                    extra={"event_name": "plugin_autoload_failed", "error_type": type(e).__name__},
+                )
 
     # ========================================================================
     # Entry Point Discovery (Recommended)
@@ -135,13 +138,18 @@ class PluginLoader:
             # Discover entry points
             entry_points = importlib.metadata.entry_points(group=group)
 
-            logger.debug(f"Discovered {len(entry_points)} entry points in group '{group}'")
+            logger.debug(
+                "plugin_entry_points_discovered",
+                extra={
+                    "event_name": "plugin_entry_points_discovered",
+                    "item_count": len(entry_points),
+                },
+            )
 
             # Load each entry point
             for entry_point in entry_points:
                 try:
                     plugin_name = entry_point.name
-                    logger.debug(f"Loading plugin from entry point: {plugin_name}")
 
                     # Load plugin class
                     plugin_class = entry_point.load()
@@ -157,7 +165,6 @@ class PluginLoader:
 
                     self._loaded_plugins.add(plugin_name)
                     loaded_count += 1
-                    logger.info(f"Loaded plugin from entry point: {plugin_name}")
 
                 except Exception as e:
                     self._record_plugin_failure(
@@ -170,9 +177,19 @@ class PluginLoader:
         except Exception as e:
             if not ignore_errors:
                 raise PluginDiscoveryError(f"Entry point discovery failed: {e}") from e
-            logger.error(f"Entry point discovery failed: {e}")
+            logger.error(
+                "plugin_entry_point_discovery_failed",
+                extra={
+                    "event_name": "plugin_entry_point_discovery_failed",
+                    "error_type": type(e).__name__,
+                    "outcome": "failure",
+                },
+            )
 
-        logger.info(f"Loaded {loaded_count} plugins from entry points")
+        logger.info(
+            "plugin_entry_points_loaded",
+            extra={"event_name": "plugin_entry_points_loaded", "item_count": loaded_count},
+        )
         return loaded_count
 
     # ========================================================================
@@ -220,12 +237,14 @@ class PluginLoader:
 
         # Scan for plugin files
         plugin_files = sorted(plugin_dir.glob(pattern))
-        logger.debug(f"Found {len(plugin_files)} plugin files in {plugin_dir}")
+        logger.debug(
+            "plugin_files_discovered",
+            extra={"event_name": "plugin_files_discovered", "item_count": len(plugin_files)},
+        )
 
         for plugin_file in plugin_files:
             try:
                 module_name = plugin_file.stem
-                logger.debug(f"Loading plugin from file: {plugin_file.name}")
 
                 # Import module using spec_from_file_location (avoids sys.path injection)
                 spec = importlib.util.spec_from_file_location(
@@ -233,7 +252,10 @@ class PluginLoader:
                     plugin_file,
                 )
                 if spec is None or spec.loader is None:
-                    logger.warning(f"Cannot load module spec for {plugin_file.name}")
+                    logger.warning(
+                        "plugin_module_unavailable",
+                        extra={"event_name": "plugin_module_unavailable"},
+                    )
                     continue
 
                 module = importlib.util.module_from_spec(spec)
@@ -252,7 +274,10 @@ class PluginLoader:
                     raise
 
                 if not plugins_found:
-                    logger.warning(f"No plugin classes found in {plugin_file.name}")
+                    logger.warning(
+                        "plugin_module_empty",
+                        extra={"event_name": "plugin_module_empty"},
+                    )
                     # Clean up module from sys.modules
                     sys.modules.pop(spec.name, None)
                     continue
@@ -276,7 +301,6 @@ class PluginLoader:
 
                     self._loaded_plugins.add(plugin_name)
                     loaded_count += 1
-                    logger.info(f"Loaded plugin '{plugin_name}' from file: {plugin_file.name}")
 
             except PluginLoadError:
                 # A per-plugin failure (discovery or registration) under
@@ -293,7 +317,10 @@ class PluginLoader:
                     message=f"Failed to load plugin from {plugin_file.name}: {e}",
                 )
 
-        logger.info(f"Loaded {loaded_count} plugins from directory {plugin_dir}")
+        logger.info(
+            "plugin_directory_loaded",
+            extra={"event_name": "plugin_directory_loaded", "item_count": loaded_count},
+        )
         return loaded_count
 
     # ========================================================================
@@ -365,7 +392,15 @@ class PluginLoader:
         """
         self._failed_plugins[plugin_name] = str(error)
         if ignore_errors:
-            logger.error(message, exc_info=True)
+            logger.error(
+                "plugin_load_failed",
+                extra={
+                    "event_name": "plugin_load_failed",
+                    "plugin_name": plugin_name,
+                    "error_type": type(error).__name__,
+                    "outcome": "failure",
+                },
+            )
             return
         raise PluginLoadError(message) from error
 
@@ -402,8 +437,6 @@ class PluginLoader:
                 f"Plugin {type(plugin).__name__} requires unsupported API version "
                 f"{api_version!r}; current version is {PLUGIN_API_VERSION!r}"
             )
-
-        logger.debug(f"Validated plugin: {type(plugin).__name__}")
 
     # ========================================================================
     # Plugin Status

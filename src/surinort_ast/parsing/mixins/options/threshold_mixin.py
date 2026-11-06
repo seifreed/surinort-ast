@@ -11,7 +11,6 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
@@ -24,8 +23,6 @@ if TYPE_CHECKING:
 
 from ....core.diagnostics import DiagnosticLevel
 from ....core.nodes import DetectionFilterOption, GenericOption, ThresholdOption
-
-logger = logging.getLogger(__name__)
 
 
 class ThresholdOptionsMixin:
@@ -113,7 +110,6 @@ class ThresholdOptionsMixin:
                     seconds=int(param_dict["seconds"]),
                 )
             except (ValueError, TypeError) as e:
-                logger.debug(f"Threshold structured parse failed: {e}")
                 self.add_diagnostic(
                     DiagnosticLevel.WARNING,
                     f"Could not parse threshold as structured option: {e}. "
@@ -197,7 +193,6 @@ class ThresholdOptionsMixin:
                     seconds=int(param_dict["seconds"]),
                 )
             except (ValueError, TypeError) as e:
-                logger.debug(f"detection_filter structured parse failed: {e}")
                 self.add_diagnostic(
                     DiagnosticLevel.WARNING,
                     f"Could not parse detection_filter as structured option: {e}. "

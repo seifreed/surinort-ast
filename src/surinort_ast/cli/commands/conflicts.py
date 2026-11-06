@@ -11,6 +11,7 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from pathlib import Path
+from time import perf_counter
 from typing import Annotated
 
 import typer
@@ -23,6 +24,8 @@ from ..shared import (
     DialectOption,
     OutputOption,
     err_console,
+    log_cli_failure,
+    log_cli_success,
     parsing_progress,
     resolve_output_format,
     write_output,
@@ -49,7 +52,14 @@ def conflicts_command(
 
         surinort conflicts rules.txt --min-severity high --format json
     """
-    fmt = resolve_output_format(output_format, ("text", "json", "markdown"))
+    started_at = perf_counter()
+    try:
+        fmt = resolve_output_format(output_format, ("text", "json", "markdown"))
+    except typer.Exit:
+        log_cli_failure(
+            "cli.conflicts", "InvalidOutputFormat", expected=True, started_at=started_at
+        )
+        raise
 
     try:
         with parsing_progress("Detecting conflicts..."):
@@ -64,10 +74,20 @@ def conflicts_command(
             rendered = report.to_text(verbose=True)
 
         write_output(rendered, output)
+        log_cli_success(
+            "cli.conflicts",
+            started_at,
+            rule_count=len(rules),
+            conflict_count=len(report.conflicts),
+        )
 
     except ParseError as e:
+        log_cli_failure(
+            "cli.conflicts", e, expected=True, event_name="cli_parse_failed", started_at=started_at
+        )
         err_console.print(f"Parse error: {e}")
         raise typer.Exit(1) from None
     except Exception as e:
+        log_cli_failure("cli.conflicts", e, started_at=started_at)
         err_console.print(f"Unexpected error: {e}")
         raise typer.Exit(1) from None

@@ -18,6 +18,7 @@ import threading
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 from lark import Lark, LarkError, UnexpectedInput, UnexpectedToken
@@ -150,8 +151,6 @@ class LarkRuleParser:
             cache=True,  # Cache parser tables
         )
 
-        logger.debug(f"Created Lark parser for {self.dialect.value} dialect")
-
         return self._lark_parser
 
     @contextmanager
@@ -281,7 +280,6 @@ class LarkRuleParser:
 
         # Skip comments
         if text.startswith("#"):
-            logger.debug(f"Skipping comment line: {text[:50]}")
             error = ErrorNode(
                 error_type="Comment",
                 message="Comment line, not a rule",
@@ -332,8 +330,6 @@ class LarkRuleParser:
                 # Create new Rule with updated diagnostics (immutable)
                 rule = rule.model_copy(update={"diagnostics": tuple(existing_diagnostics)})
 
-            logger.debug(f"Successfully parsed rule: SID={extract_sid(rule)}")
-
             return rule
 
         except (UnexpectedInput, UnexpectedToken, UnexpectedCharacters) as e:
@@ -344,8 +340,6 @@ class LarkRuleParser:
 
         except Exception as e:
             # Catch-all for unexpected errors
-            logger.exception(f"Unexpected error parsing rule: {e}")
-
             error = ErrorNode(
                 error_type="UnexpectedError",
                 message=f"Unexpected error: {type(e).__name__}: {e}",
@@ -391,7 +385,7 @@ class LarkRuleParser:
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        logger.info(f"Parsing rules from {file_path}")
+        started_at = perf_counter()
 
         # Validate file size before reading
         file_size = file_path.stat().st_size
@@ -457,7 +451,22 @@ class LarkRuleParser:
             if rule:
                 rules.append(rule)
 
-        logger.info(f"Parsed {len(rules)} rules from {file_path}")
+        error_count = sum(
+            diagnostic.level == DiagnosticLevel.ERROR
+            for rule in rules
+            for diagnostic in rule.diagnostics
+        )
+        logger.info(
+            "file_parse_completed",
+            extra={
+                "event_name": "file_parse_completed",
+                "rule_count": len(rules),
+                "error_count": error_count,
+                "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+                "dialect": self.dialect.value,
+                "outcome": "partial" if error_count else "success",
+            },
+        )
 
         return rules
 
@@ -544,8 +553,6 @@ class LarkRuleParser:
             return rule
 
         except Exception as e:
-            logger.warning(f"Failed to parse rule at line {first_line_num}: {e}")
-
             if skip_errors:
                 return None
 
@@ -597,8 +604,6 @@ class LarkRuleParser:
                     ),
                     file_path=file_path,
                 )
-
-        logger.warning(f"Parse error: {error_msg}")
 
         error_node = ErrorNode(
             error_type=type(error).__name__,

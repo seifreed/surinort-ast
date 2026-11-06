@@ -138,7 +138,7 @@ def parse_command(
 
         surinort parse rules.txt --json -o output.json
     """
-    with cli_error_handler(verbose=verbose):
+    with cli_error_handler(verbose=verbose, operation="cli.parse"):
         fmt = _resolve_output_format(output_format, json_output)
 
         # Read and parse input

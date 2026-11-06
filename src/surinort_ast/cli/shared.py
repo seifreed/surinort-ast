@@ -12,10 +12,10 @@ from __future__ import annotations
 import io
 import logging
 import sys
-import traceback
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
+from time import perf_counter
 from typing import Annotated
 
 import typer
@@ -27,6 +27,7 @@ from ..core.enums import Dialect
 from ..core.nodes import Rule
 from ..core.path_security import PathSecurityError, validate_path
 from ..exceptions import ParseError
+from ..observability import log_context
 
 # ============================================================================
 # Reusable CLI option types
@@ -62,6 +63,49 @@ status_console = Console(stderr=True)
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
+
+def log_cli_failure(
+    operation: str,
+    error: BaseException | str,
+    *,
+    expected: bool = False,
+    event_name: str = "cli_operation_failed",
+    error_code: str | None = None,
+    duration_ms: float | None = None,
+    started_at: float | None = None,
+    exc_info: bool = False,
+) -> None:
+    """Log command failure metadata without copying untrusted error text."""
+    if duration_ms is None and started_at is not None:
+        duration_ms = round((perf_counter() - started_at) * 1000, 2)
+    logger.log(
+        logging.WARNING if expected else logging.ERROR,
+        event_name,
+        extra={
+            "event_name": event_name,
+            "operation": operation,
+            "error_type": type(error).__name__ if isinstance(error, BaseException) else error,
+            "error_code": error_code,
+            "duration_ms": duration_ms,
+            "outcome": "failure",
+        },
+        exc_info=exc_info,
+    )
+
+
+def log_cli_success(operation: str, started_at: float, **fields: int | str) -> None:
+    """Log one command completion with its duration and safe summary fields."""
+    logger.info(
+        "cli_operation_completed",
+        extra={
+            "event_name": "cli_operation_completed",
+            "operation": operation,
+            "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+            "outcome": "success",
+            **fields,
+        },
+    )
 
 
 def validate_file_path(
@@ -109,7 +153,7 @@ def validate_file_path(
 
 
 @contextmanager
-def cli_error_handler(verbose: bool = False) -> Iterator[None]:
+def cli_error_handler(verbose: bool = False, operation: str = "cli.command") -> Iterator[None]:
     """Translate command failures into a clean CLI exit (code 1).
 
     Wraps a command body so error reporting and exit codes stay consistent
@@ -118,17 +162,47 @@ def cli_error_handler(verbose: bool = False) -> Iterator[None]:
     and a ``typer.Exit`` raised inside the body propagates unchanged so commands
     can still set their own exit codes.
     """
+    started_at = perf_counter()
     try:
-        yield
+        with log_context(operation=operation):
+            yield
+        logger.info(
+            "cli_operation_completed",
+            extra={
+                "event_name": "cli_operation_completed",
+                "operation": operation,
+                "duration_ms": round((perf_counter() - started_at) * 1000, 2),
+                "outcome": "success",
+            },
+        )
     except ParseError as e:
+        log_cli_failure(
+            operation,
+            e,
+            expected=True,
+            event_name="cli_parse_failed",
+            duration_ms=round((perf_counter() - started_at) * 1000, 2),
+        )
         err_console.print(f"Parse error: {e}")
         raise typer.Exit(1) from None
-    except typer.Exit:
+    except typer.Exit as e:
+        if e.exit_code:
+            log_cli_failure(
+                operation,
+                "CommandExit",
+                expected=True,
+                error_code=str(e.exit_code),
+                duration_ms=round((perf_counter() - started_at) * 1000, 2),
+            )
         raise
     except Exception as e:
+        log_cli_failure(
+            operation,
+            e,
+            duration_ms=round((perf_counter() - started_at) * 1000, 2),
+            exc_info=verbose,
+        )
         err_console.print(f"Unexpected error: {e}")
-        if verbose:
-            err_console.print(traceback.format_exc())
         raise typer.Exit(1) from None
 
 
@@ -306,6 +380,7 @@ def parse_rules_from_content(
         transformer = RuleTransformer(dialect=dialect)
 
     rules: list[Rule] = []
+    skipped_count = 0
     # Reassemble multi-line rules and apply the same normalization the file path
     # uses; parsing physical lines one by one silently dropped continued rules
     # and rejected the ``...\";`` content quirk that real rulesets use.
@@ -320,7 +395,18 @@ def parse_rules_from_content(
             if on_error is not None:
                 on_error(normalized, exc)
             else:
-                logger.debug("Skipping malformed rule from stream input: %s", exc)
+                skipped_count += 1
+
+    if skipped_count:
+        logger.info(
+            "stdin_parse_completed",
+            extra={
+                "event_name": "stdin_parse_completed",
+                "error_count": skipped_count,
+                "rule_count": len(rules),
+                "outcome": "partial",
+            },
+        )
 
     return rules
 

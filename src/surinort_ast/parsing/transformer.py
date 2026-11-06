@@ -18,7 +18,6 @@ Author: Marc Rivero | @seifreed | mriverolopez@gmail.com
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
 from typing import Any
 
@@ -45,9 +44,6 @@ from .mixins.option_transformer import (
 )
 from .mixins.port_transformer import PortTransformerMixin
 from .parser_config import ParserConfig
-
-logger = logging.getLogger(__name__)
-
 
 # Re-export helper functions for backward compatibility with tests
 __all__ = [
@@ -183,7 +179,6 @@ class RuleTransformer(
             phase="syntax",
         )
         self.diagnostics.append(diag)
-        logger.debug(f"Diagnostic: {diag}")
 
     # ========================================================================
     # Top-Level Rule Assembly

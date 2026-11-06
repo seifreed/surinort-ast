@@ -10,11 +10,12 @@ Author: Marc Rivero López | @seifreed | mriverolopez@gmail.com
 from __future__ import annotations
 
 from pathlib import Path
+from time import perf_counter
 from typing import Annotated
 
 import typer
 
-from ..shared import console
+from ..shared import console, log_cli_failure, log_cli_success
 
 # ============================================================================
 # Plugin List Command
@@ -31,6 +32,7 @@ def list_plugins_command() -> None:
     Example:
         surinort plugins list
     """
+    started_at = perf_counter()
     from surinort_ast.plugins import get_registry
 
     try:
@@ -54,10 +56,12 @@ def list_plugins_command() -> None:
         # Summary
         total = sum(len(names) for names in plugins.values())
         console.print(f"[bold]Total:[/bold] {total} plugins")
+        log_cli_success("cli.plugins.list", started_at, item_count=total)
 
     except typer.Exit:
         raise
     except Exception as e:
+        log_cli_failure("cli.plugins.list", e, started_at=started_at)
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1) from e
 
@@ -86,6 +90,7 @@ def info_command(
     Example:
         surinort plugins info yaml --type serializer
     """
+    started_at = perf_counter()
     from surinort_ast.plugins import get_registry
 
     try:
@@ -109,6 +114,9 @@ def info_command(
         elif plugin_type == "query":
             plugin = registry.get_query(name)
         else:
+            log_cli_failure(
+                "cli.plugins.info", "InvalidPluginType", expected=True, started_at=started_at
+            )
             console.print(
                 f"[bold red]Error:[/bold red] Invalid plugin type '{plugin_type}'. "
                 f"Must be one of: parser, serializer, analyzer, query"
@@ -116,6 +124,9 @@ def info_command(
             raise typer.Exit(1)
 
         if plugin is None:
+            log_cli_failure(
+                "cli.plugins.info", "PluginNotFound", expected=True, started_at=started_at
+            )
             console.print(
                 f"[bold red]Error:[/bold red] Plugin '{name}' not found in {plugin_type}s"
             )
@@ -138,10 +149,12 @@ def info_command(
             console.print(f"[bold]Format:[/bold] {plugin.get_format_name()}")
 
         console.print()
+        log_cli_success("cli.plugins.info", started_at, plugin_name=name, plugin_type=plugin_type)
 
     except typer.Exit:
         raise
     except Exception as e:
+        log_cli_failure("cli.plugins.info", e, started_at=started_at)
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1) from e
 
@@ -175,14 +188,21 @@ def load_command(
         surinort plugins load ./local_plugins
         surinort plugins load ./plugins --pattern "*.py"
     """
+    started_at = perf_counter()
     from surinort_ast.plugins import PluginLoader
 
     try:
         if not directory.exists():
+            log_cli_failure(
+                "cli.plugins.load", "PluginDirectoryNotFound", expected=True, started_at=started_at
+            )
             console.print(f"[bold red]Error:[/bold red] Directory not found: {directory}")
             raise typer.Exit(1)
 
         if not directory.is_dir():
+            log_cli_failure(
+                "cli.plugins.load", "NotADirectory", expected=True, started_at=started_at
+            )
             console.print(f"[bold red]Error:[/bold red] Not a directory: {directory}")
             raise typer.Exit(1)
 
@@ -208,10 +228,17 @@ def load_command(
             console.print("\n[bold red]Failed plugins:[/bold red]")
             for plugin_name, error in failed.items():
                 console.print(f"  ✗ {plugin_name}: {error}")
+        log_cli_success(
+            "cli.plugins.load",
+            started_at,
+            item_count=count,
+            outcome="partial" if failed else "success",
+        )
 
     except typer.Exit:
         raise
     except Exception as e:
+        log_cli_failure("cli.plugins.load", e, started_at=started_at)
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1) from e
 
@@ -264,6 +291,7 @@ def analyze_command(
         surinort plugins analyze rules.rules -p ./plugins -a security_auditor
         surinort plugins analyze rules.rules -a security_auditor -o results.json
     """
+    started_at = perf_counter()
     import json
 
     from surinort_ast.core.nodes import extract_sid_str
@@ -272,11 +300,20 @@ def analyze_command(
 
     try:
         if not input_file.exists():
+            log_cli_failure(
+                "cli.plugins.analyze", "InputFileNotFound", expected=True, started_at=started_at
+            )
             console.print(f"[bold red]Error:[/bold red] File not found: {input_file}")
             raise typer.Exit(1)
 
         if plugin_dir is not None:
             if not plugin_dir.is_dir():
+                log_cli_failure(
+                    "cli.plugins.analyze",
+                    "PluginDirectoryNotFound",
+                    expected=True,
+                    started_at=started_at,
+                )
                 console.print(f"[bold red]Error:[/bold red] Directory not found: {plugin_dir}")
                 raise typer.Exit(1)
             PluginLoader(auto_load=False).load_directory(plugin_dir)
@@ -286,6 +323,9 @@ def analyze_command(
         analyzer_plugin = registry.get_analyzer(analyzer)
 
         if analyzer_plugin is None:
+            log_cli_failure(
+                "cli.plugins.analyze", "AnalyzerNotFound", expected=True, started_at=started_at
+            )
             console.print(f"[bold red]Error:[/bold red] Analyzer '{analyzer}' not found")
             console.print("\nAvailable analyzers:")
             for name in registry.list_analyzers():
@@ -312,8 +352,7 @@ def analyze_command(
             )
 
             # Display summary
-            score = results.get("score", "N/A")
-            issues = results.get("issues", [])
+            score, issues = results.get("score", "N/A"), results.get("issues", [])
             console.print(f"Rule {i} (SID: {extract_sid_str(rule)}): Score {score}")
             if issues:
                 for issue in issues:
@@ -326,10 +365,12 @@ def analyze_command(
             with Path(output).open("w") as f:
                 json.dump(all_results, f, indent=2)
             console.print(f"\n[bold green]Results saved to:[/bold green] {output}")
+        log_cli_success("cli.plugins.analyze", started_at, rule_count=len(rules))
 
     except typer.Exit:
         raise
     except Exception as e:
+        log_cli_failure("cli.plugins.analyze", e, started_at=started_at)
         console.print(f"[bold red]Error:[/bold red] {e}")
         raise typer.Exit(1) from e
 
